@@ -16,6 +16,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay VR dans les jeux OpenXR Direct3D 12 et Vulkan : seule la partie modifiée des overlays est copiée vers le GPU dans l'image du jeu, comme en Direct3D 11, au lieu de toute l'image à chaque changement (moins de travail dans l'image du jeu). Relance tes jeux OpenXR après la mise à jour de l'app.
 - Overlay VR dans les jeux OpenXR Direct3D 11 (Le Mans Ultimate, rFactor 2...) : une nouvelle image complète des overlays (overlays déplacés, redimensionnés, affichés ou masqués) ne bloque plus l'image du jeu jusqu'à environ 28 ms ; les grandes images passent par une copie sur le GPU (environ 8 ms au pire mesuré, 0,75 ms d'habitude). Relance tes jeux OpenXR après la mise à jour de l'app.
 - Fenêtre miroir VR : ne s'ouvre plus presque entièrement hors de l'écran (seul son coin visible) après un changement d'écran ; elle s'ouvre alors à sa place par défaut.
+- Régie de course pendant que vous pilotez votre propre voiture (session en direct, hors de son garage) : la réalisation automatique, le `Ralenti` et `Les overlays suivent la voiture à l'antenne` ne déplacent plus la caméra du jeu ni vos overlays sur une autre voiture ; vos propres coupures fonctionnent toujours, et la régie reprend la main quand votre voiture est revenue à son garage.
 
 ## 0.28.1 (2026-11-01)
 

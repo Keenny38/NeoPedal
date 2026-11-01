@@ -248,6 +248,7 @@ class DirectorBackend(PageBackend):
         self.locked = False  # car on air kept: director does not cut
         self.seen: set[str] = set()  # incidents looked at (shown on air, replayed, clicked)
         self.instant = False  # instant replay of a live session shown
+        self._driving = False  # local player driving (see player_driving), last answer
         self.instant_waiting = False  # instant replay asked, not playing yet
         self.session_info = SessionState()
         self.laps_slot = -1  # car of lap history shown, -1 if none
@@ -455,6 +456,7 @@ class DirectorBackend(PageBackend):
         self.standings = state["standings"]
         self._sectors = None
         self.index_cars()
+        self.check_driving()
         if state["contacts"] != self.contacts:
             self.contacts = state["contacts"]
             self.incident_counts = self.count_incidents()
@@ -644,7 +646,7 @@ class DirectorBackend(PageBackend):
         self.candidates = self.director.candidates(recent, list(self.watcher.battles.values()), self.standings,
                                                    self.session_time, clock, race, start, self.watcher.severity,
                                                    seen=self.seen, gained=gained)
-        if self.mode == "auto" and not self.locked:
+        if self.mode == "auto" and not self.locked and not self.player_driving():
             pick = self.director.decide(self.candidates, clock)
             if pick is not None:
                 self.cut(self.director.take(pick, clock))
@@ -670,7 +672,7 @@ class DirectorBackend(PageBackend):
             if self._shown:
                 self.update_feed()
         self.set_on_air(shot.slot, shot.kind)
-        if self.follow_overlays:
+        if self.follow_overlays and not self.player_driving():
             self.overlays_follow(shot.slot)
 
     def set_on_air(self, slot: int, kind: str):
@@ -740,6 +742,24 @@ class DirectorBackend(PageBackend):
 
     def can_command(self) -> bool:
         return self.state in (SESSION, REPLAY)
+
+    def player_driving(self) -> bool:
+        """Live session with the local player's car out of its garage stall: the game camera is the driver's view,
+        never moved by the director alone (automatic cuts, instant replay, overlays follow), operator cuts only"""
+        return self.state == SESSION and any(car.player and not car.garage for car in self.standings)
+
+    def check_driving(self):
+        """Player just went driving: overlays back on the player car (if the director made them follow another),
+        told once why the director no longer cuts by itself"""
+        driving = self.player_driving()
+        if driving == self._driving:
+            return
+        self._driving = driving
+        if driving and (self.mode == "auto" or self.follow_overlays):
+            if self.follow_overlays:
+                self.overlays_stop_following()
+            self.notify(tr("You are driving: no automatic cut, instant replay or overlays follow until your car is "
+                           "back in its garage."))
 
     def commands_sent(self, accepted: bool):
         """Commands of the camera desk all sent: instant replay playing, back to live counted from now (game
@@ -1473,7 +1493,7 @@ class DirectorBackend(PageBackend):
         self.follow_overlays = follow
         self.save_settings()
         self.settingsChanged.emit()
-        if follow and self.on_air_slot >= 0:
+        if follow and self.on_air_slot >= 0 and not self.player_driving():
             self.overlays_follow(self.on_air_slot)
         elif not follow:
             self.overlays_stop_following()
@@ -1720,6 +1740,10 @@ class DirectorBackend(PageBackend):
             self.showEvent(key)
             return
         if self.state != SESSION and not self.instant:
+            return
+        if self.player_driving() and not self.instant:
+            self.notify(tr("You are driving: no automatic cut, instant replay or overlays follow until your car is "
+                           "back in its garage."))
             return
         slot = event.slots[0]
         self.mark_seen(key)

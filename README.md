@@ -36,6 +36,8 @@ NeoPedal is a telemetry overlay and analysis app: a modern design, a clear inter
 > [!NOTE]
 > **New in 0.28.2**: VR overlay fixes: the OpenXR layer copies only what changed in Direct3D 12 and Vulkan games and steps aside when the runtime keeps refusing the overlay, is no longer left registered after signing out of Windows, one app at a time uses it, and the SteamVR overlay survives a reload while SteamVR starts.
 >
+> Also in 0.28.2, fixes from a bug audit of the broadcast part: the Broadcast Director never moves the game camera by itself while you drive.
+>
 > **New in 0.28.1**: faster restart and startup, less memory used while you race (window hidden), race results read only once, a tidier Home page and a Patreon link in the `Help` menu.
 >
 > **New in 0.28.0**: **hotkeys on your wheel, button box, joystick or gamepad** (and mouse buttons), **signed updates**, a **command palette** (`Ctrl+K`), a **notification center** and a keyboard shortcuts sheet (`Ctrl+/`), dialogs inside the app with undo. **Race calculator Team tab**: line-up and driver of each stint, with the real LMU team names. A **class square** and a `Driver Badge` column in Relative, Standings and Rivals, each Fuel and Virtual Energy value on its own, settings applied without reloading the app, and hundreds of fixes from audits of the overlays, pages, performance and security. Remote control commands that close, restart or switch preset now need the access token. All the details, with screenshots, in the [changelog](CHANGELOG.md).

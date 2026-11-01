@@ -2427,6 +2427,9 @@ TRANSLATION = MappingProxyType({
     # Broadcast Director: manual mode, game not answering, keys sheet (UI/UX audit 2026-10-29)
     "Manual mode: no suggestion taken. Switch to Assisted to take the best story.":
         "Mode manuel : aucune suggestion prise. Passez en mode assisté pour prendre la meilleure histoire.",
+    "You are driving: no automatic cut, instant replay or overlays follow until your car is back in its garage.":
+        "Vous pilotez : ni coupure automatique, ni ralenti, ni overlays qui suivent tant que votre "
+        "voiture n'est pas revenue à son garage.",
     "Game not responding for %1 s: desk paused until it answers or the session ends":
         "Le jeu ne répond plus depuis %1 s : pupitre en pause jusqu'à sa réponse ou la fin de la session",
     "Hotkey %1": "Raccourci %1",

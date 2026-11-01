@@ -44,6 +44,7 @@ How the automatic director cuts:
 - A car or camera chosen by hand, here or in the game, holds the director for 20 s. When another app also moves the game camera, turn off `Pause the director when the camera changes in the game` in the settings.
 - **Lock** (button of the car on air) keeps the car on air: the automatic director waits until you unlock it.
 - The page never opens in `Automatic` mode: left in `Automatic`, it opens in `Assisted`.
+- While you drive your own car in a live session (out of its garage stall), the director never moves the game camera by itself: no automatic cut, no `Instant Replay`, and `Overlays follow the car on air` waits (your overlays go back to your car). Stories are still listed and your own cuts still work. Back in the garage, the director takes over again.
 
 **Contact severity** is measured from the speed the cars lose: a contact that costs a car most of its speed (or stops it) comes first, a touch both cars drive away from is a minor story. It also works as online spectator, in replays and from another computer. **Slow cars** are found by comparing their speed with the usual speed at that place of the track, learned from the other cars.
 
