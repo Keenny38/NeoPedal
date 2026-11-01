@@ -100,3 +100,14 @@ def test_b003_tower_lines_keyed_by_slot(director_page):  # noqa: F811
     script = director_script()
     assert 'key="c|"+carId(row)' in script and "lapKey=carId(row)" in script
     assert "function carId(row)" in script
+
+
+# B-004: graphics hidden when the app no longer answers (never left frozen on air)
+def test_b004_graphics_hidden_after_failed_requests():
+    from neopedal import stream_director
+
+    script = director_script()
+    poll_body = script.split("async function poll(){", 1)[1].split("async function pollLive(){", 1)[0]
+    assert "serverLost(false)" in poll_body and poll_body.count("serverLost(true)") == 2
+    assert "function serverLost(lost)" in script and "LOST_MS=5000" in script
+    assert ".lost>.g{opacity:0!important}" in stream_director.director_html("en", "Director")

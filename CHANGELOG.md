@@ -20,6 +20,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: switching to `Automatic` during an instant replay no longer cuts to another car inside the replay shown; the director starts once back to live.
 - Broadcast Director: an instant replay that was playing when the game stopped answering for a few seconds (game on another computer, network drop) no longer leaves the game in the replay: back to live as soon as the game answers again.
 - Broadcast Graphics (`/director` source): two cars of a class with the same number (public lobbies) each have their line in the timing tower, instead of one of them missing all race long and their lap times mixed.
+- Broadcast Graphics (`/director` source): when the app no longer answers (app closed or crashed, stream server turned off, new access token), the graphics are hidden after 5 seconds instead of staying frozen on air, and come back with the first answer.
 
 ## 0.28.1 (2026-11-01)
 

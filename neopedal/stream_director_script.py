@@ -515,15 +515,24 @@ async function poll(){
     const asked=edit&&chosenPreset!==null?chosenPreset:sourcePreset;
     const response=await fetch("/api/director?v="+version+(edit?"&demo=1":"")+(asked!==null?"&preset="+encodeURIComponent(asked):"")
       +"&token="+encodeURIComponent(token),{cache:"no-store"});
-    if(response.ok){const data=await response.json();
+    if(response.ok){const data=await response.json();serverLost(false);
       if(data.v!==version||edit){const first=version===0;version=data.v;
         // Only the parts of the state that changed come, every part on the first answer
         if(data.full||first)state=data.state||{};else Object.assign(state,data.state||{});
         state.version=first?0:version;layout=data.layout||{};preset=data.preset||"";received=Date.now();
         if(first)for(const event of state.events||[])if(!event.fresh)shownBanners.add(event.id);
         draw();if(first)cycleTower()}}
-  }catch(error){await new Promise(done=>setTimeout(done,1000))}
+    else serverLost(true);
+  }catch(error){serverLost(true);await new Promise(done=>setTimeout(done,1000))}
   if(!once)setTimeout(poll,0);
+}
+// App closed, stream server turned off or access token changed: graphics hidden after a few seconds of failed
+// requests (never left frozen on air), shown again with the first answer
+const LOST_MS=5000;let failedSince=0;
+function serverLost(lost){
+  if(!lost){failedSince=0;document.body.classList.remove("lost");return}
+  if(!failedSince)failedSince=Date.now();
+  if(!edit&&Date.now()-failedSince>=LOST_MS)document.body.classList.add("lost");
 }
 async function pollLive(){
   try{

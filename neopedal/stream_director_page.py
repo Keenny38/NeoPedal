@@ -72,6 +72,7 @@ font-variant-numeric:tabular-nums;font-size:calc(var(--u)*2)}
 .show{opacity:1!important;transform:none!important}
 .still *{transition:none!important;animation:none!important}
 .hidden-all>.g{opacity:0!important}
+.lost>.g{opacity:0!important}
 .accentbg{background:linear-gradient(90deg,var(--accent),rgba(var(--ar),.35) 70%,rgba(var(--ar),0))}
 /* Tower: rows placed by translateY (moves animated) */
 #tower{left:calc(var(--u)*2.6);top:calc(var(--u)*3);width:calc(var(--u)*38);opacity:0;
