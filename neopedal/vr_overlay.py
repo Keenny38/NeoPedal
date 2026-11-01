@@ -765,6 +765,9 @@ class SteamVRCheck:
 
 
 STEAMVR_START_WAIT_S = 0.02  # GUI waits this at most for a SteamVR start (quick start adopted at once, else later)
+# One SteamVRStart thread at a time (never taken by the GUI thread): openvr state is global to the process, a start
+# dropped by a reload still in openvr.init would otherwise shut openvr down under the next start's overlay
+_STEAMVR_START_LOCK = threading.Lock()
 
 
 def place_overlay(openvr, overlay, handle, setting: dict) -> None:
@@ -813,6 +816,10 @@ class SteamVRStart:
         self._thread.start()
 
     def __run(self):
+        with _STEAMVR_START_LOCK:  # previous start (dropped) released first
+            self.__start()
+
+    def __start(self):
         import openvr
 
         overlay = handle = started = None

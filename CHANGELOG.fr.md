@@ -3,6 +3,14 @@
 Toutes les nouveautés de **NeoPedal** (anciennement Modern Tiny Pedals), la version la plus récente en premier. English version: [CHANGELOG.md](CHANGELOG.md).
 C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en français. La liste détaillée des commits de chaque version est sur la page [Releases](https://github.com/Keenny38/NeoPedal/releases).
 
+## 0.28.2 (2026-11-01)
+
+Des corrections issues d'un audit de l'overlay VR.
+
+### Corrections
+
+- Overlay VR : des overlays rechargés pendant que SteamVR démarrait ou se fermait ne coupent plus le nouvel overlay SteamVR (overlay disparu du casque, plantage possible de l'app).
+
 ## 0.28.1 (2026-11-01)
 
 Un redémarrage et un démarrage plus rapides, moins de mémoire utilisée pendant que tu roules, des résultats de course lus une seule fois et une page d'accueil mieux rangée.
