@@ -907,7 +907,8 @@ class Director:
             elif event.kind in (CONTACT, WALL) and 0 <= lost < LIGHT:  # touch, cars went on: minor story
                 base *= 0.55
             score = base * (1.0 - 0.5 * age / lifetime) + place_bonus(event.position)
-            if event.key in seen:  # shown already: not shown again unless nothing better
+            # Shown already: not shown again unless nothing better (the story on air keeps its score)
+            if event.key in seen and (self.shot is None or event.key != self.shot.key):
                 score *= SEEN_SHARE
             result.append(Candidate(event.slots[0], event.kind, score, event.key, event=event))
         for battle in battles:

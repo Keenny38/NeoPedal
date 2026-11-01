@@ -258,3 +258,21 @@ def test_b014_battle_kept_when_cars_swap_places():
     assert len(battles) == 1
     (battle,) = watcher.battles.values()
     assert battle.since == 100.0
+
+
+# B-015: story on air (marked seen when cut to) keeps its full score: no cut every urgent_after
+def test_b015_story_on_air_not_halved_by_seen():
+    director = dr.Director()
+    cars = [car(slot, slot, distance=1000.0 - 300 * slot) for slot in range(1, 7)]
+    events, seen, cuts = [], set(), []
+    for clock in range(20):
+        now = 100.0 + clock
+        if clock in (0, 3, 6, 9):  # contacts of one crash, a few seconds apart
+            slot = 1 + clock // 3
+            events.append(dr.Event(f"contact|{now}|{slot}", dr.CONTACT, now, (slot, slot + 1), ("a", "b"), "GT3"))
+        pick = director.decide(director.candidates(events, [], cars, now, float(clock), True, seen=seen), float(clock))
+        if pick is not None:
+            director.take(pick, float(clock))
+            seen.add(pick.key)  # page: story cut to marked seen
+            cuts.append(clock)
+    assert cuts[:2] == [0, 8]  # shortest shot kept: same priority never cuts it short

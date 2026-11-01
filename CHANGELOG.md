@@ -28,6 +28,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director in a replay: rewinding through a lap or a pit stop no longer records that lap and that stop twice (lap list and pit stops of the car sheet).
 - Broadcast Director in a replay: going back into a pit stop already seen no longer tells the car leaving the pits a second time, with a pit lane time counted only from where the replay was taken back to.
 - Broadcast Director: two cars side by side swapping places stay one battle, told once with its length kept, instead of a new battle in the event feed at every game answer.
+- Broadcast Director, `Automatic`: the story on air keeps its full weight while it is shown, so another story of the same weight (several contacts of one crash) no longer cuts it after 2.5 s again and again; the shortest shot is kept.
 
 ## 0.28.1 (2026-11-01)
 
