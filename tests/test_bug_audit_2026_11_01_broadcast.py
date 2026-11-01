@@ -495,3 +495,19 @@ def test_b013_take_best_takes_row_marked_best(director_page):  # noqa: F811
     backend.takeBest()
     wait_commands(backend.camera)
     assert best["key"] == "contact|2|x" and backend.director.shot.key == "contact|2|x"
+
+
+# B-012: answers given while commands are still on their way never count as a cut made in the game
+def test_b012_focus_ignored_while_commands_pending(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), car(3, 3), focus=1))
+    backend.cutToCar(2)
+    wait_commands(backend.camera)
+    backend.last_cut = 0.0  # grace over
+    backend.camera.command_queue.append((("PUT", "/rest/watch/focus/3"),))  # slow game: cut still waiting
+    poll(page, race_answers(101.0, car(1, 1), car(2, 2), car(3, 3), focus=1))  # game still on the former car
+    backend.camera.command_queue.clear()
+    assert backend.on_air_slot == 2 and backend.on_air_kind == dr.MANUAL
+    # Commands done: grace counted from then
+    backend.camera.command_done(True)
+    assert backend.last_cut > 0.0

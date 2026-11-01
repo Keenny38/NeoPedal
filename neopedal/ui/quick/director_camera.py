@@ -93,6 +93,7 @@ class CameraDesk(DirectorPart):
         for resource in (gc.ACTIVE_RESOURCE, gc.FOCUS_RESOURCE, gc.CAMERA_RESOURCE, HUD_RESOURCE):  # changed: asked again
             rest_cache.forget(resource)
         page = self.page
+        page.last_cut = time.monotonic()  # game focus grace counted from when the game got the cut (slow game)
         if not self.command_queue:
             page.commands_sent(accepted)
         if not accepted:

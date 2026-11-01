@@ -633,6 +633,9 @@ class DirectorBackend(PageBackend):
 
     def follow_game_focus(self, focus: int):
         """Car followed by game camera: another car chosen in game (or elsewhere) is an operator cut"""
+        camera = self._camera
+        if camera.command_queue or camera.request_command.busy:  # cuts still on their way: game not up to date
+            return
         self.focus = focus
         if focus < 0 or focus == self.on_air_slot or time.monotonic() - self.last_cut < FOCUS_GRACE:
             return
