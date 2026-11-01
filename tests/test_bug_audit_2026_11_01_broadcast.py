@@ -664,3 +664,28 @@ def test_b035_spectate_on_reloads_modules_once(ui_env, monkeypatch):
     current["name"] = "Spectated driver"
     backend.follow_changed()  # next poll: API follows the spectated car
     assert len(reloads) == len(sb.DATA_MODULES) and backend._followed == "Spectated driver"
+
+
+# B-036: a source left on an overlay disabled or shown on screen only keeps nothing on air
+def test_b036_on_air_only_for_overlays_streamed(ui_env, monkeypatch):
+    from neopedal import stream_overlay
+    from neopedal.setting import cfg
+    from neopedal.stream_overlay import LAYOUT, FrameStore
+
+    overlay = stream_overlay.streamoverlay
+    store = FrameStore()
+    monkeypatch.setattr(overlay, "store", store)
+    monkeypatch.setattr(type(overlay), "running", property(lambda self: True))
+    monkeypatch.setitem(cfg.user.config["stream_overlay"], "show_overlays_while_spectating", True)
+    gear = cfg.user.setting["gear"]
+    monkeypatch.setitem(gear, "enable", False)
+    store.touch("gear")
+    assert not overlay.on_air()  # disabled overlay: nothing shown by that source
+    monkeypatch.setitem(gear, "enable", True)
+    monkeypatch.setitem(gear, "stream_visibility", "Screen Only")
+    assert not overlay.on_air()
+    monkeypatch.setitem(gear, "stream_visibility", "Stream Only")
+    assert overlay.on_air()
+    store.touch(LAYOUT)
+    monkeypatch.setitem(gear, "enable", False)
+    assert overlay.on_air()  # layout source: on air

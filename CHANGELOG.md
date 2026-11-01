@@ -58,6 +58,7 @@ Fixes from an audit of the VR overlay.
 - Stream page: `On air: N sources shown` counts the browser sources, no longer each overlay placed on a layout source (one layout source with 3 overlays read 4 sources).
 - Race results stream source cycling classes (`class=cycle`): a class without name (some mods) shows its own cars with class places, instead of the whole field.
 - Spectate: turning spectate mode on reloads the data modules (fuel, delta, stint...) once, instead of twice, and the log names the driver spectated instead of you.
+- Stream overlays while spectating or in a replay: an OBS source left on an overlay turned off or set to `Screen Only` no longer keeps every overlay shown and updated for nothing.
 
 ## 0.28.1 (2026-11-01)
 

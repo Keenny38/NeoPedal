@@ -131,6 +131,13 @@ def shown_on_stream(wcfg) -> bool:
     return stream_visibility(wcfg) != "Screen Only"
 
 
+def overlay_streamed(name: str) -> bool:
+    """Overlay of a source enabled & shown on stream (a source left on an overlay turned off or shown on screen
+    only shows nothing: never keeps every overlay shown while spectating)"""
+    wcfg = cfg.user.setting.get(name)
+    return isinstance(wcfg, dict) and bool(wcfg.get("enable")) and shown_on_stream(wcfg)
+
+
 def stream_only(wcfg) -> bool:
     return stream_visibility(wcfg) == "Stream Only"
 
@@ -1063,7 +1070,7 @@ class StreamOverlay:
         updating), data modules still follow the real active state (no lap, fuel, stats of a car not driven).
         """
         return (self.running and bool(self.setting().get("show_overlays_while_spectating", True))
-                and bool(self.store.watched()))
+                and any(view == LAYOUT or overlay_streamed(view) for view in self.store.watched()))
 
 
 streamoverlay = StreamOverlay()

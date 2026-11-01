@@ -58,6 +58,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Page Stream : `En direct : N sources affichées` compte les sources du navigateur, et plus chaque overlay placé sur une source de disposition (une source de disposition avec 3 overlays affichait 4 sources).
 - Source de stream des résultats qui alterne les classes (`class=cycle`) : une classe sans nom (certains mods) montre ses propres voitures avec les places de classe, au lieu de tout le plateau.
 - Spectateur : activer le mode spectateur recharge les modules de données (carburant, delta, relais...) une seule fois au lieu de deux, et le journal nomme le pilote suivi au lieu de vous.
+- Overlays de stream en spectateur ou en replay : une source OBS laissée sur un overlay désactivé ou réglé sur `Écran seulement` ne garde plus tous les overlays affichés et mis à jour pour rien.
 
 ## 0.28.1 (2026-11-01)
 
