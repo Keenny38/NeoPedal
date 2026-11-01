@@ -781,10 +781,14 @@ class RaceWatcher:
                 gap = track_gap(ahead, behind, self.track_length)
                 pair = (ahead.slot, behind.slot)
                 known = self.battles.get(pair)
-                limit = self.battle_gap + (BATTLE_END_MARGIN if known is not None else 0.0)
+                swapped = self.battles.get((behind.slot, ahead.slot)) if known is None else None
+                limit = self.battle_gap + (BATTLE_END_MARGIN if known is not None or swapped is not None else 0.0)
                 if not 0 <= gap < limit:
                     continue
-                if known is None:
+                if swapped is not None:  # side by side, places swapped: same battle (never told again)
+                    battle = swapped._replace(ahead=ahead.slot, behind=behind.slot, gap=gap,
+                                              position=places[ahead.slot])
+                elif known is None:
                     battle = Battle(ahead.slot, behind.slot, ahead.car_class, places[ahead.slot], gap, 0.0, now)
                     events.append(self.event(BATTLE, now, (behind, ahead), places[ahead.slot], gap))
                 else:

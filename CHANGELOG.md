@@ -27,6 +27,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: closing the page with `Overlays follow the car on air` turns spectate mode off, as turning the director off does: your overlays are no longer left on the last car on air (and stats not recorded) for your next drive.
 - Broadcast Director in a replay: rewinding through a lap or a pit stop no longer records that lap and that stop twice (lap list and pit stops of the car sheet).
 - Broadcast Director in a replay: going back into a pit stop already seen no longer tells the car leaving the pits a second time, with a pit lane time counted only from where the replay was taken back to.
+- Broadcast Director: two cars side by side swapping places stay one battle, told once with its length kept, instead of a new battle in the event feed at every game answer.
 
 ## 0.28.1 (2026-11-01)
 

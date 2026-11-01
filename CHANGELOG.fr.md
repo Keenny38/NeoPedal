@@ -27,6 +27,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : fermer la page avec `Les overlays suivent la voiture à l'antenne` coupe le mode spectateur, comme l'arrêt de la régie : vos overlays ne restent plus sur la dernière voiture à l'antenne (et les stats non enregistrées) pour votre prochaine session de pilotage.
 - Régie de course dans un replay : revenir en arrière à travers un tour ou un arrêt aux stands n'enregistre plus ce tour et cet arrêt deux fois (liste des tours et arrêts de la fiche voiture).
 - Régie de course dans un replay : revenir au milieu d'un arrêt déjà vu n'annonce plus une deuxième sortie des stands de la voiture, avec un temps dans la voie des stands compté seulement depuis le point de retour.
+- Régie de course : deux voitures côte à côte qui échangent leurs places restent une seule bataille, annoncée une fois et dont la durée est gardée, au lieu d'une nouvelle bataille dans le fil des événements à chaque réponse du jeu.
 
 ## 0.28.1 (2026-11-01)
 

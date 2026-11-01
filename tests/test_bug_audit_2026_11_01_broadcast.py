@@ -243,3 +243,18 @@ def test_b025_no_pit_exit_for_a_stop_already_closed():
     events = watcher.update(pit_frame(131.0, 11, False, pitstops=1), (), 131.0, "RACE1", TRACK)
     assert [event for event in events if event.kind == dr.PIT_OUT] == []
     assert [stop.duration for stop in watcher.pit_stops[1]] == [30.0]
+
+
+# B-014: two cars side by side swapping places: one battle, told once, its length kept
+def test_b014_battle_kept_when_cars_swap_places():
+    watcher = dr.RaceWatcher()
+    watcher.update([car(1, 1, distance=1000.0), car(2, 2, distance=500.0)], (), 99.0, "RACE1", TRACK)  # apart
+    battles = []
+    for step in range(8):
+        first, second = (1, 2) if step % 2 == 0 else (2, 1)
+        cars = [car(first, 1, distance=1000.0 + step * 50.0), car(second, 2, distance=999.0 + step * 50.0)]
+        battles += [event for event in watcher.update(cars, (), 100.0 + step, "RACE1", TRACK)
+                    if event.kind == dr.BATTLE]
+    assert len(battles) == 1
+    (battle,) = watcher.battles.values()
+    assert battle.since == 100.0
