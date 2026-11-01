@@ -4,12 +4,12 @@ import QtQuick.Layouts
 import "../components"
 
 // Home page: status banner on top (verdict of game & checks as title, its action, the other checks, version,
-// release notes & update told once), then cards: game (large in a session: place, lap & time left in big type,
-// live calculator, director & overlay lock at hand), overlays (lock, overlays & modules on), preset, last session
-// with its debrief (each corner opens the telemetry viewer on it), driver (ranks over time), quick access. Cards
-// open their page: click, or Tab then Enter / Space. Cards read in background keep their place (loading) until
-// read: the grid never jumps. Cards follow page width in 1 to 3 columns, the page scrolls when taller than the
-// window.
+// release notes & update told once), then cards: game (in a session only, whole row: place, lap & time left in
+// big type, live calculator, director & overlay lock at hand; off track the banner tells the game), overlays (lock,
+// overlays & modules on), preset, this week, driver (ranks over time), last session with its debrief (each corner
+// opens the telemetry viewer on it), quick access. Cards open their page: click, or Tab then Enter / Space. Cards
+// read in background keep their place (loading) until read: the grid never jumps. Cards follow page width in 1 to 3
+// columns, spans fill each row whichever cards are shown (no hole), the page scrolls when taller than the window.
 TpPage {
     id: page
 
@@ -28,6 +28,10 @@ TpPage {
     readonly property var week: backend.week
     readonly property bool inSession: (game.track || "") !== ""
     property bool debriefOpen: false  // corners to work on & goal shown
+    // Cards shown (from data, never from .visible): spans fill each row of the grid
+    readonly property bool weekShown: (loading.week === true && week.summary === undefined) || week.summary !== undefined
+    readonly property bool driverShown: driver.name !== undefined || loading.driver === true
+    readonly property bool lastShown: (last.track || "") !== ""
 
     function levelColor(level) {
         return level === "error" ? theme.loss : level === "warning" ? theme.warning
@@ -214,12 +218,13 @@ TpPage {
                 rowSpacing: theme.space4
                 uniformCellWidths: true
 
-                TpSectionCard {  // game & session: whole row while on track (place, lap, time left, actions at hand)
+                TpSectionCard {  // game & session, on track only: whole row (place, lap, time left, actions at hand)
                     fillContent: false  // content under the header, footer buttons at the bottom
                     objectName: "gameCard"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.columnSpan: page.inSession ? page.columns : 1
+                    Layout.columnSpan: page.columns
+                    visible: page.inSession
                     glyph: ""  // game controller
                     fallback: "G"
                     title: i18n.tr("Game")
@@ -227,8 +232,8 @@ TpPage {
                     tip: i18n.tr("API settings of the game")
                     onOpened: backend.openGameSettings()
                     trailing: [
-                        GameLogo { source: page.game.trackLogo || ""; boxWidth: theme.em * 3; boxHeight: theme.em * 1.2 },
-                        GameLogo { source: page.game.brandLogo || ""; boxWidth: theme.em * 3; boxHeight: theme.em * 1.2 }
+                        GameLogo { source: page.game.trackLogo || ""; boxWidth: theme.em * 5; boxHeight: theme.em * 1.8 },
+                        GameLogo { source: page.game.brandLogo || ""; boxWidth: theme.em * 5; boxHeight: theme.em * 1.8 }
                     ]
                     RowLayout {
                         Layout.fillWidth: true
@@ -241,7 +246,7 @@ TpPage {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: page.inSession ? page.joined([page.game.track, page.game.session]) : (page.game.name || "")
+                            text: page.joined([page.game.track, page.game.session])
                             color: theme.text
                             font.pointSize: theme.fontSubtitle
                             font.weight: Font.DemiBold
@@ -249,18 +254,9 @@ TpPage {
                             elide: Text.ElideRight
                         }
                     }
-                    Text {  // game running, not on track (not running: told by the banner)
-                        Layout.fillWidth: true
-                        visible: !page.inSession && page.game.running === true
-                        text: page.game.status || ""
-                        color: theme.dimText
-                        textFormat: Text.PlainText
-                        wrapMode: Text.WordWrap
-                    }
-                    Flow {  // on track: key figures in big type
+                    Flow {  // key figures in big type
                         objectName: "sessionFigures"
                         Layout.fillWidth: true
-                        visible: page.inSession
                         spacing: theme.space6
                         Figure {
                             visible: (page.game.position || "") !== ""
@@ -278,11 +274,10 @@ TpPage {
                             label: i18n.tr("Time left")
                         }
                     }
-                    Flow {  // on track: actions at hand (wrap on a narrow page)
+                    Flow {  // actions at hand (wrap on a narrow page)
                         objectName: "sessionActions"
                         Layout.fillWidth: true
                         Layout.topMargin: theme.space2
-                        visible: page.inSession
                         spacing: theme.space3
                         TpButton {
                             size: "sm"
@@ -343,34 +338,38 @@ TpPage {
                         spacing: theme.space6
                         Figure { small: true; value: String(page.counts.overlays || 0); label: i18n.tr("Active overlays") }
                         Figure { small: true; value: String(page.counts.modules || 0); label: i18n.tr("Active modules") }
-                        TpButton {  // Module page (not in the navigation bar by default)
-                            objectName: "openModules"
-                            flat: true
-                            size: "xs"
-                            text: i18n.tr("Open modules")
-                            onClicked: backend.openPage("module")
-                        }
                     }
                     Flow {
                         Layout.fillWidth: true
                         spacing: theme.space2
                         visible: page.overlay.autoHide === true || page.overlay.vr === true
-                        Pill { visible: page.overlay.autoHide === true; text: i18n.tr("Auto Hide"); size: "sm" }
-                        Pill { visible: page.overlay.vr === true; text: i18n.tr("VR Compatibility"); size: "sm" }
+                        Pill { visible: page.overlay.autoHide === true; text: i18n.tr("Auto Hide") }
+                        Pill { visible: page.overlay.vr === true; text: i18n.tr("VR Compatibility") }
                     }
-                    footer: TpButton {  // on track: in the game card
-                        visible: !page.inSession
-                        text: page.overlay.locked ? i18n.tr("Unlock Overlay") : i18n.tr("Lock Overlay")
-                        accent: true
-                        size: "sm"
-                        onClicked: backend.toggleLock()
-                    }
+                    footer: [
+                        TpButton {  // Module page (not in the navigation bar by default)
+                            objectName: "openModules"
+                            flat: true
+                            size: "sm"
+                            text: i18n.tr("Open modules")
+                            onClicked: backend.openPage("module")
+                        },
+                        TpButton {  // on track: in the game card
+                            visible: !page.inSession
+                            text: page.overlay.locked ? i18n.tr("Unlock Overlay") : i18n.tr("Lock Overlay")
+                            accent: true
+                            size: "sm"
+                            onClicked: backend.toggleLock()
+                        }
+                    ]
                 }
 
                 TpSectionCard {  // preset loaded, switch to another one
                     fillContent: false  // content under the header, footer buttons at the bottom
+                    objectName: "presetCard"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.columnSpan: page.columns === 3 && !page.weekShown ? 2 : 1
                     glyph: ""  // library
                     fallback: "P"
                     title: i18n.tr("Preset")
@@ -394,7 +393,6 @@ TpPage {
                             text: i18n.tr("Locked")
                             glyph: theme.glyphs.lock
                             tint: theme.dimText
-                            size: "sm"
                         }
                     }
                     Text {
@@ -419,13 +417,242 @@ TpPage {
                     }
                 }
 
+                TpSectionCard {  // last 7 days (as on Driver Stats): place kept while read, none when nothing driven
+                    id: weekCard
+                    objectName: "weekCard"
+                    fillContent: false  // content under the header, footer buttons at the bottom
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    readonly property bool waiting: page.loading.week === true && page.week.summary === undefined
+                    visible: page.weekShown
+                    Layout.columnSpan: page.columns === 2 && !page.driverShown ? 2 : 1
+                    glyph: ""  // calendar
+                    fallback: "W"
+                    title: i18n.tr("This Week")
+                    clickable: true
+                    tip: i18n.tr("Open driver stats")
+                    onOpened: backend.openDriverStats()
+                    TpStateView {
+                        objectName: "weekLoading"
+                        Layout.alignment: Qt.AlignHCenter
+                        loading: weekCard.waiting
+                        compact: true
+                    }
+                    TpText {  // sessions, driving time, laps
+                        Layout.fillWidth: true
+                        visible: text !== ""
+                        role: "numeric"
+                        text: page.week.summary || ""
+                        font.weight: Font.DemiBold
+                        wrapMode: Text.WordWrap
+                    }
+                    Flow {  // goals reached, new personal bests, goals within reach: icon & words, not color alone
+                        Layout.fillWidth: true
+                        spacing: theme.space2
+                        Repeater {
+                            model: page.week.highlights || []
+                            Pill {
+                                required property var modelData
+                                glyph: modelData.glyph
+                                fallback: modelData.kind === "goal_near" ? "◎" : modelData.kind === "record" ? "★" : "✓"
+                                text: modelData.text
+                                tint: modelData.tone === "gain" ? theme.gain : theme.accent
+                            }
+                        }
+                    }
+                }
+
+                TpSectionCard {  // driver: ranks, badge, race record (read in background: place kept meanwhile)
+                    fillContent: false  // content under the header, footer buttons at the bottom
+                    id: driverCard
+                    objectName: "driverCard"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    Layout.columnSpan: page.columns === 3 && !page.lastShown ? 3
+                                     : page.columns === 2 && !page.weekShown ? 2 : 1
+                    readonly property bool waiting: page.loading.driver === true && page.driver.name === undefined
+                    property int rankHovered: 0  // rank rows under the mouse: their tooltip, not the card one
+                    visible: page.driverShown
+                    glyph: ""  // contact
+                    fallback: "D"
+                    title: i18n.tr("Driver")
+                    clickable: true
+                    tip: rankHovered > 0 ? "" : i18n.tr("Open driver stats")
+                    onOpened: backend.openDriverStats()
+                    TpStateView {
+                        objectName: "driverLoading"
+                        Layout.alignment: Qt.AlignHCenter
+                        loading: driverCard.waiting
+                        compact: true
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        visible: text !== ""
+                        text: page.driver.name || ""
+                        color: theme.text
+                        font.pointSize: theme.fontSubtitle
+                        font.weight: Font.DemiBold
+                        textFormat: Text.PlainText
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        visible: text !== ""
+                        text: page.driver.identity || ""
+                        color: theme.dimText
+                        textFormat: Text.PlainText
+                        elide: Text.ElideRight
+                    }
+                    Repeater {
+                        model: page.driver.ranks || []
+                        ColumnLayout {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            spacing: theme.space1
+                            RowLayout {
+                                id: rankRow
+                                Layout.fillWidth: true
+                                spacing: theme.space3
+                                HoverHandler {  // what the percents mean
+                                    id: rankHover
+                                    onHoveredChanged: driverCard.rankHovered += hovered ? 1 : -1
+                                }
+                                TpToolTip {
+                                    visible: rankHover.hovered && (modelData.tip || "") !== ""
+                                    text: modelData.tip || ""
+                                    delay: theme.tipDelay
+                                    y: rankRow.height + theme.space1
+                                }
+                                Text {
+                                    text: modelData.label
+                                    textFormat: Text.PlainText
+                                    color: theme.dimText
+                                    font.pointSize: theme.fontLabel
+                                    elide: Text.ElideRight
+                                    Layout.preferredWidth: theme.em * 6.5
+                                }
+                                Text {
+                                    text: modelData.value
+                                    textFormat: Text.PlainText
+                                    color: page.rankColor(modelData)
+                                    font.weight: Font.DemiBold
+                                }
+                                TpMeter {
+                                    Layout.fillWidth: true
+                                    Layout.minimumWidth: theme.em * 2
+                                    Layout.alignment: Qt.AlignVCenter
+                                    value: modelData.progress
+                                    tint: page.rankColor(modelData)
+                                    name: modelData.label
+                                }
+                                Text {
+                                    text: modelData.progressText
+                                    textFormat: Text.PlainText
+                                    color: theme.text
+                                    font.pointSize: theme.fontSmall
+                                    font.features: { "tnum": 1 }
+                                }
+                                Text {  // change since previous rank: arrow & sign, not color alone
+                                    visible: modelData.change !== ""
+                                    text: (modelData.changeTone > 0 ? "▲ " : "▼ ") + modelData.change
+                                    textFormat: Text.PlainText
+                                    color: modelData.changeTone > 0 ? theme.gain : theme.loss
+                                    font.pointSize: theme.fontSmall
+                                    font.features: { "tnum": 1 }
+                                }
+                            }
+                            TpRankLine {
+                                Layout.fillWidth: true
+                                visible: (modelData.chart || []).length > 1
+                                points: modelData.chart || []
+                                tint: page.rankColor(modelData)
+                                label: modelData.label
+                            }
+                        }
+                    }
+                    RowLayout {  // game badge in its color
+                        readonly property var badge: page.driver.badge || {}
+                        visible: (badge.name || "") !== ""
+                        Layout.fillWidth: true
+                        spacing: theme.space3
+                        Image {
+                            source: parent.badge.icon || ""
+                            visible: status === Image.Ready
+                            Layout.preferredWidth: Math.round(theme.em * 1.3)
+                            Layout.preferredHeight: Layout.preferredWidth
+                            sourceSize.height: Math.ceil(theme.em * 1.3 * Screen.devicePixelRatio)
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: parent.badge.name || ""
+                            color: page.themed(parent.badge.color, parent.badge.lightColor) || theme.text
+                            font.weight: Font.DemiBold
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                        }
+                    }
+                    Flow {  // race record of results files
+                        Layout.fillWidth: true
+                        visible: (page.driver.figures || []).length > 0
+                        spacing: theme.space5
+                        Repeater {
+                            model: page.driver.figures || []
+                            Figure {
+                                required property var modelData
+                                small: true
+                                value: modelData.value
+                                label: modelData.label
+                            }
+                        }
+                    }
+                    RowLayout {  // ranks remembered: clock & warning color once old (not current values)
+                        objectName: "driverNote"
+                        readonly property bool stale: page.driver.noteStale === true
+                        visible: (page.driver.note || "") !== ""
+                        Layout.fillWidth: true
+                        spacing: theme.space2
+                        Icon {
+                            visible: parent.stale
+                            glyph: ""  // clock
+                            fallback: "⏱"
+                            color: theme.warning
+                            size: theme.iconSm
+                            Layout.alignment: Qt.AlignTop
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: page.driver.note || ""
+                            color: parent.stale ? theme.warning : theme.dimText
+                            font.pointSize: theme.fontSmall
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                    Repeater {  // other game accounts of this computer
+                        model: page.driver.others || []
+                        Text {
+                            required property var modelData
+                            Layout.fillWidth: true
+                            text: modelData.name + ": " + page.joined(modelData.ranks.map(function(rank) {
+                                return rank.label + " " + rank.value
+                            }).concat([modelData.badge.name || ""])) + " (" + modelData.when + ")"
+                            color: theme.dimText
+                            font.pointSize: theme.fontSmall
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+
                 TpSectionCard {  // last driven session & its debrief (read in background: place kept meanwhile)
                     fillContent: false  // content under the header, footer buttons at the bottom
                     objectName: "lastSessionCard"
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.columnSpan: Math.min(2, page.columns)
-                    visible: (page.last.track || "") !== ""
+                    Layout.columnSpan: page.columns === 1 ? 1 : page.columns === 2 || page.driverShown ? 2 : 3
+                    visible: page.lastShown
                     glyph: ""  // history
                     fallback: "H"
                     title: i18n.tr("Last Session")
@@ -433,8 +660,8 @@ TpPage {
                     tip: i18n.tr("Driver stats of this track & car")
                     onOpened: backend.openLastSession()
                     trailing: [
-                        GameLogo { source: page.last.trackLogo || ""; boxWidth: theme.em * 3; boxHeight: theme.em * 1.2 },
-                        GameLogo { source: page.last.brandLogo || ""; boxWidth: theme.em * 3; boxHeight: theme.em * 1.2 }
+                        GameLogo { source: page.last.trackLogo || ""; boxWidth: theme.em * 5; boxHeight: theme.em * 1.8 },
+                        GameLogo { source: page.last.brandLogo || ""; boxWidth: theme.em * 5; boxHeight: theme.em * 1.8 }
                     ]
                     RowLayout {
                         Layout.fillWidth: true
@@ -451,7 +678,6 @@ TpPage {
                         Pill {
                             visible: (page.last.result || "") !== ""
                             text: page.last.result || ""
-                            size: "sm"
                         }
                     }
                     Text {
@@ -595,208 +821,6 @@ TpPage {
                         onClicked: backend.openDebrief()
                     }
                 }
-
-                TpSectionCard {  // last 7 days (as on Driver Stats): place kept while read, none when nothing driven
-                    id: weekCard
-                    objectName: "weekCard"
-                    fillContent: false  // content under the header, footer buttons at the bottom
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    readonly property bool waiting: page.loading.week === true && page.week.summary === undefined
-                    visible: waiting || page.week.summary !== undefined
-                    glyph: ""  // calendar
-                    fallback: "W"
-                    title: i18n.tr("This Week")
-                    clickable: true
-                    tip: i18n.tr("Open driver stats")
-                    onOpened: backend.openDriverStats()
-                    TpStateView {
-                        objectName: "weekLoading"
-                        Layout.alignment: Qt.AlignHCenter
-                        loading: weekCard.waiting
-                        compact: true
-                    }
-                    TpText {  // sessions, driving time, laps
-                        Layout.fillWidth: true
-                        visible: text !== ""
-                        role: "numeric"
-                        text: page.week.summary || ""
-                        font.weight: Font.DemiBold
-                        wrapMode: Text.WordWrap
-                    }
-                    Flow {  // goals reached, new personal bests, goals within reach: icon & words, not color alone
-                        Layout.fillWidth: true
-                        spacing: theme.space2
-                        Repeater {
-                            model: page.week.highlights || []
-                            Pill {
-                                required property var modelData
-                                size: "sm"
-                                glyph: modelData.glyph
-                                fallback: modelData.kind === "goal_near" ? "◎" : modelData.kind === "record" ? "★" : "✓"
-                                text: modelData.text
-                                tint: modelData.tone === "gain" ? theme.gain : theme.accent
-                            }
-                        }
-                    }
-                }
-
-                TpSectionCard {  // driver: ranks, badge, race record (read in background: place kept meanwhile)
-                    fillContent: false  // content under the header, footer buttons at the bottom
-                    id: driverCard
-                    objectName: "driverCard"
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.columnSpan: page.columns === 2 ? 2 : 1
-                    readonly property bool waiting: page.loading.driver === true && page.driver.name === undefined
-                    visible: page.driver.name !== undefined || waiting
-                    glyph: ""  // contact
-                    fallback: "D"
-                    title: i18n.tr("Driver")
-                    clickable: true
-                    tip: i18n.tr("Open driver stats")
-                    onOpened: backend.openDriverStats()
-                    TpStateView {
-                        objectName: "driverLoading"
-                        Layout.alignment: Qt.AlignHCenter
-                        loading: driverCard.waiting
-                        compact: true
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        visible: text !== ""
-                        text: page.driver.name || ""
-                        color: theme.text
-                        font.pointSize: theme.fontSubtitle
-                        font.weight: Font.DemiBold
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        visible: text !== ""
-                        text: page.driver.identity || ""
-                        color: theme.dimText
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
-                    }
-                    Repeater {
-                        model: page.driver.ranks || []
-                        ColumnLayout {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            spacing: theme.space1
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: theme.space3
-                                Text {
-                                    text: modelData.label
-                                    textFormat: Text.PlainText
-                                    color: theme.dimText
-                                    font.pointSize: theme.fontSmall
-                                    elide: Text.ElideRight
-                                    Layout.preferredWidth: theme.em * 6.5
-                                }
-                                Text {
-                                    text: modelData.value
-                                    textFormat: Text.PlainText
-                                    color: page.rankColor(modelData)
-                                    font.weight: Font.DemiBold
-                                }
-                                TpMeter {
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: theme.em * 2
-                                    Layout.alignment: Qt.AlignVCenter
-                                    value: modelData.progress
-                                    tint: page.rankColor(modelData)
-                                    name: modelData.label
-                                }
-                                Text {
-                                    text: modelData.progressText
-                                    textFormat: Text.PlainText
-                                    color: theme.text
-                                    font.pointSize: theme.fontSmall
-                                    font.features: { "tnum": 1 }
-                                }
-                                Text {  // change since previous rank: arrow & sign, not color alone
-                                    visible: modelData.change !== ""
-                                    text: (modelData.changeTone > 0 ? "▲ " : "▼ ") + modelData.change
-                                    textFormat: Text.PlainText
-                                    color: modelData.changeTone > 0 ? theme.gain : theme.loss
-                                    font.pointSize: theme.fontCaption
-                                    font.features: { "tnum": 1 }
-                                }
-                            }
-                            TpRankLine {
-                                Layout.fillWidth: true
-                                visible: (modelData.chart || []).length > 1
-                                points: modelData.chart || []
-                                tint: page.rankColor(modelData)
-                                label: modelData.label
-                            }
-                        }
-                    }
-                    RowLayout {  // game badge in its color
-                        readonly property var badge: page.driver.badge || {}
-                        visible: (badge.name || "") !== ""
-                        Layout.fillWidth: true
-                        spacing: theme.space3
-                        Image {
-                            source: parent.badge.icon || ""
-                            visible: status === Image.Ready
-                            Layout.preferredWidth: Math.round(theme.em * 1.3)
-                            Layout.preferredHeight: Layout.preferredWidth
-                            sourceSize.height: Math.ceil(theme.em * 1.3 * Screen.devicePixelRatio)
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true
-                        }
-                        Text {
-                            Layout.fillWidth: true
-                            text: parent.badge.name || ""
-                            color: page.themed(parent.badge.color, parent.badge.lightColor) || theme.text
-                            font.weight: Font.DemiBold
-                            textFormat: Text.PlainText
-                            elide: Text.ElideRight
-                        }
-                    }
-                    Flow {  // race record of results files
-                        Layout.fillWidth: true
-                        visible: (page.driver.figures || []).length > 0
-                        spacing: theme.space5
-                        Repeater {
-                            model: page.driver.figures || []
-                            Figure {
-                                required property var modelData
-                                small: true
-                                value: modelData.value
-                                label: modelData.label
-                            }
-                        }
-                    }
-                    Text {
-                        Layout.fillWidth: true
-                        visible: text !== ""
-                        text: page.driver.note || ""
-                        color: theme.dimText
-                        font.pointSize: theme.fontSmall
-                        textFormat: Text.PlainText
-                        wrapMode: Text.WordWrap
-                    }
-                    Repeater {  // other game accounts of this computer
-                        model: page.driver.others || []
-                        Text {
-                            required property var modelData
-                            Layout.fillWidth: true
-                            text: modelData.name + ": " + page.joined(modelData.ranks.map(function(rank) {
-                                return rank.label + " " + rank.value
-                            }).concat([modelData.badge.name || ""])) + " (" + modelData.when + ")"
-                            color: theme.dimText
-                            font.pointSize: theme.fontSmall
-                            textFormat: Text.PlainText
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                }
             }
 
             // Quick access: tools, pages & actions chosen by the user (Customize, or right-click)
@@ -893,7 +917,7 @@ TpPage {
             text: figure.label
             textFormat: Text.PlainText
             color: theme.dimText
-            font.pointSize: figure.small ? theme.fontCaption : theme.fontSmall
+            font.pointSize: theme.fontSmall
         }
     }
 

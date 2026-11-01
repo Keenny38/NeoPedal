@@ -1,6 +1,6 @@
 # Audit — NeoPedal 2.50.0 (fork modernisé)
 
-> Ce fichier garde l'historique des audits et de ce qui a été fait. Ce qui reste à faire est dans [ROADMAP.md](ROADMAP.md).
+> Ce fichier garde l'historique des audits et de ce qui a été fait.
 
 Date : 27/09/2026 · Périmètre : tout le code `neopedal/` (~60 000 lignes), `run.py`, build, CI.
 
@@ -477,7 +477,7 @@ Méthode : ruff (règles du projet et règles étendues), mypy, suite de tests (
 - Interface : marqueur de modifications et `Ctrl+S`, validation pendant la saisie, corbeille des presets, `Ignorer cette version` et progression du téléchargement, démarrage sans échec (`--safe-mode`).
 - Tableau de bord web traduit, unités de l'utilisateur, énergie virtuelle. Python 3.10 abandonné (fin de vie), 3.11 minimum. Couverture minimale relevée à 88 %.
 
-Après l'ensemble : 2 188 tests, 91 % de couverture. Ce qui reste à vérifier en jeu est listé dans la [feuille de route](ROADMAP.md).
+Après l'ensemble : 2 188 tests, 91 % de couverture.
 
 ---
 

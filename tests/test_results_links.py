@@ -91,6 +91,53 @@ def test_read_summaries_cached(tmp_path, monkeypatch):
     ri.forget_summaries()
 
 
+def test_read_summaries_cache_kept_across_restart(tmp_path, monkeypatch):
+    monkeypatch.setattr(rf, "find_results_folders", lambda libraries=None: {})
+    folder, cache = tmp_path / "Results", tmp_path / "config"
+    cache.mkdir()
+    practice = "2026_09_21_18_00_00-10P1.xml"
+    write_results(folder, {RACE_NAME: RACE_XML, practice: PRACTICE_XML.format(laps=3),
+                           "2026_09_21_17_00_00-11P1.xml": "<broken"})
+    ri.forget_summaries()
+    ri.forget_summary_cache()
+    found = ri.read_summaries([str(folder)], str(cache))
+    assert [item.kind for item in found] == ["Practice"]
+    assert (cache / ri.SUMMARY_CACHE_NAME).is_file()
+    # Next start (memory & pages files dropped): nothing read, same summaries (rivals tuples too)
+    ri.forget_summaries()
+    ri.forget_summary_cache()
+    calls = []
+    real = rf.read_results
+    monkeypatch.setattr(rf, "read_results", lambda *args, **kwargs: calls.append(args[0]) or real(*args, **kwargs))
+    assert ri.read_summaries([str(folder)], str(cache)) == found and not calls
+    # Changed file read again, removed one dropped from cache file
+    write_results(folder, {practice: PRACTICE_XML.format(laps=5)})
+    os.utime(folder / practice, (2_000_000_000, 2_000_000_000))
+    again = ri.read_summaries([str(folder)], str(cache))
+    assert [os.path.basename(path) for path in calls] == [practice] and again[0].laps != found[0].laps
+    os.remove(folder / RACE_NAME)
+    ri.read_summaries([str(folder)], str(cache))
+    saved = json.loads((cache / ri.SUMMARY_CACHE_NAME).read_text(encoding="utf-8"))
+    assert sorted(os.path.basename(path) for path in saved["files"]) == sorted(
+        [practice, "2026_09_21_17_00_00-11P1.xml"])  # broken file kept as not a results file
+    ri.forget_summary_cache()
+
+
+@pytest.mark.parametrize("content", [b"{not json", b'{"version": 0, "fields": [], "files": {}}',
+                                     b'{"version": 1, "fields": "x", "files": {"a": [1]}}'])
+def test_read_summaries_cache_damaged_reads_files(tmp_path, monkeypatch, content):
+    monkeypatch.setattr(rf, "find_results_folders", lambda libraries=None: {})
+    folder, cache = tmp_path / "Results", tmp_path / "config"
+    cache.mkdir()
+    write_results(folder, {"2026_09_21_18_00_00-10P1.xml": PRACTICE_XML.format(laps=3)})
+    (cache / ri.SUMMARY_CACHE_NAME).write_bytes(content)
+    ri.forget_summaries()
+    ri.forget_summary_cache()
+    assert [item.kind for item in ri.read_summaries([str(folder)], str(cache))] == ["Practice"]
+    assert ri.load_summary_cache(str(cache / ri.SUMMARY_CACHE_NAME))  # rewritten valid
+    ri.forget_summary_cache()
+
+
 # Stints of driver stats history linked to sessions
 def test_match_session_by_time_kind_track_and_vehicle():
     found = summary(car="Toyota GR010", vehicle="Car A #1", car_class="Hyper")

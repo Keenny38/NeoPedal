@@ -31,7 +31,7 @@ from PySide6.QtWidgets import QMenu, QMessageBox
 
 from .. import app_signal, loader
 from ..api_control import api
-from ..const_app import PLATFORM, URL_FAQ, URL_USER_GUIDE
+from ..const_app import PLATFORM, URL_FAQ, URL_PATREON, URL_USER_GUIDE
 from ..const_file import ConfigType, FileExt
 from ..i18n import tr, trm
 from ..i18n.options import option_label
@@ -743,6 +743,9 @@ class HelpMenu(QMenu):
         app_notes.triggered.connect(self.show_whats_new)
         self.addSeparator()
 
+        app_patreon = self.addAction(tr("Support NeoPedal on Patreon"))
+        app_patreon.triggered.connect(self.open_patreon)
+
         app_about = self.addAction(tr("About"))
         app_about.triggered.connect(self.show_about)
 
@@ -806,3 +809,7 @@ class HelpMenu(QMenu):
     def open_faq(self):
         """Open FAQ link"""
         QDesktopServices.openUrl(URL_FAQ)
+
+    def open_patreon(self):
+        """Open Patreon link"""
+        QDesktopServices.openUrl(URL_PATREON)

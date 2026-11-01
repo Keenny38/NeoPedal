@@ -408,11 +408,117 @@ def race_record(summaries: Iterable[ResultSummary]) -> RaceRecord:
     )
 
 
-def read_summaries(folders: Sequence[str]) -> list[ResultSummary]:
-    """Player sessions of results files of folders, oldest first (files read once, again when changed)"""
-    summaries = [parsed.summary for parsed in scan_results(folders).files.values() if parsed.summary is not None]
+def read_summaries(folders: Sequence[str], cache_folder: str = "") -> list[ResultSummary]:
+    """Player sessions of results files of folders, oldest first (files read once, again when changed)
+
+    Args:
+        cache_folder: folder of the summaries cache file (see SUMMARY_CACHE_NAME): files unchanged since
+            last time are not read at all, even after app restart or pages released. Empty: no cache.
+    """
+    if cache_folder:
+        summaries = cached_summaries(folders, cache_folder)
+    else:
+        summaries = [parsed.summary for parsed in scan_results(folders).files.values() if parsed.summary is not None]
     summaries.sort(key=lambda summary: (summary.start, summary.path))
     return summaries
+
+
+# Summaries cache: player session of each results file, by path & file stamp (Home driver card, driver stats).
+# A few hundred files take a second or more to parse (GIL held: UI slowed), the cache a few ms to read.
+SUMMARY_CACHE_NAME = "results_summaries.cache"
+SUMMARY_CACHE_VERSION = 1  # ResultSummary fields or summarize() changed: bump, cache read again from files
+SUMMARY_CACHE_MAX_SIZE = 32 * 1024 * 1024
+_summary_lock = threading.Lock()  # one cached read at a time (second reader then finds every file cached)
+# Cache file path: path: (stamp, player names, summary or None: not a results file or player not in it)
+_summary_cache: tuple[str, dict[str, tuple[FileStamp, tuple[str, ...], ResultSummary | None]]] = ("", {})
+
+
+def cached_summaries(folders: Sequence[str], cache_folder: str) -> list[ResultSummary]:
+    """Player sessions of results files of folders (unsorted): cached ones kept, new or changed ones read"""
+    global _summary_cache
+    path = os.path.join(cache_folder, SUMMARY_CACHE_NAME)
+    with _summary_lock:
+        cache_path, entries = _summary_cache
+        if cache_path != path:
+            entries = load_summary_cache(path)
+        names = player_names(folders)
+        found: dict[str, tuple[FileStamp, tuple[str, ...], ResultSummary | None]] = {}
+        changed = False
+        for folder in folders:
+            folder_names = names[folder]
+            for file in rf.results_files(folder):
+                stamp = file_stamp(file)
+                if stamp is None:
+                    continue
+                cached = entries.get(file)
+                if cached is not None and cached[0] == stamp and cached[1] == folder_names:
+                    found[file] = cached
+                    continue
+                kept = kept_file(file)  # parsed by a page meanwhile
+                if kept is not None and kept.stamp == stamp and kept.names == folder_names:
+                    parsed, keep = kept, True
+                else:
+                    parsed, _, keep = parse_file(file, stamp, folder_names)
+                if keep:  # unreadable now (being written): read again next time
+                    found[file] = (stamp, folder_names, parsed.summary)
+                changed = True
+        scanned = {os.path.dirname(os.path.join(folder, "_")) for folder in folders}
+        # Files of other folders kept (folder chosen changed back later), removed ones dropped
+        kept_others = {file: entry for file, entry in entries.items()
+                       if file not in found and os.path.dirname(file) not in scanned}
+        changed = changed or len(found) + len(kept_others) != len(entries)
+        entries = {**kept_others, **found}
+        _summary_cache = (path, entries)
+        if changed:
+            save_summary_cache(path, entries)
+    return [summary for _, _, summary in found.values() if summary is not None]
+
+
+def load_summary_cache(path: str) -> dict[str, tuple[FileStamp, tuple[str, ...], ResultSummary | None]]:
+    """Summaries cache file, empty if missing, damaged or of another version (files read again)"""
+    from ..validator import load_json_strict
+
+    try:
+        with open(path, "rb") as file:
+            data = load_json_strict(file.read(SUMMARY_CACHE_MAX_SIZE + 1), allow_nan=True)  # written by app
+        if (not isinstance(data, dict) or data.get("version") != SUMMARY_CACHE_VERSION
+                or data.get("fields") != list(ResultSummary._fields)):
+            return {}
+        entries = {}
+        rival_index = ResultSummary._fields.index("rivals")
+        for file, (size, modified, names, values) in data["files"].items():
+            summary = None
+            if values is not None:
+                values[rival_index] = tuple(Rival(*rival) for rival in values[rival_index])
+                summary = ResultSummary(*values)
+            entries[str(file)] = (FileStamp(int(size), float(modified)), tuple(str(name) for name in names), summary)
+        return entries
+    except FileNotFoundError:
+        return {}
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+        logger.info("RESULTS INDEX: summaries cache not used (%s), results files read again", error)
+        return {}
+
+
+def save_summary_cache(path: str, entries: dict[str, tuple[FileStamp, tuple[str, ...], ResultSummary | None]]
+                       ) -> None:
+    """Summaries cache written (cache only: a failed write is logged, files read again next time)"""
+    from ..userfile import write_json
+
+    data = {
+        "version": SUMMARY_CACHE_VERSION,
+        "fields": list(ResultSummary._fields),
+        "files": {file: [stamp.size, stamp.modified, list(names), summary]
+                  for file, (stamp, names, summary) in entries.items()},
+    }
+    write_json(path, data, fsync=False)
+
+
+def forget_summary_cache() -> None:
+    """Summaries cache dropped from memory (tests), file read again on next cached read"""
+    global _summary_cache
+    with _summary_lock:
+        _summary_cache = ("", {})
 
 
 def hold_files() -> None:

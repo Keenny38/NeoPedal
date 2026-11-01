@@ -152,7 +152,8 @@ def test_qml_page_shows_cards(home):
     assert view is not None and view.rootObject() is not None and not view.errors()
     texts = item_texts(view)
     # Status banner (verdict, version, release notes, update) & one overlays card (overlays & modules on)
-    assert {"Game", "Preset", "Overlays", "Open modules", "Quick Access", "What's New", "Active overlays"} <= texts
+    assert {"Preset", "Overlays", "Open modules", "Quick Access", "What's New", "Active overlays"} <= texts
+    assert "Game" not in texts  # game card on track only: the banner tells the game
     assert "Overlay" not in texts and "Checks" not in texts
     assert "Last Session" not in texts and "Session Debrief" not in texts  # nothing driven yet
     assert home.backend.page_visible and home.backend._timer.isActive()

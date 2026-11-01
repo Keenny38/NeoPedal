@@ -119,6 +119,11 @@ class ErrorThrottle:
         _logger.log(logging.WARNING if warn else logging.DEBUG, msg, *args, exc_info=exc_info)
         return warn
 
+    def reset(self) -> None:
+        """Next error warned at once (path working again: a new failure is news)"""
+        with self._lock:
+            self._last = None
+
 
 def new_stream_handler(
     _logger: logging.Logger, stream, level: int = logging.INFO

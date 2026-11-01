@@ -27,7 +27,7 @@ import os
 import threading
 from collections import ChainMap
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from copy import deepcopy
 from time import monotonic, sleep
 from types import MappingProxyType
@@ -657,7 +657,7 @@ class Setting:
         # Run next save task until queue empty
         try:  # everything inside: an error anywhere must never leave is_saving set (no saver ever again)
             saving_attempts = self.max_saving_attempts
-            app_signal.saving.emit(True)
+            tell_saving(True)
             while True:
                 retry = False
                 with self._save_pause:  # wait while style files replaced, see styles_replaced
@@ -697,7 +697,7 @@ class Setting:
             raise
         finally:
             self.version_update += 1
-            app_signal.saving.emit(False)
+            tell_saving(False)
 
     def __requeue_failed(self, filename: str, filepath: str, dict_user: dict) -> bool:
         """Failed save (backup refused, file held by another program) queued again, up to SAVE_RETRY_ATTEMPTS
@@ -720,6 +720,13 @@ class Setting:
         """Get max saving attempts"""
         return max(self.application["maximum_saving_attempts"], 3)
 
+
+
+def tell_saving(saving: bool) -> None:
+    """Saving state told to the window (status bar). Signal object deleted while the app quits (Qt objects
+    deleted before a last save started): files still written, never an error of the saving thread"""
+    with suppress(RuntimeError):  # "Signal source has been deleted"
+        app_signal.saving.emit(saving)
 
 
 def snapshot_dict(dict_user: dict, max_attempts: int = 20) -> dict:

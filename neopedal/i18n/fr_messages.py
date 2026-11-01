@@ -126,6 +126,8 @@ MESSAGE_RULES = (
     (r"^Ranks of game menu, updated (.+)$", r"Rangs du menu du jeu, mis à jour le \1"),
     (r"^Ranks of RaceControl, updated (.+)$", r"Rangs de RaceControl, mis à jour le \1"),
     (r"^Last ranks seen in game menu, (.+)$", r"Derniers rangs vus dans le menu du jeu, le \1"),
+    (r"^(\d+)% of the way to (.+)$", r"\1 % du chemin vers \2"),
+    (r"^([+-]\d+)% of a tier since the previous rank seen$", r"\1 % d'un palier depuis le rang vu précédemment"),
     (r"Tyre strategy file saved at:", "Stratégie pneus enregistrée dans :"),
     (r"Tyre strategy file exported at:", "Stratégie pneus exportée dans :"),
     (r"<b>(.+?)</b> already installed on <b>(.+?)</b> wheel\.", r"<b>\1</b> est déjà monté sur la roue <b>\2</b>."),

@@ -46,6 +46,37 @@ def test_request_idle_collect_waits_for_driving_end(gc_calls, monkeypatch):
     assert gc_calls.calls == [] and len(gc_calls.timers) == 1  # postponed while driving
 
 
+def test_working_set_trimmed_after_collection_when_window_away(gc_calls, monkeypatch):
+    """Window away, pages released: RAM given back once collected at an idle moment, never while driving"""
+    trims = []
+    monkeypatch.setattr(loader, "trim_working_set", lambda: trims.append(gc_calls.calls[:]) or True)
+    monkeypatch.setattr(loader, "_trim_due", False)
+    monkeypatch.setattr(realtime_state, "active", True)
+    loader.request_idle_collect(trim=True)
+    gc_calls.timers.pop()()
+    assert trims == []  # driving: postponed with the collection
+    monkeypatch.setattr(realtime_state, "active", False)
+    gc_calls.timers.pop()()
+    assert trims == [["unfreeze", "collect", "freeze"]]  # after the collection
+    loader.request_idle_collect()  # page closed, window shown: collected, not trimmed
+    gc_calls.timers.pop()()
+    assert len(trims) == 1
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows working set")
+def test_trim_working_set_gives_memory_back():
+    import psutil
+
+    process = psutil.Process()
+    block = bytearray(64 * 1024 * 1024)  # touched: in working set
+    for index in range(0, len(block), 4096):
+        block[index] = 1
+    before = process.memory_info().rss
+    assert loader.trim_working_set()
+    assert process.memory_info().rss < before - 32 * 1024 * 1024
+    del block
+
+
 def test_request_idle_collect_before_start_finished(gc_calls, monkeypatch):
     monkeypatch.setattr(loader, "_gc_frozen", False)
     loader.request_idle_collect()

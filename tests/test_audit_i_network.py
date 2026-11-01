@@ -467,17 +467,24 @@ def test_forget_hostname_keeps_unresolved_entry(monkeypatch):
         clear_resolved_hosts()
 
 
-def test_unresolved_hostname_warned_once_a_period(monkeypatch, caplog):
+def test_unresolved_hostname_warned_once_until_game_answers(monkeypatch, caplog):
+    import socket
+
     from neopedal import async_request
     from neopedal.log_handler import ErrorThrottle
 
-    monkeypatch.setattr(async_request, "_unresolved_warning", ErrorThrottle(60.0))
+    monkeypatch.setattr(async_request, "_unresolved_warning", ErrorThrottle(async_request.UNRESOLVED_WARN_SECONDS))
     caplog.set_level(logging.DEBUG, logger=async_request.logger.name)
-    port = free_port()  # nothing listens
+    port = free_port()  # nothing listens: game closed, app left open (one warning, not one a minute)
     for _ in range(3):
         assert asyncio.run(async_request.localhost_resolve({"127.0.0.1"}, port, 1.0)) == ""
+    with socket.socket() as server:  # game started: answers
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        assert asyncio.run(async_request.localhost_resolve({"127.0.0.1"}, server.getsockname()[1], 1.0))
+    assert asyncio.run(async_request.localhost_resolve({"127.0.0.1"}, port, 1.0)) == ""  # closed again: news
     levels = [record.levelno for record in caplog.records if "unable to resolve" in record.getMessage()]
-    assert levels == [logging.WARNING, logging.DEBUG, logging.DEBUG]
+    assert levels == [logging.WARNING, logging.DEBUG, logging.DEBUG, logging.WARNING]
 
 
 # --- PERF-060: ranks file read on a lane of its own

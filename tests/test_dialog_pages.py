@@ -458,7 +458,7 @@ def test_open_pages_saved_and_reopened(window, monkeypatch):
     assert view.open_page_paths() == ["*race_calculator.RaceCalculator"]
     assert cfg.application["open_pages"] == "*race_calculator.RaceCalculator"
 
-    # Next startup: shown page (shown again) & rail tools reopened, window not brought to front
+    # Next startup: only shown page reopened (rail tools open when clicked), window not brought to front
     cfg.application["open_pages"] = (
         "race_calculator.RaceCalculator,*brake_editor.BrakeEditor,heatmap_editor.HeatmapEditor,unknown.Tool")
     monkeypatch.setattr(app_module.AppWindow, "set_window_state", lambda self: None)
@@ -467,8 +467,8 @@ def test_open_pages_saved_and_reopened(window, monkeypatch):
         other_view = other.centralWidget()
         assert not other_view.dialog_pages()  # reopened once window is shown
         QApplication.processEvents()
-        assert [page.title for page in other_view.dialog_pages()] == ["Race Calculator", "Brake Editor"]
-        assert other_view._pages.currentWidget() is other_view.dialog_pages()[1]
+        assert [page.title for page in other_view.dialog_pages()] == ["Brake Editor"]
+        assert other_view._pages.currentWidget() is other_view.dialog_pages()[0]
         assert not other.isVisible()
     finally:
         for page in other.centralWidget().dialog_pages():
@@ -485,6 +485,155 @@ def test_open_pages_current_app_page_kept(window):
     view.restore_pages(["race_calculator.RaceCalculator", "track_map_viewer.TrackMapViewer"])
     assert [page.title for page in view.dialog_pages()] == ["Race Calculator"]
     assert view.current_index() == PAGE_INDEX["preset"]
+
+
+def test_open_pages_reopened_without_showing_each(window):
+    from neopedal.ui.nav_rail import PAGE_INDEX
+
+    view = window.centralWidget()
+    view.set_current_index(PAGE_INDEX["preset"])
+    shown = []
+    view._pages.currentChanged.connect(lambda index: shown.append(view._pages.widget(index)))
+    # Language change: rail tools reopened behind current page, only the page shown before shown once
+    view.restore_pages(["race_calculator.RaceCalculator", "*lap_viewer.LapViewer"])
+    pages = {page.title: page for page in view.dialog_pages()}
+    assert set(pages) == {"Race Calculator", "Lap Telemetry Viewer"}
+    assert shown == [pages["Lap Telemetry Viewer"]]
+    assert view._pages.currentWidget() is pages["Lap Telemetry Viewer"]
+
+
+@pytest.mark.parametrize("tool, reopened", [("brake_editor.BrakeEditor", True), ("unknown.Tool", False)])
+def test_startup_tool_page_skips_app_page_behind(window, monkeypatch, tool, reopened):
+    from neopedal.ui import app as app_module
+    from neopedal.ui.nav_rail import NAV_PAGES, PAGE_INDEX
+
+    monkeypatch.setattr(app_module.AppWindow, "set_window_state", lambda self: None)
+    cfg.application["remember_open_pages"] = True
+    cfg.application["open_pages"] = f"*{tool}"
+    monkeypatch.setitem(cfg.application, "last_page_index", PAGE_INDEX["preset"])
+    other = app_module.AppWindow()
+    try:
+        view = other.centralWidget()
+        lazy = view._pages.widget(PAGE_INDEX["preset"])
+        assert lazy.page is None and view.page_title() == ""  # blank page until tool page reopened
+        QApplication.processEvents()
+        assert view._startup_blank is None and view._pages.count() == len(NAV_PAGES) + reopened
+        if reopened:
+            assert view.page_title() == "Brake Editor"
+            assert lazy.page is None  # app page behind tool page never built
+            view.dialog_pages()[0].dialog.close()
+            QApplication.processEvents()
+        assert view.current_page() is lazy  # back to it (built once window shows it)
+        assert all(view._pages.indexOf(page) >= 0 for page in view._page_history)  # blank page left no trace
+    finally:
+        cfg.application["open_pages"] = ""
+        for page in other.centralWidget().dialog_pages():
+            page.dialog.close()
+        other.deleteLater()
+
+
+def test_back_has_nothing_at_startup(window, monkeypatch):
+    """First page of the stack (Home) was never shown: Back disabled, never builds it"""
+    from neopedal.ui import app as app_module
+    from neopedal.ui.nav_rail import PAGE_INDEX
+
+    monkeypatch.setattr(app_module.AppWindow, "set_window_state", lambda self: None)
+    monkeypatch.setitem(cfg.application, "last_page_index", PAGE_INDEX["preset"])
+    monkeypatch.setitem(cfg.application, "open_pages", "")
+    other = app_module.AppWindow()
+    try:
+        view = other.centralWidget()
+        assert view.current_index() == PAGE_INDEX["preset"] and not view.can_go_back()
+        assert not view._button_back.isEnabled()
+    finally:
+        other.deleteLater()
+
+
+def test_rail_tool_shows_loading_page_first(window, monkeypatch):
+    """Rail tool not open yet: loading page painted before the tool page is built (click answered at once)"""
+    from neopedal.ui import app_tab_view
+    from neopedal.ui.app import NavButton
+    from neopedal.ui.nav_rail import NAV_PAGES, PAGE_INDEX
+
+    view = window.centralWidget()
+    window.show()
+    view.select_page(PAGE_INDEX["preset"])
+    QApplication.processEvents()
+    seen, changes = [], []
+    real_open = app_tab_view.open_tool
+
+    checked = []
+
+    def spy(path, parent):
+        current = view._pages.currentWidget()
+        seen.append(current.text() if hasattr(current, "text") else type(current).__name__)
+        if hasattr(current, "text"):
+            checked.append((view._nav.checkedId(),
+                            [name for name, item in view.rail_tool_buttons().items() if item.isChecked()]))
+        return real_open(path, parent)
+
+    monkeypatch.setattr(app_tab_view, "open_tool", spy)
+    view._pages.currentChanged.connect(lambda index: changes.append(index))
+    button = window.findChild(NavButton, "railTool:race_calculator.RaceCalculator")
+    try:
+        button.click()
+        assert seen == ["Loading page…"]
+        assert checked == [(-1, ["RaceCalculator"])]  # only the clicked entry selected while loading
+        assert view.page_title() == "Race Calculator" and len(changes) == 1  # one page change: the tool page
+        assert view._loading is None and view._pages.count() == len(NAV_PAGES) + 1  # loading page removed
+        assert view.can_go_back() and view._page_history[-1] is view._pages.widget(PAGE_INDEX["preset"])
+        seen.clear()
+        view.select_page(PAGE_INDEX["preset"])
+        button.click()  # already open: shown at once, no loading page
+        assert seen and seen[0] != "Loading page…"
+    finally:
+        for page in view.dialog_pages():
+            page.dialog.close()
+        window.hide()
+
+
+def test_rail_tool_failing_goes_back_to_previous_page(window, monkeypatch):
+    from neopedal.ui import app_tab_view
+    from neopedal.ui.nav_rail import NAV_PAGES, PAGE_INDEX
+
+    view = window.centralWidget()
+    window.show()
+    view.select_page(PAGE_INDEX["preset"])
+    QApplication.processEvents()
+    previous = view._pages.currentWidget()
+
+    def broken(path, parent):
+        raise RuntimeError("tool broken")
+
+    monkeypatch.setattr(app_tab_view, "open_tool", broken)
+    try:
+        with pytest.raises(RuntimeError):
+            view.open_rail_tool("race_calculator.RaceCalculator")
+        assert view._pages.currentWidget() is previous and view._loading is None
+        assert view._nav.checkedId() == PAGE_INDEX["preset"]  # rail selection back on it
+        assert not any(button.isChecked() for button in view.rail_tool_buttons().values())
+        assert view._pages.count() == len(NAV_PAGES)
+        assert all(view._pages.indexOf(page) >= 0 for page in view._page_history)  # loading page left no trace
+    finally:
+        window.hide()
+
+
+def test_startup_reopens_only_shown_page(window, monkeypatch):
+    view = window.centralWidget()
+    restored = []
+    monkeypatch.setattr(view, "restore_pages", restored.append)
+    monkeypatch.setattr(view, "defer_pages", restored.append)
+    cfg.application["remember_open_pages"] = True
+    cfg.application["open_pages"] = "race_calculator.RaceCalculator,*lap_viewer.LapViewer,game_replays.GameReplays"
+    try:
+        window.restore_open_pages()
+        assert restored == [["*lap_viewer.LapViewer"]]  # other rail tools open when clicked
+        restored.clear()
+        cfg.application["open_pages"] = "race_calculator.RaceCalculator"  # app page shown at quit
+        window.restore_open_pages()
+        assert not restored
+    finally:
+        cfg.application["open_pages"] = ""
 
 
 def test_open_pages_not_remembered_when_disabled(window, monkeypatch):

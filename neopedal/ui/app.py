@@ -217,6 +217,14 @@ class StatusButtonBar(QStatusBar):
                        action=show_center if callable(show_center) else None)
 
 
+def startup_page_paths() -> list[str]:
+    """Tool page to reopen at startup: only the one shown at quit ("*"), other tools open from navigation rail
+    when clicked (startup time, memory)"""
+    if not cfg.application["remember_open_pages"] or safe_mode_enabled():
+        return []
+    return [path for path in cfg.application["open_pages"].split(",") if path.strip().startswith("*")]
+
+
 class AppWindow(QMainWindow):
     """Main application window"""
 
@@ -228,6 +236,7 @@ class AppWindow(QMainWindow):
         self.last_icon_dark = None
         self.last_language = cfg.application["language"]
         self._pages_closed = False  # pages closed for quit or restart, see close_pages_for_quit
+        self._visible_before_close = False  # window shown when quit or restart began (shown again if cancelled)
         # Window size & position saved shortly after each change (kept after a crash or system
         # shutdown, not only after Quit), once set at startup, see set_window_state
         self._track_geometry = False
@@ -253,7 +262,7 @@ class AppWindow(QMainWindow):
         self.set_menu_bar()
 
         # Tab view
-        self.setCentralWidget(TabView(self))
+        self.setCentralWidget(TabView(self, startup_tool=bool(startup_page_paths())))
 
         # Tray icon
         self.set_tray_icon()
@@ -778,12 +787,13 @@ class AppWindow(QMainWindow):
         view = self.centralWidget()
         if not isinstance(view, TabView):
             return
-        paths = [path for path in cfg.application["open_pages"].split(",") if path.strip()]
-        if cfg.application["remember_open_pages"] and paths and not safe_mode_enabled():
+        paths = startup_page_paths()
+        if paths:
             if not self.isVisible() and not cfg.application["show_at_startup"]:
                 view.defer_pages(paths)  # started hidden in tray (game starting): built once window is shown
             else:
                 view.restore_pages(paths)
+        view.end_startup_blank()
         view.track_pages = True
 
     def close_pages_for_quit(self) -> bool:
@@ -798,7 +808,13 @@ class AppWindow(QMainWindow):
             return True
         self.save_open_pages()
         view.track_pages = False  # pages closing now: saved state kept
-        if not view.close_all_pages():
+        self._visible_before_close = self.isVisible()
+        # Nothing to ask: window hidden first, the page behind each closed page is never built & shown for nothing
+        hidden_first = not any(page.has_unsaved_changes() for page in view.dialog_pages())
+        if hidden_first:
+            self.hide_while_closing()
+        # A page asking to save after all shows the window again (see close_all_pages)
+        if not view.close_all_pages(build_behind=not hidden_first):
             view.track_pages = True
             return False
         self._pages_closed = True
@@ -810,6 +826,8 @@ class AppWindow(QMainWindow):
         view = self.centralWidget()
         if isinstance(view, TabView):
             view.track_pages = True
+        if self._visible_before_close and not self.isVisible():
+            self.show()
 
     def restart_app(self) -> bool:
         """Restart app, tool pages left open reopened, False if cancelled (unsaved changes)"""
@@ -818,8 +836,9 @@ class AppWindow(QMainWindow):
         tray_icon = self.findChild(QSystemTrayIcon)
         if tray_icon is not None:
             tray_icon.hide()  # no ghost tray icon left by exited process
+        self.hide_while_closing()  # window state saved first: no debounced save is lost
         loader.restart()  # only returns if relaunch failed (app reloaded & kept running)
-        self.cancel_quit()  # pages opened from now on asked to save on quit again
+        self.cancel_quit()  # window shown again, pages opened from now on asked to save on quit again
         if tray_icon is not None:
             tray_icon.show()
         return True
@@ -833,8 +852,8 @@ class AppWindow(QMainWindow):
         if not self.close_pages_for_quit():
             return False
         release_quick_views(self)  # QML views unloaded before their backends are deleted
+        self.hide_while_closing()
         loader.close()  # must close this first
-        self.save_window_state()
         cfg.flush()  # window state written before the process ends (as restart does)
         self.__break_signal()
         tray_icon = self.findChild(QSystemTrayIcon)
@@ -843,6 +862,14 @@ class AppWindow(QMainWindow):
         self.unload_quick_views()
         QApplication.quit()
         return True
+
+    def hide_while_closing(self):
+        """Quit or restart: window state saved, then window hidden at once, not left frozen on screen while
+        closing waits for saves to finish (last lap recorded, replay, data); shown again by cancel_quit"""
+        self._geometry_timer.stop()  # change waiting for its debounced save: saved now
+        self.save_window_state()
+        if self.isVisible():
+            self.hide()
 
     def unload_quick_views(self):
         """QML of every page unloaded while backends still exist

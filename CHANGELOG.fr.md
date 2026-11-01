@@ -3,6 +3,29 @@
 Toutes les nouveautés de **NeoPedal** (anciennement Modern Tiny Pedals), la version la plus récente en premier. English version: [CHANGELOG.md](CHANGELOG.md).
 C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en français. La liste détaillée des commits de chaque version est sur la page [Releases](https://github.com/Keenny38/NeoPedal/releases).
 
+## 0.28.1 (2026-11-01)
+
+Un redémarrage et un démarrage plus rapides, moins de mémoire utilisée pendant que tu roules, des résultats de course lus une seule fois et une page d'accueil mieux rangée.
+
+### Améliorations
+
+- **Redémarrage plus rapide** : la nouvelle app commence à charger pendant que l'ancienne se ferme, et la fenêtre disparaît tout de suite quand tu quittes ou redémarres au lieu de rester figée pendant l'enregistrement du dernier tour, du replay et des données.
+- **Démarrage plus rapide** : seule la page d'outil affichée quand tu as quitté est rouverte ; les autres outils de la barre de navigation laissés ouverts (calculateur, visualiseur de télémétrie...) s'ouvrent quand tu cliques dessus (`remember_open_pages`). Un clic sur un outil de la barre affiche `Chargement de la page…` tout de suite.
+- **Moins de mémoire utilisée pendant que tu roules** : fenêtre cachée ou réduite, les pages inutilisées depuis 2 minutes sont libérées (10 minutes quand la fenêtre est affichée), puis la mémoire est rendue à Windows (jusqu'à environ 400 Mo une fois toutes les pages ouvertes), pour le jeu.
+- **Résultats de course lus une seule fois** : la carte pilote de l'accueil, les Statistiques pilote et les Résultats de course gardent un résumé de chaque fichier de résultats (`results_summaries.cache` dans le dossier de config) et ne lisent que les fichiers nouveaux ou modifiés, même après un redémarrage.
+- **Page d'accueil** : les cartes remplissent chaque ligne quelles que soient les cartes affichées, la carte du jeu n'apparaît qu'en piste (sinon le bandeau donne l'état du jeu), `Ouvrir les modules` passe en bas de la carte des overlays, logos plus grands. Rangs du pilote : une infobulle indique où en est le rang suivant, la courbe du rang est zoomée sur ses valeurs et cachée quand le rang n'a jamais bougé, les rangs mémorisés depuis plus d'une semaine sont marqués d'une horloge.
+- **Soutenir NeoPedal sur Patreon** : dans le menu `Aide`, la fenêtre `À propos` et le README.
+- Développement : les Checks installent des versions exactes des outils (`requirements-dev-lock.txt`, les mêmes que celles attendues par `tools/check.py`), `tools/ci_preflight.py` lance les Checks sur le travail pas encore poussé, et un commit de version est refusé si son code n'est jamais passé par les Checks. La page de feuille de route est supprimée.
+
+![Page d'accueil : les cartes remplissent chaque ligne, carte du jeu seulement en piste, infobulles des rangs et courbe zoomée](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changes/2026-11-01-home-page.png)
+
+### Corrections
+
+- Le journal ne répète plus `unable to resolve local hostname` toutes les minutes pendant des heures quand le jeu est fermé : un seul avertissement, puis un nouveau seulement après une réponse du jeu.
+- Les réglages enregistrés pendant la fermeture de l'app n'écrivent plus d'erreur dans le journal.
+- Vérifier la profondeur d'un texte JSON plein de guillemets non fermés n'est plus lent.
+- `Importer des paramètres…` ne copie plus les fichiers de cache de l'autre ordinateur.
+
 ## 0.28.0 (2026-10-30)
 
 Des raccourcis sur ton volant et ta button box, des mises à jour signées, une palette de commandes et un centre de notifications, des dialogues dans l'app, un onglet Équipe pour préparer une course d'endurance avec ses pilotes, un carré de catégorie et des valeurs à afficher une par une dans les overlays, et des centaines de corrections issues d'audits complets des overlays, des pages, des performances et de la sécurité.

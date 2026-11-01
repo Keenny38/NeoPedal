@@ -26,7 +26,7 @@
   <a href="#features">Features</a> ·
   <a href="https://github.com/Keenny38/NeoPedal/wiki">Wiki</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
-  <a href="docs/ROADMAP.md">Roadmap</a>
+  <a href="https://www.patreon.com/cw/keenny38">Patreon</a>
 </p>
 
 ![The 93 overlays with the modern design on a simulated race at Road Atlanta](images/readme_preview.png)
@@ -34,6 +34,8 @@
 NeoPedal is a telemetry overlay and analysis app: a modern design, a clear interface, many tools and a lot of work on reliability.
 
 > [!NOTE]
+> **New in 0.28.1**: faster restart and startup, less memory used while you race (window hidden), race results read only once, a tidier Home page and a Patreon link in the `Help` menu.
+>
 > **New in 0.28.0**: **hotkeys on your wheel, button box, joystick or gamepad** (and mouse buttons), **signed updates**, a **command palette** (`Ctrl+K`), a **notification center** and a keyboard shortcuts sheet (`Ctrl+/`), dialogs inside the app with undo. **Race calculator Team tab**: line-up and driver of each stint, with the real LMU team names. A **class square** and a `Driver Badge` column in Relative, Standings and Rivals, each Fuel and Virtual Energy value on its own, settings applied without reloading the app, and hundreds of fixes from audits of the overlays, pages, performance and security. Remote control commands that close, restart or switch preset now need the access token. All the details, with screenshots, in the [changelog](CHANGELOG.md).
 
 ---
@@ -275,7 +277,7 @@ The [wiki](https://github.com/Keenny38/NeoPedal/wiki) is the user and developer 
 |---|---|
 | [Installation](https://github.com/Keenny38/NeoPedal/wiki/Installation) · [Game setup](https://github.com/Keenny38/NeoPedal/wiki/Game-Setup) · [Getting started](https://github.com/Keenny38/NeoPedal/wiki/Getting-Started) | [Development](https://github.com/Keenny38/NeoPedal/wiki/Development): run from source, checks, architecture, Windows build, release process |
 | [Overlays](https://github.com/Keenny38/NeoPedal/wiki/Overlays) · [Presets and settings](https://github.com/Keenny38/NeoPedal/wiki/Presets-and-Settings) | [Contributing guide](CONTRIBUTING.md) |
-| [Telemetry viewer](https://github.com/Keenny38/NeoPedal/wiki/Telemetry-Viewer) · [Race calculator](https://github.com/Keenny38/NeoPedal/wiki/Race-Calculator) · [Driver stats](https://github.com/Keenny38/NeoPedal/wiki/Driver-Stats) · [Race results](https://github.com/Keenny38/NeoPedal/wiki/Race-Results) · [Broadcast director](https://github.com/Keenny38/NeoPedal/wiki/Broadcast-Director) | [Roadmap](docs/ROADMAP.md) |
+| [Telemetry viewer](https://github.com/Keenny38/NeoPedal/wiki/Telemetry-Viewer) · [Race calculator](https://github.com/Keenny38/NeoPedal/wiki/Race-Calculator) · [Driver stats](https://github.com/Keenny38/NeoPedal/wiki/Driver-Stats) · [Race results](https://github.com/Keenny38/NeoPedal/wiki/Race-Results) · [Broadcast director](https://github.com/Keenny38/NeoPedal/wiki/Broadcast-Director) | |
 | [Connections](https://github.com/Keenny38/NeoPedal/wiki/Connections) · [Updates and security](https://github.com/Keenny38/NeoPedal/wiki/Updates-and-Security) · [Troubleshooting](https://github.com/Keenny38/NeoPedal/wiki/Troubleshooting) | [Security policy](SECURITY.md) |
 
 Every option is described in the [settings reference](docs/customization.md) (also bundled with the app), and what changed in each version in the [changelog](CHANGELOG.md) ([en français](CHANGELOG.fr.md)). The wiki is generated from [docs/wiki](docs/wiki): edit it there.
@@ -320,7 +322,7 @@ On **Linux**, run the app from source the same way (no executable). Needed packa
 
 ## Contributing
 
-Report a problem or suggest an idea in the [issues](https://github.com/Keenny38/NeoPedal/issues). The contribution rules (development setup, checks, project rules) are in [CONTRIBUTING.md](CONTRIBUTING.md), and what is left to do in the [roadmap](docs/ROADMAP.md). A security vulnerability is reported privately, not in an issue: see [SECURITY.md](SECURITY.md).
+Report a problem or suggest an idea in the [issues](https://github.com/Keenny38/NeoPedal/issues). The contribution rules (development setup with the exact tool versions of CI in `requirements-dev-lock.txt`, checks, project rules) are in [CONTRIBUTING.md](CONTRIBUTING.md). A security vulnerability is reported privately, not in an issue: see [SECURITY.md](SECURITY.md).
 
 ## License and credits
 

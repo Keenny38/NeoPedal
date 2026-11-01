@@ -77,6 +77,34 @@ def test_hidden_quick_page_released_after_delay(ui_env):
         flush_deleted()
 
 
+def test_hidden_page_released_sooner_while_window_away(ui_env):
+    """Window minimized or in tray (driving): hidden pages freed after a few minutes, not 10; shown page kept"""
+    from neopedal.ui.lazy_page import IDLE_RELEASE_AWAY_MS, IDLE_RELEASE_MS, IdlePageRelease, LazyPage
+
+    QuickPage.built = 0
+    clock = FakeClock()
+    stack = QStackedWidget()
+    pages = [LazyPage(stack, QuickPage) for _ in range(3)]
+    for page in pages:
+        stack.addWidget(page)
+    try:
+        stack.show()
+        QCoreApplication.processEvents()
+        idle = IdlePageRelease(stack, lambda page: page.release(), clock=clock)
+        stack.setCurrentIndex(1)
+        stack.setCurrentIndex(2)  # pages 0 & 1 hidden
+        clock.now += IDLE_RELEASE_AWAY_MS / 1000 + 1
+        idle.check()
+        assert pages[0].page is not None and pages[1].page is not None  # window shown: 10 min
+        stack.hide()  # window in tray
+        idle.check()
+        assert pages[0].page is None and pages[1].page is None and pages[2].page is not None  # shown page kept
+        assert IDLE_RELEASE_AWAY_MS < IDLE_RELEASE_MS
+    finally:
+        stack.deleteLater()
+        flush_deleted()
+
+
 def test_hidden_page_kept_when_shown_again_or_refused(ui_env):
     from neopedal.ui.lazy_page import IdlePageRelease, LazyPage
 

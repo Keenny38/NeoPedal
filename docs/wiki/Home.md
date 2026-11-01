@@ -47,7 +47,7 @@ Every option of every overlay, module and tool is described in the [settings ref
 - [Download the latest release](https://github.com/Keenny38/NeoPedal/releases/latest) and [all releases](https://github.com/Keenny38/NeoPedal/releases)
 - [Issues](https://github.com/Keenny38/NeoPedal/issues): bug reports and ideas
 - [Changelog](https://github.com/Keenny38/NeoPedal/blob/master/CHANGELOG.md) (English) and [CHANGELOG.fr.md](https://github.com/Keenny38/NeoPedal/blob/master/CHANGELOG.fr.md) (French)
-- [Roadmap](https://github.com/Keenny38/NeoPedal/blob/master/docs/ROADMAP.md)
+- [Patreon](https://www.patreon.com/cw/keenny38): support NeoPedal
 - [Contributing](https://github.com/Keenny38/NeoPedal/blob/master/CONTRIBUTING.md)
 - [Security policy](https://github.com/Keenny38/NeoPedal/blob/master/SECURITY.md): report vulnerabilities privately, never in a public issue
 

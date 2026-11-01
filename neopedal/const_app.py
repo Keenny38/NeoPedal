@@ -49,6 +49,7 @@ FORMAT_PREFIX = APP_ID.lower()  # format of language packs, race plans & exporte
 CONFIG_ID = "NeoPedal"  # user config & data folders
 DESKTOP_FILE_NAME = "NeoPedal"  # Linux desktop entry (NeoPedal.desktop)
 RESTART_ENVIRONMENT = "NEOPEDAL_RESTART"  # set by restart, skips single instance check
+RESTART_PID_ENVIRONMENT = "NEOPEDAL_RESTART_PID"  # process id of instance that restarted (still closing)
 REPO_NAME = "TinyPedal/TinyPedal"  # upstream project (wiki, credits)
 FORK_REPO_NAME = "Keenny38/NeoPedal"  # this fork (releases, updates)
 # Names of this fork repository before it was renamed (GitHub redirects them): still official
@@ -68,3 +69,4 @@ URL_FORK = f"https://github.com/{FORK_REPO_NAME}"  # this modified version
 URL_USER_GUIDE = f"{URL_FORK}/wiki"  # wiki of this version (docs/wiki), not the upstream one
 URL_FAQ = f"{URL_FORK}/wiki/Troubleshooting"
 URL_RELEASE = f"https://github.com/{FORK_REPO_NAME}/releases"
+URL_PATREON = "https://www.patreon.com/cw/keenny38"  # support the NeoPedal author

@@ -3,6 +3,29 @@
 All notable changes to **NeoPedal** (formerly Modern Tiny Pedals), newest version first. Version française : [CHANGELOG.fr.md](CHANGELOG.fr.md).
 The full list of commits of each version is on the [Releases](https://github.com/Keenny38/NeoPedal/releases) page.
 
+## 0.28.1 (2026-11-01)
+
+A faster restart and startup, less memory used while you race, race results read only once, and a tidier Home page.
+
+### Improvements
+
+- **Faster restart**: the new app starts loading while the old one closes, and the window disappears at once when you quit or restart instead of staying frozen while the last lap, replay and data are saved.
+- **Faster startup**: only the tool page shown when you quit is opened again; the other navigation bar tools left open (race calculator, telemetry viewer...) open when you click them (`remember_open_pages`). A click on a navigation bar tool shows `Loading page…` at once.
+- **Less memory used while you race**: with the window hidden or minimized, pages left unused for 2 minutes are freed (10 minutes while the window is shown), then the memory goes back to Windows (up to about 400 MB once every page was opened), for the game.
+- **Race results read once**: the Home driver card, Driver Stats and Race Results keep a summary of each results file (`results_summaries.cache` in the config folder) and only read new or changed files, even after a restart.
+- **Home page**: the cards fill each row whatever cards are shown, the game card only shows on track (the banner tells the game state otherwise), `Open modules` moved to the overlays card footer, larger logos. Driver ranks: a tooltip tells how far the next rank is, the rank line is zoomed on its values and hidden when the rank never moved, ranks remembered for over a week are marked with a clock.
+- **Support NeoPedal on Patreon**: in the `Help` menu, the `About` dialog and the README.
+- Development: Checks install exact tool versions (`requirements-dev-lock.txt`, the same as `tools/check.py` expects), `tools/ci_preflight.py` runs Checks on work not pushed yet, and a release commit is refused when its code never passed Checks. The roadmap page was removed.
+
+![Home page: cards fill each row, game card only on track, rank tooltips and zoomed rank line](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changes/2026-11-01-home-page.png)
+
+### Fixes
+
+- The log no longer repeats `unable to resolve local hostname` every minute for hours while the game is closed: warned once, again only after the game answered.
+- Settings saved while the app quits no longer log an error.
+- Checking the nesting depth of a JSON text full of unclosed quotes is no longer slow.
+- `Import Settings…` no longer copies cache files of the other computer.
+
 ## 0.28.0 (2026-10-30)
 
 Hotkeys on your wheel and button box, signed updates, a command palette and a notification center, dialogs inside the app, a Team tab to plan an endurance race with its drivers, a class square and values you switch one by one in the overlays, and hundreds of fixes from full audits of the overlays, pages, performance and security.

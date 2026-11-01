@@ -144,6 +144,22 @@ def test_save_error_does_not_lock_saving_state(config, monkeypatch):
     assert not config.is_saving  # next save can run
 
 
+def test_save_written_when_signal_deleted_at_quit(config, monkeypatch):
+    """Save started while Qt objects are deleted (app quitting): saving signal gone, file still written
+    (29/10 log: 'Signal source has been deleted' killed the saving thread, queued save lost)"""
+    class Deleted:
+        @staticmethod
+        def emit(*args):
+            raise RuntimeError("Signal source has been deleted")
+
+    monkeypatch.setattr(setting_module.app_signal, "saving", Deleted())
+    config.user.config["application"]["window_width"] = 1234
+    config.save(delay=0, config_type=ConfigType.CONFIG)
+    wait_saved(config)
+    assert read_json(f"{config.path.config}{config.filename.config}")["application"]["window_width"] == 1234
+    assert not config.is_saving
+
+
 def test_save_creates_versioned_backup_for_presets(config):
     config.load_user()
     config.user.config["application"]["number_of_automatic_backups"] = 3

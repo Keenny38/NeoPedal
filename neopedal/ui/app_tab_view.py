@@ -624,7 +624,12 @@ class TabView(QWidget):
 
     page_shown = Signal()  # shown page, its title or its unsaved changes marker changed (window title)
 
-    def __init__(self, parent):
+    def __init__(self, parent, startup_tool: bool = False):
+        """
+        Args:
+            startup_tool: a tool page is reopened on top at startup (see AppWindow.restore_open_pages): app page
+                behind it not built, blank page shown meanwhile (see end_startup_blank).
+        """
         super().__init__(parent)
         # Notify bar: status chips in the window status bar (one band), see NotifyBar
         notify_bar = NotifyBar(self)
@@ -652,6 +657,8 @@ class TabView(QWidget):
         # Window hidden: pages freed (restored tool pages too, reopened when shown)
         self._deferred_pages: list[str] | None = None  # tool pages reopened once window shown, see defer_pages
         self._releasing_pages = False  # pages closed while window hidden: no page built meanwhile
+        self._reopening_hidden = False  # restore_pages: tool pages reopened without being shown
+        self._loading: QLabel | None = None  # "Loading page" shown while a rail tool page is built, see open_rail_tool
         self._page_release = PageRelease(
             self, self._lazy_pages.values(), release_others=self.release_tool_pages, shown=self.reopen_deferred_pages)
         # Qt Quick pages left hidden a while: freed (rail tools closed, reopened from rail), see release_idle_page
@@ -801,7 +808,16 @@ class TabView(QWidget):
         # Started hidden in tray (game starting): page built once window is first shown
         in_tray = (not parent.isVisible() and not cfg.application["show_at_startup"]
                    and cfg.application["minimize_to_tray"])
-        self.set_current_index(last_page if 0 <= last_page < len(NAV_PAGES) else 0, build=not in_tray)
+        last_page = last_page if 0 <= last_page < len(NAV_PAGES) else 0
+        self.set_current_index(last_page, build=not in_tray and not startup_tool)
+        self._page_history.clear()  # first page of the stack never shown: Back has nothing to go to at startup
+        # Tool page reopened on top: app page built only if shown later (closed tool page, reopening failed)
+        self._startup_blank: QWidget | None = None
+        if startup_tool:
+            self._startup_blank = QWidget(self._pages)
+            self._pages.addWidget(self._startup_blank)
+            self._pages.setCurrentWidget(self._startup_blank)
+            self._return_index = last_page
         self._pages.currentChanged.connect(self.page_changed)
         self._pages.currentChanged.connect(self.schedule_close_left_pages)
         self._pages.currentChanged.connect(self.update_page_minimum)
@@ -877,7 +893,7 @@ class TabView(QWidget):
                 action = (lambda page=entry.page: self.select_page(page))
             else:  # tool: its page selected like other pages, see sync_rail_selection
                 button.setObjectName(f"railTool:{entry.dialog}")
-                action = (lambda path=entry.dialog: open_tool(path, self._dialog_parent))
+                action = (lambda path=entry.dialog: self.open_rail_tool(path))
                 button.clicked.connect(lambda _=False, run=action: (run(), self.sync_rail_selection()))
             self._rail_items.addWidget(button)
             if position <= 9:
@@ -936,14 +952,16 @@ class TabView(QWidget):
             existing = self.find_dialog_page(type(dialog).__name__, dialog.windowTitle())
             if existing is not None:
                 dialog.shown_instead = existing.dialog  # caller works on open one, see shown_dialog
-                self.show_page_widget(existing)
+                if not self._reopening_hidden:
+                    self.show_page_widget(existing)
                 release_quick_views(dialog)  # QML unloaded before its backend goes
                 dialog.deleteLater()  # second copy of open dialog: never shown
                 return True
             page = DialogPage(dialog, self._pages, self.page_of(dialog.parentWidget()), self.shown_origin())
             self.connect_page(page)
             self._pages.addWidget(page)
-            self.show_page_widget(page)
+            if not self._reopening_hidden:  # startup: reopened pages never shown one after another
+                self.show_page_widget(page)
             self.refresh_open_pages()
         finally:
             self._restoring_pages = restoring
@@ -1311,6 +1329,67 @@ class TabView(QWidget):
             self._idle_released.append(path)
         return True
 
+    def open_rail_tool(self, path: str):
+        """Rail tool (entry or Ctrl+1..9) not open yet: a loading page is painted at once, then the tool page is
+        built (100 to 300 ms), so the click is answered at once, as for app pages (see LazyPage.show_skeleton)"""
+        window = self.window()
+        if (self.find_dialog_page(path.rsplit(".", 1)[-1]) is not None or self._loading is not None
+                or not window.isVisible() or window.isMinimized()):
+            open_tool(path, self._dialog_parent)
+            return
+        previous = self._pages.currentWidget()
+        if not isinstance(previous, DialogPage) and previous is not self._startup_blank:
+            self._return_index = self._pages.currentIndex()  # back to this page when tool page closes
+        loading = QLabel(tr("Loading page…"), self._pages)
+        loading.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        loading.setEnabled(False)  # dim text of window theme, as LazyPage placeholder
+        self._loading = loading
+        self._pages.addWidget(loading)
+        blocked = self._pages.blockSignals(True)  # no page change for it: fade, history & title follow the tool page
+        self._pages.setCurrentWidget(loading)
+        self._pages.blockSignals(blocked)
+        self._nav.setExclusive(False)  # only the clicked entry selected meanwhile (not the page left)
+        for button in self._nav.buttons():
+            button.setChecked(False)
+        self._nav.setExclusive(True)
+        tool = path.rsplit(".", 1)[-1]
+        for name, button in self.rail_tool_buttons().items():
+            button.setChecked(name == tool)
+        self._rail.repaint()
+        loading.repaint()
+        try:
+            open_tool(path, self._dialog_parent)
+        finally:
+            self._loading = None
+            if self._pages.currentWidget() is loading and previous is not None and self._pages.indexOf(previous) >= 0:
+                blocked = self._pages.blockSignals(True)  # not opened as a page (error shown): previous page back
+                self._pages.setCurrentWidget(previous)
+                self._pages.blockSignals(blocked)
+                button = self._nav.button(self._pages.currentIndex())
+                if button is not None:
+                    button.setChecked(True)
+                self.sync_rail_selection()
+            history = [previous if page is loading else page for page in self._page_history]
+            self._page_history = [page for page in history if page is not None]
+            self._pages.removeWidget(loading)
+            loading.deleteLater()
+            self.history_changed()
+
+    def end_startup_blank(self):
+        """Startup tool pages reopened (or deferred): blank page removed, app page shown if still on it"""
+        blank, self._startup_blank = self._startup_blank, None
+        if blank is None:
+            return
+        if self._pages.currentWidget() is blank:  # tool page not reopened (tool removed, failed) or deferred
+            window = self.window()
+            self.set_current_index(self._return_index, build=window.isVisible())
+        # Tool page opened over the app page it hides: closing it (or Back) shows that app page
+        behind = self._pages.widget(self._return_index)
+        history = [behind if page is blank else page for page in self._page_history]
+        self._page_history = [page for page in history if page is not None]
+        self._pages.removeWidget(blank)
+        blank.deleteLater()
+
     def defer_pages(self, paths: list[str]):
         """Tool pages reopened once window is shown (started hidden in tray), remembered meanwhile"""
         self._deferred_pages = list(paths)
@@ -1441,6 +1520,7 @@ class TabView(QWidget):
         index = self._pages.currentIndex()
         shown = None
         self._restoring_pages = True
+        self._reopening_hidden = True  # pages added behind current one, shown page shown once at the end
         try:
             for entry in paths:
                 path = entry.strip().removeprefix("*")
@@ -1458,18 +1538,24 @@ class TabView(QWidget):
                 if page is not None:
                     page.restored = True  # may be released while window stays hidden, see release_tool_pages
                 if entry.strip().startswith("*"):
-                    shown = self._pages.currentWidget()
+                    shown = page
         finally:
             self._restoring_pages = False
+            self._reopening_hidden = False
         if isinstance(shown, DialogPage):
             self.show_page_widget(shown, bring_to_front=False)
         elif isinstance(self._pages.currentWidget(), DialogPage):
             self.set_current_index(index if index < len(NAV_PAGES) else self._return_index)
         self.schedule_close_left_pages()
 
-    def close_all_pages(self, pages: list[DialogPage] | None = None) -> bool:
-        """Close every (or given) dialog page (each may ask to save), True if all closed"""
+    def close_all_pages(self, pages: list[DialogPage] | None = None, build_behind: bool = True) -> bool:
+        """Close every (or given) dialog page (each may ask to save), True if all closed
+
+        Args:
+            build_behind: app page shown again behind a closed page built (False: quit, window hidden).
+        """
         self._closing_pages = True
+        releasing, self._releasing_pages = self._releasing_pages, self._releasing_pages or not build_behind
         try:
             for page in reversed(self.dialog_pages() if pages is None else pages):
                 if page.dialog is not None and not page.dialog.close():
@@ -1478,12 +1564,13 @@ class TabView(QWidget):
             return True
         finally:
             self._closing_pages = False
+            self._releasing_pages = releasing
             self.schedule_close_left_pages()
 
     def show_page_widget(self, page: QWidget, bring_to_front: bool = True):
         """Show dialog page, main window brought to front"""
         current = self._pages.currentWidget()
-        if not isinstance(current, DialogPage):
+        if not isinstance(current, DialogPage) and current is not self._startup_blank and current is not self._loading:
             self._return_index = self._pages.currentIndex()  # back to this page when closed
         self.remember_shown(current, page)
         if isinstance(page, DialogPage):

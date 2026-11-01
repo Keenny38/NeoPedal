@@ -24,7 +24,7 @@ Many problems come from other apps or plugins: disable them before testing, to r
 
 ## Suggesting an idea
 
-Open an [issue](https://github.com/Keenny38/NeoPedal/issues/new) that describes the need (what you want to see or do while racing) rather than the solution. What is already planned is in the [roadmap](docs/ROADMAP.md). The project is made in spare time: no promise on delays.
+Open an [issue](https://github.com/Keenny38/NeoPedal/issues/new) that describes the need (what you want to see or do while racing) rather than the solution. The project is made in spare time: no promise on delays.
 
 ## Contributing code
 
@@ -34,7 +34,7 @@ Open a [pull request](https://github.com/Keenny38/NeoPedal/pulls). For a big fea
 
 ```bash
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements-dev.txt   # Linux: .venv/bin/python
+.venv/Scripts/python -m pip install -r requirements-dev-lock.txt   # Linux: .venv/bin/python
 .venv/Scripts/python run.py
 ```
 

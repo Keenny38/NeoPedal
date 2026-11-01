@@ -26,6 +26,7 @@ Same figures & rows as the driver card of Driver Stats Viewer.
 
 from __future__ import annotations
 
+import time
 from collections.abc import Sequence
 from typing import NamedTuple
 
@@ -36,6 +37,9 @@ from ..process import results_index as ri
 from ..process.player_profile import PlayerProfile, player_profile
 from ..setting import cfg
 from .quick.formatting import country_name, format_date, localized_number
+
+STALE_RANKS_DAYS = 7  # remembered ranks older than this: note shown as old (clock, warning color)
+CHART_MIN_SPAN = 0.25  # rank over time zoomed on its values, at least a quarter of a tier high
 
 
 class DriverData(NamedTuple):
@@ -49,17 +53,13 @@ class DriverData(NamedTuple):
 def read_driver_data() -> DriverData:
     """Profile & race record of results folders of race results page (worker thread)
 
-    Results files kept only while a page holds them (driver stats, race results): read once here, then dropped.
+    Results files read only when new or changed (summaries cache in config folder, kept across restarts).
     Driver card rows module imported here too (not on the UI thread when ranks come).
     """
     from .quick import stats_common  # noqa: F401
 
     folders = rf.results_folders(rf.chosen_results_folder(cfg.path.config))
-    ri.hold_files()
-    try:
-        summaries = ri.read_summaries(folders)
-    finally:
-        ri.release_files()
+    summaries = ri.read_summaries(folders, cfg.path.config)
     return DriverData(player_profile(folders), ri.race_record(summaries),
                       summaries[-1].driver if summaries else "")
 
@@ -77,6 +77,41 @@ def record_figures(record: ri.RaceRecord) -> list[dict]:
     return figures
 
 
+def next_rank_text(rank: dr.Rank) -> str:
+    """Rank & tier after this one ("Silver 3", "Gold 1"), "" at the top rank or rank unknown"""
+    try:
+        index = dr.RANK_ORDER.index(rank.name.capitalize())
+    except ValueError:
+        return ""
+    if 0 < rank.tier < 3:
+        return f"{rank.name} {rank.tier + 1}"
+    return f"{dr.RANK_ORDER[index + 1]} 1" if index + 1 < len(dr.RANK_ORDER) else ""
+
+
+def rank_tip(rank: dr.Rank, change: str) -> str:
+    """Tooltip of a rank row: what the progress & change percents mean"""
+    after = next_rank_text(rank)
+    progress = max(min(rank.progress, 100), 0)
+    lines = [trm(f"{progress}% of the way to {after}") if after else tr("Top rank reached")]
+    if change:
+        lines.append(trm(f"{change} of a tier since the previous rank seen"))
+    return "\n".join(lines)
+
+
+def zoomed_chart(points: list[dict]) -> list[dict]:
+    """Rank over time zoomed on its values (a change of a few percents shows), empty when the rank never moved
+    (flat line: nothing to tell)"""
+    if len(points) < 2:
+        return []
+    values = [point["y"] for point in points]
+    low, high = min(values), max(values)
+    if high - low < 1e-9:
+        return []
+    span = max(high - low, CHART_MIN_SPAN / (len(dr.RANK_ORDER) * 3))
+    base = (low + high - span) / 2
+    return [{**point, "y": min(max((point["y"] - base) / span, 0.0), 1.0)} for point in points]
+
+
 def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
                 history: Sequence[dr.HistoryEntry], data: DriverData | None,
                 others: list[dr.OtherAccount] | None = None) -> dict | None:
@@ -90,9 +125,9 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
         others: last ranks of other game accounts of this computer.
 
     Returns:
-        name, ranks (label, value, colors of dark & light pages, progress, change & its tone, chart points),
-        badge (name, description, icon, colors), identity line, race record figures, note (ranks remembered),
-        other accounts (see stats_common.other_account_rows).
+        name, ranks (label, value, colors of dark & light pages, progress, change & its tone, chart points zoomed
+        on their values, tooltip), badge, identity line, race record figures, note (ranks remembered) & noteStale
+        (seen over a week ago), other accounts (see stats_common.other_account_rows).
     """
     from .quick.stats_common import badge_card, other_account_rows, rank_rows
 
@@ -107,13 +142,20 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
     if profile is not None:
         parts = (country_name(profile.nationality), profile.team, f"#{profile.number}" if profile.number else "")
         identity = " · ".join(part for part in parts if part)
+    ranks = rank_rows(player, history)
+    if player is not None:  # rows in order of driver & safety ranks known
+        known = [rank for rank in (player.driver, player.safety) if rank is not None]
+        for row, rank in zip(ranks, known):
+            row["tip"] = rank_tip(rank, row["change"])
+            row["chart"] = zoomed_chart(row["chart"])
+    noted = player is not None and remembered and updated > 0
     return {
         "name": name or tr("Driver"),
-        "ranks": rank_rows(player, history),
+        "ranks": ranks,
         "badge": badge_card(player),
         "identity": identity,
         "figures": record_figures(record) if record is not None and record.races else [],
-        "note": trm(f"Last ranks seen in game menu, {format_date(updated)}") if (
-            player is not None and remembered and updated > 0) else "",
+        "note": trm(f"Last ranks seen in game menu, {format_date(updated)}") if noted else "",
+        "noteStale": noted and time.time() - updated > STALE_RANKS_DAYS * 86400,
         "others": other_account_rows(others),
     }

@@ -37,7 +37,15 @@ from PySide6.QtGui import QFont, QFontDatabase, QGuiApplication, QIcon, QPixmapC
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from . import realtime_state, safe_mode, version_check
-from .const_app import APP_NAME, CONFIG_ID, DESKTOP_FILE_NAME, PLATFORM, RESTART_ENVIRONMENT, VERSION
+from .const_app import (
+    APP_NAME,
+    CONFIG_ID,
+    DESKTOP_FILE_NAME,
+    PLATFORM,
+    RESTART_ENVIRONMENT,
+    RESTART_PID_ENVIRONMENT,
+    VERSION,
+)
 from .const_file import ConfigType, FontFile, LogFile
 from .i18n import LANGUAGE_PACK_FOLDER, install_qt_translation, load_language_packs, set_language, tr
 from .log_handler import BoundedLogStream, install_exception_hooks, set_log_stream, set_logging_level
@@ -50,6 +58,8 @@ UI_FONT_FAMILIES = ("Segoe UI Variable Text", "Segoe UI", "Inter", "Noto Sans") 
 log_stream = BoundedLogStream()  # latest log text only (log dialog, bug report), see getvalue()
 INSTANCE_LOCK_RESTART_WAIT = 10.0  # seconds restarted app waits for previous one to exit (releasing its lock)
 INSTANCE_LOCK_RETRY = 0.05  # seconds between lock tries while waiting
+# Seconds restarted app waits for previous one to finish closing (its saves are bounded, see loader.close)
+PREVIOUS_INSTANCE_WAIT = 120.0
 ERROR_ACCESS_DENIED = 5  # Windows error codes
 ERROR_ALREADY_EXISTS = 183
 SYNCHRONIZE = 0x00100000  # Windows access right, enough to tell a mutex exists
@@ -201,6 +211,24 @@ def other_instance_running() -> bool:
     finally:
         os.close(descriptor)
     return False
+
+
+def wait_previous_instance():
+    """Restarted: instance that started this one (before closing, see loader.restart) waited until it exited,
+    single instance mode or not. Settings, logs & lock only read once it saved everything."""
+    value = os.environ.pop(RESTART_PID_ENVIRONMENT, "")
+    if not value.isdigit():
+        return
+    import psutil
+
+    try:
+        psutil.Process(int(value)).wait(PREVIOUS_INSTANCE_WAIT)
+    except psutil.NoSuchProcess:  # already exited
+        return
+    except psutil.TimeoutExpired:
+        logger.warning("RESTART: previous instance still running after %.0f s, started anyway", PREVIOUS_INSTANCE_WAIT)
+    except (psutil.Error, OSError) as error:  # not allowed to wait for it: lock wait only
+        logger.warning("RESTART: unable to wait for previous instance: %s", error)
 
 
 def single_instance_check(is_single_instance: bool):
@@ -379,6 +407,7 @@ def start_app(cli_args):
     # In-memory log first (no file): instance lock messages reach the log dialog & bug report. Log files
     # only after the settings import: it replaces the config folder, which an open log file would block
     set_log_stream(logger, log_stream)
+    wait_previous_instance()
     single_instance_check(bool(cli_args.single_instance))
     apply_settings_import()
     unset_environment()

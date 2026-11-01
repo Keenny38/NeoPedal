@@ -37,7 +37,7 @@ from typing import Any
 
 from . import realtime_state, safe_mode
 from .api_control import api
-from .const_app import EXECUTABLE, RESTART_ENVIRONMENT
+from .const_app import EXECUTABLE, RESTART_ENVIRONMENT, RESTART_PID_ENVIRONMENT
 from .const_file import FileExt
 from .hotkey_control import kctrl
 from .lazy_service import LazyService, cmdserver, imported, streamoverlay, update_checker, webdashboard  # noqa: F401
@@ -60,6 +60,7 @@ REPLAY_CLOSE_TIMEOUT = 10.0  # seconds to wait more for a replay recording still
 # only objects made since, shorter pauses while driving. Done once start finished, again after each reload.
 _gc_frozen = False
 _gc_collect_due = False  # full collection of objects parked by reload (or page closed) waiting for idle moment
+_trim_due = False  # physical memory given back after that collection (window away), see trim_working_set
 _gc_last_collect = 0.0  # monotonic time of last full collection of frozen objects
 IDLE_COLLECT_MS = 10 * 60 * 1000  # full collection asked this often while not driving (garbage of closed pages)
 _idle_collect_timer: Any = None  # QTimer asking periodic full collection, once start finished
@@ -163,10 +164,16 @@ def periodic_idle_collect():
     request_idle_collect()
 
 
-def request_idle_collect():
+def request_idle_collect(trim: bool = False):
     """Frozen objects collected at next idle moment (not driving): garbage of closed page or tool, made of
-    objects frozen with the app (unfreeze, full collection, freeze again). Several requests: one collection."""
-    global _gc_collect_due
+    objects frozen with the app (unfreeze, full collection, freeze again). Several requests: one collection.
+
+    Args:
+        trim: window hidden or minimized: physical memory given back to the system after the collection
+            (see trim_working_set).
+    """
+    global _gc_collect_due, _trim_due
+    _trim_due = _trim_due or trim
     if not _gc_frozen or _gc_collect_due:
         return
     _gc_collect_due = True
@@ -197,6 +204,35 @@ def collect_parked_idle():
     _gc_collect_due = False
     if unfreeze_collected():
         freeze_collected()
+    global _trim_due
+    if _trim_due:
+        _trim_due = False
+        trim_working_set()
+
+
+def trim_working_set() -> bool:
+    """Physical memory of the process given back to the system (Windows), True if done
+
+    Memory of released pages stays in Qt, graphics driver & heap caches (reused by pages opened later, never
+    given back by the process): about 400 MB of RAM once every page was opened, while the game needs it.
+    Pages still used come back at once (standby list, no disk read), the rest stays out until needed. Run
+    at an idle moment only (never while driving: overlays would fault their pages back in during a frame).
+    """
+    if sys.platform != "win32":
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel32.SetProcessWorkingSetSize.argtypes = (wintypes.HANDLE, ctypes.c_size_t, ctypes.c_size_t)
+    kernel32.SetProcessWorkingSetSize.restype = wintypes.BOOL
+    emptied = ctypes.c_size_t(-1)  # (SIZE_T)-1 for both sizes: working set emptied
+    if kernel32.SetProcessWorkingSetSize(kernel32.GetCurrentProcess(), emptied, emptied):
+        logger.info("MEMORY: physical memory given back (window hidden, pages released)")
+        return True
+    logger.debug("MEMORY: working set not trimmed (error %s)", ctypes.get_last_error())
+    return False
 
 
 def unfreeze_collected() -> bool:
@@ -282,23 +318,32 @@ def close():
 def restart():
     """Restart APP"""
     logger.info("RESTARTING............")
-    # 0 must close first
-    close()
-    # 1 wait unfinished saving (settings, recorded laps: process exits without waiting threads)
-    cfg.flush()
-    if not wait_lap_saver(LAP_SAVER_TIMEOUT):
-        logger.warning("RESTARTING: lap saving not finished")
-    if not wait_data_saver(LAP_SAVER_TIMEOUT):
-        logger.warning("RESTARTING: data saving not finished")
-    # 2 set restart env for skipping single instance check
+    if sys.platform == "win32":
+        # New instance started first: Python & app modules load while this one closes. It reads nothing until
+        # this process exited (see main.wait_previous_instance). os.execl does not quote arguments on Windows,
+        # which breaks path with spaces
+        os.environ[RESTART_ENVIRONMENT] = "TRUE"
+        os.environ[RESTART_PID_ENVIRONMENT] = str(os.getpid())
+        try:
+            subprocess.Popen(restart_command(), close_fds=True)
+        except OSError as error:  # exe moved or blocked: keep running (nothing closed yet)
+            logger.error("RESTARTING: failed, %s", error)
+            os.environ.pop(RESTART_ENVIRONMENT, None)
+            os.environ.pop(RESTART_PID_ENVIRONMENT, None)
+            return
+        try:
+            close_for_restart()
+        except Exception:  # new instance waits for this process: it must exit whatever happens
+            logger.exception("RESTARTING: closing failed")
+        finally:
+            logging.shutdown()
+            os._exit(0)
+        return  # replaced os._exit (tests)
+    close_for_restart()
+    # Restart env for skipping single instance check
     os.environ[RESTART_ENVIRONMENT] = "TRUE"
     command = restart_command()
     try:
-        if sys.platform == "win32":
-            # os.execl does not quote arguments on Windows, which breaks path with spaces
-            subprocess.Popen(command, close_fds=True)
-            logging.shutdown()
-            os._exit(0)
         logging.shutdown()  # flush log files, execv replaces process without cleanup
         os.execv(command[0], command)
     except OSError as error:
@@ -308,6 +353,16 @@ def restart():
         api.connect()
         api.start()
         load_modules()
+
+
+def close_for_restart():
+    """Close, then wait unfinished saving (settings, recorded laps: process exits without waiting threads)"""
+    close()
+    cfg.flush()
+    if not wait_lap_saver(LAP_SAVER_TIMEOUT):
+        logger.warning("RESTARTING: lap saving not finished")
+    if not wait_data_saver(LAP_SAVER_TIMEOUT):
+        logger.warning("RESTARTING: data saving not finished")
 
 
 def restart_command() -> list[str]:

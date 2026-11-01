@@ -108,6 +108,7 @@ def test_flag_starts_safe_mode_without_question(ask, caplog):
 
 
 def test_question_translated(ui_env, monkeypatch):
+    import neopedal.ui._common  # noqa: F401  (imported first: sees the replaced question below, never a real dialog)
     from neopedal.i18n import set_language
 
     shown = []

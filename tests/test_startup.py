@@ -133,8 +133,28 @@ def test_restart_waits_for_lap_saving(controls, monkeypatch):
     monkeypatch.setattr(loader.os, "execv", lambda *args: controls.append("exit"))
     monkeypatch.setattr(loader.logging, "shutdown", lambda: None)
     monkeypatch.setenv("NEOPEDAL_RESTART", "")
+    monkeypatch.setenv("NEOPEDAL_RESTART_PID", "")
     loader.restart()
     assert controls.index("api.close") < controls.index("wait_lap_saver") < controls.index("exit")
+    if sys.platform == "win32":  # new instance started first, loads while this one closes (waits for its exit)
+        assert controls.index("launch") < controls.index("api.close")
+        assert os.environ["NEOPEDAL_RESTART_PID"] == str(os.getpid())
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows starts the new instance before closing")
+def test_restart_exits_even_if_closing_fails(controls, monkeypatch):
+    """New instance waits for this process: closing raising still exits (never two instances running)"""
+    def broken():
+        raise RuntimeError("broken")
+
+    monkeypatch.setattr(loader, "close", broken)
+    monkeypatch.setattr(loader.subprocess, "Popen", lambda *args, **kwargs: controls.append("launch"))
+    monkeypatch.setattr(loader.os, "_exit", lambda code: controls.append("exit"))
+    monkeypatch.setattr(loader.logging, "shutdown", lambda: None)
+    monkeypatch.setenv("NEOPEDAL_RESTART", "")
+    monkeypatch.setenv("NEOPEDAL_RESTART_PID", "")
+    loader.restart()
+    assert controls == ["launch", "exit"]
 
 
 def test_restart_failure_reloads_app(controls, monkeypatch):
@@ -149,10 +169,46 @@ def test_restart_failure_reloads_app(controls, monkeypatch):
     monkeypatch.setattr(loader.os, "_exit", lambda code: controls.append("exit"))
     monkeypatch.setattr(loader.logging, "shutdown", lambda: None)
     monkeypatch.setenv("NEOPEDAL_RESTART", "")
+    monkeypatch.setenv("NEOPEDAL_RESTART_PID", "")
     loader.restart()
     assert "exit" not in controls and "NEOPEDAL_RESTART" not in os.environ
+    if sys.platform == "win32":  # launched before closing: nothing closed, nothing to reload
+        assert "NEOPEDAL_RESTART_PID" not in os.environ
+        assert "api.close" not in controls and "mctrl.start" not in controls
+        return
     assert controls.index("api.close") < controls.index("api.connect") < controls.index("api.start")
     assert controls.index("api.start") < controls.index("mctrl.start")
+
+
+def test_restarted_app_waits_for_previous_process_exit(monkeypatch):
+    """Previous instance still closing (saves): settings & lock read only once it exited, any instance mode"""
+    import subprocess as sp
+
+    previous = sp.Popen([sys.executable, "-c", "import time; time.sleep(0.6)"])
+    try:
+        monkeypatch.setenv("NEOPEDAL_RESTART_PID", str(previous.pid))
+        main.wait_previous_instance()
+        assert previous.poll() is not None and "NEOPEDAL_RESTART_PID" not in os.environ
+    finally:
+        previous.wait(5)
+    monkeypatch.setenv("NEOPEDAL_RESTART_PID", str(previous.pid))  # exited already: no wait
+    main.wait_previous_instance()
+    monkeypatch.setenv("NEOPEDAL_RESTART_PID", "x")  # not a pid: ignored
+    main.wait_previous_instance()
+
+
+def test_restarted_app_started_anyway_if_previous_one_stays(monkeypatch, caplog):
+    import subprocess as sp
+
+    monkeypatch.setattr(main, "PREVIOUS_INSTANCE_WAIT", 0.2)
+    stuck = sp.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    try:
+        monkeypatch.setenv("NEOPEDAL_RESTART_PID", str(stuck.pid))
+        main.wait_previous_instance()
+        assert "still running" in caplog.text
+    finally:
+        stuck.kill()
+        stuck.wait(5)
 
 
 def test_api_stop_after_close():

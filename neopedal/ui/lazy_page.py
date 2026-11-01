@@ -43,18 +43,21 @@ logger = logging.getLogger(__name__)
 
 RELEASE_DELAY_MS = 60_000  # window hidden or minimized this long: pages released
 DESTROY_DELAY_MS = 1_000  # released pages deleted meanwhile, then hidden window's graphics freed
-IDLE_RELEASE_MS = 10 * 60_000  # page left hidden this long (window shown or not): its Qt Quick page released
+IDLE_RELEASE_MS = 10 * 60_000  # page left hidden this long while window shown: its Qt Quick page released
+# Same while window hidden or minimized (driving: game needs the memory, 30 to 150 MB a page), page shown in the
+# window kept (see PageRelease for it)
+IDLE_RELEASE_AWAY_MS = 2 * 60_000
 IDLE_CHECK_MS = 60_000  # hidden pages checked this often while any is hidden
 PAGE_FADE_MS = 120  # page change fade (motionFast token of QML pages), none when animations are off
 
 
-def request_idle_collect():
+def request_idle_collect(trim: bool = False):
     """Garbage of released pages collected at next idle moment (frozen with the app, see loader), app
-    started only (loader never imported here)"""
+    started only (loader never imported here). trim: window away, physical memory given back after it"""
     loader = sys.modules.get(f"{__package__.rpartition('.')[0]}.loader")
     request = getattr(loader, "request_idle_collect", None)
     if callable(request):
-        request()
+        request(trim=trim)
 
 
 def release_quick_views(widget: QWidget):
@@ -261,9 +264,9 @@ class PageRelease(QObject):
         release_others = self._release_others()
         if release_others is not None:
             release_others()
-        released = [page.release() for page in self._pages]
-        if any(released):
-            request_idle_collect()
+        for page in self._pages:
+            page.release()
+        request_idle_collect(trim=True)  # away for a while: RAM given back (to the game), released pages or not
         self._destroy_timer.start()
 
     def destroy_window(self):
@@ -292,6 +295,7 @@ class IdlePageRelease(QObject):
         release: called with page hidden for delay_ms: True if released, False if kept for now (tried
             again later), None if kept until shown again.
         delay_ms: hidden this long: page released.
+        away_delay_ms: same while window hidden or minimized.
         check_ms: hidden pages checked this often (while any).
         clock: seconds clock (tests).
     """
@@ -299,11 +303,13 @@ class IdlePageRelease(QObject):
     def __init__(
         self, stack: QStackedWidget, release: Callable[[QWidget], bool | None], delay_ms: int = IDLE_RELEASE_MS,
         check_ms: int = IDLE_CHECK_MS, clock: Callable[[], float] = time.monotonic,
+        away_delay_ms: int = IDLE_RELEASE_AWAY_MS,
     ):
         super().__init__(stack)
         self._stack = stack
         self._release = weak_callback(release)  # bound method of view owning this object: no reference cycle
         self._delay = delay_ms / 1000
+        self._away_delay = away_delay_ms / 1000
         self._clock = clock
         self._hidden_since: dict[QWidget, float] = {}  # page left: time left
         self._current: QWidget | None = stack.currentWidget()
@@ -342,16 +348,19 @@ class IdlePageRelease(QObject):
         if release is None or PageRelease.dialog_running():  # page opening a message box never deleted under it
             return
         now = self._clock()
+        window = self._stack.window()
+        away = not window.isVisible() or window.isMinimized()
+        delay = self._away_delay if away else self._delay
         released = False
         for page in pages:
-            if now - self._hidden_since[page] < self._delay or page is self._stack.currentWidget():
+            if now - self._hidden_since[page] < delay or page is self._stack.currentWidget():
                 continue
             result = release(page)
             if result is not False:  # released, or kept until shown again
                 self._hidden_since.pop(page, None)
             released = released or bool(result)
         if released:
-            request_idle_collect()
+            request_idle_collect(trim=away)
         if not self._hidden_since:
             self._timer.stop()
 

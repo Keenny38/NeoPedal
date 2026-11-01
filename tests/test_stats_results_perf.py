@@ -201,7 +201,7 @@ def big_page(window, monkeypatch):  # noqa: F811
     driver_history.forget_records()
     summaries = synthetic_summaries()
     reads = []
-    monkeypatch.setattr(ri, "read_summaries", lambda folders: reads.append(threading.current_thread()) or summaries)
+    monkeypatch.setattr(ri, "read_summaries", lambda folders, cache_folder="": reads.append(threading.current_thread()) or summaries)
     monkeypatch.setattr(stats_io, "player_profile", lambda folders: None)
     page = stats_backend.DriverStatsBackend(window)
     settle(page, timeout=60)

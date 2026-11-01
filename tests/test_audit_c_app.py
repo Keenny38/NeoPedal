@@ -138,6 +138,87 @@ def test_restart_asks_unsaved_pages(window, answers, monkeypatch):
     editor.set_unmodified()
 
 
+def test_restart_saves_window_state_and_hides_window(window, monkeypatch):
+    from neopedal.ui import app as app_module
+
+    seen = []
+    monkeypatch.setattr(app_module.loader, "restart", lambda: seen.append(
+        (window.isVisible(), cfg.application["window_width"], window._geometry_timer.isActive())))
+    monkeypatch.setitem(cfg.application, "remember_size", True)
+    window.show()
+    QApplication.processEvents()
+    window._track_geometry = True
+    window.resize(window.width() + 37, window.height())  # resized just before restart: save still pending
+    QApplication.processEvents()
+    width = window.width()
+    assert window._geometry_timer.isActive()
+    assert window.restart_app() is True
+    assert seen == [(False, width, False)]  # hidden, size saved before relaunch (process exits right after)
+    assert window.isVisible()  # relaunch failed: shown again
+    window.hide()
+
+
+def test_quit_hides_window_before_closing(window, monkeypatch):
+    from neopedal.ui import app as app_module
+
+    seen = []
+    monkeypatch.setattr(app_module.loader, "close", lambda: seen.append(window.isVisible()))
+    monkeypatch.setattr(QApplication, "quit", staticmethod(lambda: None))
+    monkeypatch.setattr(window, "_AppWindow__break_signal", lambda: None, raising=False)
+    window.show()
+    QApplication.processEvents()
+    assert window.quit_app() is True
+    assert seen == [False]  # never left frozen on screen while saves finish
+
+
+def test_quit_from_tool_page_never_builds_page_behind(window, monkeypatch):
+    """Nothing to save: window hidden before pages close, app page behind a tool page never built for nothing"""
+    from neopedal.ui import app as app_module
+    from neopedal.ui.lazy_page import LazyPage
+
+    monkeypatch.setattr(app_module.loader, "close", lambda: None)
+    monkeypatch.setattr(QApplication, "quit", staticmethod(lambda: None))
+    monkeypatch.setattr(window, "_AppWindow__break_signal", lambda: None, raising=False)
+    window.show()
+    open_editor_page(window, "brake_editor.BrakeEditor")
+    QApplication.processEvents()
+    built = []
+    real = LazyPage.ensure_page
+    monkeypatch.setattr(LazyPage, "ensure_page", lambda self: built.append(self) or real(self))
+    monkeypatch.setattr(LazyPage, "showEvent", lambda self, event: built.append(self))
+    assert window.quit_app() is True
+    assert not built and not window.isVisible()
+
+
+def test_quit_with_unsaved_page_asks_with_window_shown(window, answers, monkeypatch):
+    from neopedal.ui import app as app_module
+
+    monkeypatch.setattr(app_module.loader, "close", lambda: None)
+    monkeypatch.setattr(QApplication, "quit", staticmethod(lambda: None))
+    editor = open_editor_page(window, "brake_editor.BrakeEditor")
+    editor.set_modified()
+    window.show()
+    QApplication.processEvents()
+    asked_visible = []
+    real_close_all = window.centralWidget().close_all_pages
+    monkeypatch.setattr(window.centralWidget(), "close_all_pages",
+                        lambda **kwargs: asked_visible.append(window.isVisible()) or real_close_all(**kwargs))
+    assert window.quit_app() is False  # answer: cancel
+    assert asked_visible == [True] and window.isVisible()
+    editor.set_unmodified()
+    window.hide()
+
+
+def test_cancelled_install_shows_window_again(window, monkeypatch):
+    """Installer not started after pages closed (window hidden): window shown again for the error"""
+    window.show()
+    QApplication.processEvents()
+    assert window.close_pages_for_quit() and not window.isVisible()
+    window.cancel_quit()
+    assert window.isVisible()
+    window.hide()
+
+
 # Item 2: config pages registered, preset load guarded, save into loaded preset
 def test_config_pages_registered(window):
     from neopedal.ui._common import DialogSingleton

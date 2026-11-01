@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 
 RESOLVED_HOLD = 300.0  # seconds a resolved local address is reused (re-resolved after failure)
 UNRESOLVED_HOLD = 5.0  # seconds before probing again when nothing answered (game not running)
-UNRESOLVED_WARN_SECONDS = 60.0  # "unable to resolve" warned this often at most (game closed: every request fails)
+# "unable to resolve" warned once until a probe answers again (game closed: every request fails, for hours while
+# app stays open), debug in between
+UNRESOLVED_WARN_SECONDS = float("inf")
 MAX_BODY = 16 * 1024 * 1024  # response body size limit (bytes), larger response handled as invalid
 # (host, port): (address, expiry time, resolved): resolved False while nothing answered (game not running)
 _resolved_hosts: dict[tuple[str, int], tuple[str, float, bool]] = {}
@@ -374,13 +376,14 @@ async def localhost_resolve(hostnames: set[str], port: int, timeout: float = 3) 
     if result:
         host, latency = result[0]
         if latency < 1:  # accept response time less than 1 second
+            _unresolved_warning.reset()  # game closed again later: warned again
             logger.info(
                 "RestAPI: local hostname resolved as '%s' (response %sms)",
                 host,
                 latency * 1000000 // 1 / 1000,
             )
             return host
-    # Game closed: every request of pages ends here, warned once a period (log & bug report never flooded)
+    # Game closed: every request of pages ends here, warned once until game answers (log & bug report never flooded)
     _unresolved_warning.log(logger, "RestAPI: unable to resolve local hostname (game not running?)", exc_info=False)
     return ""
 

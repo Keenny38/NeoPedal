@@ -213,7 +213,7 @@ def read_results_data(records: Iterable[SessionRecord] = ()) -> ResultsData:
     """Results files of folders of race results page (game folders found, else folder chosen) & profile,
     linked to session history records (worker thread)"""
     folders = rf.results_folders(rf.chosen_results_folder(cfg.path.config))
-    summaries = ri.read_summaries(folders)
+    summaries = ri.read_summaries(folders, cfg.path.config)
     matcher, links, linked = ri.link_records(records, summaries)
     return ResultsData(summaries, player_profile(folders), matcher, links, linked)
 

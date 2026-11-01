@@ -215,6 +215,7 @@ TRANSLATION = MappingProxyType({
     # Help menu
     "User Guide": "Guide d'utilisation",
     "Frequently Asked Questions": "Questions fréquentes",
+    "Support NeoPedal on Patreon": "Soutenir NeoPedal sur Patreon",
     "Show Log": "Afficher le journal",
     "Overlay Performance": "Performances des overlays",
     "Check for Updates": "Rechercher des mises à jour",
@@ -2978,6 +2979,7 @@ TRANSLATION = MappingProxyType({
     "Open overlays": "Ouvrir les overlays",
     "Open modules": "Ouvrir les modules",
     "Open driver stats": "Ouvrir les statistiques pilote",
+    "Top rank reached": "Rang maximal atteint",
     "Last Session": "Dernière session",
     "Session Debrief": "Débrief de session",
     # Home page status banner & session card (UI/UX audit 2026-10-29)

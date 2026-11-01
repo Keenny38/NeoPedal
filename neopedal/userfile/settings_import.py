@@ -54,8 +54,9 @@ REQUEST_FILE = "import_request.json"
 CONFIG_FILE = "config.json"
 SETTINGS_FILES = (CONFIG_FILE, "shortcuts.json")  # one of them: a global settings folder
 # Never copied: files of this run, and data folders rebuilt by the app or large (a config folder also holding
-# user data, by a user path pointed at it): recorded laps, pictures fetched from the game, deleted presets
-SKIPPED_FILES = ("pid.log", "*.lock", "*.tmp", "startup.marker", REQUEST_FILE, ".lap_cache",
+# user data, by a user path pointed at it): recorded laps, pictures fetched from the game, deleted presets,
+# caches of files of this computer (results summaries)
+SKIPPED_FILES = ("pid.log", "*.lock", "*.tmp", "*.cache", "startup.marker", REQUEST_FILE, ".lap_cache",
                  "telemetry", "gameimage", "trash")
 TEMP_SUFFIX = ".importing"
 # Copy errors of a failing disk (full, quota, I/O, CRC): copy not used (files cut short), unlike files in use

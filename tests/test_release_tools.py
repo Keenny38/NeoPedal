@@ -113,7 +113,7 @@ def test_documentation_paths():
     from next_version import DOCS_ONLY
 
     for path in ("docs/wiki/Home.md", "docs/wiki/_Sidebar.md", "README.md", "CHANGELOG.md", "CHANGELOG.fr.md",
-                 "CONTRIBUTING.md", "SECURITY.md", "docs/ROADMAP.md", "docs/changelog/0.19.0-chat.png"):
+                 "CONTRIBUTING.md", "SECURITY.md", "docs/AUDIT.md", "docs/changelog/0.19.0-chat.png"):
         assert DOCS_ONLY.match(path), path
     for path in ("neopedal/update.py", "docs/customization.md", "docs/contributors.md", "NOTICE.md",
                  ".github/workflows/build-release.yml", "neopedal/README.md", "images/icon.png"):
