@@ -364,3 +364,11 @@ def test_b047_duplicate_positions_never_swap_places():
     events += watcher.update([car(2, 1, distance=990.0), car(1, 1)], (), 102.5, "RACE1", TRACK)
     assert [event for event in events if event.kind in (dr.LEAD, dr.OVERTAKE)] == []
     assert dr.class_places([car(2, 1, distance=990.0), car(1, 1)]) == {1: 1, 2: 2}  # car ahead on track first
+
+
+# B-011: sponsor carousel timer started again only when the sponsors or their seconds change (not every answer)
+def test_b011_sponsor_timer_kept_between_answers():
+    script = director_script()
+    brand = script.split("const items=(info.sponsors||[])", 1)[1].split("function draw(){", 1)[0]
+    assert "if(timerKey!==sponsorTimerKey){sponsorTimerKey=timerKey;clearInterval(sponsorTimer);" in brand
+    assert brand.count("clearInterval(sponsorTimer)") == 1

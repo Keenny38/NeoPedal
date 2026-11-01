@@ -35,6 +35,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : dans un petit plateau (5 voitures ou moins), deux voitures arrêtées après le même accrochage sont annoncées, et ne sont plus prises pour une course arrêtée ; des voitures garées longtemps en piste ne cachent plus les suivantes.
 - Régie de course : un dépassement sur la ligne d'arrivée est annoncé, au lieu d'être perdu parce que les deux voitures avaient déjà fini quand la nouvelle place s'est stabilisée.
 - Régie de course : deux voitures à qui le jeu donne la même position n'échangent plus leurs places à chaque réponse (faux changement de leader ou dépassement annoncé).
+- Habillage de diffusion (source `/director`) : le carrousel des sponsors tourne pendant une course, au lieu de ne montrer que le premier sponsor (son minuteur repartait à chaque réponse de l'app).
 
 ## 0.28.1 (2026-11-01)
 

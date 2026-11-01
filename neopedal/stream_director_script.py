@@ -46,7 +46,7 @@ const picture=link=>link?link+(link.includes("?")?"&":"?")+"token="+encodeURICom
 let state={},layout={},preset="",version=0,lastCut=-1,cardTimer=0,towerPage=0,towerScroll=0,towerScrolls=1,towerTimer=0,shownBanners=new Set(),bannerQueue=[],bannerBusy=false;
 let wasReplay=false,received=Date.now(),replayEnded=0,lastTrain=null,trainUntil=0,laps=new Map(),live={},liveVersion=0,trackKey=null,track=null;
 const pages={grid:0,results:0,champ:0},pageTimers={},towerLines=new Map(),recentBanners=new Map();
-let sponsorIndex=0,sponsorTimer=0,sponsorKey="";
+let sponsorIndex=0,sponsorTimer=0,sponsorKey="",sponsorTimerKey="";
 function set(id,value){const el=typeof id==="string"?$(id):id;const text=value==null?"":String(value);if(el.textContent!==text)el.textContent=text}
 function toggle(id,on){$(id).classList.toggle("show",!!on)}
 function image(id,link){const el=$(id);const src=picture(link);if(src){if(el.getAttribute("src")!==src)el.src=src;el.style.display="block"}else el.style.display="none"}
@@ -493,9 +493,11 @@ function brand(){
   if(key!==sponsorKey){sponsorKey=key;box.innerHTML="";sponsorIndex=0;
     for(const item of items){let el;if((info.sponsors||[]).length){el=document.createElement("img");el.alt="";el.src=picture(item)}else{el=document.createElement("span");el.textContent=item}box.append(el)}
     if(box.firstChild)box.firstChild.classList.add("on")}
-  clearInterval(sponsorTimer);
-  if(items.length>1&&!edit)sponsorTimer=setInterval(()=>{const children=box.children;if(!children.length)return;
-    children[sponsorIndex%children.length].classList.remove("on");sponsorIndex++;children[sponsorIndex%children.length].classList.add("on")},(g.sponsorSeconds||8)*1000);
+  // Timer started again only when sponsors or seconds change: answers come every second, it would never fire
+  const timerKey=key+"|"+(g.sponsorSeconds||8);
+  if(timerKey!==sponsorTimerKey){sponsorTimerKey=timerKey;clearInterval(sponsorTimer);sponsorTimer=0;
+    if(items.length>1&&!edit)sponsorTimer=setInterval(()=>{const children=box.children;if(!children.length)return;
+      children[sponsorIndex%children.length].classList.remove("on");sponsorIndex++;children[sponsorIndex%children.length].classList.add("on")},(g.sponsorSeconds||8)*1000)}
   toggle("sponsors",g.sponsors&&items.length);
 }
 function draw(){
