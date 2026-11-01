@@ -403,3 +403,11 @@ def test_b019_tower_marks_bounded():
     assert "max-width:calc(var(--u)*10)" in marks and "overflow:hidden" in marks
     assert "marks.append(...items.slice(0,TOWER_MARKS))" in director_script()
     assert "white-space:nowrap" in css.split(".tpen{", 1)[1].split("}", 1)[0]
+
+
+# B-024: driver card shrinks its text to the card (long names end with an ellipsis, never cut mid-word)
+def test_b024_driver_card_text_shrinks():
+    css = director_css()
+    assert "min-width:0" in css.split("#cardBody{", 1)[1].split("}", 1)[0]
+    assert "min-width:0" in css.split("#cardName{", 1)[1].split("}", 1)[0]
+    assert "flex-wrap:wrap" in css.split("#cardStats{", 1)[1].split("}", 1)[0] and "#cardStats>*{white-space:nowrap}" in css

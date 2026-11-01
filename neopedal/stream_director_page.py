@@ -117,14 +117,15 @@ display:flex;align-items:stretch;opacity:0;transform:translateY(calc(var(--u)*3)
 padding:0 calc(var(--u)*1.6);font-weight:700;background:var(--accent)}
 #cardPlace b{font-size:calc(var(--u)*5.6);line-height:1}
 #cardPlace span{font-size:calc(var(--u)*1.6);letter-spacing:.12em;text-transform:uppercase;opacity:.9}
-#cardBody{flex:1;padding:calc(var(--u)*1.2) calc(var(--u)*2);display:flex;flex-direction:column;justify-content:center;
+#cardBody{flex:1;min-width:0;padding:calc(var(--u)*1.2) calc(var(--u)*2);display:flex;flex-direction:column;justify-content:center;
 gap:calc(var(--u)*.3);background:var(--panel)}
 #cardTop{display:flex;align-items:center;gap:calc(var(--u)*1.2)}
 #cardNum{font-size:calc(var(--u)*2.6);color:var(--dim);font-weight:700}
-#cardName{font-size:calc(var(--u)*4);font-weight:700;line-height:1.05;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cardName{min-width:0;font-size:calc(var(--u)*4);font-weight:700;line-height:1.05;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #cardLogo{height:calc(var(--u)*3.6);max-width:calc(var(--u)*9);object-fit:contain;margin-left:auto;display:none}
 #cardTeam{color:var(--dim);font-size:calc(var(--u)*2.1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#cardStats{display:flex;gap:calc(var(--u)*2.2);font-size:calc(var(--u)*1.9);margin-top:calc(var(--u)*.3)}
+#cardStats{display:flex;flex-wrap:wrap;row-gap:calc(var(--u)*.2);overflow:hidden;column-gap:calc(var(--u)*2.2);font-size:calc(var(--u)*1.9);margin-top:calc(var(--u)*.3)}
+#cardStats>*{white-space:nowrap}  /* a stat never cut in two: the next ones go to a new line */
 #cardStats i{font-style:normal;color:var(--dim);margin-right:calc(var(--u)*.5);text-transform:uppercase;font-size:calc(var(--u)*1.5);letter-spacing:.08em}
 #cardStory{align-self:flex-start;margin-top:calc(var(--u)*.4);padding:calc(var(--u)*.2) calc(var(--u)*1);border-radius:calc(var(--u)*.5);
 background:rgba(255,255,255,.1);font-size:calc(var(--u)*1.5);font-weight:700;letter-spacing:.1em;text-transform:uppercase;display:none}

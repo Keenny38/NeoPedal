@@ -39,6 +39,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source): the starting grid, classification and championship boards show every page in turn when their page count or seconds change while shown (pages were skipped), and another championship or class starts at its first page.
 - Broadcast Graphics (`/director` source): the running lap time of the qualifying graphic no longer jumps back a few seconds when another part of the graphics changes (settings, branding, layout, game paused).
 - Broadcast Graphics (`/director` source), timing tower: a car with many marks (tyres used, stops, penalty, fastest lap) in a long race no longer squeezes its name to nothing nor pushes its gap out of the tower: three marks at most, the most important first.
+- Broadcast Graphics (`/director` source), driver card: a long driver or team name ends with an ellipsis instead of being cut mid-word at the edge of the card, and stats that do not fit go to a second line.
 
 ## 0.28.1 (2026-11-01)
 
