@@ -4,6 +4,7 @@ import faulthandler
 import os
 import sys
 import tempfile
+import uuid
 
 import pytest
 
@@ -112,10 +113,12 @@ def pytest_unconfigure(config):
 @pytest.fixture(autouse=True)
 def no_openxr_registration(monkeypatch):
     """VR overlay never registers the OpenXR layer in the real registry nor opens the real shared memory
-    (Windows): tests mock both (test_vr_shared.py)"""
+    (Windows): tests mock both (test_vr_shared.py). Writer lock of each test its own (never held by a running
+    app, nor by a test of another xdist worker)."""
     from neopedal import vr_shared
 
     monkeypatch.setattr(vr_shared, "WINDOWS", False)
+    monkeypatch.setattr(vr_shared, "WRITER_LOCK_NAME", f"{vr_shared.WRITER_LOCK_NAME}-test-{uuid.uuid4().hex}")
 
 
 @pytest.fixture(autouse=True)

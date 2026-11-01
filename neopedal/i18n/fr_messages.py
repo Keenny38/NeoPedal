@@ -401,6 +401,8 @@ MESSAGE_RULES = (
      r"Enregistreur de télémétrie : impossible d'enregistrer le tour \1, voir le journal."),
     (r"^VR overlay: restart the VR game to show the overlay in it \(game started before the app was updated\)$",
      "Overlay VR : relancez le jeu VR pour y afficher l'overlay (jeu lancé avant la mise à jour de l'app)"),
+    (r"^VR overlay: another NeoPedal instance already shows the overlay in OpenXR games, OpenXR layer not used by this one$",
+     "Overlay VR : une autre instance de NeoPedal affiche déjà l'overlay dans les jeux OpenXR, couche OpenXR non utilisée par celle-ci"),
     (r"^(.+) crashed and was restarted, see log for details\.$", r"\1 a planté et a été redémarré, voir le journal."),
     (r"^(.+) stopped after repeated errors, see log for details\.$", r"\1 arrêté après des erreurs répétées, voir le journal."),
     (r"^(.+) is too big \((\d+) x (\d+)\), cut to (\d+) x (\d+): lower its size options or scale\.$",

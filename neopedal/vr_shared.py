@@ -428,6 +428,66 @@ def is_elevated() -> bool:
         return False
 
 
+# Writer lock: one app instance writes the shared memory & registers the layer (a portable copy has its own config
+# folder, so its own instance lock, but the same shared memory name & registry key)
+WRITER_LOCK_NAME = "Local\\NeoPedalVROverlayWriter"
+ERROR_ACCESS_DENIED = 5
+ERROR_ALREADY_EXISTS = 183
+SYNCHRONIZE = 0x00100000
+
+
+def _mutex_api() -> Any:
+    """kernel32 with the named mutex functions
+
+    Raises:
+        OSError: not Windows.
+    """
+    if sys.platform != "win32":
+        raise OSError("named mutex: Windows only")
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)  # type: ignore[attr-defined]
+    kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.OpenMutexW.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.OpenMutexW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    return kernel32
+
+
+def acquire_writer_lock(name: str | None = None) -> int | None:
+    """Take the writer lock (named mutex, WRITER_LOCK_NAME default): handle kept until closed with close_handle
+    (or process end, crash too), None if another app instance holds it
+
+    Raises:
+        OSError: lock not available (not Windows, Windows API error): not enforced.
+    """
+    kernel32 = _mutex_api()
+    handle = kernel32.CreateMutexW(None, False, name or WRITER_LOCK_NAME)
+    error = ctypes.get_last_error()  # type: ignore[attr-defined]
+    if not handle:
+        if error == ERROR_ACCESS_DENIED:  # made by an instance run as administrator
+            return None
+        raise ctypes.WinError(error)  # type: ignore[attr-defined]
+    if error == ERROR_ALREADY_EXISTS:
+        kernel32.CloseHandle(handle)
+        return None
+    return int(handle)
+
+
+def writer_lock_held(name: str | None = None) -> bool:
+    """Writer lock held by an app instance (this one too), False if unknown"""
+    try:
+        kernel32 = _mutex_api()
+    except OSError:
+        return False
+    handle = kernel32.OpenMutexW(SYNCHRONIZE, False, name or WRITER_LOCK_NAME)
+    if handle:
+        kernel32.CloseHandle(handle)
+        return True
+    return ctypes.get_last_error() == ERROR_ACCESS_DENIED  # type: ignore[attr-defined]
+
+
 class SharedFrameWriter:
     """Write overlay frames for the OpenXR layer (seqlock: never a torn image)
 

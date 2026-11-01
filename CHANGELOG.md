@@ -10,6 +10,7 @@ Fixes from an audit of the VR overlay.
 ### Fixes
 
 - VR overlay: overlays reloaded while SteamVR was still starting or closing no longer shut the new SteamVR overlay down (overlay gone from the headset, possible app crash).
+- VR overlay: a second NeoPedal running at the same time (a portable copy next to the installed app) no longer shares the OpenXR layer with the first one. It tells you the layer is already used, and closing it no longer hides the overlay of the first one in the game nor removes its layer from the next OpenXR games.
 
 ## 0.28.1 (2026-11-01)
 

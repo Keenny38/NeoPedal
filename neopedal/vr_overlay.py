@@ -922,6 +922,7 @@ class VROverlay(QObject):
         self._hidden_for_openxr = False  # SteamVR overlay hidden: OpenXR layer draws in headset
         # OpenXR layer
         self._xr: vr_shared.SharedFrameWriter | None = None
+        self._xr_lock: int | None = None  # writer lock handle (vr_shared.acquire_writer_lock) while the layer is used
         self._xr_checksum: int | None = None
         self._xr_dirty = False  # widgets changed since last tiles written (waiting for next write slot)
         self._xr_written_at: int | None = None  # tick (ms) of last image written
@@ -1033,6 +1034,16 @@ class VROverlay(QObject):
         if not vr_shared.WINDOWS:
             return False
         if self._xr is None:
+            if self._xr_lock is None:  # another app instance (portable copy) writing: its frames & registration kept
+                try:
+                    self._xr_lock = vr_shared.acquire_writer_lock()
+                except OSError:  # not enforced
+                    logger.debug("VR overlay: OpenXR writer lock unavailable", exc_info=True)
+                else:
+                    if self._xr_lock is None:
+                        self.__report_once("VR overlay: another NeoPedal instance already shows the overlay in "
+                                           "OpenXR games, OpenXR layer not used by this one")
+                        return False
             try:  # entries of missing files make the OpenXR loader fail every OpenXR game: removed first
                 vr_shared.remove_missing_layers()
             except Exception:
@@ -1067,10 +1078,11 @@ class VROverlay(QObject):
         self._xr.set_placement(placement_from(setting))
         return True
 
-    @staticmethod
-    def __unregister_openxr():
-        """Option turned off: layer no longer loaded by OpenXR games"""
+    def __unregister_openxr(self):
+        """Option turned off: layer no longer loaded by OpenXR games (kept while another app instance uses it)"""
         try:
+            if self._xr_lock is None and vr_shared.writer_lock_held():
+                return
             vr_shared.unregister_layer()
         except Exception:
             logger.debug("VR overlay: OpenXR layer unregister failed", exc_info=True)
@@ -1088,6 +1100,9 @@ class VROverlay(QObject):
         if writer is not None:
             writer.close()
             logger.info("DISABLED: VR overlay (OpenXR layer)")
+        lock, self._xr_lock = self._xr_lock, None
+        if lock is not None:  # after the last frame: another instance may take over
+            vr_shared.close_handle(lock)
 
     def __heartbeat(self):
         """App alive for the layer every HEARTBEAT_INTERVAL_MS; OpenXR game started: tiles written now"""

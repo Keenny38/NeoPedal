@@ -117,6 +117,7 @@ How the OpenXR layer is installed and removed:
 - Closing the app, turning an option off, or uninstalling the app removes it. Since 0.22.4 every start removes it unless `enable_openxr_layer` is on (0.22.3 registered it with `enable_vr_overlay` alone).
 - To keep it out of one game, set the environment variable `DISABLE_NEOPEDAL_XR_LAYER=1` for that game. Games run as administrator ignore layers registered for the user.
 - Every OpenXR game loads it, Le Mans Ultimate too (its VR goes through OpenXR with the built-in OpenComposite). If an OpenXR game misbehaves or no longer starts in VR, turn `enable_openxr_layer` off and [open an issue](https://github.com/Keenny38/NeoPedal/issues): the layer is new and not yet tested on every headset. `Help` > `Show Log` says which graphics API the layer found in the game.
+- One app at a time draws in OpenXR games: a second NeoPedal (a portable copy next to the installed app) tells you the OpenXR layer is already used and leaves it to the first one, which keeps it when the second one closes.
 - After an app update, restart an OpenXR game that was already running: it keeps the layer it started with, which draws nothing for a newer app (`Help` > `Show Log` says so). The SteamVR overlay and the mirror window still work meanwhile.
 - Overlays far apart on your desktop cost nothing more in VR: only the overlays themselves are sent to the game, not the empty space between them.
 - From source: build the layer with CMake (`native/openxr_layer/CMakeLists.txt`), and `pip install openvr` for SteamVR.
