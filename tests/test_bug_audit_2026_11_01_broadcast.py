@@ -82,3 +82,21 @@ def test_b002_instant_replay_left_when_game_answers_again(director_page):  # noq
     poll(page, race_answers(101.0, *cars, replay=True))  # game answers again, still in the replay
     wait_commands(backend.camera)
     assert ("POST", "/rest/replay/toggleactive") in page.game.sent
+
+
+def director_script() -> str:
+    from neopedal import stream_director
+
+    html = stream_director.director_html("en", "Director")
+    return html.split("<script>", 1)[1].split("</script>", 1)[0]
+
+
+# B-003: two cars with the same number in one class each have their tower line
+def test_b003_tower_lines_keyed_by_slot(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1, number="7"), car(2, 2, number="7"), car(3, 3)))
+    tower = backend._graphics.graphics_state()["tower"]
+    assert [row["slot"] for row in tower] == [1, 2, 3]
+    script = director_script()
+    assert 'key="c|"+carId(row)' in script and "lapKey=carId(row)" in script
+    assert "function carId(row)" in script

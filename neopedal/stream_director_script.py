@@ -64,6 +64,8 @@ function applyLayout(){
 function tyreMark(letter){const mark=cell("tyre",letter),badge=TYRES[letter]||["#AAAAAA","#0E1116"];
   mark.style.background=badge[0];mark.style.color=badge[1];return mark}
 // Tower: one element per car, kept from answer to answer (texts changed only when they change, moves animated)
+// Car of a tower row: its slot (two cars of a class may share a number), number & class for sample rows
+function carId(row){return row.slot!=null?"s"+row.slot:row.number+"|"+row.cls}
 function towerLine(key,header){
   let line=towerLines.get(key);
   if(!line){
@@ -124,7 +126,7 @@ function tower(){
       line.firstChild.style.background=entry.color;set(line.lastChild,entry.header);
       placeLine(line,y);y+=HEAD;continue;
     }
-    const row=entry.row,key="c|"+row.number+"|"+row.cls,line=towerLine(key,false);used.add(key);
+    const row=entry.row,key="c|"+carId(row),line=towerLine(key,false);used.add(key);
     const [pos,bar,num,name,marks,gapBox]=line.children;
     line.classList.toggle("air",!!row.air);
     set(pos,group.byClass?row.classPos:row.pos);bar.style.background=row.color;set(num,"#"+row.number);
@@ -138,7 +140,7 @@ function tower(){
       if(g.towerStops&&row.stops>0)marks.append(cell("tstops",row.stops+"\\u00d7"));
       if(g.towerTyres)for(const letter of row.tyres||[])marks.append(tyreMark(letter))}
     // Lap just completed: its time shown a few seconds in place of the gap (gold, purple for the fastest)
-    const lapKey=row.number+"|"+row.cls,seen=laps.get(lapKey);
+    const lapKey=carId(row),seen=laps.get(lapKey);
     if(row.lap&&(!seen||seen.id!==row.lapId)){
       const until=state.demo?Infinity:seen||state.version?now+5000:0;laps.set(lapKey,{id:row.lapId,until});
       if(until>now&&until<Infinity)setTimeout(tower,5100)}

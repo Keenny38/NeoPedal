@@ -219,6 +219,7 @@ class BroadcastGraphics(DirectorPart):
             seconds, laps = interval(fronts[car.slot], car, track_length) \
                 if car.slot in fronts else (-1.0, 0)
             tower.append({
+                "slot": car.slot,  # line of the car (two cars of a class may share a number in public lobbies)
                 "pos": car.position, "classPos": places.get(car.slot, 0), "cls": car.car_class,
                 "color": class_color(car.car_class), "number": car.number, "name": short_name(car.driver),
                 "gap": interval_text(previous, car, track_length) if previous is not None else "",
