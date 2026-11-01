@@ -323,3 +323,18 @@ def test_b043_fast_replay_steps_are_no_seek():
     # A real seek (one step far from the others) still watches again from there
     watcher.update([car(1, 1, laps=12), car(2, 2, laps=12, distance=990.0)], (), 2000.0, "RACE1", TRACK)
     assert [battle.since for battle in watcher.battles.values()] == [2000.0]
+
+
+# B-045: two cars stopped after one crash in a small field: told (not a halted race)
+def test_b045_small_field_two_stopped_cars_told():
+    watcher = dr.RaceWatcher()
+    stopped = (2, 3)
+
+    def field_at(time):
+        return [car(slot, slot, distance=3000.0 - 400 * slot + (0 if slot in stopped else 50 * (time - 100)),
+                    speed=0.0 if slot in stopped else 50.0) for slot in range(1, 6)]
+
+    events = []
+    for time in range(100, 110):
+        events += watcher.update(field_at(time), (), float(time), "RACE1", TRACK)
+    assert sorted(event.slots for event in events if event.kind == dr.STOPPED) == [(2,), (3,)]

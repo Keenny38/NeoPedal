@@ -32,6 +32,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: a car stopped or slow on track during the first lap of a race (crash at the first corner) is told and suggested, once the game says the race is on; before, only from the second lap.
 - Broadcast Director: a replay left paused with the page open no longer adds to the memory used at every game answer (speed history of each car).
 - Broadcast Director in a replay played fast (x8, x16): laps, pit stops, battles and events are watched again, instead of every game answer being taken for a jump in the replay (nothing told).
+- Broadcast Director: in a small field (5 cars or fewer), two cars stopped after the same crash are told, no longer taken for a halted race; cars parked on track for a long time no longer hide the next stopped cars.
 
 ## 0.28.1 (2026-11-01)
 

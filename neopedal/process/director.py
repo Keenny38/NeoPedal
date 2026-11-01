@@ -106,6 +106,7 @@ GONE_TIME = 10.0  # seconds missing from the answers: car left the session (one 
 MOVE_AGAIN = 10.0  # m/s: stopped car moving again (can stop again)
 MIN_SPEED = 15.0  # m/s: slower car still takes at least this long to reach the car ahead (gap of a slow car)
 HALTED_SHARE = 0.34  # this share of cars stopped at once: race halted (grid, red flag), no stopped car events
+HALTED_CARS = 3  # and at least this many cars
 CONTACT_LIVE = 10.0  # seconds: contact listed this long after it happened is still news
 BATTLE_END_MARGIN = 0.3  # seconds over battle gap before a battle ends (no flicker on the threshold)
 TREND_SMOOTHING = 0.3  # weight of new gap change rate
@@ -448,10 +449,11 @@ class RaceWatcher:
                 continue
             state.seen = now
             events.extend(self.car_events(car, state, places[car.slot], by_slot, now, race))
-            if state.still_since >= 0 and now - state.still_since >= STOP_TIME:
-                stopped_now += 1
-        # Cars standing still: many at once is a halted race (grid, red flag), not news
-        halted = stopped_now >= max(2, len(cars) * HALTED_SHARE)
+            if state.still_since >= 0 and now - state.still_since >= STOP_TIME and not state.stopped:
+                stopped_now += 1  # cars stopped & told already (parked after a crash) never count
+        # Cars standing still: many at once is a halted race (grid, red flag), not news (small field: 2 cars of
+        # one crash are news)
+        halted = stopped_now >= max(HALTED_CARS, len(cars) * HALTED_SHARE)
         for car in cars:
             state = self.cars[car.slot]
             if (race and not halted and not state.stopped and state.still_since >= 0
