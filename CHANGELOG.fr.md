@@ -54,6 +54,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : au retour au direct après un ralenti, la caméra du jeu revient sur la voiture à l'antenne, donc une caméra du direct restée sur une autre voiture n'est plus prise pour une voiture choisie dans le jeu (régie en pause 20 s).
 - Régie de course : la caméra en surbrillance sur le pupitre caméra suit une caméra de bord de piste choisie par une coupure automatique, et s'éteint quand la session est quittée.
 - Régie de course : le nombre de voitures de la session reste juste quand un filtre de classe ou une recherche est actif (une voiture d'une autre classe qui arrivait ou partait n'était pas comptée).
+- Assistant de configuration relancé avec le serveur de stream actif : décocher l'étape `Streaming` coupe le serveur, comme l'indique le résumé, au lieu de le laisser actif.
 
 ## 0.28.1 (2026-11-01)
 

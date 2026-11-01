@@ -109,8 +109,8 @@ def apply_global_choices(choices: SetupChoices) -> str:
     style["overlay_theme"] = choices.overlay_theme
     style["enable_modern_font"] = choices.modern_font
     style["enable_colorblind_colors"] = choices.colorblind
-    if choices.stream:  # server started by the reload
-        cfg.user.config["stream_overlay"]["enable_stream_overlay"] = True
+    # Server started (or stopped: step unticked, the summary says Off) by the reload
+    cfg.user.config["stream_overlay"]["enable_stream_overlay"] = choices.stream
     if choices.open_screen_view:
         application["show_overlay_screen_view"] = True
     cfg.save(0, config_type=ConfigType.CONFIG)

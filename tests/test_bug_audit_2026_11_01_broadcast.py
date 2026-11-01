@@ -590,3 +590,24 @@ def test_b030_car_count_told_with_class_filter(director_page):  # noqa: F811
     poll(page, race_answers(101.0, car(1, 1), car(2, 2, car_class="Hyper"), car(3, 3, car_class="Hyper")))
     assert told and told[-1] == 3
     backend.class_filter = ""
+
+
+# B-022: Streaming unticked in the setup wizard turns the stream server off (the summary says Off)
+def test_b022_setup_wizard_stream_off(ui_env, monkeypatch):
+    from neopedal.setting import cfg
+    from neopedal.ui import setup_wizard
+
+    monkeypatch.setattr(setup_wizard.loader, "reload", lambda reload_preset=False: None)
+    monkeypatch.setattr(type(cfg), "save", lambda *args, **kwargs: None)
+    monkeypatch.setitem(cfg.user.config["stream_overlay"], "enable_stream_overlay", True)
+    for section, key in ((cfg.application, "show_setup_wizard_at_startup"), (cfg.application, "language"),
+                         (cfg.application, "window_color_theme"),
+                         (cfg.user.config["overlay_style"], "enable_colorblind_colors")):
+        monkeypatch.setitem(section, key, section[key])  # restored after the test
+    choices = setup_wizard.SetupChoices(language=cfg.application["language"], api_name="",
+                                        window_theme=cfg.application["window_color_theme"],
+                                        overlay_theme=cfg.user.config["overlay_style"]["overlay_theme"],
+                                        modern_font=cfg.user.config["overlay_style"]["enable_modern_font"],
+                                        preset="", new_preset="", widgets=(), stream=False)
+    setup_wizard.apply_global_choices(choices)
+    assert cfg.user.config["stream_overlay"]["enable_stream_overlay"] is False
