@@ -42,6 +42,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Habillage de diffusion (source `/director`), fiche pilote : un nom de pilote ou d'équipe long se termine par des points de suspension au lieu d'être coupé au milieu d'un mot au bord de la fiche, et les stats qui ne tiennent pas passent sur une deuxième ligne.
 - Habillage de diffusion (source `/director`) : un texte de bandeau ou un nom de pilote de l'onboard très long se termine par des points de suspension au lieu de dépasser les bords de l'écran ou d'élargir le panneau onboard.
 - Habillage de diffusion (source `/director`) : le compte à rebours de l'opérateur se compte avec l'horloge de l'ordinateur qui affiche la source, et ne finit plus en avance ou en retard quand OBS tourne sur un autre ordinateur dont l'horloge diffère.
+- Habillage de diffusion (source `/director`) : les bandeaux déjà annoncés sont oubliés une fois passés, la source n'utilise plus un peu plus de mémoire à chaque bandeau pendant une longue course.
 
 ## 0.28.1 (2026-11-01)
 

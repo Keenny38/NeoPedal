@@ -225,6 +225,10 @@ function banners(){
     recentBanners.set(same,now);
     bannerQueue.push(event);
   }
+  // Never growing in a 24 h race: events out of the state never come back, texts told over 30 s ago may again
+  const ids=new Set((state.events||[]).map(event=>event.id));
+  for(const id of shownBanners)if(!ids.has(id))shownBanners.delete(id);
+  for(const [same,time] of recentBanners)if(now-time>=30000)recentBanners.delete(same);
   bannerQueue.sort((a,b)=>(b.priority||0)-(a.priority||0));
   if(bannerQueue.length>4)bannerQueue.length=4;
   if(!bannerBusy)nextBanner();

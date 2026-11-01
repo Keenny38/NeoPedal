@@ -432,3 +432,10 @@ def test_b026_countdown_seconds_left(director_page):  # noqa: F811
     assert "countdownEnd=Date.now()+state.countdown.endsIn*1000" in script
     assert "info.endsIn!=null?(countdownEnd-Date.now())/1000" in script
     graphics.countdown_end = 0.0
+
+
+# B-032: banners told & recent texts forgotten once out of the state / older than 30 s (24 h race)
+def test_b032_banner_sets_pruned():
+    banners = director_script().split("function banners(){", 1)[1].split("function nextBanner(", 1)[0]
+    assert "for(const id of shownBanners)if(!ids.has(id))shownBanners.delete(id)" in banners
+    assert "for(const [same,time] of recentBanners)if(now-time>=30000)recentBanners.delete(same)" in banners
