@@ -381,3 +381,10 @@ def test_b017_page_carousel_reads_current_count():
     assert "pageCounts[id]=count" in cycle and "%Math.max(pageCounts[id]||1,1)" in cycle
     assert "seconds!==pageSeconds[id]" in cycle and "if(count<=1){if(pageTimers[id])stopPages(id);return}" in cycle
     assert 'cyclePages("champ",page.count,champ,info.title+"|"+info.subtitle)' in script
+
+
+# B-018: running lap clock of qualifying counted from when its own time came (other answers never set it back)
+def test_b018_quali_clock_from_its_own_answer():
+    script = director_script()
+    assert 'if(data.full||first||"quali" in (data.state||{}))received=Date.now()' in script
+    assert ';received=Date.now();' not in script

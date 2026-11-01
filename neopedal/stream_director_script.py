@@ -530,7 +530,9 @@ async function poll(){
       if(data.v!==version||edit){const first=version===0;version=data.v;
         // Only the parts of the state that changed come, every part on the first answer
         if(data.full||first)state=data.state||{};else Object.assign(state,data.state||{});
-        state.version=first?0:version;layout=data.layout||{};preset=data.preset||"";received=Date.now();
+        state.version=first?0:version;layout=data.layout||{};preset=data.preset||"";
+        // Time of the qualifying lap clock: when it came, never set back by answers of other parts
+        if(data.full||first||"quali" in (data.state||{}))received=Date.now();
         if(first)for(const event of state.events||[])if(!event.fresh)shownBanners.add(event.id);
         draw();if(first)cycleTower()}}
     else serverLost(true);

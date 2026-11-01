@@ -37,6 +37,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: two cars given the same position by the game no longer swap places at every answer (false lead change or overtake told).
 - Broadcast Graphics (`/director` source): the sponsors carousel turns during a race, instead of showing only the first sponsor (its timer started again at every answer of the app).
 - Broadcast Graphics (`/director` source): the starting grid, classification and championship boards show every page in turn when their page count or seconds change while shown (pages were skipped), and another championship or class starts at its first page.
+- Broadcast Graphics (`/director` source): the running lap time of the qualifying graphic no longer jumps back a few seconds when another part of the graphics changes (settings, branding, layout, game paused).
 
 ## 0.28.1 (2026-11-01)
 

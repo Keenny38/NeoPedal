@@ -37,6 +37,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : deux voitures à qui le jeu donne la même position n'échangent plus leurs places à chaque réponse (faux changement de leader ou dépassement annoncé).
 - Habillage de diffusion (source `/director`) : le carrousel des sponsors tourne pendant une course, au lieu de ne montrer que le premier sponsor (son minuteur repartait à chaque réponse de l'app).
 - Habillage de diffusion (source `/director`) : la grille de départ, le classement et le championnat montrent chaque page à tour de rôle quand leur nombre de pages ou leur durée change pendant l'affichage (des pages étaient sautées), et un autre championnat ou une autre classe commence à sa première page.
+- Habillage de diffusion (source `/director`) : le temps du tour en cours du graphisme de qualification ne recule plus de quelques secondes quand une autre partie de l'habillage change (réglages, image de marque, disposition, jeu en pause).
 
 ## 0.28.1 (2026-11-01)
 
