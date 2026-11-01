@@ -27,9 +27,9 @@ pre-commit==4.7.0
 psutil==7.2.2
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
 pygments==2.21.0
-pyside6==6.11.2
-pyside6-addons==6.11.2
-pyside6-essentials==6.11.2
+pyside6==6.12.0
+pyside6-addons==6.12.0
+pyside6-essentials==6.12.0
 pytest==9.2.0
 pytest-cov==7.1.0
 pytest-timeout==2.4.0
@@ -38,6 +38,6 @@ python-discovery==1.9.0
 pyxdg==0.28 ; sys_platform == 'linux'
 pyyaml==6.0.3
 ruff==0.17.3
-shiboken6==6.11.2
+shiboken6==6.12.0
 typing-extensions==4.16.0
 virtualenv==21.15.2
