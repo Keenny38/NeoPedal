@@ -354,3 +354,13 @@ def test_b046_overtake_on_the_finish_line_told():
              car(3, 3, laps=11, finish="FSTAT_FINISHED")]
     events = watcher.update(later, (), 130.0, "RACE1", TRACK) + watcher.update(later, (), 131.5, "RACE1", TRACK)
     assert [event for event in events if event.kind == dr.OVERTAKE] == []
+
+
+# B-047: two cars with the same position, answer order flipping: no lead change told
+def test_b047_duplicate_positions_never_swap_places():
+    watcher = dr.RaceWatcher()
+    watcher.update([car(1, 1), car(2, 1, distance=990.0)], (), 100.0, "RACE1", TRACK)
+    events = watcher.update([car(2, 1, distance=990.0), car(1, 1)], (), 101.0, "RACE1", TRACK)
+    events += watcher.update([car(2, 1, distance=990.0), car(1, 1)], (), 102.5, "RACE1", TRACK)
+    assert [event for event in events if event.kind in (dr.LEAD, dr.OVERTAKE)] == []
+    assert dr.class_places([car(2, 1, distance=990.0), car(1, 1)]) == {1: 1, 2: 2}  # car ahead on track first

@@ -34,6 +34,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director in a replay played fast (x8, x16): laps, pit stops, battles and events are watched again, instead of every game answer being taken for a jump in the replay (nothing told).
 - Broadcast Director: in a small field (5 cars or fewer), two cars stopped after the same crash are told, no longer taken for a halted race; cars parked on track for a long time no longer hide the next stopped cars.
 - Broadcast Director: an overtake on the finish line is told, instead of being lost because both cars had already finished when the new place settled.
+- Broadcast Director: two cars given the same position by the game no longer swap places at every answer (false lead change or overtake told).
 
 ## 0.28.1 (2026-11-01)
 

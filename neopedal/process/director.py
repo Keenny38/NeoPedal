@@ -285,10 +285,12 @@ def is_race(session: str) -> bool:
 
 
 def class_places(cars: list[Standing]) -> dict[int, int]:
-    """Class place of each car (slot): standings are by overall place"""
+    """Class place of each car (slot): standings are by overall place (same place given twice: car ahead on
+    track first, never the order of the answer)"""
     counts: dict[str, int] = {}
     places = {}
-    for car in sorted(cars, key=lambda item: (item.position <= 0, item.position)):
+    for car in sorted(cars, key=lambda item: (item.position <= 0, item.position, -item.laps, -item.distance,
+                                              item.slot)):
         counts[car.car_class] = counts.get(car.car_class, 0) + 1
         places[car.slot] = counts[car.car_class]
     return places

@@ -34,6 +34,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course dans un replay en avance rapide (x8, x16) : tours, arrêts, batailles et événements sont de nouveau suivis, au lieu que chaque réponse du jeu soit prise pour un saut dans le replay (rien n'était annoncé).
 - Régie de course : dans un petit plateau (5 voitures ou moins), deux voitures arrêtées après le même accrochage sont annoncées, et ne sont plus prises pour une course arrêtée ; des voitures garées longtemps en piste ne cachent plus les suivantes.
 - Régie de course : un dépassement sur la ligne d'arrivée est annoncé, au lieu d'être perdu parce que les deux voitures avaient déjà fini quand la nouvelle place s'est stabilisée.
+- Régie de course : deux voitures à qui le jeu donne la même position n'échangent plus leurs places à chaque réponse (faux changement de leader ou dépassement annoncé).
 
 ## 0.28.1 (2026-11-01)
 
