@@ -414,6 +414,7 @@ class RaceWatcher:
         events = self.contact_events(contacts, cars, now, first)
         session_state = info if info is not None else SessionState()
         green = session_state.phase in (-1, GREEN_PHASE) and session_state.yellow in ("NONE", "INVALID", "")
+        started = session_state.phase == GREEN_PHASE  # race on: first lap watched too (laps completed 0)
         if not first:
             events.extend(self.flag_events(session_state, cars, now, race))
         self.session = session_state
@@ -447,11 +448,11 @@ class RaceWatcher:
         for car in cars:
             state = self.cars[car.slot]
             if (race and not halted and not state.stopped and state.still_since >= 0
-                    and now - state.still_since >= STOP_TIME and car.laps >= 1 and running(car)):
+                    and now - state.still_since >= STOP_TIME and (car.laps >= 1 or started) and running(car)):
                 state.stopped = True
                 state.stopped_at = now
                 events.append(self.event(STOPPED, state.still_since, (car,)))
-            self.check_slow(car, state, now, race and green and not halted, events)
+            self.check_slow(car, state, now, race and green and not halted, events, started)
         # Left the session (missing a while: one answer without a car never loses its history)
         for slot in [slot for slot, state in self.cars.items() if slot not in by_slot and now - state.seen >= GONE_TIME]:
             self.forget(slot)
@@ -625,10 +626,12 @@ class RaceWatcher:
         usual, samples = self.usual_speed.get(int(car.distance // SPEED_BIN), (0.0, 0))
         return usual if samples >= SPEED_SAMPLES else 0.0
 
-    def check_slow(self, car: Standing, state: CarState, now: float, watched: bool, events: list[Event]) -> None:
-        """Car going much slower than usual at that place of the track (not stopped: told apart)"""
+    def check_slow(self, car: Standing, state: CarState, now: float, watched: bool, events: list[Event],
+                   started: bool = False) -> None:
+        """Car going much slower than usual at that place of the track (not stopped: told apart), from the second
+        lap (from the start once the game tells the race is on)"""
         usual = self.usual_speed_at(car)
-        if not watched or usual <= 0 or not running(car) or car.laps < 1:
+        if not watched or usual <= 0 or not running(car) or (car.laps < 1 and not started):
             state.slow_since = -1.0
             if not running(car):
                 state.slow = False

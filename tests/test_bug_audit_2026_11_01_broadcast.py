@@ -276,3 +276,26 @@ def test_b015_story_on_air_not_halved_by_seen():
             seen.add(pick.key)  # page: story cut to marked seen
             cuts.append(clock)
     assert cuts[:2] == [0, 8]  # shortest shot kept: same priority never cuts it short
+
+
+# B-016: car stopped on track during the first lap of a green race is told
+def test_b016_car_stopped_on_first_lap_told():
+    from neopedal.process.game_info import SessionState
+
+    green = SessionState(phase=dr.GREEN_PHASE)
+    watcher = dr.RaceWatcher()
+
+    def field_at(time):
+        return [car(slot, slot, laps=0, distance=3000.0 - 250 * slot + (0 if slot == 5 else 50 * (time - 100)),
+                    speed=0.0 if slot == 5 else 50.0) for slot in range(1, 11)]
+
+    events = []
+    for time in range(100, 110):
+        events += watcher.update(field_at(time), (), float(time), "RACE1", TRACK, info=green)
+    assert [event.slots for event in events if event.kind == dr.STOPPED] == [(5,)]
+    # Before the start (grid, formation lap): never told
+    watcher = dr.RaceWatcher()
+    events = []
+    for time in range(100, 110):
+        events += watcher.update(field_at(time), (), float(time), "RACE1", TRACK, info=SessionState(phase=3))
+    assert [event for event in events if event.kind == dr.STOPPED] == []
