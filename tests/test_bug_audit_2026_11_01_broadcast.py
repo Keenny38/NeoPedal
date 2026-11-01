@@ -511,3 +511,20 @@ def test_b012_focus_ignored_while_commands_pending(director_page):  # noqa: F811
     # Commands done: grace counted from then
     backend.camera.command_done(True)
     assert backend.last_cut > 0.0
+
+
+# B-020: cuts still waiting replaced by a newer cut; queue emptied when the session is left
+def test_b020_waiting_cuts_replaced_and_dropped(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), car(3, 3), focus=1))
+    camera = backend.camera
+    camera.request_command.busy = True  # a batch on its way: next ones wait
+    try:
+        backend.cutToCar(2)
+        backend.cutToCar(3)
+        assert camera.command_queue == [(("PUT", "/rest/watch/focus/3"),)]  # cut to car 2 never sent after
+        for _ in range(4):
+            poll(page, {})
+        assert camera.command_queue == []  # session left: nothing sent to the next one
+    finally:
+        camera.request_command.busy = False

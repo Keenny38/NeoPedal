@@ -586,6 +586,7 @@ class DirectorBackend(PageBackend):
             self.instantChanged.emit()
             self._leave_pending = True  # game not answering (or left): live again if it answers in the replay
         if state in (OFFLINE, MENU):
+            self._camera.command_queue.clear()  # session left: commands of that session never sent to the next one
             self.candidates = []
             self._story_numbers.clear()
             self._suggestions_model.reset([])
@@ -594,6 +595,7 @@ class DirectorBackend(PageBackend):
 
     def new_session(self):
         self._leave_pending = False  # replay of another session: never left for the director
+        self._camera.command_queue.clear()  # cuts of the previous session never sent to this one
         self.watcher.reset()
         self._sectors = None
         self.director.reset()
@@ -678,7 +680,7 @@ class DirectorBackend(PageBackend):
             camera.trackside_choice = shot.camera if shot.camera.startswith("TRACKSIDE") else ""
         if commands:
             self.last_cut = time.monotonic()
-            camera.send(*commands)
+            camera.send_cut(*commands)
         self.focus = shot.slot
         if shot.key in self.event_index and shot.key not in self.seen:
             self.seen.add(shot.key)

@@ -40,6 +40,12 @@ if TYPE_CHECKING:
     from .director_backend import DirectorBackend
 
 
+def is_cut(batch: tuple[gc.Command, ...]) -> bool:
+    """Batch of a cut: car followed & camera only (never replay commands)"""
+    return all(isinstance(command, tuple) and (command[1].startswith("/rest/watch/focus/")
+                                               or command[1] == gc.SET_CAMERA_RESOURCE) for command in batch)
+
+
 class CameraDesk(DirectorPart):
     """Camera & HUD of the game, replay playback, commands queue"""
 
@@ -60,6 +66,12 @@ class CameraDesk(DirectorPart):
     def stop(self):
         """Page closed: commands not sent yet dropped"""
         self.command_queue.clear()
+
+    def send_cut(self, *commands: gc.Command):
+        """Car & camera of a cut: cuts still waiting (slow game) dropped, the newer one wins (never each former car
+        on air in turn)"""
+        self.command_queue[:] = [batch for batch in self.command_queue if not is_cut(batch)]
+        self.send(*commands)
 
     def answered(self, state: dict[str, Any]):
         """Camera & HUD parts told by a new answer of the game"""
