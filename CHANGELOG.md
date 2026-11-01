@@ -18,6 +18,7 @@ Fixes from an audit of the VR overlay.
 - VR mirror window: no longer opens almost completely off screen (only its corner visible) after a screen change; it opens at its default place instead.
 - Broadcast Director while you drive your own car (live session, out of its garage stall): the automatic director, `Instant Replay` and `Overlays follow the car on air` no longer move the game camera or your overlays to another car; your own cuts still work, and the director takes over again once your car is back in its garage.
 - Broadcast Director: switching to `Automatic` during an instant replay no longer cuts to another car inside the replay shown; the director starts once back to live.
+- Broadcast Director: an instant replay that was playing when the game stopped answering for a few seconds (game on another computer, network drop) no longer leaves the game in the replay: back to live as soon as the game answers again.
 
 ## 0.28.1 (2026-11-01)
 

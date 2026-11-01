@@ -67,3 +67,18 @@ def test_b007_automatic_mode_during_instant_replay_never_cuts(director_page):  #
     wait_commands(backend.camera)
     assert backend.mode == "auto" and page.game.sent == [] and backend.on_air_slot == 3
     backend.instant = False
+
+
+# B-002: instant replay forgotten while the game did not answer: left once it answers again
+def test_b002_instant_replay_left_when_game_answers_again(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, race_answers(100.0, *cars))
+    backend.instant = True  # instant replay playing
+    for _ in range(4):  # game not answering (remote game unreachable a few seconds)
+        poll(page, {})
+    assert backend.gameState in ("menu", "offline") and not backend.instantReplay
+    page.game.sent.clear()
+    poll(page, race_answers(101.0, *cars, replay=True))  # game answers again, still in the replay
+    wait_commands(backend.camera)
+    assert ("POST", "/rest/replay/toggleactive") in page.game.sent

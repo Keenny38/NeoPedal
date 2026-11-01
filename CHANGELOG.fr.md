@@ -18,6 +18,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Fenêtre miroir VR : ne s'ouvre plus presque entièrement hors de l'écran (seul son coin visible) après un changement d'écran ; elle s'ouvre alors à sa place par défaut.
 - Régie de course pendant que vous pilotez votre propre voiture (session en direct, hors de son garage) : la réalisation automatique, le `Ralenti` et `Les overlays suivent la voiture à l'antenne` ne déplacent plus la caméra du jeu ni vos overlays sur une autre voiture ; vos propres coupures fonctionnent toujours, et la régie reprend la main quand votre voiture est revenue à son garage.
 - Régie de course : passer en `Automatique` pendant un ralenti ne coupe plus vers une autre voiture au milieu du replay montré ; la régie démarre au retour au direct.
+- Régie de course : un ralenti en cours quand le jeu a cessé de répondre quelques secondes (jeu sur un autre ordinateur, coupure réseau) ne laisse plus le jeu dans le replay : retour au direct dès que le jeu répond de nouveau.
 
 ## 0.28.1 (2026-11-01)
 

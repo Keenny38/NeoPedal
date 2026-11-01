@@ -249,6 +249,7 @@ class DirectorBackend(PageBackend):
         self.seen: set[str] = set()  # incidents looked at (shown on air, replayed, clicked)
         self.instant = False  # instant replay of a live session shown
         self._driving = False  # local player driving (see player_driving), last answer
+        self._leave_pending = False  # instant replay to leave once the game answers again (see set_state)
         self.instant_waiting = False  # instant replay asked, not playing yet
         self.session_info = SessionState()
         self.laps_slot = -1  # car of lap history shown, -1 if none
@@ -450,6 +451,10 @@ class DirectorBackend(PageBackend):
             self.session_key = key
             self.new_session()
         self.session_key = key
+        if self._leave_pending:  # instant replay forgotten while the game did not answer: same session, back to live
+            self._leave_pending = False
+            if active:
+                self._camera.send(gc.leave_replay)
         self.session_end = state.get("end", -1.0)
         self.track_length = state["length"]
         self.update_clock(state["time"])
@@ -577,6 +582,7 @@ class DirectorBackend(PageBackend):
             self.instant_event = None
             self._instant_timer.stop()
             self.instantChanged.emit()
+            self._leave_pending = True  # game not answering (or left): live again if it answers in the replay
         if state in (OFFLINE, MENU):
             self.candidates = []
             self._story_numbers.clear()
@@ -585,6 +591,7 @@ class DirectorBackend(PageBackend):
         self.statusChanged.emit()
 
     def new_session(self):
+        self._leave_pending = False  # replay of another session: never left for the director
         self.watcher.reset()
         self._sectors = None
         self.director.reset()
