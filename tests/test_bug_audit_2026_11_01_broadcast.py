@@ -562,3 +562,18 @@ def test_b048_back_to_live_focuses_car_on_air(director_page):  # noqa: F811
     backend.backToLive()
     wait_commands(backend.camera)
     assert page.game.sent[-2:] == [("POST", "/rest/replay/toggleactive"), ("PUT", "/rest/watch/focus/2")]
+
+
+# B-029: camera highlighted on the desk follows a trackside camera chosen by a cut and the game state
+def test_b029_camera_highlight_told(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), focus=1))
+    told = []
+    backend.camera.cameraChanged.connect(lambda: told.append(backend.camera.cameraKey))
+    backend.cut(dr.Shot(2, "TRACKSIDE2", dr.CONTACT, "contact|x", 0.0))
+    wait_commands(backend.camera)
+    assert told and told[-1] == backend.camera.cameraKey
+    told.clear()
+    for _ in range(4):
+        poll(page, {})  # session left: no camera highlighted any more
+    assert told and told[-1] == ""

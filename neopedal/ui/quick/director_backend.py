@@ -677,7 +677,10 @@ class DirectorBackend(PageBackend):
             commands.append(gc.focus_command(shot.slot))
         if shot.camera and shot.camera != camera.camera_key():
             commands.extend(gc.camera_commands(shot.camera))
-            camera.trackside_choice = shot.camera if shot.camera.startswith("TRACKSIDE") else ""
+            trackside = shot.camera if shot.camera.startswith("TRACKSIDE") else ""
+            if trackside != camera.trackside_choice:  # desk highlights it (game tells the same group & name)
+                camera.trackside_choice = trackside
+                camera.cameraChanged.emit()
         if commands:
             self.last_cut = time.monotonic()
             camera.send_cut(*commands)

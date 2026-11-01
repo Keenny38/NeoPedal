@@ -52,6 +52,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director with a slow game: cuts still waiting are replaced by the newest one, instead of each former car going on air for a moment in turn, and commands of a session left are no longer sent to the next one.
 - Broadcast Director: an instant replay is kept or ended by the game answer to the instant replay itself, no longer by the answer to a camera change sent just after (replay shown as playing while the game refused it, or ended at once).
 - Broadcast Director: back to live after an instant replay, the game camera goes to the car on air again, so a live camera left on another car is no longer taken for a car chosen in the game (director paused 20 s).
+- Broadcast Director: the camera highlighted on the camera desk follows a trackside camera chosen by an automatic cut, and is cleared once the session is left.
 
 ## 0.28.1 (2026-11-01)
 

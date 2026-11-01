@@ -93,7 +93,9 @@ class CameraDesk(DirectorPart):
                 self.hudChanged.emit()
 
     def state_changed(self, state: str):
-        """Game state changed: playback command forgotten out of replays"""
+        """Game state changed: playback command forgotten out of replays, camera highlighted told again (none
+        out of a session)"""
+        self.cameraChanged.emit()
         if state != REPLAY and self.last_command:
             self.last_command = ""
             self.playbackChanged.emit()
