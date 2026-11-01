@@ -186,9 +186,12 @@ def test_time_jump_watches_again():
     watcher.update([car(1, 1), car(2, 2)], (), 500.0, "RACE1", TRACK)
     watcher.update([car(1, 1, in_pit=True)], (), 501.0, "RACE1", TRACK)
     stops = dict(watcher.pit_stops)
-    # Replay seek backwards: no events from comparing two moments far apart, pit stops seen are kept
-    assert watcher.update([car(2, 1), car(1, 2)], (), 200.0, "RACE1", TRACK) == []
+    # Replay seek forwards: no events from comparing two moments far apart, pit stops seen are kept
+    assert watcher.update([car(2, 1), car(1, 2)], (), 800.0, "RACE1", TRACK) == []
     assert watcher.pit_stops == stops
+    # Backwards: same, stops after that moment dropped (recorded again once the replay gets there)
+    assert watcher.update([car(2, 1), car(1, 2)], (), 200.0, "RACE1", TRACK) == []
+    assert watcher.pit_stops == {1: []}
 
 
 # Shots

@@ -214,6 +214,16 @@ class LapHistory:
     def __reversed__(self) -> Iterator[LapRecord]:
         return (self[index] for index in range(len(self._lap) - 1, -1, -1))
 
+    def drop_after(self, lap: int) -> None:
+        """Laps after lap dropped (replay rewound: recorded again as they come)"""
+        keep = len(self._lap)
+        while keep and self._lap[keep - 1] > lap:
+            keep -= 1
+        if keep < len(self._lap):
+            for column in (self._lap, self._time, self._pit, self._energy, self._position):
+                del column[keep:]
+            del self._sectors[keep * 3:]
+
     def append(self, record: LapRecord) -> None:
         self._lap.append(record.lap)
         self._time.append(record.time)
@@ -383,6 +393,7 @@ class RaceWatcher:
         if now < 0:
             return []
         jumped = self.now >= 0 and (now < self.now - 1.0 or now > self.now + JUMP)
+        rewound = jumped and now < self.now
         if jumped:
             stops, known, laps, speeds, sectors = (self.pit_stops, self.seen_incidents, self.laps, self.usual_speed,
                                                    self.sector_best)
@@ -392,6 +403,8 @@ class RaceWatcher:
             self.laps = laps
             self.usual_speed = speeds
             self.sector_best = sectors
+            if rewound:  # replay rewound: laps & stops after now recorded again as they come
+                self.forget_after(cars, now)
         first = self.now < 0
         self.track_length = track_length
         previous_time, self.now = self.now, now
@@ -447,6 +460,15 @@ class RaceWatcher:
         self.measuring.extend(event for event in events if event.kind in (CONTACT, WALL) and event.live)
         self.measure_contacts(events, now)
         return events
+
+    def forget_after(self, cars: list[Standing], now: float) -> None:
+        """Replay rewound: laps after the lap of each car now & pit stops after now dropped (never twice)"""
+        for car in cars:
+            history = self.laps.get(car.slot)
+            if history is not None:
+                history.drop_after(car.laps)
+        for slot, stops in self.pit_stops.items():
+            self.pit_stops[slot] = [stop for stop in stops if stop.time <= now]
 
     def forget(self, slot: int) -> None:
         """Car of slot gone: nothing inherited by the next car of the slot"""

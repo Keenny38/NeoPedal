@@ -25,6 +25,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: a car taking the slot of a car that just left (public servers) no longer inherits its laps, pit stops and best sectors, nor gets false penalty and fastest lap banners; a car missing from a single game answer no longer loses its history.
 - Broadcast Director: with `Overlays follow the car on air`, overlays and stream sources also follow a car chosen in the game, instead of staying on the previous car until the next cut.
 - Broadcast Director: closing the page with `Overlays follow the car on air` turns spectate mode off, as turning the director off does: your overlays are no longer left on the last car on air (and stats not recorded) for your next drive.
+- Broadcast Director in a replay: rewinding through a lap or a pit stop no longer records that lap and that stop twice (lap list and pit stops of the car sheet).
 
 ## 0.28.1 (2026-11-01)
 

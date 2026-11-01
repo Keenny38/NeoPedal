@@ -207,3 +207,24 @@ def test_b009_page_closed_stops_overlays_following(director_page, monkeypatch): 
     backend.release_resources()
     assert not cfg.api["enable_player_index_override"]
     forget_follow(backend)
+
+
+def pit_frame(time, laps, in_pit, last=0.0, pitstops=0):
+    return [car(1, 1, laps=laps, in_pit=in_pit, last=last, pitstops=pitstops, speed=20.0 if in_pit else 50.0),
+            car(2, 2, laps=laps, distance=200.0)]
+
+
+PIT_LAP = [(100.0, 10, False, 0.0, 0), (101.0, 10, True, 0.0, 0), (102.0, 10, True, 0.0, 0),
+           (103.0, 11, True, 92.0, 0), (104.0, 11, False, 92.0, 1), (105.0, 11, False, 92.0, 1)]
+
+
+# B-010: replay rewound through a lap & a pit stop: recorded once
+def test_b010_rewind_never_records_laps_and_stops_twice():
+    watcher = dr.RaceWatcher()
+    for time, laps, pit, last, stops in PIT_LAP:
+        watcher.update(pit_frame(time, laps, pit, last, stops), (), time, "RACE1", TRACK)
+    watcher.update(pit_frame(99.5, 10, False), (), 99.5, "RACE1", TRACK)  # rewound
+    for time, laps, pit, last, stops in PIT_LAP:
+        watcher.update(pit_frame(time + 0.3, laps, pit, last, stops), (), time + 0.3, "RACE1", TRACK)
+    assert [record.lap for record in watcher.laps[1]] == [11]
+    assert [stop.lap for stop in watcher.pit_stops[1]] == [11]
