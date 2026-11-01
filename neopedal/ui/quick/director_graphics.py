@@ -153,6 +153,10 @@ class BroadcastGraphics(DirectorPart):
 
     def new_session(self):
         """Another session: captured classification & automatic graphics forgotten, event card shown if wanted"""
+        from ...stream_director import track_outline
+
+        if not track_outline.key.startswith(f"{self.page.session_key[0]}|"):  # another track: until its outline comes
+            track_outline.set("", [], [])  # (never the previous track under the cars of this one)
         self.captured = None
         self._sector_ends = [0.0, 0.0]
         self._auto_done.clear()

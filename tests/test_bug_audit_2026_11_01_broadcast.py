@@ -465,3 +465,17 @@ def test_b049_live_feed_only_when_shown():
     live = director_script().split("async function pollLive(){", 1)[1].split("\n}", 1)[0]
     assert "if(!liveWanted()){setTimeout(pollLive,2000);return}" in live
     assert "function liveWanted(){" in director_script()
+
+
+# B-044: another track: outline of the previous track never kept under the cars of the new one
+def test_b044_track_outline_dropped_on_track_change(director_page):  # noqa: F811
+    from neopedal.stream_director import track_outline
+
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2)))
+    track_outline.set("Test Ring|3", [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0)], [])
+    answers = race_answers(10.0, car(1, 1), car(2, 2))
+    answers["/rest/watch/sessionInfo"]["trackName"] = "Other Ring"
+    poll(page, answers)
+    assert track_outline.key == "" and backend._graphics.map_state()["track"] == ""
+    track_outline.set("", [], [])
