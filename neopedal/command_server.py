@@ -170,6 +170,14 @@ class LocalHTTPServer(ThreadingHTTPServer):
         """Serve until stop(): its worker thread waits up to poll_interval for the serving loop"""
         super().serve_forever(poll_interval)
 
+    def handle_error(self, request, client_address):
+        """Request failed: client gone or server stopping (expected, debug log), else an error of the handler
+        (logged), never a traceback printed on stderr"""
+        if isinstance(sys.exc_info()[1], OSError):
+            logger.debug("SERVER: request from %s failed", client_address[0], exc_info=True)
+        else:
+            logger.error("SERVER: request from %s failed", client_address[0], exc_info=True)
+
     def server_bind(self):
         """Bind without host name lookup: HTTPServer looks up server_name (getfqdn, never used here),
         which blocks the GUI thread with a slow DNS, and raises UnicodeDecodeError (not OSError) for a

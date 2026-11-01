@@ -743,3 +743,27 @@ def test_b038_results_id_follows_language_and_class_colors(ui_env, tmp_path, mon
         assert colored["id"] != english and colored["classes"][0]["color"] == "#123456"
     finally:
         i18n.set_language("English")
+
+
+# B-039: remote control server: a client gone (or the server stopping) writes no traceback
+def test_b039_command_server_client_gone_quiet(capsys, caplog):
+    import logging
+
+    from neopedal.command_server import CommandHandler, LocalHTTPServer
+
+    http_server = LocalHTTPServer(("127.0.0.1", 0), CommandHandler)
+    try:
+        with caplog.at_level(logging.DEBUG):
+            try:
+                raise ConnectionAbortedError(10053, "connection aborted")
+            except OSError:
+                http_server.handle_error(None, ("127.0.0.1", 50000))
+            try:
+                raise RuntimeError("handler failed")
+            except RuntimeError:
+                http_server.handle_error(None, ("127.0.0.1", 50000))
+    finally:
+        http_server.server_close()
+    assert "Traceback" not in capsys.readouterr().err
+    levels = [record.levelno for record in caplog.records if "request from 127.0.0.1" in record.getMessage()]
+    assert levels == [logging.DEBUG, logging.ERROR]

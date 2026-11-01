@@ -61,6 +61,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlays de stream en spectateur ou en replay : une source OBS laissée sur un overlay désactivé ou réglé sur `Écran seulement` ne garde plus tous les overlays affichés et mis à jour pour rien.
 - Disposition des overlays de stream : une demande d'enregistrement qui ne contient aucune disposition (envoyée par un outil ou une extension de navigateur défaillants) est refusée au lieu d'effacer les overlays placés sur la source de disposition.
 - Source de stream des résultats : après un changement de langue de l'app ou de couleurs de classe (éditeur des classes), les résultats affichés suivent aussitôt au lieu de garder les anciens textes et couleurs jusqu'à la session suivante.
+- Serveur de commande à distance : un client qui se déconnecte, ou l'arrêt du serveur, n'affiche plus une trace d'erreur complète (journal de débogage seulement).
 
 ## 0.28.1 (2026-11-01)
 

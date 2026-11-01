@@ -61,6 +61,7 @@ Fixes from an audit of the VR overlay.
 - Stream overlays while spectating or in a replay: an OBS source left on an overlay turned off or set to `Screen Only` no longer keeps every overlay shown and updated for nothing.
 - Stream overlays layout: a save request that holds no layout (sent by a faulty tool or browser extension) is refused instead of erasing the overlays placed on the layout source.
 - Race results stream source: after a change of app language or of class colors (vehicle class editor), the results shown follow at once instead of keeping the former texts and colors until the next session.
+- Remote control server: a client disconnecting, or the server turned off, no longer prints a full error trace (debug log only).
 
 ## 0.28.1 (2026-11-01)
 
