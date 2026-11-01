@@ -18,6 +18,13 @@ def focus_commands(game):
     return [command for command in game.sent if command[1].startswith("/rest/watch/focus/")]
 
 
+def forget_follow(backend):
+    """Overlays follow turned off again in the page settings file (next tests start without it)"""
+    backend.follow_overlays = False
+    backend.save_settings()
+    backend.flush_settings()
+
+
 # B-001: no game command by itself while the player drives
 def test_b001_no_automatic_cut_instant_replay_or_follow_while_player_drives(director_page, monkeypatch):  # noqa: F811
     from neopedal.setting import cfg
@@ -44,6 +51,7 @@ def test_b001_no_automatic_cut_instant_replay_or_follow_while_player_drives(dire
     wait_commands(backend.camera)
     assert ("PUT", "/rest/watch/focus/2") in page.game.sent
     assert not cfg.api["enable_player_index_override"]
+    forget_follow(backend)
 
 
 def test_b001_director_cuts_again_once_player_back_in_garage(director_page):  # noqa: F811
@@ -180,3 +188,22 @@ def test_b008_overlays_follow_car_chosen_in_game(director_page, monkeypatch):  #
     backend.last_cut = 0.0
     poll(page, race_answers(101.0, *cars, focus=3))  # operator chose car 3 in the game
     assert backend.on_air_slot == 3 and cfg.api["player_index"] == 3
+    forget_follow(backend)
+
+
+# B-009: page closed: spectate mode turned on by the director turned off (overlays back on the player car)
+def test_b009_page_closed_stops_overlays_following(director_page, monkeypatch):  # noqa: F811
+    from neopedal.setting import cfg
+
+    monkeypatch.setitem(cfg.api, "enable_player_index_override", False)
+    monkeypatch.setitem(cfg.api, "player_index", -1)
+    monkeypatch.setattr(type(cfg), "save", lambda *args, **kwargs: None)
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), focus=1))
+    backend.setFollowOverlays(True)
+    backend.cutToCar(2)
+    assert cfg.api["enable_player_index_override"] and cfg.api["player_index"] == 2
+    backend.follow_overlays = True
+    backend.release_resources()
+    assert not cfg.api["enable_player_index_override"]
+    forget_follow(backend)

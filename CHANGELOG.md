@@ -24,6 +24,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: the `wins` banner and story go to the class leader taking the chequered flag of a race, no longer to a lapped car of the class crossing the line first (multiclass), nor to the first car taking the flag in practice or qualifying.
 - Broadcast Director: a car taking the slot of a car that just left (public servers) no longer inherits its laps, pit stops and best sectors, nor gets false penalty and fastest lap banners; a car missing from a single game answer no longer loses its history.
 - Broadcast Director: with `Overlays follow the car on air`, overlays and stream sources also follow a car chosen in the game, instead of staying on the previous car until the next cut.
+- Broadcast Director: closing the page with `Overlays follow the car on air` turns spectate mode off, as turning the director off does: your overlays are no longer left on the last car on air (and stats not recorded) for your next drive.
 
 ## 0.28.1 (2026-11-01)
 

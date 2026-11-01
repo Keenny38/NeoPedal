@@ -347,6 +347,8 @@ class DirectorBackend(PageBackend):
         self._game.stop()
         self._instant_timer.stop()
         self._camera.stop()  # events log lines still written in background: page never waits (see WRITER)
+        if self.follow_overlays and self._enabled:  # spectate mode of the director: overlays back on the player car
+            self.overlays_stop_following()
         self._history_asked = False  # driver_history tables kept: scanned again once opened, files unchanged not read
         if _active is not None and _active() is self:
             _active = None

@@ -73,7 +73,7 @@ How the automatic director cuts:
 
 ## Settings
 
-The sliders button opens the director settings: shortest and longest shot, battle gap, replay seconds before an event, instant replay seconds after the event, director cameras, `Game computer` (address of the computer running LMU, empty for this one: direct from a second computer), the events log, `Pause the director when the camera changes in the game` and `Overlays follow the car on air` (spectate mode on the car on air: your overlays and [stream overlays](Connections.md#stream-overlays-obs-streamlabs-xsplit-vmix) show that car).
+The sliders button opens the director settings: shortest and longest shot, battle gap, replay seconds before an event, instant replay seconds after the event, director cameras, `Game computer` (address of the computer running LMU, empty for this one: direct from a second computer), the events log, `Pause the director when the camera changes in the game` and `Overlays follow the car on air` (spectate mode on the car on air: your overlays and [stream overlays](Connections.md#stream-overlays-obs-streamlabs-xsplit-vmix) show that car; closing the page or turning the director off puts them back on your car).
 
 ## Broadcast graphics
 
