@@ -400,11 +400,20 @@ function map(){
   if(!state.demo&&(info.track!==trackKey||(track&&track.rotation!==(g.mapRotation||0))))loadTrack(info.track);
   mapSectors(false);mapCars();toggle("map",!!track||state.demo);
 }
-function cyclePages(id,count,draw){
+// Pages of a board in turn: page count & seconds of now (rows per page or seconds changed while shown), another
+// board (key: championship, class) from its first page
+const pageCounts={},pageSeconds={},pageKeys={};
+function cyclePages(id,count,draw,key){
   const seconds=(id==="grid"?(state.graphics||{}).gridSeconds:(state.graphics||{}).pageSeconds)||10;
-  if(pageTimers[id]||count<=1)return;
+  if(key!==undefined&&key!==pageKeys[id]){const changed=pageKeys[id]!==undefined;pageKeys[id]=key;
+    if(changed&&(pages[id]||pageTimers[id])){stopPages(id);draw();return}}
+  pageCounts[id]=count;
+  if(pageTimers[id]&&seconds!==pageSeconds[id]){clearInterval(pageTimers[id]);pageTimers[id]=0}
+  if(count<=1){if(pageTimers[id])stopPages(id);return}
+  if(pageTimers[id])return;
+  pageSeconds[id]=seconds;
   const bar=$(id+"Bar");
-  const tick=()=>{pages[id]=(pages[id]+1)%Math.max(count,1);draw();
+  const tick=()=>{pages[id]=(pages[id]+1)%Math.max(pageCounts[id]||1,1);draw();
     if(animate){bar.style.transition="none";bar.style.width="0";requestAnimationFrame(()=>requestAnimationFrame(()=>{bar.style.transition="width "+seconds+"s linear";bar.style.width="100%"}))}};
   pageTimers[id]=setInterval(tick,seconds*1000);
   if(animate){bar.style.transition="width "+seconds+"s linear";requestAnimationFrame(()=>bar.style.width="100%")}
@@ -466,7 +475,7 @@ function champ(){
     const bar=cell("tbar","");bar.style.background=row.color||"transparent";
     line.append(pos,bar,cell("tname",row.name),cell("bteam",row.team),cell("cpts",row.points+" "+(labels().points||"").toLowerCase()));box.append(line);
   }
-  toggle("champ",true);cyclePages("champ",page.count,champ);
+  toggle("champ",true);cyclePages("champ",page.count,champ,info.title+"|"+info.subtitle);
 }
 function message(){
   const info=state.message;

@@ -372,3 +372,12 @@ def test_b011_sponsor_timer_kept_between_answers():
     brand = script.split("const items=(info.sponsors||[])", 1)[1].split("function draw(){", 1)[0]
     assert "if(timerKey!==sponsorTimerKey){sponsorTimerKey=timerKey;clearInterval(sponsorTimer);" in brand
     assert brand.count("clearInterval(sponsorTimer)") == 1
+
+
+# B-017: page carousels follow the page count & seconds of now, a new board starts at its first page
+def test_b017_page_carousel_reads_current_count():
+    script = director_script()
+    cycle = script.split("function cyclePages(", 1)[1].split("function stopPages(", 1)[0]
+    assert "pageCounts[id]=count" in cycle and "%Math.max(pageCounts[id]||1,1)" in cycle
+    assert "seconds!==pageSeconds[id]" in cycle and "if(count<=1){if(pageTimers[id])stopPages(id);return}" in cycle
+    assert 'cyclePages("champ",page.count,champ,info.title+"|"+info.subtitle)' in script
