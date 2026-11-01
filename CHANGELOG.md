@@ -12,6 +12,7 @@ Fixes from an audit of the VR overlay.
 - VR overlay: overlays reloaded while SteamVR was still starting or closing no longer shut the new SteamVR overlay down (overlay gone from the headset, possible app crash).
 - VR overlay: a second NeoPedal running at the same time (a portable copy next to the installed app) no longer shares the OpenXR layer with the first one. It tells you the layer is already used, and closing it no longer hides the overlay of the first one in the game nor removes its layer from the next OpenXR games.
 - VR overlay: signing out of Windows or shutting it down with the app open no longer leaves the OpenXR layer registered in every OpenXR game until the next app start.
+- VR overlay in OpenXR games: when the VR runtime refuses the overlay with a general error, the OpenXR layer now stops the overlay for the session after 3 frames, instead of making the game get that error on every frame (lost frames, VR stopped). Restart your OpenXR games after updating the app.
 - VR mirror window: no longer opens almost completely off screen (only its corner visible) after a screen change; it opens at its default place instead.
 
 ## 0.28.1 (2026-11-01)

@@ -170,6 +170,7 @@ struct SessionData {
     uint32_t graphics_api = TPVR_GRAPHICS_NONE;
     bool failed = false;  // overlay stopped for this session
     int32_t last_result = 0;
+    uint32_t overlay_failures = 0;  // frames with overlay refused in a row by an error telling neither overlay nor game
     uint32_t max_layers = 0;
     uint32_t max_width = 0;
     uint32_t max_height = 0;
@@ -617,6 +618,8 @@ bool prepare_overlay(SessionData& session, const XrFrameEndInfo& frame, XrFrameE
 // ---------------------------------------------------------------------------------------------------------
 // Hooks
 
+constexpr uint32_t kOverlayFailures = 3;  // frames with overlay refused in a row (unclear error): overlay stopped
+
 XRAPI_ATTR XrResult XRAPI_CALL hook_xrEndFrame(XrSession session, const XrFrameEndInfo* frameEndInfo) {
     std::shared_ptr<SessionData> data;
     try {
@@ -648,6 +651,7 @@ XRAPI_ATTR XrResult XRAPI_CALL hook_xrEndFrame(XrSession session, const XrFrameE
     XrResult result = next(session, &patched);
     if (XR_SUCCEEDED(result)) {
         ++data->frames_shown;
+        data->overlay_failures = 0;
         return result;
     }
     if (result == XR_ERROR_LAYER_INVALID || result == XR_ERROR_LAYER_LIMIT_EXCEEDED ||
@@ -663,6 +667,15 @@ XRAPI_ATTR XrResult XRAPI_CALL hook_xrEndFrame(XrSession session, const XrFrameE
             log_result("xrEndFrame with overlay", result);
         }
         return game_result;
+    }
+    // Other error (runtime failure...): frame never submitted again (runtime may have ended it), returned to the
+    // game; overlay stopped after a few frames in a row, else the game would get the error on every frame.
+    // Session state errors come from the game.
+    if (result != XR_ERROR_SESSION_LOST && result != XR_ERROR_SESSION_NOT_RUNNING &&
+        result != XR_ERROR_CALL_ORDER_INVALID && ++data->overlay_failures >= kOverlayFailures) {
+        data->failed = true;
+        data->last_result = static_cast<int32_t>(result);
+        log_result("xrEndFrame with overlay (frames in a row)", result);
     }
     return result;
 }

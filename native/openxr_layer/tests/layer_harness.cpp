@@ -186,6 +186,7 @@ struct Runtime {
     uintptr_t next_handle = 0x1000;
     int spaces_alive = 0;
     bool refuse_extra_layers = false;
+    bool runtime_failure = false;  // frames with overlay refused with XR_ERROR_RUNTIME_FAILURE
     bool game_error = false;  // every frame refused (game's own error: tracking loss)
     uint32_t max_layers = 16;
     bool limit_error = false;  // more layers than max_layers submitted
@@ -444,6 +445,9 @@ XRAPI_ATTR XrResult XRAPI_CALL rt_xrEndFrame(XrSession, const XrFrameEndInfo* in
     }
     if (runtime.refuse_extra_layers) {
         return XR_ERROR_LAYER_INVALID;
+    }
+    if (runtime.runtime_failure) {
+        return XR_ERROR_RUNTIME_FAILURE;
     }
     for (const XrCompositionLayerQuad& quad : quads) {
         auto found = runtime.swapchains.find(quad.subImage.swapchain);
@@ -899,8 +903,8 @@ bool load_layer(const char* path, Layer& layer) {
 
 // -----------------------------------------------------------------------------------------------------------
 
-// Game frame with layer_count projection layers (usually one), or none (loading, session not visible)
-uint32_t end_frame(Layer& layer, XrSession session, uint32_t layer_count = 1) {
+// Game frame with layer_count projection layers (usually one), or none (loading, session not visible): result
+XrResult submit_frame(Layer& layer, XrSession session, uint32_t layer_count = 1) {
     static const XrCompositionLayerProjection projection = [] {
         XrCompositionLayerProjection value = {};
         value.type = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
@@ -917,8 +921,12 @@ uint32_t end_frame(Layer& layer, XrSession session, uint32_t layer_count = 1) {
     info.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
     info.layerCount = layer_count;
     info.layers = layer_count != 0 ? layers : nullptr;
-    const XrResult result = layer.get<PFN_xrEndFrame>("xrEndFrame")(session, &info);
-    CHECK(result == XR_SUCCESS);
+    return layer.get<PFN_xrEndFrame>("xrEndFrame")(session, &info);
+}
+
+// Same, frame accepted: layers submitted to the runtime
+uint32_t end_frame(Layer& layer, XrSession session, uint32_t layer_count = 1) {
+    CHECK(submit_frame(layer, session, layer_count) == XR_SUCCESS);
     return runtime.submitted_counts.empty() ? 0 : runtime.submitted_counts.back();
 }
 
@@ -1156,6 +1164,7 @@ void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, 
     runtime.submitted_counts.clear();
     runtime.order_error = false;
     runtime.refuse_extra_layers = false;
+    runtime.runtime_failure = false;
     TpvrHeader& header = app.header();
     header.layer_heartbeat_ms = 0;
     header.layer_state = 0;
@@ -1292,6 +1301,22 @@ void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, 
 
     destroy_session(layer, session);
     CHECK(header.layer_heartbeat_ms == 0);  // no session any more
+
+    // Runtime refuses the quad with an error telling neither overlay nor game: returned to the game (frame never
+    // submitted again), overlay stopped for the session after 3 frames in a row, game frames then accepted
+    app.write(30, 12, true, false);
+    session = create_session(layer, binding);
+    CHECK(end_frame(layer, session) == 2);
+    runtime.runtime_failure = true;
+    for (int frame = 0; frame < 3; ++frame) {
+        const size_t submitted = runtime.submitted_counts.size();
+        CHECK(submit_frame(layer, session) == XR_ERROR_RUNTIME_FAILURE);
+        CHECK(runtime.submitted_counts.size() == submitted + 1 && runtime.submitted_counts.back() == 2);
+    }
+    CHECK(end_frame(layer, session) == 1);
+    CHECK(header.layer_state == TPVR_LAYER_FAILED && header.layer_last_result == XR_ERROR_RUNTIME_FAILURE);
+    runtime.runtime_failure = false;
+    destroy_session(layer, session);
 
     run_tiles(layer, app, binding, bgra, linear);
 }
