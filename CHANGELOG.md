@@ -47,6 +47,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics layout editor (`Edit Layout`): opened while the app was not answering yet, it asks again until it loads, instead of staying blank with a `Save` that could empty the layout of the default preset.
 - Broadcast Graphics (`/director` source): a source without the onboard nor the map (for example `only=tower`) no longer keeps a second connection to the app open for their live data, so several sources in OBS no longer wait on each other.
 - Broadcast Graphics (`/director` source), track map: after a change of track, the cars are no longer drawn on the outline of the previous track; the map shows again once the game sends the new outline.
+- Broadcast Director: `Enter`, `Take Best` and the take best hotkey cut to the suggestion marked best in the list, no longer sometimes to another one (a car shown in turn, or a story of another car than the best one about the car on air).
 
 ## 0.28.1 (2026-11-01)
 

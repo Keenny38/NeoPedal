@@ -929,14 +929,18 @@ class DirectorBackend(PageBackend):
             self.update_unseen()
             self.update_feed()
 
-    def update_suggestions(self):
-        rows = []
+    def waiting_stories(self) -> list[dr.Candidate]:
+        """Suggestions listed, best first: stories but the one on air, cars in turn when no story"""
         shot = self.director.shot
         on_air = shot.key if shot is not None and shot.slot == self.on_air_slot else ""
         waiting = [candidate for candidate in self.candidates if candidate.key != on_air]  # story on air left out
         stories = [candidate for candidate in waiting if candidate.kind != dr.ROAM]
-        shown = stories[:SUGGESTIONS] if stories else waiting[:3]
-        best = shown[0].key if shown else ""  # the one Enter takes, wherever it is shown
+        return stories[:SUGGESTIONS] if stories else waiting[:3]
+
+    def update_suggestions(self):
+        rows = []
+        shown = self.waiting_stories()
+        best = shown[0].key if shown else ""  # the one Enter takes (takeBest), wherever it is shown
         if self._held_order is not None:  # operator aiming: rows kept in place, new ones after (score order)
             place = {key: index for index, key in enumerate(self._held_order)}
             shown.sort(key=lambda candidate: place.get(candidate.key, len(place)))
@@ -1718,7 +1722,7 @@ class DirectorBackend(PageBackend):
         if self.mode == "manual":
             self.notify(tr("Manual mode: no suggestion taken. Switch to Assisted to take the best story."))
             return
-        best = next((candidate for candidate in self.candidates if candidate.slot != self.on_air_slot), None)
+        best = next(iter(self.waiting_stories()), None)  # the one marked best in the list
         if best is not None:
             self.takeSuggestion(best.key)
 

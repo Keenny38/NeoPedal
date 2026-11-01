@@ -47,6 +47,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Éditeur de disposition de l'habillage (`Éditer la disposition`) : ouvert alors que l'app ne répondait pas encore, il redemande jusqu'à se charger, au lieu de rester vide avec un `Enregistrer` qui pouvait vider la disposition du preset par défaut.
 - Habillage de diffusion (source `/director`) : une source sans onboard ni carte (par exemple `only=tower`) ne garde plus une deuxième connexion à l'app ouverte pour leurs données en direct, donc plusieurs sources dans OBS ne s'attendent plus.
 - Habillage de diffusion (source `/director`), carte du circuit : après un changement de circuit, les voitures ne sont plus dessinées sur le tracé du circuit précédent ; la carte revient dès que le jeu envoie le nouveau tracé.
+- Régie de course : `Entrée`, `Prendre la meilleure` et le raccourci de la meilleure suggestion coupent vers la suggestion marquée comme meilleure dans la liste, et plus parfois vers une autre (une voiture montrée à tour de rôle, ou l'histoire d'une autre voiture que la meilleure, qui concerne la voiture à l'antenne).
 
 ## 0.28.1 (2026-11-01)
 

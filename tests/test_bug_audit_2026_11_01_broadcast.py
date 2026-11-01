@@ -479,3 +479,19 @@ def test_b044_track_outline_dropped_on_track_change(director_page):  # noqa: F81
     poll(page, answers)
     assert track_outline.key == "" and backend._graphics.map_state()["track"] == ""
     track_outline.set("", [], [])
+
+
+# B-013: Enter / Take Best takes the story marked best in the list (also a story of the car on air)
+def test_b013_take_best_takes_row_marked_best(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), car(3, 3), focus=1))
+    backend.cutToCar(2)
+    wait_commands(backend.camera)
+    backend.candidates = [dr.Candidate(1, dr.ROAM, 95.0, "roam|1"), dr.Candidate(2, dr.CONTACT, 90.0, "contact|2|x"),
+                          dr.Candidate(3, dr.OVERTAKE, 60.0, "overtake|3")]
+    backend.update_suggestions()
+    best = next(row for row in backend.suggestionRows.rows if row["best"])
+    backend.director.hold_until = 0.0
+    backend.takeBest()
+    wait_commands(backend.camera)
+    assert best["key"] == "contact|2|x" and backend.director.shot.key == "contact|2|x"
