@@ -550,6 +550,7 @@ async function poll(){
     else serverLost(true);
   }catch(error){serverLost(true);await new Promise(done=>setTimeout(done,1000))}
   if(!once)setTimeout(poll,0);
+  else if(edit&&chosenPreset===null)setTimeout(poll,1000);  // editor: asked until its first answer
 }
 // App closed, stream server turned off or access token changed: graphics hidden after a few seconds of failed
 // requests (never left frozen on air), shown again with the first answer
@@ -633,7 +634,7 @@ function setupEditor(){
   $("tbUndo").onclick=()=>{if(undo.length){layout=JSON.parse(undo.pop());applyLayout();showPlace()}};
   $("tbReset").onclick=()=>{if(selected){remember();delete layout[selected];applyLayout();showPlace()}};
   $("tbResetAll").onclick=()=>{remember();layout={};applyLayout();showPlace()};
-  $("tbSave").onclick=async()=>{
+  $("tbSave").onclick=async()=>{if(chosenPreset===null)return;  // nothing loaded yet: never saved
     try{const response=await fetch("/api/director/layout?preset="+encodeURIComponent(editPreset())+"&token="+encodeURIComponent(token),
       {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(layout)});
       set("tbHint",response.ok?labels().saved:labels().notSaved)}catch(error){set("tbHint",labels().notSaved)}};

@@ -451,3 +451,10 @@ def test_b023_answer_names_the_run():
     assert data["run"] == stream_director.RUN and len(stream_director.RUN) >= 8
     assert "if(data.run&&runId&&data.run!==runId&&!data.full){runId=data.run;version=0;setTimeout(poll,0);return}" \
         in director_script()
+
+
+# B-027: layout editor asks again until its first answer, never saves before (empty layout to another preset)
+def test_b027_layout_editor_first_load_retried():
+    script = director_script()
+    assert "else if(edit&&chosenPreset===null)setTimeout(poll,1000);" in script
+    assert '$("tbSave").onclick=async()=>{if(chosenPreset===null)return;' in script

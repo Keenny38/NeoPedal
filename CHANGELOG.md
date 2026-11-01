@@ -44,6 +44,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source): the operator countdown counts from the clock of the computer showing the source, so it no longer ends early or late when OBS runs on another computer whose clock differs.
 - Broadcast Graphics (`/director` source): the banners already told are forgotten once over, so the source no longer uses a little more memory at every banner during a long race.
 - Broadcast Graphics (`/director` source): after the app is started again, a source left open asks for every graphic again, instead of possibly keeping some of the previous run on air (an old championship board).
+- Broadcast Graphics layout editor (`Edit Layout`): opened while the app was not answering yet, it asks again until it loads, instead of staying blank with a `Save` that could empty the layout of the default preset.
 
 ## 0.28.1 (2026-11-01)
 
