@@ -778,3 +778,33 @@ def test_b040_websocket_options_like_query():
         assert options.update(f'{{"changes": {value}}}'.encode()) and options.changes is expected, value
     assert options.update(b'{"fields": "speed,gear"}') and options.fields == {"speed", "gear"}
     assert options.update(b'{"fields": ["speed"]}') and options.fields == {"speed"}
+
+
+# B-050: screen hide over (driving again after spectating on air): the stream never dips to transparent
+def test_b050_stream_opacity_kept_when_screen_hide_ends(ui_env, monkeypatch):
+    from importlib import import_module
+
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    from neopedal import realtime_state
+    from neopedal.setting import cfg
+    from neopedal.stream_overlay import stream_opacity
+    from neopedal.widget._modern import create_widget
+
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "screen_hidden", True)
+    monkeypatch.setitem(cfg.overlay, "auto_hide", False)
+    monkeypatch.setitem(cfg.overlay, "fixed_position", True)
+    monkeypatch.setitem(cfg.user.setting["gear"], "stream_visibility", "Screen & Stream")
+    widget = create_widget(import_module("neopedal.widget.gear"), cfg, "gear")
+    try:
+        widget.start()
+        widget._Base__refresh_visibility()
+        target = widget.wcfg["opacity"] * widget.opacity_scale
+        assert widget.isVisible() and widget.windowOpacity() == 0.0 and stream_opacity(widget) == target
+        realtime_state.screen_hidden = False
+        widget._Base__refresh_visibility()  # no fade from 0: shown on stream all along
+        assert abs(widget.windowOpacity() - target) < 0.01 and abs(stream_opacity(widget) - target) < 0.01
+    finally:
+        widget.stop()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

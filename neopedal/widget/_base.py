@@ -455,6 +455,9 @@ class Base(QWidget):
             if not self.isVisible():
                 self.setWindowOpacity(0.0)
                 self.show()
+            elif self.windowOpacity() <= 0:  # shown but hidden on screen only (streamed): stream never dips to 0
+                self.setWindowOpacity(opacity)
+                return
             self._fade.setStartValue(self.windowOpacity())
             self._fade.setEndValue(opacity)
             self._fade.start()
