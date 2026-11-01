@@ -13,6 +13,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay VR : un second NeoPedal lancé en même temps (une copie portable à côté de l'app installée) ne partage plus la couche OpenXR avec le premier. Il indique que la couche est déjà utilisée, et sa fermeture ne masque plus l'overlay du premier dans le jeu et ne retire plus sa couche des jeux OpenXR lancés ensuite.
 - Overlay VR : se déconnecter de Windows ou l'éteindre avec l'app ouverte ne laisse plus la couche OpenXR enregistrée dans tous les jeux OpenXR jusqu'au prochain démarrage de l'app.
 - Overlay VR dans les jeux OpenXR : quand le runtime VR refuse l'overlay avec une erreur générale, la couche OpenXR arrête l'overlay pour la session au bout de 3 images, au lieu de renvoyer cette erreur au jeu à chaque image (images perdues, VR arrêtée). Relance tes jeux OpenXR après la mise à jour de l'app.
+- Overlay VR dans les jeux OpenXR Direct3D 12 et Vulkan : seule la partie modifiée des overlays est copiée vers le GPU dans l'image du jeu, comme en Direct3D 11, au lieu de toute l'image à chaque changement (moins de travail dans l'image du jeu). Relance tes jeux OpenXR après la mise à jour de l'app.
 - Fenêtre miroir VR : ne s'ouvre plus presque entièrement hors de l'écran (seul son coin visible) après un changement d'écran ; elle s'ouvre alors à sa place par défaut.
 
 ## 0.28.1 (2026-11-01)

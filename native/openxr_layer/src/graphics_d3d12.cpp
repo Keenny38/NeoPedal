@@ -115,15 +115,30 @@ public:
     }
 
     bool upload(uint32_t image_index, const uint8_t* pixels, uint32_t width, uint32_t height) override {
-        if (image_index >= textures_.size() || pixels == nullptr || width == 0 || height == 0) {
+        return copy(image_index, pixels, width, Rect{0, 0, width, height});
+    }
+
+    bool upload_rect(uint32_t image_index, const uint8_t* pixels, uint32_t width, uint32_t height,
+                     const Rect& rect) override {
+        if (rect.width == 0 || rect.height == 0 || static_cast<uint64_t>(rect.x) + rect.width > width ||
+            static_cast<uint64_t>(rect.y) + rect.height > height) {
+            return upload(image_index, pixels, width, height);
+        }
+        return copy(image_index, pixels, width, rect);  // rest of the image already holds the same pixels
+    }
+
+private:
+    // Rect of pixels (width columns, tightly packed) copied to the same place of the acquired image
+    bool copy(uint32_t image_index, const uint8_t* pixels, uint32_t width, const Rect& rect) {
+        if (image_index >= textures_.size() || pixels == nullptr || rect.width == 0 || rect.height == 0) {
             return false;
         }
         if (!wait_idle()) {
             return false;  // previous copy not finished: upload buffer still in use
         }
-        const UINT row_pitch = (width * 4u + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) /
+        const UINT row_pitch = (rect.width * 4u + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) /
                                D3D12_TEXTURE_DATA_PITCH_ALIGNMENT * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-        const UINT64 size = static_cast<UINT64>(row_pitch) * height;
+        const UINT64 size = static_cast<UINT64>(row_pitch) * rect.height;
         if (!ensure_upload_buffer(size)) {
             return false;
         }
@@ -132,9 +147,10 @@ public:
         if (FAILED(upload_->Map(0, &no_read, &mapped)) || mapped == nullptr) {
             return false;
         }
-        for (uint32_t row = 0; row < height; ++row) {
+        for (uint32_t row = 0; row < rect.height; ++row) {
             std::memcpy(static_cast<uint8_t*>(mapped) + static_cast<size_t>(row_pitch) * row,
-                        pixels + static_cast<size_t>(width) * 4u * row, static_cast<size_t>(width) * 4u);
+                        pixels + ((static_cast<size_t>(rect.y) + row) * width + rect.x) * 4u,
+                        static_cast<size_t>(rect.width) * 4u);
         }
         upload_->Unmap(0, nullptr);
 
@@ -159,11 +175,11 @@ public:
         source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
         source.PlacedFootprint.Offset = 0;
         source.PlacedFootprint.Footprint.Format = format_;
-        source.PlacedFootprint.Footprint.Width = width;
-        source.PlacedFootprint.Footprint.Height = height;
+        source.PlacedFootprint.Footprint.Width = rect.width;
+        source.PlacedFootprint.Footprint.Height = rect.height;
         source.PlacedFootprint.Footprint.Depth = 1;
         source.PlacedFootprint.Footprint.RowPitch = row_pitch;
-        list_->CopyTextureRegion(&target, 0, 0, 0, &source, nullptr);
+        list_->CopyTextureRegion(&target, rect.x, rect.y, 0, &source, nullptr);
 
         barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
         barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -177,7 +193,6 @@ public:
         return SUCCEEDED(queue_->Signal(fence_, fence_value_));
     }
 
-private:
     bool wait_idle(DWORD timeout_ms = kFenceTimeoutMs) {
         if (fence_ == nullptr || fence_->GetCompletedValue() >= fence_value_) {
             return true;

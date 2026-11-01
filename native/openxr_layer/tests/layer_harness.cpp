@@ -117,6 +117,7 @@ struct App {
         h.pixel_format = TPVR_FORMAT_RGBA8_STRAIGHT;
         h.flags = (visible ? TPVR_FLAG_VISIBLE : 0u) | (attach ? TPVR_FLAG_ATTACH_TO_HEADSET : 0u);
         h.image_serial = ++serial;
+        h.dirty_flags = 0;  // whole atlas changed
         h.width_meters = 0.5f;
         h.distance_meters = 1.25f;
         h.vertical_offset_meters = -0.25f;
@@ -153,6 +154,27 @@ struct App {
     // One tile: whole canvas (width x height)
     void write(uint32_t width, uint32_t height, bool visible, bool attach) {
         write_tiles({CanvasRect{0, 0, width, height}}, width, height, visible, attach);
+    }
+
+    // Rect of the atlas filled with rgba, sent as the only change since the atlas written before (dirty rect)
+    void write_dirty(uint32_t x, uint32_t y, uint32_t width, uint32_t height, const uint8_t rgba[4]) {
+        TpvrHeader& h = header();
+        h.sequence += 1;
+        uint8_t* pixels = view + TPVR_DATA_OFFSET;
+        for (uint32_t row = y; row < y + height; ++row) {
+            for (uint32_t column = x; column < x + width; ++column) {
+                std::memcpy(pixels + static_cast<size_t>(row) * h.stride + column * 4u, rgba, 4);
+            }
+        }
+        h.dirty_flags = TPVR_DIRTY_RECT;
+        h.dirty_base_serial = serial;
+        h.image_serial = ++serial;
+        h.dirty_x = x;
+        h.dirty_y = y;
+        h.dirty_width = width;
+        h.dirty_height = height;
+        h.sequence += 1;
+        heartbeat();
     }
 };
 
@@ -220,6 +242,7 @@ struct VulkanContext {
     VkImage create_image(const XrSwapchainCreateInfo& info, VkDeviceMemory& memory);
     void destroy_image(VkImage image, VkDeviceMemory memory);
     std::vector<uint8_t> read(VkImage image, uint32_t width, uint32_t height);
+    void write(VkImage image, uint32_t x, uint32_t y, uint32_t width, uint32_t height, const uint8_t* block);
     void destroy();
 };
 
@@ -601,6 +624,77 @@ std::vector<uint8_t> read_d3d12(ID3D12Resource* texture, uint32_t width, uint32_
     return pixels;
 }
 
+void write_d3d12(ID3D12Resource* texture, uint32_t x, uint32_t y, uint32_t width, uint32_t height, const uint8_t* block) {
+    ID3D12Device* device = runtime.d3d12;
+    const UINT row_pitch = (width * 4u + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1u) / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT *
+                           D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+    D3D12_HEAP_PROPERTIES heap = {};
+    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    D3D12_RESOURCE_DESC desc = {};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Width = static_cast<UINT64>(row_pitch) * height;
+    desc.Height = 1;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.SampleDesc.Count = 1;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    ID3D12Resource* buffer = nullptr;
+    ID3D12CommandAllocator* allocator = nullptr;
+    ID3D12GraphicsCommandList* list = nullptr;
+    ID3D12Fence* fence = nullptr;
+    if (FAILED(device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ,
+                                               nullptr, __uuidof(ID3D12Resource), reinterpret_cast<void**>(&buffer))) ||
+        FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator),
+                                              reinterpret_cast<void**>(&allocator))) ||
+        FAILED(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator, nullptr,
+                                         __uuidof(ID3D12GraphicsCommandList), reinterpret_cast<void**>(&list))) ||
+        FAILED(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), reinterpret_cast<void**>(&fence)))) {
+        return;
+    }
+    void* mapped = nullptr;
+    if (SUCCEEDED(buffer->Map(0, nullptr, &mapped))) {
+        for (uint32_t row = 0; row < height; ++row) {
+            std::memcpy(static_cast<uint8_t*>(mapped) + static_cast<size_t>(row) * row_pitch,
+                        block + static_cast<size_t>(row) * width * 4u, static_cast<size_t>(width) * 4u);
+        }
+        buffer->Unmap(0, nullptr);
+    }
+    D3D12_RESOURCE_BARRIER barrier = {};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = texture;
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+    list->ResourceBarrier(1, &barrier);
+    D3D12_TEXTURE_COPY_LOCATION target = {};
+    target.pResource = texture;
+    target.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    D3D12_TEXTURE_COPY_LOCATION source = {};
+    source.pResource = buffer;
+    source.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    source.PlacedFootprint.Footprint.Format = texture->GetDesc().Format;
+    source.PlacedFootprint.Footprint.Width = width;
+    source.PlacedFootprint.Footprint.Height = height;
+    source.PlacedFootprint.Footprint.Depth = 1;
+    source.PlacedFootprint.Footprint.RowPitch = row_pitch;
+    list->CopyTextureRegion(&target, x, y, 0, &source, nullptr);
+    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    list->ResourceBarrier(1, &barrier);
+    list->Close();
+    ID3D12CommandList* lists[] = {list};
+    g_d3d12_queue->ExecuteCommandLists(1, lists);
+    g_d3d12_queue->Signal(fence, 1);
+    HANDLE event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    fence->SetEventOnCompletion(1, event);
+    WaitForSingleObject(event, 5000);
+    CloseHandle(event);
+    fence->Release();
+    list->Release();
+    allocator->Release();
+    buffer->Release();
+}
+
 // -----------------------------------------------------------------------------------------------------------
 // Vulkan device (lavapipe under Wine, any driver on Windows)
 
@@ -796,6 +890,43 @@ std::vector<uint8_t> VulkanContext::read(VkImage image, uint32_t width, uint32_t
     return pixels;
 }
 
+void VulkanContext::write(VkImage image, uint32_t x, uint32_t y, uint32_t width, uint32_t height, const uint8_t* block) {
+    device_fn<PFN_vkQueueWaitIdle>("vkQueueWaitIdle")(queue);  // layer copy finished
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = static_cast<VkDeviceSize>(width) * height * 4u;
+    buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkBuffer buffer = VK_NULL_HANDLE;
+    device_fn<PFN_vkCreateBuffer>("vkCreateBuffer")(device, &buffer_info, nullptr, &buffer);
+    VkMemoryRequirements requirements = {};
+    device_fn<PFN_vkGetBufferMemoryRequirements>("vkGetBufferMemoryRequirements")(device, buffer, &requirements);
+    VkMemoryAllocateInfo allocate = {};
+    allocate.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocate.allocationSize = requirements.size;
+    allocate.memoryTypeIndex = memory_type(*this, requirements.memoryTypeBits,
+                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkDeviceMemory memory = VK_NULL_HANDLE;
+    device_fn<PFN_vkAllocateMemory>("vkAllocateMemory")(device, &allocate, nullptr, &memory);
+    device_fn<PFN_vkBindBufferMemory>("vkBindBufferMemory")(device, buffer, memory, 0);
+    void* mapped = nullptr;
+    if (device_fn<PFN_vkMapMemory>("vkMapMemory")(device, memory, 0, buffer_info.size, 0, &mapped) == VK_SUCCESS) {
+        std::memcpy(mapped, block, static_cast<size_t>(buffer_info.size));
+        device_fn<PFN_vkUnmapMemory>("vkUnmapMemory")(device, memory);
+    }
+    vulkan_submit(*this, [&](VkCommandBuffer command) {
+        image_barrier(*this, command, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        VkBufferImageCopy region = {};
+        region.imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+        region.imageOffset = {static_cast<int32_t>(x), static_cast<int32_t>(y), 0};
+        region.imageExtent = {width, height, 1};
+        device_fn<PFN_vkCmdCopyBufferToImage>("vkCmdCopyBufferToImage")(
+            command, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        image_barrier(*this, command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    });
+    device_fn<PFN_vkDestroyBuffer>("vkDestroyBuffer")(device, buffer, nullptr);
+    device_fn<PFN_vkFreeMemory>("vkFreeMemory")(device, memory, nullptr);
+}
+
 void VulkanContext::destroy() {
     if (device != VK_NULL_HANDLE) {
         device_fn<PFN_vkDestroyDevice>("vkDestroyDevice")(device, nullptr);
@@ -950,6 +1081,34 @@ std::vector<uint8_t> read_released(FakeSwapchain* swapchain) {
         return read_d3d12(swapchain->d3d12[static_cast<size_t>(index)], swapchain->info.width, swapchain->info.height);
     }
     return runtime.vulkan->read(swapchain->vulkan[static_cast<size_t>(index)], swapchain->info.width, swapchain->info.height);
+}
+
+// Block of one color written straight into image index of the swapchain (as by the runtime): kept by an upload of
+// a rect beside it, overwritten by a whole image upload
+void fill_image(FakeSwapchain* swapchain, int index, uint32_t x, uint32_t y, uint32_t width, uint32_t height,
+                const uint8_t rgba[4]) {
+    std::vector<uint8_t> block(static_cast<size_t>(width) * height * 4u);
+    for (size_t offset = 0; offset < block.size(); offset += 4) {
+        std::memcpy(block.data() + offset, rgba, 4);
+    }
+    const size_t image = static_cast<size_t>(index);
+    if (runtime.api == Api::D3D11) {
+        ID3D11DeviceContext* context = nullptr;
+        runtime.d3d11->GetImmediateContext(&context);
+        const D3D11_BOX box = {x, y, 0, x + width, y + height, 1};
+        context->UpdateSubresource(swapchain->d3d11[image], 0, &box, block.data(), width * 4u, 0);
+        context->Release();
+    } else if (runtime.api == Api::D3D12) {
+        write_d3d12(swapchain->d3d12[image], x, y, width, height, block.data());
+    } else {
+        runtime.vulkan->write(swapchain->vulkan[image], x, y, width, height, block.data());
+    }
+}
+
+// Pixel (x, y) of a swapchain image is rgba (a color the same in RGBA & BGRA, sRGB & linear)
+bool pixel_is(const std::vector<uint8_t>& pixels, uint32_t swapchain_width, uint32_t x, uint32_t y, const uint8_t rgba[4]) {
+    const size_t offset = (static_cast<size_t>(y) * swapchain_width + x) * 4u;
+    return offset + 4u <= pixels.size() && std::memcmp(pixels.data() + offset, rgba, 4) == 0;
 }
 
 double srgb_to_linear(int value) {
@@ -1159,6 +1318,31 @@ void destroy_session(Layer& layer, XrSession session) {
     CHECK(runtime.spaces_alive == 0);
 }
 
+// Dirty rect: once a swapchain image holds the whole atlas, only the changed rect is copied into it again (the
+// rest untouched: a mark written there stays), the whole atlas into images never uploaded yet
+void run_dirty(Layer& layer, App& app, const void* binding) {
+    static const uint8_t kMark[4] = {0, 255, 0, 255};
+    static const uint8_t kChanged[4] = {255, 0, 255, 255};
+    app.write(30, 12, true, false);
+    XrSession session = create_session(layer, binding);
+    CHECK(end_frame(layer, session) == 2);
+    FakeSwapchain* swapchain = quad_swapchain();
+    CHECK(swapchain != nullptr && swapchain->last_released >= 0);
+    if (swapchain != nullptr && swapchain->last_released >= 0) {
+        const int marked = swapchain->last_released;
+        fill_image(swapchain, marked, 20, 8, 4, 2, kMark);  // outside the rect changed below
+        for (int update = 0; update < 3; ++update) {  // 3 images: marked image uploaded again on the third
+            app.write_dirty(0, 0, 4, 2, kChanged);
+            CHECK(end_frame(layer, session) == 2);
+        }
+        CHECK(swapchain->last_released == marked);
+        const std::vector<uint8_t> pixels = read_released(swapchain);
+        CHECK(pixel_is(pixels, swapchain->info.width, 1, 1, kChanged));  // rect uploaded
+        CHECK(pixel_is(pixels, swapchain->info.width, 21, 9, kMark));  // rest not copied again
+    }
+    destroy_session(layer, session);
+}
+
 // Full scenario on one graphics API
 void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, bool bgra, bool linear) {
     runtime.submitted_counts.clear();
@@ -1319,6 +1503,7 @@ void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, 
     destroy_session(layer, session);
 
     run_tiles(layer, app, binding, bgra, linear);
+    run_dirty(layer, app, binding);
 }
 
 }  // namespace

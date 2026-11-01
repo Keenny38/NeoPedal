@@ -184,13 +184,29 @@ public:
     }
 
     bool upload(uint32_t image_index, const uint8_t* pixels, uint32_t width, uint32_t height) override {
-        if (image_index >= images_.size() || pixels == nullptr || width == 0 || height == 0) {
+        return copy(image_index, pixels, width, Rect{0, 0, width, height});
+    }
+
+    bool upload_rect(uint32_t image_index, const uint8_t* pixels, uint32_t width, uint32_t height,
+                     const Rect& rect) override {
+        if (rect.width == 0 || rect.height == 0 || static_cast<uint64_t>(rect.x) + rect.width > width ||
+            static_cast<uint64_t>(rect.y) + rect.height > height) {
+            return upload(image_index, pixels, width, height);
+        }
+        return copy(image_index, pixels, width, rect);  // rest of the image already holds the same pixels
+    }
+
+private:
+    // Rect of pixels (width columns, tightly packed) copied to the same place of the acquired image
+    bool copy(uint32_t image_index, const uint8_t* pixels, uint32_t width, const Rect& rect) {
+        if (image_index >= images_.size() || pixels == nullptr || rect.width == 0 || rect.height == 0) {
             return false;
         }
         if (!wait_idle()) {
             return false;
         }
-        const VkDeviceSize size = static_cast<VkDeviceSize>(width) * height * 4u;
+        const size_t row_bytes = static_cast<size_t>(rect.width) * 4u;
+        const VkDeviceSize size = static_cast<VkDeviceSize>(row_bytes) * rect.height;
         if (!ensure_buffer(size)) {
             return false;
         }
@@ -198,7 +214,10 @@ public:
         if (vk_.MapMemory(device(), memory_, 0, size, 0, &mapped) != VK_SUCCESS || mapped == nullptr) {
             return false;
         }
-        std::memcpy(mapped, pixels, static_cast<size_t>(size));
+        for (uint32_t row = 0; row < rect.height; ++row) {
+            std::memcpy(static_cast<uint8_t*>(mapped) + row_bytes * row,
+                        pixels + ((static_cast<size_t>(rect.y) + row) * width + rect.x) * 4u, row_bytes);
+        }
         vk_.UnmapMemory(device(), memory_);  // host coherent memory, no flush
 
         if (vk_.ResetCommandBuffer(command_, 0) != VK_SUCCESS) {
@@ -227,7 +246,8 @@ public:
         VkBufferImageCopy region = {};
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.imageSubresource.layerCount = 1;
-        region.imageExtent = {width, height, 1};
+        region.imageOffset = {static_cast<int32_t>(rect.x), static_cast<int32_t>(rect.y), 0};
+        region.imageExtent = {rect.width, rect.height, 1};
         vk_.CmdCopyBufferToImage(command_, buffer_, images_[image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                  &region);
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -253,7 +273,6 @@ public:
         return true;
     }
 
-private:
     VkDevice device() const { return binding_.device; }
 
     bool wait_idle(uint64_t timeout_ns = kFenceTimeoutNs) {
