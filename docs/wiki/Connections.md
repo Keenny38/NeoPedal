@@ -114,7 +114,7 @@ Good to know:
 How the OpenXR layer is installed and removed:
 
 - With `enable_vr_overlay` and `enable_openxr_layer` on, the app registers the layer for your Windows user account only (registry key `HKEY_CURRENT_USER\SOFTWARE\Khronos\OpenXR\1\ApiLayers\Implicit`, no admin rights) while it runs.
-- Closing the app, turning an option off, or uninstalling the app removes it. Since 0.22.4 every start removes it unless `enable_openxr_layer` is on (0.22.3 registered it with `enable_vr_overlay` alone).
+- Closing the app, turning an option off, signing out of Windows or shutting it down with the app open, or uninstalling the app removes it. Since 0.22.4 every start removes it unless `enable_openxr_layer` is on (0.22.3 registered it with `enable_vr_overlay` alone).
 - To keep it out of one game, set the environment variable `DISABLE_NEOPEDAL_XR_LAYER=1` for that game. Games run as administrator ignore layers registered for the user.
 - Every OpenXR game loads it, Le Mans Ultimate too (its VR goes through OpenXR with the built-in OpenComposite). If an OpenXR game misbehaves or no longer starts in VR, turn `enable_openxr_layer` off and [open an issue](https://github.com/Keenny38/NeoPedal/issues): the layer is new and not yet tested on every headset. `Help` > `Show Log` says which graphics API the layer found in the game.
 - One app at a time draws in OpenXR games: a second NeoPedal (a portable copy next to the installed app) tells you the OpenXR layer is already used and leaves it to the first one, which keeps it when the second one closes.

@@ -135,3 +135,49 @@ def test_b006_second_instance_leaves_first_instance_layer(env, monkeypatch):  # 
     finally:
         second.disable()
         first.disable()
+
+
+# B-001: OpenXR layer left registered at Windows log off / shut down (process ended before loader.close)
+
+needs_windows = pytest.mark.skipif(sys.platform != "win32", reason="Win32 window (Windows)")
+
+
+def send_message(hwnd, message: int, wparam: int):
+    import ctypes
+    from ctypes import wintypes
+
+    user32 = ctypes.WinDLL("user32")
+    user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    user32.SendMessageW.restype = ctypes.c_ssize_t
+    return user32.SendMessageW(hwnd, message, wparam, 0)
+
+
+@needs_windows
+def test_b001_session_end_window_calls_once_when_not_cancelled():
+    calls = []
+    window = vr_shared.SessionEndWindow(lambda: calls.append(1))
+    try:
+        assert window.hwnd
+        send_message(window.hwnd, vr_shared.WM_ENDSESSION, 0)  # log off cancelled by another app
+        assert not calls
+        send_message(window.hwnd, vr_shared.WM_ENDSESSION, 1)
+        send_message(window.hwnd, vr_shared.WM_ENDSESSION, 1)  # sent to each top-level window: once only
+        assert calls == [1]
+    finally:
+        window.close()
+    assert window.hwnd is None
+
+
+@needs_windows
+def test_b001_layer_unregistered_at_windows_session_end(env):  # noqa: F811
+    control = VROverlay()
+    try:
+        control.enable()
+        assert control.openxr_active and env.registered
+        hwnd = control._session_end.hwnd
+        send_message(hwnd, vr_shared.WM_ENDSESSION, 1)  # Windows log off: process ended once handled
+        assert env.unregistered
+        assert struct.unpack_from("<Q", env.buffer, vr_shared.OFFSET_APP_HEARTBEAT)[0] == 0  # layer draws nothing
+    finally:
+        control.disable()
+    assert control._session_end is None

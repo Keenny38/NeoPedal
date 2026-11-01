@@ -923,6 +923,7 @@ class VROverlay(QObject):
         # OpenXR layer
         self._xr: vr_shared.SharedFrameWriter | None = None
         self._xr_lock: int | None = None  # writer lock handle (vr_shared.acquire_writer_lock) while the layer is used
+        self._session_end: vr_shared.SessionEndWindow | None = None  # layer unregistered at Windows log off
         self._xr_checksum: int | None = None
         self._xr_dirty = False  # widgets changed since last tiles written (waiting for next write slot)
         self._xr_written_at: int | None = None  # tick (ms) of last image written
@@ -1061,6 +1062,11 @@ class VROverlay(QObject):
                 return False
             if not vr_shared.register_layer(loadable):
                 return False
+            if self._session_end is None:
+                try:
+                    self._session_end = vr_shared.SessionEndWindow(self.__session_ended)
+                except OSError:  # app closed normally only
+                    logger.debug("VR overlay: Windows session end not watched", exc_info=True)
             vr_shared.remove_old_copies(installed, loadable)  # after registering: never an entry without DLL
             writer = vr_shared.SharedFrameWriter()
             if not writer.open():
@@ -1103,6 +1109,20 @@ class VROverlay(QObject):
         lock, self._xr_lock = self._xr_lock, None
         if lock is not None:  # after the last frame: another instance may take over
             vr_shared.close_handle(lock)
+        window, self._session_end = self._session_end, None
+        if window is not None:
+            window.close()
+
+    def __session_ended(self):
+        """Windows session ending (log off, shut down): process ended before the app closes, layer registration
+        removed now (never left in OpenXR games until the next app start), shared memory released"""
+        if self._xr is None:
+            return
+        writer, self._xr = self._xr, None
+        with suppress(Exception):
+            writer.close()
+        self.__unregister_openxr()
+        logger.info("VR overlay: Windows session ending, OpenXR layer unregistered")
 
     def __heartbeat(self):
         """App alive for the layer every HEARTBEAT_INTERVAL_MS; OpenXR game started: tiles written now"""
