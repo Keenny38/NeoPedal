@@ -411,3 +411,12 @@ def test_b024_driver_card_text_shrinks():
     assert "min-width:0" in css.split("#cardBody{", 1)[1].split("}", 1)[0]
     assert "min-width:0" in css.split("#cardName{", 1)[1].split("}", 1)[0]
     assert "flex-wrap:wrap" in css.split("#cardStats{", 1)[1].split("}", 1)[0] and "#cardStats>*{white-space:nowrap}" in css
+
+
+# B-041: banner texts & onboard driver name kept on screen (ellipsis)
+def test_b041_banner_and_onboard_name_bounded():
+    css = director_css()
+    text = css.split(".banner .txt{", 1)[1].split("}", 1)[0]
+    assert "max-width:calc(var(--u)*70)" in text and "min-width:0" in text
+    for rule in (".banner .txt b{", ".banner .txt span{", ".ob-head span{"):
+        assert "text-overflow:ellipsis" in css.split(rule, 1)[1].split("}", 1)[0], rule

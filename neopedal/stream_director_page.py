@@ -161,9 +161,10 @@ align-items:center;gap:calc(var(--u)*.8)}
 .banner{display:flex;align-items:stretch;opacity:0;transform:translateY(calc(var(--u)*-2));transition:opacity .4s,transform .5s var(--ease)}
 .banner .tag{padding:calc(var(--u)*.8) calc(var(--u)*1.4);font-weight:700;letter-spacing:.12em;text-transform:uppercase;
 font-size:calc(var(--u)*1.7);display:flex;align-items:center;color:#111}
-.banner .txt{padding:calc(var(--u)*.8) calc(var(--u)*1.8);background:var(--panel);display:flex;flex-direction:column;justify-content:center}
-.banner .txt b{font-size:calc(var(--u)*2.3);white-space:nowrap}
-.banner .txt span{font-size:calc(var(--u)*1.6);color:var(--dim);white-space:nowrap}
+.banner .txt{padding:calc(var(--u)*.8) calc(var(--u)*1.8);background:var(--panel);display:flex;flex-direction:column;justify-content:center;
+min-width:0;max-width:calc(var(--u)*70)}  /* long texts end with an ellipsis, never past the screen edges */
+.banner .txt b{font-size:calc(var(--u)*2.3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.banner .txt span{font-size:calc(var(--u)*1.6);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Replay & clock */
 #replay{right:calc(var(--u)*3);top:calc(var(--u)*3);padding:calc(var(--u)*.9) calc(var(--u)*1.8);
 background:var(--accent);font-weight:700;letter-spacing:.24em;font-size:calc(var(--u)*2.4);border-radius:calc(var(--u)*.6);
@@ -196,7 +197,7 @@ column-gap:calc(var(--u)*.9);height:calc(var(--u)*3.2);padding:0 calc(var(--u)*1
 transition:opacity .4s,transform .5s var(--ease)}
 .ob-head{display:flex;align-items:center;gap:calc(var(--u)*.8);padding:calc(var(--u)*.6) calc(var(--u)*1.2);font-weight:700;
 font-size:calc(var(--u)*1.7);text-transform:uppercase;letter-spacing:.04em;border-left:calc(var(--u)*.5) solid #888}
-.ob-head span{color:var(--dim)}
+.ob-head span{color:var(--dim);min-width:0;max-width:calc(var(--u)*22);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ob-head em{margin-left:auto;font-style:normal;color:var(--gold);font-size:calc(var(--u)*1.6)}
 .ob-leds{display:flex;gap:calc(var(--u)*.4);justify-content:center;padding:calc(var(--u)*.5) calc(var(--u)*1.4) 0}
 .ob-leds i{width:calc(var(--u)*1.5);height:calc(var(--u)*1.5);border-radius:50%;background:rgba(255,255,255,.1)}
