@@ -639,6 +639,8 @@ class DirectorBackend(PageBackend):
         elif self.director.shot is not None:  # another app cuts too: car followed, director goes on
             self.director.shot = self.director.shot._replace(slot=focus)
         self.set_on_air(focus, GAME_FOCUS)
+        if self.follow_overlays and not self.player_driving():  # overlays on the car on air, however it was chosen
+            self.overlays_follow(focus)
 
     # Director
     def direct(self):

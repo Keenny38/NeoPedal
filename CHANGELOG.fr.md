@@ -23,6 +23,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Habillage de diffusion (source `/director`) : quand l'app ne répond plus (app fermée ou plantée, serveur de stream coupé, nouveau jeton d'accès), les graphismes sont masqués après 5 secondes au lieu de rester figés à l'antenne, et reviennent à la première réponse.
 - Régie de course : le bandeau et l'histoire `gagne` vont au leader de la classe qui prend le drapeau à damier d'une course, plus à une voiture de la classe prise d'un tour qui passe la ligne avant lui (multiclasse), ni à la première voiture qui prend le drapeau en essais ou en qualification.
 - Régie de course : une voiture qui prend le slot d'une voiture partie juste avant (serveurs publics) n'hérite plus de ses tours, arrêts et meilleurs secteurs, et ne reçoit plus de faux bandeaux de pénalité et de meilleur tour ; une voiture absente d'une seule réponse du jeu ne perd plus son historique.
+- Régie de course : avec `Les overlays suivent la voiture à l'antenne`, les overlays et les sources de stream suivent aussi une voiture choisie dans le jeu, au lieu de rester sur la voiture précédente jusqu'à la coupure suivante.
 
 ## 0.28.1 (2026-11-01)
 

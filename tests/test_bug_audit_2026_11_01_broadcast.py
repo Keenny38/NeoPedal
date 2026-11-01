@@ -164,3 +164,19 @@ def test_b042_car_missing_from_one_answer_keeps_history():
     watcher.update([car(2, 1)], (), 102.0, "RACE1", TRACK)  # answer without car 1
     events = watcher.update([car(1, 1, laps=11), car(2, 2)], (), 103.0, "RACE1", TRACK)
     assert [record.lap for record in watcher.laps[1]] == [11] and not [e for e in events if e.kind != dr.BATTLE]
+
+
+# B-008: overlays follow a car chosen in the game too
+def test_b008_overlays_follow_car_chosen_in_game(director_page, monkeypatch):  # noqa: F811
+    from neopedal.setting import cfg
+
+    monkeypatch.setitem(cfg.api, "enable_player_index_override", True)
+    monkeypatch.setitem(cfg.api, "player_index", 1)
+    monkeypatch.setattr(type(cfg), "save", lambda *args, **kwargs: None)
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0), car(3, 3, distance=400.0))
+    poll(page, race_answers(100.0, *cars, focus=1))
+    backend.follow_overlays = True
+    backend.last_cut = 0.0
+    poll(page, race_answers(101.0, *cars, focus=3))  # operator chose car 3 in the game
+    assert backend.on_air_slot == 3 and cfg.api["player_index"] == 3

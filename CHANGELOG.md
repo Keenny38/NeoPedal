@@ -23,6 +23,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source): when the app no longer answers (app closed or crashed, stream server turned off, new access token), the graphics are hidden after 5 seconds instead of staying frozen on air, and come back with the first answer.
 - Broadcast Director: the `wins` banner and story go to the class leader taking the chequered flag of a race, no longer to a lapped car of the class crossing the line first (multiclass), nor to the first car taking the flag in practice or qualifying.
 - Broadcast Director: a car taking the slot of a car that just left (public servers) no longer inherits its laps, pit stops and best sectors, nor gets false penalty and fastest lap banners; a car missing from a single game answer no longer loses its history.
+- Broadcast Director: with `Overlays follow the car on air`, overlays and stream sources also follow a car chosen in the game, instead of staying on the previous car until the next cut.
 
 ## 0.28.1 (2026-11-01)
 
