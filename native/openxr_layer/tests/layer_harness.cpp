@@ -1319,28 +1319,38 @@ void destroy_session(Layer& layer, XrSession session) {
 }
 
 // Dirty rect: once a swapchain image holds the whole atlas, only the changed rect is copied into it again (the
-// rest untouched: a mark written there stays), the whole atlas into images never uploaded yet
-void run_dirty(Layer& layer, App& app, const void* binding) {
+// rest untouched: a mark written there stays), the whole atlas into images never uploaded yet. Small and big
+// images & rects (D3D11: 64 KB or more copied through a dynamic texture, else UpdateSubresource).
+void run_dirty(Layer& layer, App& app, const void* binding, bool bgra, bool linear) {
     static const uint8_t kMark[4] = {0, 255, 0, 255};
     static const uint8_t kChanged[4] = {255, 0, 255, 255};
-    app.write(30, 12, true, false);
-    XrSession session = create_session(layer, binding);
-    CHECK(end_frame(layer, session) == 2);
-    FakeSwapchain* swapchain = quad_swapchain();
-    CHECK(swapchain != nullptr && swapchain->last_released >= 0);
-    if (swapchain != nullptr && swapchain->last_released >= 0) {
-        const int marked = swapchain->last_released;
-        fill_image(swapchain, marked, 20, 8, 4, 2, kMark);  // outside the rect changed below
-        for (int update = 0; update < 3; ++update) {  // 3 images: marked image uploaded again on the third
-            app.write_dirty(0, 0, 4, 2, kChanged);
-            CHECK(end_frame(layer, session) == 2);
+    struct Case {
+        uint32_t width, height;  // image
+        CanvasRect changed;
+        uint32_t mark_x, mark_y;  // 4 x 2 mark outside the changed rect
+    };
+    for (const Case& test : {Case{30, 12, {0, 0, 4, 2}, 20, 8}, Case{256, 128, {0, 0, 200, 100}, 240, 120}}) {
+        app.write(test.width, test.height, true, false);
+        XrSession session = create_session(layer, binding);
+        CHECK(end_frame(layer, session) == 2);
+        FakeSwapchain* swapchain = quad_swapchain();
+        CHECK(swapchain != nullptr && swapchain->last_released >= 0);
+        if (swapchain != nullptr && swapchain->last_released >= 0) {
+            check_pixels(read_released(swapchain), swapchain->info.width, test.width, test.height, bgra, linear);
+            const int marked = swapchain->last_released;
+            fill_image(swapchain, marked, test.mark_x, test.mark_y, 4, 2, kMark);  // outside the rect changed below
+            for (int update = 0; update < 3; ++update) {  // 3 images: marked image uploaded again on the third
+                app.write_dirty(test.changed.x, test.changed.y, test.changed.width, test.changed.height, kChanged);
+                CHECK(end_frame(layer, session) == 2);
+            }
+            CHECK(swapchain->last_released == marked);
+            const std::vector<uint8_t> pixels = read_released(swapchain);
+            CHECK(pixel_is(pixels, swapchain->info.width, 1, 1, kChanged));  // rect uploaded
+            CHECK(pixel_is(pixels, swapchain->info.width, test.changed.width - 1, test.changed.height - 1, kChanged));
+            CHECK(pixel_is(pixels, swapchain->info.width, test.mark_x + 1, test.mark_y + 1, kMark));  // rest kept
         }
-        CHECK(swapchain->last_released == marked);
-        const std::vector<uint8_t> pixels = read_released(swapchain);
-        CHECK(pixel_is(pixels, swapchain->info.width, 1, 1, kChanged));  // rect uploaded
-        CHECK(pixel_is(pixels, swapchain->info.width, 21, 9, kMark));  // rest not copied again
+        destroy_session(layer, session);
     }
-    destroy_session(layer, session);
 }
 
 // Full scenario on one graphics API
@@ -1503,7 +1513,7 @@ void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, 
     destroy_session(layer, session);
 
     run_tiles(layer, app, binding, bgra, linear);
-    run_dirty(layer, app, binding);
+    run_dirty(layer, app, binding, bgra, linear);
 }
 
 }  // namespace

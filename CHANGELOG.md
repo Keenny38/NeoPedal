@@ -14,6 +14,7 @@ Fixes from an audit of the VR overlay.
 - VR overlay: signing out of Windows or shutting it down with the app open no longer leaves the OpenXR layer registered in every OpenXR game until the next app start.
 - VR overlay in OpenXR games: when the VR runtime refuses the overlay with a general error, the OpenXR layer now stops the overlay for the session after 3 frames, instead of making the game get that error on every frame (lost frames, VR stopped). Restart your OpenXR games after updating the app.
 - VR overlay in Direct3D 12 and Vulkan OpenXR games: only the changed part of the overlays is copied to the GPU in the game frame, as in Direct3D 11, instead of the whole image at every change (less work in the game frame). Restart your OpenXR games after updating the app.
+- VR overlay in Direct3D 11 OpenXR games (Le Mans Ultimate, rFactor 2...): a whole new overlay image (overlays moved, resized, shown or hidden) no longer holds the game frame up to about 28 ms; big images go through a GPU copy (about 8 ms at worst measured, 0.75 ms usually). Restart your OpenXR games after updating the app.
 - VR mirror window: no longer opens almost completely off screen (only its corner visible) after a screen change; it opens at its default place instead.
 
 ## 0.28.1 (2026-11-01)
