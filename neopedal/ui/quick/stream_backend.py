@@ -165,6 +165,7 @@ class StreamOverlaysBackend(PageBackend):
         self.notice = ""
         self.notice_count = 0
         self.watched: set[str] = set()
+        self.sources: set[str] = set()  # views asked by sources now (a layout source counts once)
         # What the properties of each signal depend on, signaled only when changed (asked every second)
         self._server_state: tuple | None = ()
         self._addresses_state: tuple | None = ()
@@ -206,6 +207,7 @@ class StreamOverlaysBackend(PageBackend):
         """Live sources & sizes (every second while shown), each group of properties signaled only when changed
         (all if force)"""
         self.watched = streamoverlay.watched()
+        self.sources = streamoverlay.store.watched() if streamoverlay.running else set()
         self.refresh_overlays()
         state = self.server_state()
         if force or state != self._server_state:
@@ -294,7 +296,7 @@ class StreamOverlaysBackend(PageBackend):
     @Property(int, notify=serverChanged)
     def watchingCount(self) -> int:
         """Sources shown now (layout & overlays)"""
-        return len(self.watched)
+        return len(self.sources)
 
     @Property(bool, notify=serverChanged)
     def lanAccess(self) -> bool:
@@ -330,7 +332,7 @@ class StreamOverlaysBackend(PageBackend):
                 return tr("Off in safe mode")
             return tr("Port %1 unavailable").replace("%1", str(self.port))
         if self.watched:
-            return tr("On air: %1 sources shown").replace("%1", str(len(self.watched)))
+            return tr("On air: %1 sources shown").replace("%1", str(len(self.sources)))
         return tr("Ready")
 
     @Property(str, notify=addressesChanged)

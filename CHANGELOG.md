@@ -55,6 +55,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director: the camera highlighted on the camera desk follows a trackside camera chosen by an automatic cut, and is cleared once the session is left.
 - Broadcast Director: the number of cars of the session stays right while a class filter or a search is on (a car of another class joining or leaving was not counted).
 - Setup Wizard run again with the stream server on: unticking the `Streaming` step turns the server off, as its summary says, instead of leaving it on.
+- Stream page: `On air: N sources shown` counts the browser sources, no longer each overlay placed on a layout source (one layout source with 3 overlays read 4 sources).
 
 ## 0.28.1 (2026-11-01)
 

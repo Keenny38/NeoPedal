@@ -611,3 +611,24 @@ def test_b022_setup_wizard_stream_off(ui_env, monkeypatch):
                                         preset="", new_preset="", widgets=(), stream=False)
     setup_wizard.apply_global_choices(choices)
     assert cfg.user.config["stream_overlay"]["enable_stream_overlay"] is False
+
+
+# B-033: Stream page counts the sources (views asked), not each overlay placed on a layout source
+def test_b033_sources_counted_not_layout_overlays(ui_env, monkeypatch):
+    from PySide6.QtGui import QImage
+
+    from neopedal import stream_overlay
+    from neopedal.stream_overlay import FrameStore, Placement
+    from neopedal.ui.quick.stream_backend import StreamOverlaysBackend
+
+    store = FrameStore()
+    store.touch("layout")  # one browser source: the layout
+    image = QImage(10, 10, QImage.Format.Format_ARGB32)
+    store.publish({"gear": image, "radar": image, "relative": image},
+                  [Placement("gear", 0, 0, 1.0), Placement("radar", 0, 0, 1.0), Placement("relative", 0, 0, 1.0)],
+                  (100, 100))
+    monkeypatch.setattr(stream_overlay.streamoverlay, "store", store)
+    monkeypatch.setattr(type(stream_overlay.streamoverlay), "running", property(lambda self: True))
+    backend = StreamOverlaysBackend()
+    backend.refresh(force=True)
+    assert backend.watchingCount == 1 and "gear" in backend.watched  # rows of placed overlays still live
