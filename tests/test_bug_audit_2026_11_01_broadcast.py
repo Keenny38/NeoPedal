@@ -53,3 +53,17 @@ def test_b001_director_cuts_again_once_player_back_in_garage(director_page):  # 
     assert not backend.player_driving()  # in its garage stall: watching others is fine
     poll(page, race_answers(101.0, *cars, replay=True))
     assert not backend.player_driving()  # replay: never the driver's view
+
+
+# B-007: automatic mode turned on during an instant replay waits for live
+def test_b007_automatic_mode_during_instant_replay_never_cuts(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0), car(3, 3, distance=400.0))
+    poll(page, race_answers(100.0, *cars, focus=3))
+    backend.director.shot = backend.director.shot._replace(start=-100.0)  # shot long enough: director may cut
+    backend.instant = True  # instant replay playing
+    page.game.sent.clear()
+    backend.setMode(2)
+    wait_commands(backend.camera)
+    assert backend.mode == "auto" and page.game.sent == [] and backend.on_air_slot == 3
+    backend.instant = False

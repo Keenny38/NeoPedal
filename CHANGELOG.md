@@ -17,6 +17,7 @@ Fixes from an audit of the VR overlay.
 - VR overlay in Direct3D 11 OpenXR games (Le Mans Ultimate, rFactor 2...): a whole new overlay image (overlays moved, resized, shown or hidden) no longer holds the game frame up to about 28 ms; big images go through a GPU copy (about 8 ms at worst measured, 0.75 ms usually). Restart your OpenXR games after updating the app.
 - VR mirror window: no longer opens almost completely off screen (only its corner visible) after a screen change; it opens at its default place instead.
 - Broadcast Director while you drive your own car (live session, out of its garage stall): the automatic director, `Instant Replay` and `Overlays follow the car on air` no longer move the game camera or your overlays to another car; your own cuts still work, and the director takes over again once your car is back in its garage.
+- Broadcast Director: switching to `Automatic` during an instant replay no longer cuts to another car inside the replay shown; the director starts once back to live.
 
 ## 0.28.1 (2026-11-01)
 

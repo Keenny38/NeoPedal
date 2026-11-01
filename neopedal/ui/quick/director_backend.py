@@ -1554,7 +1554,7 @@ class DirectorBackend(PageBackend):
         self.save_settings()
         self.modeChanged.emit()
         self.update_on_air()
-        if self.mode == "auto" and self.can_command():
+        if self.mode == "auto" and self.can_command() and not self.instant:  # instant replay: live first
             self.direct()
 
     @Property(str, notify=classFilterChanged)
