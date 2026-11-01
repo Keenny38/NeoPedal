@@ -228,3 +228,18 @@ def test_b010_rewind_never_records_laps_and_stops_twice():
         watcher.update(pit_frame(time + 0.3, laps, pit, last, stops), (), time + 0.3, "RACE1", TRACK)
     assert [record.lap for record in watcher.laps[1]] == [11]
     assert [stop.lap for stop in watcher.pit_stops[1]] == [11]
+
+
+# B-025: replay rewound into a pit stop already seen: no second pit exit with a shorter time
+def test_b025_no_pit_exit_for_a_stop_already_closed():
+    watcher = dr.RaceWatcher()
+    watcher.update(pit_frame(100.0, 10, False), (), 100.0, "RACE1", TRACK)
+    for time in range(101, 131):
+        watcher.update(pit_frame(float(time), 10, True), (), float(time), "RACE1", TRACK)
+    events = watcher.update(pit_frame(131.0, 11, False, pitstops=1), (), 131.0, "RACE1", TRACK)
+    assert [(event.kind, event.value) for event in events if event.kind == dr.PIT_OUT] == [(dr.PIT_OUT, 30.0)]
+    for time in range(105, 131):  # rewound into the stop (started before: kept, closed)
+        watcher.update(pit_frame(float(time), 10, True), (), float(time), "RACE1", TRACK)
+    events = watcher.update(pit_frame(131.0, 11, False, pitstops=1), (), 131.0, "RACE1", TRACK)
+    assert [event for event in events if event.kind == dr.PIT_OUT] == []
+    assert [stop.duration for stop in watcher.pit_stops[1]] == [30.0]
