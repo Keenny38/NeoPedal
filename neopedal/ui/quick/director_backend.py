@@ -250,6 +250,7 @@ class DirectorBackend(PageBackend):
         self.instant = False  # instant replay of a live session shown
         self._driving = False  # local player driving (see player_driving), last answer
         self._leave_pending = False  # instant replay to leave once the game answers again (see set_state)
+        self._car_count = 0  # cars of the session told to the page (carCount)
         self.instant_waiting = False  # instant replay asked, not playing yet
         self.session_info = SessionState()
         self.laps_slot = -1  # car of lap history shown, -1 if none
@@ -1029,7 +1030,9 @@ class DirectorBackend(PageBackend):
                 "brandLogo": self.logos.brand(car.vehicle),
                 "tyreFront": self.tyres.get(car.slot, ("", ""))[0], "tyreRear": self.tyres.get(car.slot, ("", ""))[1],
             })
-        if self._cars_model.sync(rows):
+        # carCount: every car of the session (cars filtered out joining or leaving change no row)
+        if self._cars_model.sync(rows) or len(self.standings) != self._car_count:
+            self._car_count = len(self.standings)
             self.carsChanged.emit()
 
     def shown_sectors(self, car: Standing) -> tuple[float, float, float]:

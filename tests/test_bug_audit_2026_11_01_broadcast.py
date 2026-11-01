@@ -577,3 +577,16 @@ def test_b029_camera_highlight_told(director_page):  # noqa: F811
     for _ in range(4):
         poll(page, {})  # session left: no camera highlighted any more
     assert told and told[-1] == ""
+
+
+# B-030: car count told when a car of a class filtered out joins or leaves
+def test_b030_car_count_told_with_class_filter(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2, car_class="Hyper")))
+    backend.class_filter = "GT3"
+    backend.update_cars()
+    told = []
+    backend.carsChanged.connect(lambda: told.append(backend.carCount))
+    poll(page, race_answers(101.0, car(1, 1), car(2, 2, car_class="Hyper"), car(3, 3, car_class="Hyper")))
+    assert told and told[-1] == 3
+    backend.class_filter = ""
