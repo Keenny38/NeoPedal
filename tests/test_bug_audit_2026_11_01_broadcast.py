@@ -4,6 +4,7 @@ graphics, stream sources & Spectate. One regression test (or more) per bug B-XXX
 from neopedal.process import director as dr
 from tests.test_broadcast_director import car, director_page, poll, race_answers  # noqa: F401  (fixture)
 from tests.test_game_info import wait_commands
+from tests.test_stream_overlay import server  # noqa: F401  (fixture)
 
 
 def player_answers(session_time, *cars, player=1, **values):
@@ -689,3 +690,27 @@ def test_b036_on_air_only_for_overlays_streamed(ui_env, monkeypatch):
     store.touch(LAYOUT)
     monkeypatch.setitem(gear, "enable", False)
     assert overlay.on_air()  # layout source: on air
+
+
+# B-037: a layout POST that is no layout answers 400 and never erases the saved layout
+def test_b037_bad_layout_post_never_erases(server):  # noqa: F811
+    import http.client
+    import json
+    import urllib.parse
+
+    from neopedal.stream_overlay import stream_layout
+    from tests.test_broadcast_graphics import post
+
+    url = server.url("/api/layout", "crop=16:9")
+    assert post(url, json.dumps({"gear": [0.5, 0.25, 1.5]}).encode()) == 200
+    for body in (b"[1,2]", b'"x"', b'{"gear":[1,2]}'):
+        assert post(url, body) == 400, body
+    assert stream_layout.get("16:9") == {"gear": [0.5, 0.25, 1.5]}
+    parts = urllib.parse.urlsplit(url)
+    connection = http.client.HTTPConnection(parts.hostname, parts.port, timeout=5)
+    connection.putrequest("POST", f"{parts.path}?{parts.query}")
+    connection.putheader("Transfer-Encoding", "chunked")
+    connection.endheaders()
+    assert connection.getresponse().status == 411  # body length unknown: never read as the next request
+    connection.close()
+    assert post(url, b"{}") == 200 and stream_layout.get("16:9") == {}  # empty layout: reset asked

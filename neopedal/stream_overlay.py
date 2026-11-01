@@ -79,7 +79,7 @@ from .log_handler import ErrorThrottle
 from .process import results_file as rf
 from .process import results_text as rt
 from .setting import cfg
-from .stream_director import MAX_LAYOUT_BODY, PlacementStore
+from .stream_director import MAX_LAYOUT_BODY, PlacementStore, clean_placements
 from .template.setting_status_colors import colorblind_style, status_css
 from .userfile.custom_image import brand_logo_file
 from .userfile.game_images import images
@@ -866,6 +866,10 @@ class StreamHandler(BoundedRequestHandler):
             self.close_connection = True  # body left unread
             self.send_body(403, b'{"ok":false}', "application/json")
             return
+        if self.headers.get("Transfer-Encoding"):  # body length unknown: never read as the next request
+            self.close_connection = True
+            self.send_body(411, b'{"ok":false}', "application/json")
+            return
         try:  # never read more than a layout (negative length reads until connection closed)
             declared = int(self.headers.get("Content-Length") or 0)
         except ValueError:
@@ -886,6 +890,9 @@ class StreamHandler(BoundedRequestHandler):
                 placements = save_layout(body, preset)
             elif url.path == "/api/layout":
                 data = load_json_strict(body.decode("utf-8")) if body.strip() else {}
+                # No layout (not an object, or no valid place at all): never erases the saved one ({}: reset)
+                if not isinstance(data, dict) or (data and not clean_placements(data, pattern=VIEW_NAME)):
+                    raise ValueError("no layout")
                 placements = stream_layout.set(layout_section(query.get("crop", [""])[0]), data)
                 self.store.bump()
             else:
