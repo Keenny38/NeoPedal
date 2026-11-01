@@ -108,7 +108,7 @@ def demo_state() -> dict[str, Any]:
         "results": {"title": tr("Classification"), "subtitle": tr("Lap %1").replace("%1", "42"), "rows": rows},
         "champ": {"title": "Endurance Cup", "subtitle": "Hypercar", "rows": champ},
         "message": {"id": 1, "title": tr("Race control"), "text": tr("Red flag: restart in 10 minutes")},
-        "countdown": {"label": tr("Race starts in"), "endsAt": 0, "seconds": 299},
+        "countdown": {"label": tr("Race starts in"), "seconds": 299},
         "brand": {"name": "Endurance Cup · Round 3", "logo": "", "sponsors": [],
                   "names": ["Sponsor A", "Sponsor B", "Sponsor C"]},
         "labels": demo_labels(),

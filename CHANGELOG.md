@@ -41,6 +41,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source), timing tower: a car with many marks (tyres used, stops, penalty, fastest lap) in a long race no longer squeezes its name to nothing nor pushes its gap out of the tower: three marks at most, the most important first.
 - Broadcast Graphics (`/director` source), driver card: a long driver or team name ends with an ellipsis instead of being cut mid-word at the edge of the card, and stats that do not fit go to a second line.
 - Broadcast Graphics (`/director` source): a very long banner text or onboard driver name ends with an ellipsis instead of running past the edges of the screen or widening the onboard panel.
+- Broadcast Graphics (`/director` source): the operator countdown counts from the clock of the computer showing the source, so it no longer ends early or late when OBS runs on another computer whose clock differs.
 
 ## 0.28.1 (2026-11-01)
 

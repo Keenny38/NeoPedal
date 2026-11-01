@@ -377,8 +377,6 @@ def test_league_branding_files(server, director_page, tmp_path):  # noqa: F811
 
 
 def test_message_countdown_and_automatic_graphics(director_page, english):  # noqa: F811
-    import time
-
     page, backend = director_page, director_page.backend
     backend.graphics.showMessage("Race control", "  Red   flag ")
     assert backend.graphics.graphics_state()["message"] == {"id": 1, "title": "Race control", "text": "Red flag"}
@@ -386,7 +384,7 @@ def test_message_countdown_and_automatic_graphics(director_page, english):  # no
     assert backend.graphics.graphics_state()["message"] is None and backend.graphics.messageText == ""
     backend.graphics.startCountdown(2.0, "Start in")
     countdown = backend.graphics.graphics_state()["countdown"]
-    assert countdown["label"] == "Start in" and 115_000 < countdown["endsAt"] - time.time() * 1000 <= 120_001
+    assert countdown["label"] == "Start in" and 115 < countdown["endsIn"] <= 120
     assert backend.graphics.countdownRunning
     backend.graphics.stopCountdown()
     assert backend.graphics.graphics_state()["countdown"] is None

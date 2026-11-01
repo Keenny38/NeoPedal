@@ -47,7 +47,7 @@ const picture=link=>link?link+(link.includes("?")?"&":"?")+"token="+encodeURICom
 let state={},layout={},preset="",version=0,lastCut=-1,cardTimer=0,towerPage=0,towerScroll=0,towerScrolls=1,towerTimer=0,shownBanners=new Set(),bannerQueue=[],bannerBusy=false;
 let wasReplay=false,received=Date.now(),replayEnded=0,lastTrain=null,trainUntil=0,laps=new Map(),live={},liveVersion=0,trackKey=null,track=null;
 const pages={grid:0,results:0,champ:0},pageTimers={},towerLines=new Map(),recentBanners=new Map();
-let sponsorIndex=0,sponsorTimer=0,sponsorKey="",sponsorTimerKey="";
+let sponsorIndex=0,sponsorTimer=0,sponsorKey="",sponsorTimerKey="",countdownEnd=0;
 function set(id,value){const el=typeof id==="string"?$(id):id;const text=value==null?"":String(value);if(el.textContent!==text)el.textContent=text}
 function toggle(id,on){$(id).classList.toggle("show",!!on)}
 function image(id,link){const el=$(id);const src=picture(link);if(src){if(el.getAttribute("src")!==src)el.src=src;el.style.display="block"}else el.style.display="none"}
@@ -492,7 +492,7 @@ function countdown(){
   set("countdownLabel",info.label);countdownTime();toggle("countdown",true);
 }
 function countdownTime(){const info=state.countdown;if(!info)return;
-  set("countdownTime",clockText(info.endsAt>0?(info.endsAt-Date.now())/1000:info.seconds||0))}
+  set("countdownTime",clockText(info.endsIn!=null?(countdownEnd-Date.now())/1000:info.seconds||0))}
 // League logo & name, sponsors pictures in turn
 function brand(){
   const g=state.graphics||{},info=state.brand||{};
@@ -535,6 +535,9 @@ async function poll(){
         state.version=first?0:version;layout=data.layout||{};preset=data.preset||"";
         // Time of the qualifying lap clock: when it came, never set back by answers of other parts
         if(data.full||first||"quali" in (data.state||{}))received=Date.now();
+        // End of the countdown by this browser's clock (seconds left sent: clocks of two computers differ)
+        if(state.countdown&&state.countdown.endsIn!=null&&(data.full||first||"countdown" in (data.state||{})))
+          countdownEnd=Date.now()+state.countdown.endsIn*1000;
         if(first)for(const event of state.events||[])if(!event.fresh)shownBanners.add(event.id);
         draw();if(first)cycleTower()}}
     else serverLost(true);

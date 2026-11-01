@@ -1071,7 +1071,9 @@ class BroadcastGraphics(DirectorPart):
     def countdown_state(self) -> dict[str, Any] | None:
         if self.countdown_end <= time.time():
             return None
-        return {"label": self.countdown_label or tr("Race starts in"), "endsAt": round(self.countdown_end * 1000)}
+        # Seconds left (not the end time of this computer: the browser of OBS may be on another computer)
+        return {"label": self.countdown_label or tr("Race starts in"),
+                "endsIn": round(self.countdown_end - time.time(), 1)}
 
     @Property(bool, notify=onDemandChanged)
     def countdownRunning(self) -> bool:

@@ -420,3 +420,15 @@ def test_b041_banner_and_onboard_name_bounded():
     assert "max-width:calc(var(--u)*70)" in text and "min-width:0" in text
     for rule in (".banner .txt b{", ".banner .txt span{", ".ob-head span{"):
         assert "text-overflow:ellipsis" in css.split(rule, 1)[1].split("}", 1)[0], rule
+
+
+# B-026: countdown sent as seconds left, its end counted by the browser clock (OBS on another computer)
+def test_b026_countdown_seconds_left(director_page):  # noqa: F811
+    graphics = director_page.backend._graphics
+    graphics.startCountdown(1.5, "Race starts in")
+    state = graphics.countdown_state()
+    assert "endsAt" not in state and 89.0 <= state["endsIn"] <= 90.0
+    script = director_script()
+    assert "countdownEnd=Date.now()+state.countdown.endsIn*1000" in script
+    assert "info.endsIn!=null?(countdownEnd-Date.now())/1000" in script
+    graphics.countdown_end = 0.0
