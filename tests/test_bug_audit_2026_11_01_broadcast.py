@@ -549,3 +549,16 @@ def test_b028_instant_replay_resolved_by_its_own_batch(director_page):  # noqa: 
     finally:
         camera.request_command.busy = False
         del backend.commands_sent
+
+
+# B-048: back to live: the game camera on the car on air again (live focus of the game never taken for a cut)
+def test_b048_back_to_live_focuses_car_on_air(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), focus=1))
+    backend.instant = True
+    backend.on_air_slot = 2
+    page.game.answers["/rest/replay/isActive"] = True
+    page.game.sent.clear()
+    backend.backToLive()
+    wait_commands(backend.camera)
+    assert page.game.sent[-2:] == [("POST", "/rest/replay/toggleactive"), ("PUT", "/rest/watch/focus/2")]

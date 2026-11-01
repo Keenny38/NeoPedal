@@ -1792,7 +1792,12 @@ class DirectorBackend(PageBackend):
         self.instantChanged.emit()
         self.last_cut = time.monotonic()
         self.director.hold_until = time.monotonic() + self.director.settings.urgent_after
-        self._camera.send(gc.leave_replay)
+        # Live again on the car on air (the live camera of the game may follow another car: never taken for a cut)
+        commands: list[gc.Command] = [gc.leave_replay]
+        if self.on_air_slot >= 0:
+            commands.append(gc.focus_command(self.on_air_slot))
+            self.focus = self.on_air_slot
+        self._camera.send(*commands)
 
     @Slot(int)
     def showLaps(self, slot: int):

@@ -720,7 +720,7 @@ def test_instant_replay_of_live_session(director_page, monkeypatch):
     assert len(backend.events) == events and backend.instantReplay
     backend.backToLive()
     wait_commands(backend.camera)
-    assert not backend.instantReplay and sent[-1] == ("POST", "/rest/replay/toggleactive")
+    assert not backend.instantReplay and sent[-2:] == [("POST", "/rest/replay/toggleactive"), ("PUT", "/rest/watch/focus/1")]
 
 
 def test_lock_hotkey(director_page):
