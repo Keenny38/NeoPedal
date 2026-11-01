@@ -299,3 +299,13 @@ def test_b016_car_stopped_on_first_lap_told():
     for time in range(100, 110):
         events += watcher.update(field_at(time), (), float(time), "RACE1", TRACK, info=SessionState(phase=3))
     assert [event for event in events if event.kind == dr.STOPPED] == []
+
+
+# B-031: session time frozen (replay paused): one speed sample per car, not one per answer
+def test_b031_speed_history_bounded_while_time_frozen():
+    watcher = dr.RaceWatcher()
+    cars = [car(1, 1), car(2, 2, distance=500.0)]
+    watcher.update(cars, (), 100.0, "RACE1", TRACK)
+    for _ in range(500):
+        watcher.update(cars, (), 101.0, "RACE1", TRACK)
+    assert len(watcher.cars[1].speeds) <= 2

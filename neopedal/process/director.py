@@ -485,7 +485,10 @@ class RaceWatcher:
             state = self.cars.get(car.slot)
             if state is None:
                 continue
-            state.speeds.append((now, car.speed))
+            if state.speeds and state.speeds[-1][0] == now:  # time frozen (replay paused): one sample, not one each
+                state.speeds[-1] = (now, car.speed)
+            else:
+                state.speeds.append((now, car.speed))
             while state.speeds and now - state.speeds[0][0] > SPEED_HISTORY:
                 state.speeds.popleft()
 
