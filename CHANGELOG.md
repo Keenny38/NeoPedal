@@ -45,6 +45,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source): the banners already told are forgotten once over, so the source no longer uses a little more memory at every banner during a long race.
 - Broadcast Graphics (`/director` source): after the app is started again, a source left open asks for every graphic again, instead of possibly keeping some of the previous run on air (an old championship board).
 - Broadcast Graphics layout editor (`Edit Layout`): opened while the app was not answering yet, it asks again until it loads, instead of staying blank with a `Save` that could empty the layout of the default preset.
+- Broadcast Graphics (`/director` source): a source without the onboard nor the map (for example `only=tower`) no longer keeps a second connection to the app open for their live data, so several sources in OBS no longer wait on each other.
 
 ## 0.28.1 (2026-11-01)
 

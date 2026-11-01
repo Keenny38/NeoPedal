@@ -560,7 +560,12 @@ function serverLost(lost){
   if(!failedSince)failedSince=Date.now();
   if(!edit&&Date.now()-failedSince>=LOST_MS)document.body.classList.add("lost");
 }
+// Live feed (onboard, map cars) asked only while this source shows the onboard or the map: two long polls per
+// source otherwise hold browser connections to the app for nothing
+function liveWanted(){const g=state.graphics||{};
+  return (g.onboard&&(!only.length||only.includes("onboard")))||(g.map&&(!only.length||only.includes("map")))}
 async function pollLive(){
+  if(!liveWanted()){setTimeout(pollLive,2000);return}
   try{
     const response=await fetch("/api/director/live?v="+liveVersion+"&token="+encodeURIComponent(token),{cache:"no-store"});
     if(response.ok){const data=await response.json();if(data.v!==liveVersion){liveVersion=data.v;live=data.live||{};onboardLive();mapCars()}}

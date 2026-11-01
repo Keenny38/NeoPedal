@@ -45,6 +45,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Habillage de diffusion (source `/director`) : les bandeaux déjà annoncés sont oubliés une fois passés, la source n'utilise plus un peu plus de mémoire à chaque bandeau pendant une longue course.
 - Habillage de diffusion (source `/director`) : après un redémarrage de l'app, une source restée ouverte redemande tous les graphismes, au lieu de risquer d'en garder certains de l'exécution précédente à l'antenne (un ancien tableau de championnat).
 - Éditeur de disposition de l'habillage (`Éditer la disposition`) : ouvert alors que l'app ne répondait pas encore, il redemande jusqu'à se charger, au lieu de rester vide avec un `Enregistrer` qui pouvait vider la disposition du preset par défaut.
+- Habillage de diffusion (source `/director`) : une source sans onboard ni carte (par exemple `only=tower`) ne garde plus une deuxième connexion à l'app ouverte pour leurs données en direct, donc plusieurs sources dans OBS ne s'attendent plus.
 
 ## 0.28.1 (2026-11-01)
 

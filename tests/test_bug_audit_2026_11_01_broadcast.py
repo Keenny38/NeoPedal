@@ -458,3 +458,10 @@ def test_b027_layout_editor_first_load_retried():
     script = director_script()
     assert "else if(edit&&chosenPreset===null)setTimeout(poll,1000);" in script
     assert '$("tbSave").onclick=async()=>{if(chosenPreset===null)return;' in script
+
+
+# B-049: the live feed (onboard, map cars) asked only by sources showing the onboard or the map
+def test_b049_live_feed_only_when_shown():
+    live = director_script().split("async function pollLive(){", 1)[1].split("\n}", 1)[0]
+    assert "if(!liveWanted()){setTimeout(pollLive,2000);return}" in live
+    assert "function liveWanted(){" in director_script()
