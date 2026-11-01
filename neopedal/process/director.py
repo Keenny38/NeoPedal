@@ -101,6 +101,7 @@ SETTLE = 1.0  # seconds: a new place counts once seen this long (cars side by si
 JUMP = 20.0  # seconds: session time moved further (replay seek, other session): watched again from there
 STOP_SPEED = 3.0  # m/s: car stands still
 STOP_TIME = 3.0  # seconds standing still on track: stopped car
+GONE_TIME = 10.0  # seconds missing from the answers: car left the session (one answer without it: kept)
 MOVE_AGAIN = 10.0  # m/s: stopped car moving again (can stop again)
 MIN_SPEED = 15.0  # m/s: slower car still takes at least this long to reach the car ahead (gap of a slow car)
 HALTED_SHARE = 0.34  # this share of cars stopped at once: race halted (grid, red flag), no stopped car events
@@ -231,7 +232,7 @@ class CarState:
 
     __slots__ = ("in_pit", "pit_since", "finish", "penalties", "best", "still_since", "stopped",
                  "place", "pending", "pending_since", "stint_lap", "slow_since", "slow", "box_since", "box_time",
-                 "laps", "lap_pit", "lap_energy", "stopped_at", "speeds")
+                 "laps", "lap_pit", "lap_energy", "stopped_at", "speeds", "identity", "seen")
 
     def __init__(self, car: Standing, place: int, now: float):
         self.in_pit = car.in_pit
@@ -255,6 +256,13 @@ class CarState:
         self.laps = car.laps  # laps completed seen
         self.lap_pit = car.in_pit  # lap with a visit to the pit lane
         self.lap_energy = level(car)  # energy (else fuel) at lap start, -1 if unknown
+        self.identity = car_identity(car)  # same car (a slot may go to another car, see RaceWatcher.update)
+        self.seen = now  # session time of the last answer with the car
+
+
+def car_identity(car: Standing) -> tuple[str, str, str]:
+    """Car of a slot: vehicle, number & team (never the driver: drivers swap in endurance races)"""
+    return car.vehicle, car.number, car.team
 
 
 def is_race(session: str) -> bool:
@@ -410,10 +418,14 @@ class RaceWatcher:
         stopped_now = 0
         for car in cars:
             state = self.cars.get(car.slot)
+            if state is not None and (state.identity != car_identity(car) or car.laps < state.laps):
+                self.forget(car.slot)  # slot taken by another car (left & joined between answers): nothing inherited
+                state = None
             if state is None:  # joined the session
                 self.cars[car.slot] = CarState(car, places[car.slot], now)
                 self.note_best(car)
                 continue
+            state.seen = now
             events.extend(self.car_events(car, state, places[car.slot], by_slot, now, race))
             if state.still_since >= 0 and now - state.still_since >= STOP_TIME:
                 stopped_now += 1
@@ -427,16 +439,22 @@ class RaceWatcher:
                 state.stopped_at = now
                 events.append(self.event(STOPPED, state.still_since, (car,)))
             self.check_slow(car, state, now, race and green and not halted, events)
-        for slot in set(self.cars) - set(by_slot):  # left the session: nothing inherited by the next car of the slot
-            del self.cars[slot]
-            self.laps.pop(slot, None)
-            self.pit_stops.pop(slot, None)
-            self.sector_best.pop(slot, None)
+        # Left the session (missing a while: one answer without a car never loses its history)
+        for slot in [slot for slot, state in self.cars.items() if slot not in by_slot and now - state.seen >= GONE_TIME]:
+            self.forget(slot)
         events.extend(self.update_battles(cars, places, now, elapsed, race))
         events.sort(key=lambda event: event.time)
         self.measuring.extend(event for event in events if event.kind in (CONTACT, WALL) and event.live)
         self.measure_contacts(events, now)
         return events
+
+    def forget(self, slot: int) -> None:
+        """Car of slot gone: nothing inherited by the next car of the slot"""
+        self.cars.pop(slot, None)
+        self.laps.pop(slot, None)
+        self.pit_stops.pop(slot, None)
+        self.sector_best.pop(slot, None)
+        self.battles = {pair: battle for pair, battle in self.battles.items() if slot not in pair}
 
     # Contact severity
     def keep_speeds(self, cars: list[Standing], now: float) -> None:

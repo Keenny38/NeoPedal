@@ -191,10 +191,12 @@ def test_slot_history_dropped_when_car_leaves():
     watcher.update(field(car(1, 1, laps=11, last=95.0, in_pit=True), car(2, 2, distance=500.0)), (), 101.0, "RACE1",
                    TRACK)
     assert len(watcher.laps[1]) == 1 and watcher.pit_stops[1] and 1 in watcher.sector_best
-    watcher.update(field(car(2, 1, distance=500.0)), (), 102.0, "RACE1", TRACK)  # car 1 left
+    watcher.update(field(car(2, 1, distance=500.0)), (), 102.0, "RACE1", TRACK)  # one answer without car 1: kept
+    assert 1 in watcher.cars and len(watcher.laps[1]) == 1
+    watcher.update(field(car(2, 1, distance=500.0)), (), 102.0 + dr.GONE_TIME, "RACE1", TRACK)  # car 1 left
     assert 1 not in watcher.cars and 1 not in watcher.laps and 1 not in watcher.pit_stops and 1 not in watcher.sector_best
-    watcher.update(field(car(2, 1, distance=500.0), car(1, 2, laps=3, driver="New Driver")), (), 103.0, "RACE1", TRACK)
-    watcher.update(field(car(2, 1, distance=500.0), car(1, 2, laps=4, driver="New Driver", last=99.0)), (), 104.0,
+    watcher.update(field(car(2, 1, distance=500.0), car(1, 2, laps=3, driver="New Driver")), (), 113.0, "RACE1", TRACK)
+    watcher.update(field(car(2, 1, distance=500.0), car(1, 2, laps=4, driver="New Driver", last=99.0)), (), 114.0,
                    "RACE1", TRACK)
     assert [record.lap for record in watcher.laps[1]] == [4]  # nothing of the former car
     assert 1 not in watcher.pit_stops

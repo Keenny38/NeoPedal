@@ -135,3 +135,32 @@ def test_b005_winner_is_class_leader_in_races_only():
     qualifying.update(cars, (), 100.0, "QUALIFY1", TRACK)
     events = qualifying.update([*finished(cars[1]), cars[0]], (), 101.0, "QUALIFY1", TRACK)
     assert [event.kind for event in events] == [dr.FINISH]
+
+
+# B-006: slot taken by another car between two answers: nothing of the former car (laps, stops, events)
+def test_b006_slot_reused_within_one_answer_starts_afresh():
+    watcher = dr.RaceWatcher()
+    former = car(5, 2, laps=30, best=90.0, team="Team A")
+    watcher.update([car(1, 1), former], (), 100.0, "RACE1", TRACK)
+    watcher.update([car(1, 1), former._replace(laps=31, last=91.0)], (), 101.0, "RACE1", TRACK)
+    assert [record.lap for record in watcher.laps[5]] == [31]
+    newcomer = car(5, 2, laps=0, best=85.0, penalties=1, team="Team B", driver="New Driver")
+    events = watcher.update([car(1, 1), newcomer], (), 102.0, "RACE1", TRACK)
+    assert [event.kind for event in events if 5 in event.slots and event.kind != dr.BATTLE] == []
+    assert 5 not in watcher.laps and 5 not in watcher.pit_stops
+    watcher.update([car(1, 1), newcomer._replace(laps=1, last=99.0)], (), 103.0, "RACE1", TRACK)
+    assert [record.lap for record in watcher.laps[5]] == [1]
+    # Same car, laps going down (same livery picked by the newcomer): another car too
+    watcher.update([car(1, 1), newcomer._replace(laps=0, team="Team B")], (), 104.0, "RACE1", TRACK)
+    assert 5 not in watcher.laps
+
+
+# B-042: a car missing from one answer keeps its history
+def test_b042_car_missing_from_one_answer_keeps_history():
+    watcher = dr.RaceWatcher()
+    cars = [car(1, 1, laps=10), car(2, 2)]
+    watcher.update(cars, (), 100.0, "RACE1", TRACK)
+    watcher.update([car(1, 1, laps=11, last=95.0), car(2, 2)], (), 101.0, "RACE1", TRACK)
+    watcher.update([car(2, 1)], (), 102.0, "RACE1", TRACK)  # answer without car 1
+    events = watcher.update([car(1, 1, laps=11), car(2, 2)], (), 103.0, "RACE1", TRACK)
+    assert [record.lap for record in watcher.laps[1]] == [11] and not [e for e in events if e.kind != dr.BATTLE]
