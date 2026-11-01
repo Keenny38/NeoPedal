@@ -34,7 +34,7 @@
 NeoPedal is a telemetry overlay and analysis app: a modern design, a clear interface, many tools and a lot of work on reliability.
 
 > [!NOTE]
-> **New in 0.28.2**: VR overlay fixes (SteamVR overlay kept when overlays reload while SteamVR starts).
+> **New in 0.28.2**: VR overlay fixes: the OpenXR layer copies only what changed in Direct3D 12 and Vulkan games and steps aside when the runtime keeps refusing the overlay, is no longer left registered after signing out of Windows, one app at a time uses it, and the SteamVR overlay survives a reload while SteamVR starts.
 >
 > **New in 0.28.1**: faster restart and startup, less memory used while you race (window hidden), race results read only once, a tidier Home page and a Patreon link in the `Help` menu.
 >
