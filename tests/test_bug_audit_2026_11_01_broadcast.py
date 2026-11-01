@@ -767,3 +767,14 @@ def test_b039_command_server_client_gone_quiet(capsys, caplog):
     assert "Traceback" not in capsys.readouterr().err
     levels = [record.levelno for record in caplog.records if "request from 127.0.0.1" in record.getMessage()]
     assert levels == [logging.DEBUG, logging.ERROR]
+
+
+# B-040: WebSocket options read as the query does: "false"/"0" never turn changes-only on, fields as "a,b"
+def test_b040_websocket_options_like_query():
+    from neopedal.command_server import StreamOptions
+
+    options = StreamOptions()
+    for value, expected in (('"false"', False), ('"0"', False), ('"true"', True), ("1", True), ("false", False)):
+        assert options.update(f'{{"changes": {value}}}'.encode()) and options.changes is expected, value
+    assert options.update(b'{"fields": "speed,gear"}') and options.fields == {"speed", "gear"}
+    assert options.update(b'{"fields": ["speed"]}') and options.fields == {"speed"}

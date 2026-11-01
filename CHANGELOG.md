@@ -62,6 +62,7 @@ Fixes from an audit of the VR overlay.
 - Stream overlays layout: a save request that holds no layout (sent by a faulty tool or browser extension) is refused instead of erasing the overlays placed on the layout source.
 - Race results stream source: after a change of app language or of class colors (vehicle class editor), the results shown follow at once instead of keeping the former texts and colors until the next session.
 - Remote control server: a client disconnecting, or the server turned off, no longer prints a full error trace (debug log only).
+- Remote control WebSocket stream: options sent as text are read as in the address (`"changes": "false"` no longer turns changes only on, `"fields": "speed,gear"` selects those fields).
 
 ## 0.28.1 (2026-11-01)
 

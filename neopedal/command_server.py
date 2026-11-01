@@ -617,6 +617,13 @@ def stream_interval(path: str) -> float:
     return min(max(interval, low), high) / 1000
 
 
+def option_on(value: object) -> bool:
+    """Option of a stream subscription turned on: true, 1, or "1", "true", "yes" (as in the query), never "false" """
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes")
+    return value is True or (isinstance(value, (int, float)) and not isinstance(value, bool) and value == 1)
+
+
 class StreamOptions:
     """Stream subscription: selected fields, changes only"""
 
@@ -632,8 +639,7 @@ class StreamOptions:
         """Options from ?fields=a,b&changes=1 query"""
         query = parse_qs(urlsplit(path).query)
         fields = [name for value in query.get("fields", []) for name in value.split(",") if name]
-        changes = query.get("changes", ["0"])[0].lower() in ("1", "true", "yes")
-        return cls(fields, changes)
+        return cls(fields, option_on(query.get("changes", ["0"])[0]))
 
     def update(self, message: bytes) -> bool:
         """Update options from client JSON message, ignore invalid message (also nested too deeply)
@@ -649,11 +655,13 @@ class StreamOptions:
             return False
         if "fields" in data:
             fields = data["fields"]
+            if isinstance(fields, str):  # "speed,gear", as in the query
+                fields = fields.split(",")
             # Names only: str() of a nested list could recurse too deeply
-            names = {name for name in fields if isinstance(name, str)} if isinstance(fields, list) else set()
+            names = {name for name in fields if isinstance(name, str) and name} if isinstance(fields, list) else set()
             self.fields = names or None
         if "changes" in data:
-            self.changes = bool(data["changes"])
+            self.changes = option_on(data["changes"])
         self.last = {}  # send full data after change
         return True
 
