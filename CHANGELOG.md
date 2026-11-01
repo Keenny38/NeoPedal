@@ -57,6 +57,7 @@ Fixes from an audit of the VR overlay.
 - Setup Wizard run again with the stream server on: unticking the `Streaming` step turns the server off, as its summary says, instead of leaving it on.
 - Stream page: `On air: N sources shown` counts the browser sources, no longer each overlay placed on a layout source (one layout source with 3 overlays read 4 sources).
 - Race results stream source cycling classes (`class=cycle`): a class without name (some mods) shows its own cars with class places, instead of the whole field.
+- Spectate: turning spectate mode on reloads the data modules (fuel, delta, stint...) once, instead of twice, and the log names the driver spectated instead of you.
 
 ## 0.28.1 (2026-11-01)
 

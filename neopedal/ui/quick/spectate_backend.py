@@ -367,9 +367,7 @@ class SpectateBackend(PageBackend):
         cfg.save()
         api.setup()
         app_signal.refresh.emit(True)  # notification bar, other pages, this page (see refresh)
-        self.refresh()
-        if enabled:
-            self.follow_changed()
+        self.refresh()  # driver followed told by the next poll: the API reads the spectated car once synced
 
     @Slot(int)
     def spectate(self, slot: int):

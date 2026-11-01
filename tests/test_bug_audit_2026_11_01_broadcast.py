@@ -641,3 +641,26 @@ def test_b034_results_class_without_name():
     script = stream_overlay.RESULTS_HTML
     assert ':[null]);' in script and "data.rows.filter(row=>name===null||row.cls===name)" in script
     assert "const byClass=view.cls!==null;" in script
+
+
+# B-035: spectate mode turned on: driver followed read once the API follows it (one reload, right name)
+def test_b035_spectate_on_reloads_modules_once(ui_env, monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal import realtime_state
+    from neopedal.setting import cfg
+    from neopedal.ui.quick import spectate_backend as sb
+
+    current = {"name": "Me (own car, API not synced yet)"}
+    reader = SimpleNamespace(vehicle=SimpleNamespace(driver_name=lambda index=None: current["name"]))
+    reloads = []
+    monkeypatch.setattr(sb, "mctrl", SimpleNamespace(reload=lambda name="": reloads.append(name)))
+    monkeypatch.setattr(sb, "api", SimpleNamespace(setup=lambda: None, read=None))
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setitem(cfg.api, "enable_player_index_override", False)
+    monkeypatch.setattr(type(cfg), "save", lambda *args, **kwargs: None)
+    backend = sb.SpectateBackend(reader=lambda: reader)
+    backend.setEnabled(True)
+    current["name"] = "Spectated driver"
+    backend.follow_changed()  # next poll: API follows the spectated car
+    assert len(reloads) == len(sb.DATA_MODULES) and backend._followed == "Spectated driver"

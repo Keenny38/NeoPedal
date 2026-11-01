@@ -220,6 +220,7 @@ def test_data_modules_restarted_when_followed_driver_changes(backend, setups, mo
 
     monkeypatch.setattr(realtime_state, "active", True)
     backend.setEnabled(True)
+    backend.poll()  # driver followed told once the API follows it (next poll)
     assert "module_delta" in setups and "module_fuel" in setups
     setups.clear()
     backend.poll()  # same driver followed
