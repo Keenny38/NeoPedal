@@ -56,6 +56,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : le nombre de voitures de la session reste juste quand un filtre de classe ou une recherche est actif (une voiture d'une autre classe qui arrivait ou partait n'était pas comptée).
 - Assistant de configuration relancé avec le serveur de stream actif : décocher l'étape `Streaming` coupe le serveur, comme l'indique le résumé, au lieu de le laisser actif.
 - Page Stream : `En direct : N sources affichées` compte les sources du navigateur, et plus chaque overlay placé sur une source de disposition (une source de disposition avec 3 overlays affichait 4 sources).
+- Source de stream des résultats qui alterne les classes (`class=cycle`) : une classe sans nom (certains mods) montre ses propres voitures avec les places de classe, au lieu de tout le plateau.
 
 ## 0.28.1 (2026-11-01)
 

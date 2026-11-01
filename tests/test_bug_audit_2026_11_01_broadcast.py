@@ -632,3 +632,12 @@ def test_b033_sources_counted_not_layout_overlays(ui_env, monkeypatch):
     backend = StreamOverlaysBackend()
     backend.refresh(force=True)
     assert backend.watchingCount == 1 and "gear" in backend.watched  # rows of placed overlays still live
+
+
+# B-034: results page cycling classes: a class without name shows its own cars (not the whole field)
+def test_b034_results_class_without_name():
+    from neopedal import stream_overlay
+
+    script = stream_overlay.RESULTS_HTML
+    assert ':[null]);' in script and "data.rows.filter(row=>name===null||row.cls===name)" in script
+    assert "const byClass=view.cls!==null;" in script

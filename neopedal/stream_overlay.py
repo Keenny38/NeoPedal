@@ -1444,9 +1444,9 @@ function buildViews(){
   if(!data||!data.available)return;
   const classes=data.classes.map(item=>item.name);
   const groups=classMode==="cycle"&&classes.length>1?classes:
-    (classMode!=="all"&&classes.includes(classMode)?[classMode]:[""]);
+    (classMode!=="all"&&classes.includes(classMode)?[classMode]:[null]);  // null: every class (a class may be "")
   for(const name of groups){
-    const rows=data.rows.filter(row=>!name||row.cls===name);
+    const rows=data.rows.filter(row=>name===null||row.cls===name);
     for(let start=0;start<rows.length;start+=perPage)views.push({cls:name,rows:rows.slice(start,start+perPage),
       page:Math.floor(start/perPage)+1,pages:Math.ceil(rows.length/perPage),total:rows.length});
   }
@@ -1456,7 +1456,7 @@ function show(){
   if(!views.length){$("panel").classList.remove("on");$("wait").style.display="block";return}
   $("wait").style.display="none";
   const view=views[viewIndex%views.length];
-  const byClass=view.cls!=="";
+  const byClass=view.cls!==null;
   const info=data.classes.find(item=>item.name===view.cls);
   $("cls").innerHTML="";
   if(info){const dot=document.createElement("i");dot.style.background=info.color;$("cls").append(dot,info.name)}
