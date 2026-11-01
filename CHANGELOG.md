@@ -31,6 +31,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Director, `Automatic`: the story on air keeps its full weight while it is shown, so another story of the same weight (several contacts of one crash) no longer cuts it after 2.5 s again and again; the shortest shot is kept.
 - Broadcast Director: a car stopped or slow on track during the first lap of a race (crash at the first corner) is told and suggested, once the game says the race is on; before, only from the second lap.
 - Broadcast Director: a replay left paused with the page open no longer adds to the memory used at every game answer (speed history of each car).
+- Broadcast Director in a replay played fast (x8, x16): laps, pit stops, battles and events are watched again, instead of every game answer being taken for a jump in the replay (nothing told).
 
 ## 0.28.1 (2026-11-01)
 

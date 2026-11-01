@@ -99,6 +99,7 @@ STYLE_CAMERAS = {"trackside": ("TRACKSIDE0",), "onboard": ("ONBOARD00", "TVCOCKP
 
 SETTLE = 1.0  # seconds: a new place counts once seen this long (cars side by side swap places)
 JUMP = 20.0  # seconds: session time moved further (replay seek, other session): watched again from there
+FAST_STEP_SHARE = 1.5  # fast replay: step over JUMP at most this share of the last one (steady, not a seek)
 STOP_SPEED = 3.0  # m/s: car stands still
 STOP_TIME = 3.0  # seconds standing still on track: stopped car
 GONE_TIME = 10.0  # seconds missing from the answers: car left the session (one answer without it: kept)
@@ -369,6 +370,7 @@ class RaceWatcher:
     def reset(self) -> None:
         """Another session, or session time jumped: watched again from next answer, nothing told"""
         self.now = -1.0
+        self.last_step = 0.0  # session time between the last two answers (fast replay, see update)
         self.cars: dict[int, CarState] = {}
         self.class_best: dict[str, float] = {}
         self.battles: dict[tuple[int, int], Battle] = {}
@@ -392,8 +394,12 @@ class RaceWatcher:
         come back as history (live False), nothing else is told"""
         if now < 0:
             return []
-        jumped = self.now >= 0 and (now < self.now - 1.0 or now > self.now + JUMP)
+        step = now - self.now if self.now >= 0 else 0.0
+        # Fast replay: steps over JUMP, each like the last one (a seek is one step far from the others)
+        steady = JUMP < step <= self.last_step * FAST_STEP_SHARE
+        jumped = self.now >= 0 and (step < -1.0 or (step > JUMP and not steady))
         rewound = jumped and now < self.now
+        last_step = step
         if jumped:
             stops, known, laps, speeds, sectors = (self.pit_stops, self.seen_incidents, self.laps, self.usual_speed,
                                                    self.sector_best)
@@ -405,6 +411,7 @@ class RaceWatcher:
             self.sector_best = sectors
             if rewound:  # replay rewound: laps & stops after now recorded again as they come
                 self.forget_after(cars, now)
+        self.last_step = last_step
         first = self.now < 0
         self.track_length = track_length
         previous_time, self.now = self.now, now

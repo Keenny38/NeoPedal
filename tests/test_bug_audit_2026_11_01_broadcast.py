@@ -309,3 +309,17 @@ def test_b031_speed_history_bounded_while_time_frozen():
     for _ in range(500):
         watcher.update(cars, (), 101.0, "RACE1", TRACK)
     assert len(watcher.cars[1].speeds) <= 2
+
+
+# B-043: replay played fast (steps over JUMP, all alike) is watched, not taken for a seek at every answer
+def test_b043_fast_replay_steps_are_no_seek():
+    watcher = dr.RaceWatcher()
+    for step in range(8):
+        time = 100.0 + step * 20.8  # x16 replay, an answer every 1.3 s
+        laps = 10 + step // 4
+        watcher.update([car(1, 1, laps=laps, last=90.0, distance=1000.0), car(2, 2, laps=laps, distance=990.0)],
+                       (), time, "RACE1", TRACK)
+    assert [record.lap for record in watcher.laps[1]] == [11] and watcher.battles
+    # A real seek (one step far from the others) still watches again from there
+    watcher.update([car(1, 1, laps=12), car(2, 2, laps=12, distance=990.0)], (), 2000.0, "RACE1", TRACK)
+    assert [battle.since for battle in watcher.battles.values()] == [2000.0]
