@@ -42,6 +42,7 @@ const TONES={fastest:"var(--purple)",loss:"var(--loss)",warning:"var(--warn)",ga
 yellow:"var(--gold)",dim:"#9aa3b2"};
 const TYRES=@@tyres@@;  // letter: [fill, letter color], as compound badges of overlays
 const ROW=3.3,HEAD=2.4;  // tower row & class title heights (u)
+const TOWER_MARKS=3;  // marks of a tower row at most (penalty, fastest lap, stops, then tyres)
 const picture=link=>link?link+(link.includes("?")?"&":"?")+"token="+encodeURIComponent(token):"";
 let state={},layout={},preset="",version=0,lastCut=-1,cardTimer=0,towerPage=0,towerScroll=0,towerScrolls=1,towerTimer=0,shownBanners=new Set(),bannerQueue=[],bannerBusy=false;
 let wasReplay=false,received=Date.now(),replayEnded=0,lastTrain=null,trainUntil=0,laps=new Map(),live={},liveVersion=0,trackKey=null,track=null;
@@ -134,11 +135,12 @@ function tower(){
     const change=name.lastChild;set(change,row.change?(row.change>0?"\\u25b2":"\\u25bc")+Math.abs(row.change):"");
     change.className="tchange "+(row.change>0?"up":row.change<0?"down":"");
     const sig=[g.towerPenalties&&row.pen,g.towerFastest&&row.fastest,g.towerStops&&row.stops,g.towerTyres&&(row.tyres||[]).join("")].join("|");
-    if(marks.dataset.sig!==sig){marks.dataset.sig=sig;marks.innerHTML="";
-      if(g.towerPenalties&&row.pen>0)marks.append(cell("tpen",labels().pen+(row.pen>1?" "+row.pen:"")));
-      if(g.towerFastest&&row.fastest)marks.append(cell("tfl",labels().fastestTag));
-      if(g.towerStops&&row.stops>0)marks.append(cell("tstops",row.stops+"\\u00d7"));
-      if(g.towerTyres)for(const letter of row.tyres||[])marks.append(tyreMark(letter))}
+    if(marks.dataset.sig!==sig){marks.dataset.sig=sig;marks.innerHTML="";const items=[];
+      if(g.towerPenalties&&row.pen>0)items.push(cell("tpen",labels().pen+(row.pen>1?" "+row.pen:"")));
+      if(g.towerFastest&&row.fastest)items.push(cell("tfl",labels().fastestTag));
+      if(g.towerStops&&row.stops>0)items.push(cell("tstops",row.stops+"\\u00d7"));
+      if(g.towerTyres)for(const letter of row.tyres||[])items.push(tyreMark(letter));
+      marks.append(...items.slice(0,TOWER_MARKS))}  // most important first: the name keeps its room
     // Lap just completed: its time shown a few seconds in place of the gap (gold, purple for the fastest)
     const lapKey=carId(row),seen=laps.get(lapKey);
     if(row.lap&&(!seen||seen.id!==row.lapId)){

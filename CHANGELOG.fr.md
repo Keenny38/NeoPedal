@@ -38,6 +38,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Habillage de diffusion (source `/director`) : le carrousel des sponsors tourne pendant une course, au lieu de ne montrer que le premier sponsor (son minuteur repartait à chaque réponse de l'app).
 - Habillage de diffusion (source `/director`) : la grille de départ, le classement et le championnat montrent chaque page à tour de rôle quand leur nombre de pages ou leur durée change pendant l'affichage (des pages étaient sautées), et un autre championnat ou une autre classe commence à sa première page.
 - Habillage de diffusion (source `/director`) : le temps du tour en cours du graphisme de qualification ne recule plus de quelques secondes quand une autre partie de l'habillage change (réglages, image de marque, disposition, jeu en pause).
+- Habillage de diffusion (source `/director`), tour des temps : une voiture avec beaucoup de marques (pneus utilisés, arrêts, pénalité, meilleur tour) dans une longue course n'écrase plus son nom ni ne pousse son écart hors de la tour : trois marques au plus, les plus importantes d'abord.
 
 ## 0.28.1 (2026-11-01)
 

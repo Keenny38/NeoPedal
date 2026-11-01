@@ -103,10 +103,11 @@ background:rgba(255,255,255,.04);transition:transform .6s var(--ease)}
 .tgap .tpit.garage{background:rgba(255,255,255,.1);color:var(--dim)}.tgap .tpit.dnf,.tgap .tpit.dq{background:rgba(248,113,113,.22);color:var(--loss)}
 .tchange{font-size:calc(var(--u)*1.2);margin-left:calc(var(--u)*.4)}
 .tchange.up{color:var(--gain)}.tchange.down{color:var(--loss)}
-.tmarks{display:flex;align-items:center;gap:calc(var(--u)*.3)}
+/* Marks capped: tyres, stops, penalty & fastest lap of a 24 h race never take the name's room nor push the gap out */
+.tmarks{display:flex;align-items:center;gap:calc(var(--u)*.3);max-width:calc(var(--u)*10);overflow:hidden}
 .tyre{width:calc(var(--u)*1.7);height:calc(var(--u)*1.7);border-radius:calc(var(--u)*.34);display:flex;
 align-items:center;justify-content:center;font-size:calc(var(--u)*1);font-weight:700}
-.tpen{padding:0 calc(var(--u)*.45);border-radius:calc(var(--u)*.3);background:var(--loss);color:#fff;font-weight:700;font-size:calc(var(--u)*1.25)}
+.tpen{white-space:nowrap;padding:0 calc(var(--u)*.45);border-radius:calc(var(--u)*.3);background:var(--loss);color:#fff;font-weight:700;font-size:calc(var(--u)*1.25)}
 .tfl{padding:0 calc(var(--u)*.45);border-radius:calc(var(--u)*.3);background:var(--purple);color:#111;font-weight:700;font-size:calc(var(--u)*1.25)}
 .tstops{color:var(--dim);font-size:calc(var(--u)*1.3);font-weight:700}
 /* Driver card */

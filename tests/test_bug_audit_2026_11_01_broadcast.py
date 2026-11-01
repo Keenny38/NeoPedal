@@ -388,3 +388,18 @@ def test_b018_quali_clock_from_its_own_answer():
     script = director_script()
     assert 'if(data.full||first||"quali" in (data.state||{}))received=Date.now()' in script
     assert ';received=Date.now();' not in script
+
+
+def director_css() -> str:
+    from neopedal import stream_director
+
+    return stream_director.director_html("en", "Director").split("<style>", 1)[1].split("</style>", 1)[0]
+
+
+# B-019: tower marks (tyres, stops, penalty, fastest lap) never take the name's room nor push the gap out
+def test_b019_tower_marks_bounded():
+    css = director_css()
+    marks = css.split(".tmarks{", 1)[1].split("}", 1)[0]
+    assert "max-width:calc(var(--u)*10)" in marks and "overflow:hidden" in marks
+    assert "marks.append(...items.slice(0,TOWER_MARKS))" in director_script()
+    assert "white-space:nowrap" in css.split(".tpen{", 1)[1].split("}", 1)[0]
