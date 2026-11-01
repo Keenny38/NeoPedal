@@ -60,6 +60,7 @@ Fixes from an audit of the VR overlay.
 - Spectate: turning spectate mode on reloads the data modules (fuel, delta, stint...) once, instead of twice, and the log names the driver spectated instead of you.
 - Stream overlays while spectating or in a replay: an OBS source left on an overlay turned off or set to `Screen Only` no longer keeps every overlay shown and updated for nothing.
 - Stream overlays layout: a save request that holds no layout (sent by a faulty tool or browser extension) is refused instead of erasing the overlays placed on the layout source.
+- Race results stream source: after a change of app language or of class colors (vehicle class editor), the results shown follow at once instead of keeping the former texts and colors until the next session.
 
 ## 0.28.1 (2026-11-01)
 

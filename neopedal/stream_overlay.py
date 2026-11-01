@@ -636,7 +636,7 @@ class ResultsCache:
     def snapshot(self, kind: str, result: rf.SessionResult, build: Callable[[], dict[str, Any]]) -> dict[str, Any]:
         """Results page data of result (built by build once per result, language & game pictures), shared: never
         modified by callers"""
-        key = (current_language(), images.version)
+        key = (current_language(), images.version, classes_key())
         with self._lock:
             cached = self._snapshots.get(kind)
             if cached is not None and cached[0] == key and cached[1] is result:
@@ -645,6 +645,14 @@ class ResultsCache:
         with self._lock:
             self._snapshots[kind] = (key, result, data)
         return data
+
+
+def classes_key() -> int:
+    """Class names & colors of the vehicle class editor (results page made again when they change)"""
+    try:
+        return zlib.crc32(json.dumps(cfg.user.classes, sort_keys=True, default=str).encode("utf-8"))
+    except (TypeError, ValueError):
+        return 0
 
 
 def _result_code(path: str) -> str:
@@ -748,7 +756,9 @@ def _results_data(result: rf.SessionResult) -> dict[str, Any]:
     subtitle = next((name for name in (result.course, result.venue) if name and name != result.track), "")
     return {
         "available": True,
-        "id": f"{os.path.basename(result.path)}:{len(entries)}:{result.most_laps}:{images.version}",
+        # Page made again when it changes: other results, pictures, language or class colors
+        "id": (f"{os.path.basename(result.path)}:{len(entries)}:{result.most_laps}:{images.version}:"
+               f"{current_language()}:{classes_key()}"),
         "title": result.track,
         "trackLogo": picture_link(images.track_logo(result.track, result.venue, result.course)),
         "subtitle": subtitle,

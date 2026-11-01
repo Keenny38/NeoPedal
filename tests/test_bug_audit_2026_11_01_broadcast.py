@@ -714,3 +714,32 @@ def test_b037_bad_layout_post_never_erases(server):  # noqa: F811
     assert connection.getresponse().status == 411  # body length unknown: never read as the next request
     connection.close()
     assert post(url, b"{}") == 200 and stream_layout.get("16:9") == {}  # empty layout: reset asked
+
+
+# B-038: results page made again after a change of language or class colors (its id changes)
+def test_b038_results_id_follows_language_and_class_colors(ui_env, tmp_path, monkeypatch):
+    import json
+    import os
+
+    from neopedal import i18n, stream_overlay
+    from neopedal.process import results_file as rf
+    from neopedal.setting import cfg
+    from tests.test_stream_overlay import RACE_NAME, RACE_XML, write_results
+
+    folder = tmp_path / "Results"
+    write_results(folder, {RACE_NAME: RACE_XML})
+    with open(os.path.join(cfg.path.config, rf.PAGE_SETTINGS_FILE), "w", encoding="utf-8") as file:
+        json.dump({"folder": str(folder)}, file)
+    monkeypatch.setattr(rf, "find_results_folders", lambda libraries=None: {})
+    cache = stream_overlay.ResultsCache()
+    try:
+        i18n.set_language("English")
+        english = stream_overlay.results_snapshot(cache, "race")["id"]
+        i18n.set_language("Français")
+        assert stream_overlay.results_snapshot(cache, "race")["id"] != english
+        i18n.set_language("English")
+        monkeypatch.setitem(cfg.user.classes, "Hyper", {**cfg.user.classes.get("Hyper", {}), "color": "#123456"})
+        colored = stream_overlay.results_snapshot(cache, "race")
+        assert colored["id"] != english and colored["classes"][0]["color"] == "#123456"
+    finally:
+        i18n.set_language("English")
