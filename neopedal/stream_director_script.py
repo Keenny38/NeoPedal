@@ -47,7 +47,7 @@ const picture=link=>link?link+(link.includes("?")?"&":"?")+"token="+encodeURICom
 let state={},layout={},preset="",version=0,lastCut=-1,cardTimer=0,towerPage=0,towerScroll=0,towerScrolls=1,towerTimer=0,shownBanners=new Set(),bannerQueue=[],bannerBusy=false;
 let wasReplay=false,received=Date.now(),replayEnded=0,lastTrain=null,trainUntil=0,laps=new Map(),live={},liveVersion=0,trackKey=null,track=null;
 const pages={grid:0,results:0,champ:0},pageTimers={},towerLines=new Map(),recentBanners=new Map();
-let sponsorIndex=0,sponsorTimer=0,sponsorKey="",sponsorTimerKey="",countdownEnd=0;
+let sponsorIndex=0,sponsorTimer=0,sponsorKey="",sponsorTimerKey="",countdownEnd=0,runId="";
 function set(id,value){const el=typeof id==="string"?$(id):id;const text=value==null?"":String(value);if(el.textContent!==text)el.textContent=text}
 function toggle(id,on){$(id).classList.toggle("show",!!on)}
 function image(id,link){const el=$(id);const src=picture(link);if(src){if(el.getAttribute("src")!==src)el.src=src;el.style.display="block"}else el.style.display="none"}
@@ -533,6 +533,9 @@ async function poll(){
     const response=await fetch("/api/director?v="+version+(edit?"&demo=1":"")+(asked!==null?"&preset="+encodeURIComponent(asked):"")
       +"&token="+encodeURIComponent(token),{cache:"no-store"});
     if(response.ok){const data=await response.json();serverLost(false);
+      // App started again: versions start again, parts kept from the previous run never mixed in (asked again)
+      if(data.run&&runId&&data.run!==runId&&!data.full){runId=data.run;version=0;setTimeout(poll,0);return}
+      runId=data.run||runId;
       if(data.v!==version||edit){const first=version===0;version=data.v;
         // Only the parts of the state that changed come, every part on the first answer
         if(data.full||first)state=data.state||{};else Object.assign(state,data.state||{});

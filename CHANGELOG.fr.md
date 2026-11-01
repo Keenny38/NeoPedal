@@ -43,6 +43,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Habillage de diffusion (source `/director`) : un texte de bandeau ou un nom de pilote de l'onboard très long se termine par des points de suspension au lieu de dépasser les bords de l'écran ou d'élargir le panneau onboard.
 - Habillage de diffusion (source `/director`) : le compte à rebours de l'opérateur se compte avec l'horloge de l'ordinateur qui affiche la source, et ne finit plus en avance ou en retard quand OBS tourne sur un autre ordinateur dont l'horloge diffère.
 - Habillage de diffusion (source `/director`) : les bandeaux déjà annoncés sont oubliés une fois passés, la source n'utilise plus un peu plus de mémoire à chaque bandeau pendant une longue course.
+- Habillage de diffusion (source `/director`) : après un redémarrage de l'app, une source restée ouverte redemande tous les graphismes, au lieu de risquer d'en garder certains de l'exécution précédente à l'antenne (un ancien tableau de championnat).
 
 ## 0.28.1 (2026-11-01)
 

@@ -439,3 +439,15 @@ def test_b032_banner_sets_pruned():
     banners = director_script().split("function banners(){", 1)[1].split("function nextBanner(", 1)[0]
     assert "for(const id of shownBanners)if(!ids.has(id))shownBanners.delete(id)" in banners
     assert "for(const [same,time] of recentBanners)if(now-time>=30000)recentBanners.delete(same)" in banners
+
+
+# B-023: answers name the app run: a source of the previous run asks everything again (no state of that run kept)
+def test_b023_answer_names_the_run():
+    import json
+
+    from neopedal import stream_director
+
+    data = json.loads(stream_director.answer(0))
+    assert data["run"] == stream_director.RUN and len(stream_director.RUN) >= 8
+    assert "if(data.run&&runId&&data.run!==runId&&!data.full){runId=data.run;version=0;setTimeout(poll,0);return}" \
+        in director_script()

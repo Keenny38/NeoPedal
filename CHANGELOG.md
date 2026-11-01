@@ -43,6 +43,7 @@ Fixes from an audit of the VR overlay.
 - Broadcast Graphics (`/director` source): a very long banner text or onboard driver name ends with an ellipsis instead of running past the edges of the screen or widening the onboard panel.
 - Broadcast Graphics (`/director` source): the operator countdown counts from the clock of the computer showing the source, so it no longer ends early or late when OBS runs on another computer whose clock differs.
 - Broadcast Graphics (`/director` source): the banners already told are forgotten once over, so the source no longer uses a little more memory at every banner during a long race.
+- Broadcast Graphics (`/director` source): after the app is started again, a source left open asks for every graphic again, instead of possibly keeping some of the previous run on air (an old championship board).
 
 ## 0.28.1 (2026-11-01)
 

@@ -68,6 +68,7 @@ BRAND_FILE = re.compile(r"^(sponsors/)?[A-Za-z0-9 ._()-]{1,96}\.(png|jpg|jpeg|we
 BRAND_TYPES = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp",
                "svg": "image/svg+xml"}
 MAX_SPONSORS = 24
+RUN = os.urandom(6).hex()  # this run of the app: versions start again at each run, sources of another one ask all
 
 
 director_feed = SectionFeed()
@@ -90,7 +91,7 @@ def answer(after: int, preset: str | None = None) -> bytes:
     section)"""
     version, sections, full = director_feed.sections(after)
     return (b'{"v":' + str(version).encode("ascii") + b',"full":' + (b"true" if full else b"false")
-            + b',"preset":' + json.dumps(director_layout.active()).encode("utf-8")
+            + b',"run":"' + RUN.encode("ascii") + b'","preset":' + json.dumps(director_layout.active()).encode("utf-8")
             + b',"layout":' + layout_json(preset) + b',"state":' + sections_json(sections) + b"}")
 
 
