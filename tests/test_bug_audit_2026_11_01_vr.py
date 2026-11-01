@@ -181,3 +181,27 @@ def test_b001_layer_unregistered_at_windows_session_end(env):  # noqa: F811
     finally:
         control.disable()
     assert control._session_end is None
+
+
+# B-007: VR mirror window restored with only its top left corner on a screen
+
+
+@pytest.mark.parametrize("offset, restored", [
+    ((10, 10), True),  # well inside the screen
+    ((-5, -5), False),  # bottom right corner: a few pixels left on screen
+    ((-50, -50), False),
+])
+def test_b007_mirror_restored_only_when_mostly_on_screen(ui_env, offset, restored):
+    from PySide6.QtGui import QGuiApplication
+
+    screen = QGuiApplication.primaryScreen().availableGeometry()
+    x = screen.left() + offset[0] if offset[0] > 0 else screen.right() + offset[0]
+    y = screen.top() + offset[1] if offset[1] > 0 else screen.bottom() + offset[1]
+    setting = cfg.user.config["vr_overlay"]
+    setting["mirror_position_x"], setting["mirror_position_y"] = x, y
+    window = vr_overlay.MirrorWindow("#000000", lambda: None)
+    try:
+        assert ((window.pos().x(), window.pos().y()) == (x, y)) is restored
+    finally:
+        window.deleteLater()
+        QCoreApplication.processEvents()

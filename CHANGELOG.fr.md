@@ -12,6 +12,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay VR : des overlays rechargés pendant que SteamVR démarrait ou se fermait ne coupent plus le nouvel overlay SteamVR (overlay disparu du casque, plantage possible de l'app).
 - Overlay VR : un second NeoPedal lancé en même temps (une copie portable à côté de l'app installée) ne partage plus la couche OpenXR avec le premier. Il indique que la couche est déjà utilisée, et sa fermeture ne masque plus l'overlay du premier dans le jeu et ne retire plus sa couche des jeux OpenXR lancés ensuite.
 - Overlay VR : se déconnecter de Windows ou l'éteindre avec l'app ouverte ne laisse plus la couche OpenXR enregistrée dans tous les jeux OpenXR jusqu'au prochain démarrage de l'app.
+- Fenêtre miroir VR : ne s'ouvre plus presque entièrement hors de l'écran (seul son coin visible) après un changement d'écran ; elle s'ouvre alors à sa place par défaut.
 
 ## 0.28.1 (2026-11-01)
 

@@ -62,6 +62,7 @@ logger = logging.getLogger(__name__)
 
 MAX_PIXELS = 1024 * 1024  # setOverlayRaw data size limit, image is scaled down above this
 MIRROR_TITLE = "NeoPedal VR"  # window title to select in window capture apps
+MIRROR_VISIBLE_SIZE = (100, 50)  # pixels from the mirror window's top left that must be on screens to restore it
 STEAMVR_PROCESSES = ("vrserver.exe", "vrserver")  # SteamVR server (Windows, Linux)
 STEAMVR_RETRY_MS = 5000  # SteamVR started after app: overlay created within this delay
 STEAMVR_IDLE_RETRY_MS = 60000  # same while overlays are paused (not driving): checked again at once on resume
@@ -142,13 +143,17 @@ class MirrorWindow(QWidget):
         self.update()
 
     def restore_position(self):
-        """Position of last time, if still on a screen"""
+        """Position of last time, if its top left part (title bar, MIRROR_VISIBLE_SIZE) is still on screens"""
         setting = cfg.user.config["vr_overlay"]
         try:
             position = QPoint(int(setting["mirror_position_x"]), int(setting["mirror_position_y"]))
         except (KeyError, TypeError, ValueError, OverflowError):
             return
-        if QGuiApplication.screenAt(position) is not None:  # never set (default), or screen gone
+        screens = QRegion()
+        for screen in QGuiApplication.screens():
+            screens += screen.availableGeometry()
+        # Never set (default), screen gone or window mostly outside screens (only a corner left to grab): not restored
+        if QRegion(QRect(position, QSize(*MIRROR_VISIBLE_SIZE))).subtracted(screens).isEmpty():
             self.move(position)
 
     def save_position(self):

@@ -124,7 +124,7 @@ How the OpenXR layer is installed and removed:
 
 ### VR mirror window
 
-For OpenGL games, or to place overlays with another tool, turn on `enable_vr_mirror_window` in the same page. A desktop window shows all visible overlays as one image. Display it in your headset with a window capture tool such as OpenKneeboard, OVR Toolkit, XSOverlay or Desktop+. `mirror_background_color` sets its background; its position is remembered. Closing the window turns the mirror off until the next reload.
+For OpenGL games, or to place overlays with another tool, turn on `enable_vr_mirror_window` in the same page. A desktop window shows all visible overlays as one image. Display it in your headset with a window capture tool such as OpenKneeboard, OVR Toolkit, XSOverlay or Desktop+. `mirror_background_color` sets its background; its position is remembered (default place when it would open mostly off screen). Closing the window turns the mirror off until the next reload.
 
 ### VR Compatibility mode
 
