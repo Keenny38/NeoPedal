@@ -111,3 +111,27 @@ def test_b004_graphics_hidden_after_failed_requests():
     assert "serverLost(false)" in poll_body and poll_body.count("serverLost(true)") == 2
     assert "function serverLost(lost)" in script and "LOST_MS=5000" in script
     assert ".lost>.g{opacity:0!important}" in stream_director.director_html("en", "Director")
+
+
+TRACK = 4000.0
+
+
+def finished(*cars):
+    return [item._replace(finish="FSTAT_FINISHED") for item in cars]
+
+
+# B-005: the class winner is the class leader taking the flag in a race (never a lapped car, never qualifying)
+def test_b005_winner_is_class_leader_in_races_only():
+    watcher = dr.RaceWatcher()
+    hyper, gt3_leader, gt3_lapped = car(1, 1, car_class="Hyper"), car(10, 2), car(11, 3, laps=9)
+    watcher.update([hyper, gt3_leader, gt3_lapped], (), 1000.0, "RACE1", TRACK)
+    events = watcher.update([*finished(hyper), gt3_leader, *finished(gt3_lapped)], (), 1001.0, "RACE1", TRACK)
+    assert sorted((event.kind, event.slots) for event in events if event.kind in (dr.WINNER, dr.FINISH)) == [
+        (dr.FINISH, (11,)), (dr.WINNER, (1,))]
+    events = watcher.update(finished(hyper, gt3_leader, gt3_lapped), (), 1020.0, "RACE1", TRACK)
+    assert [(event.kind, event.slots) for event in events] == [(dr.WINNER, (10,))]
+    qualifying = dr.RaceWatcher()
+    cars = [car(1, 1), car(2, 2)]
+    qualifying.update(cars, (), 100.0, "QUALIFY1", TRACK)
+    events = qualifying.update([*finished(cars[1]), cars[0]], (), 101.0, "QUALIFY1", TRACK)
+    assert [event.kind for event in events] == [dr.FINISH]

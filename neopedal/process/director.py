@@ -401,7 +401,7 @@ class RaceWatcher:
             for car in cars:
                 self.cars[car.slot] = CarState(car, places[car.slot], now)
                 self.note_best(car)
-                if car.finish == "FSTAT_FINISHED":
+                if car.finish == "FSTAT_FINISHED" and places[car.slot] == 1:  # class winner known already
                     self.finished_classes.add(car.car_class)
             self.update_battles(cars, places, now, 0.0, race)
             return events
@@ -513,8 +513,10 @@ class RaceWatcher:
         # Finish, retirement
         if car.finish != state.finish:
             if car.finish == "FSTAT_FINISHED":
-                kind = WINNER if car.car_class not in self.finished_classes else FINISH
-                self.finished_classes.add(car.car_class)
+                # Class winner: class leader taking the flag of a race (a lapped car of the class may finish first)
+                kind = WINNER if race and place == 1 and car.car_class not in self.finished_classes else FINISH
+                if kind == WINNER:
+                    self.finished_classes.add(car.car_class)
                 events.append(self.event(kind, now, (car,), place))
             elif car.finish in ("FSTAT_DNF", "FSTAT_DQ"):
                 events.append(self.event(RETIRED, now, (car,), place, 1.0 if car.finish == "FSTAT_DQ" else 0.0))
