@@ -98,6 +98,7 @@ CAMERA_STYLES = ("mixed", "trackside", "onboard", "keep")  # keep: car changes, 
 STYLE_CAMERAS = {"trackside": ("TRACKSIDE0",), "onboard": ("ONBOARD00", "TVCOCKPIT", "ONBOARD02", "SWINGMAN")}
 
 SETTLE = 1.0  # seconds: a new place counts once seen this long (cars side by side swap places)
+LINE_SETTLE = 3.0  # seconds after taking the flag: a place still settling counts (overtake on the line)
 JUMP = 20.0  # seconds: session time moved further (replay seek, other session): watched again from there
 FAST_STEP_SHARE = 1.5  # fast replay: step over JUMP at most this share of the last one (steady, not a seek)
 STOP_SPEED = 3.0  # m/s: car stands still
@@ -244,7 +245,7 @@ class CarState:
 
     __slots__ = ("in_pit", "pit_since", "finish", "penalties", "best", "still_since", "stopped",
                  "place", "pending", "pending_since", "stint_lap", "slow_since", "slow", "box_since", "box_time",
-                 "laps", "lap_pit", "lap_energy", "stopped_at", "speeds", "identity", "seen")
+                 "laps", "lap_pit", "lap_energy", "stopped_at", "speeds", "identity", "seen", "finished_at")
 
     def __init__(self, car: Standing, place: int, now: float):
         self.in_pit = car.in_pit
@@ -270,6 +271,7 @@ class CarState:
         self.lap_energy = level(car)  # energy (else fuel) at lap start, -1 if unknown
         self.identity = car_identity(car)  # same car (a slot may go to another car, see RaceWatcher.update)
         self.seen = now  # session time of the last answer with the car
+        self.finished_at = -1e9  # session time the car took the flag (seen), long ago if finished before
 
 
 def car_identity(car: Standing) -> tuple[str, str, str]:
@@ -567,6 +569,7 @@ class RaceWatcher:
         # Finish, retirement
         if car.finish != state.finish:
             if car.finish == "FSTAT_FINISHED":
+                state.finished_at = now
                 # Class winner: class leader taking the flag of a race (a lapped car of the class may finish first)
                 kind = WINNER if race and place == 1 and car.car_class not in self.finished_classes else FINISH
                 if kind == WINNER:
@@ -599,8 +602,8 @@ class RaceWatcher:
             state.pending, state.pending_since = place, now
         elif place != state.place and now - state.pending_since >= SETTLE:
             old, state.place = state.place, place
-            if race and place < old and running(car):
-                passed = self.passed_car(car, place, old, by_slot)
+            if race and place < old and (running(car) or self.on_the_line(car, state, now)):
+                passed = self.passed_car(car, place, old, by_slot, now)
                 if passed is not None:
                     events.append(self.event(LEAD if place == 1 else OVERTAKE, now, (car, passed), place))
         return events
@@ -719,7 +722,13 @@ class RaceWatcher:
                 break
         return sum(used) / count if len(used) == count else -1.0
 
-    def passed_car(self, car: Standing, place: int, old: int, by_slot: dict[int, Standing]) -> Standing | None:
+    @staticmethod
+    def on_the_line(car: Standing, state: CarState, now: float) -> bool:
+        """Car took the flag just now: its place settling counts (overtake on the line)"""
+        return car.finish == "FSTAT_FINISHED" and now - state.finished_at <= LINE_SETTLE
+
+    def passed_car(self, car: Standing, place: int, old: int, by_slot: dict[int, Standing],
+                   now: float = -1.0) -> Standing | None:
         """Car of same class passed on track (one place behind now, ahead before), None if it lost its place
         in the pits or by stopping (no overtake then)"""
         for slot, state in self.cars.items():
@@ -727,7 +736,7 @@ class RaceWatcher:
             if other is None or slot == car.slot or other.car_class != car.car_class:
                 continue
             if state.pending == place + 1 and state.place < old:
-                if not running(other) or state.still_since >= 0:
+                if not (running(other) or self.on_the_line(other, state, now)) or state.still_since >= 0:
                     return None
                 return other
         return None

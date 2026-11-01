@@ -338,3 +338,19 @@ def test_b045_small_field_two_stopped_cars_told():
     for time in range(100, 110):
         events += watcher.update(field_at(time), (), float(time), "RACE1", TRACK)
     assert sorted(event.slots for event in events if event.kind == dr.STOPPED) == [(2,), (3,)]
+
+
+# B-046: overtake on the finish line (both cars finished as the new place settles) is told
+def test_b046_overtake_on_the_finish_line_told():
+    watcher = dr.RaceWatcher()
+    watcher.update([car(1, 1, finish="FSTAT_FINISHED"), car(2, 2, distance=3990.0), car(3, 3, distance=3985.0)], (),
+                   100.0, "RACE1", TRACK)
+    line = [car(1, 1, finish="FSTAT_FINISHED"), car(3, 2, laps=11, distance=5.0, finish="FSTAT_FINISHED"),
+            car(2, 3, laps=11, distance=3.0, finish="FSTAT_FINISHED")]
+    events = watcher.update(line, (), 100.5, "RACE1", TRACK) + watcher.update(line, (), 101.6, "RACE1", TRACK)
+    assert [(event.kind, event.slots) for event in events if event.kind == dr.OVERTAKE] == [(dr.OVERTAKE, (3, 2))]
+    # Long after the flag, places of finished cars changing are no overtake
+    later = [car(1, 1, finish="FSTAT_FINISHED"), car(2, 2, laps=11, finish="FSTAT_FINISHED"),
+             car(3, 3, laps=11, finish="FSTAT_FINISHED")]
+    events = watcher.update(later, (), 130.0, "RACE1", TRACK) + watcher.update(later, (), 131.5, "RACE1", TRACK)
+    assert [event for event in events if event.kind == dr.OVERTAKE] == []
