@@ -1777,7 +1777,7 @@ class DirectorBackend(PageBackend):
                                       gc.seek_replay(int(event.time) - self.seconds_before, slot),
                                       *gc.camera_commands(camera), ("PUT", f"/rest/watch/replayCommand/{gc.PLAY}")]
         self.instant_waiting = True  # back to live counted from when the replay plays there
-        self._camera.send(*commands)
+        self._camera.send_instant(*commands)
         self.set_on_air(slot, event.kind)
         self._instant_timer.start(int(INSTANT_LIMIT * 1000))
 

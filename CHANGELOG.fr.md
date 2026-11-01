@@ -50,6 +50,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Régie de course : `Entrée`, `Prendre la meilleure` et le raccourci de la meilleure suggestion coupent vers la suggestion marquée comme meilleure dans la liste, et plus parfois vers une autre (une voiture montrée à tour de rôle, ou l'histoire d'une autre voiture que la meilleure, qui concerne la voiture à l'antenne).
 - Régie de course avec un jeu lent (jeu sur un autre ordinateur, chargement) : une coupure dont la commande prend quelques secondes n'est plus prise pour une voiture choisie dans le jeu (régie en pause 20 s et voiture précédente remise à l'antenne).
 - Régie de course avec un jeu lent : les coupures encore en attente sont remplacées par la plus récente, au lieu que chaque ancienne voiture passe un instant à l'antenne à tour de rôle, et les commandes d'une session quittée ne sont plus envoyées à la suivante.
+- Régie de course : un ralenti est gardé ou arrêté selon la réponse du jeu au ralenti lui-même, et plus selon celle d'un changement de caméra envoyé juste après (ralenti affiché en cours alors que le jeu l'a refusé, ou arrêté aussitôt).
 
 ## 0.28.1 (2026-11-01)
 

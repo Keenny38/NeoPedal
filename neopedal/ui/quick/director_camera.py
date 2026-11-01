@@ -62,10 +62,18 @@ class CameraDesk(DirectorPart):
         self._cameras: list[dict] | None = None
         self.request_command = GameRequest(self, (), self.command_done, self.command_failed)
         self.command_queue: list[tuple[gc.Command, ...]] = []
+        self._current: tuple[gc.Command, ...] | None = None  # batch on its way
+        self._instant: tuple[gc.Command, ...] | None = None  # batch of the instant replay (its own answer tells)
 
     def stop(self):
         """Page closed: commands not sent yet dropped"""
         self.command_queue.clear()
+
+    def send_instant(self, *commands: gc.Command):
+        """Batch of an instant replay: kept or ended by the answer of this batch (see command_done)"""
+        self._instant = commands
+        self.command_queue.append(commands)  # this very batch (told apart from same commands sent later)
+        self.send()
 
     def send_cut(self, *commands: gc.Command):
         """Car & camera of a cut: cuts still waiting (slow game) dropped, the newer one wins (never each former car
@@ -98,6 +106,7 @@ class CameraDesk(DirectorPart):
         if self.request_command.busy or not self.command_queue:
             return
         batch = self.command_queue.pop(0)
+        self._current = batch
         address = self.page.game.game_address()
         self.request_command.start(lambda: gc.send_commands(batch, address))
 
@@ -106,7 +115,9 @@ class CameraDesk(DirectorPart):
             rest_cache.forget(resource)
         page = self.page
         page.last_cut = time.monotonic()  # game focus grace counted from when the game got the cut (slow game)
-        if not self.command_queue:
+        done, self._current = self._current, None
+        if done is not None and done is self._instant:  # instant replay told by its own batch, not the last one
+            self._instant = None
             page.commands_sent(accepted)
         if not accepted:
             page.notify(tr("Game did not accept the command"), True)

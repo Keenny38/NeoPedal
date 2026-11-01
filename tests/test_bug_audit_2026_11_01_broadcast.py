@@ -528,3 +528,24 @@ def test_b020_waiting_cuts_replaced_and_dropped(director_page):  # noqa: F811
         assert camera.command_queue == []  # session left: nothing sent to the next one
     finally:
         camera.request_command.busy = False
+
+
+# B-028: instant replay kept or ended by the answer of its own batch, never by the batch sent after it
+def test_b028_instant_replay_resolved_by_its_own_batch(director_page):  # noqa: F811
+    page, backend = director_page, director_page.backend
+    poll(page, race_answers(100.0, car(1, 1), car(2, 2), focus=1))
+    camera = backend.camera
+    calls = []
+    backend.commands_sent = calls.append
+    camera.request_command.busy = True  # batches wait: done by hand below
+    try:
+        camera.send_instant(("POST", "/rest/replay/toggleactive"))
+        camera.send(("POST", "/rest/replay/CameraController/setCamera", "{}"))
+        camera._current = camera.command_queue.pop(0)  # instant batch on its way
+        camera.command_done(False)  # refused
+        camera._current = camera.command_queue.pop(0)  # camera batch
+        camera.command_done(True)
+        assert calls == [False]
+    finally:
+        camera.request_command.busy = False
+        del backend.commands_sent
