@@ -296,3 +296,18 @@ def test_b023_led_colors_used_whatever_flicker_and_lift_and_coast(ui_env, modern
         assert not dimmed("rpm_led", key, modern, show_rpm_flickering_above_critical=False), key
     if "lift_and_coast_color_off" in shown_keys("lift_and_coast_led", modern):
         assert not dimmed("lift_and_coast_led", "lift_and_coast_color_off", modern, show_lift_and_coast=False)
+
+
+# B-024: manual steering range dimmed while the angle reading is hidden, though it turns the wheel & scale
+@DESIGNS
+@pytest.mark.parametrize("name", ["steering_wheel", "steering_meter"])
+def test_b024_manual_steering_range_used_without_angle_reading(ui_env, name, modern):
+    assert not dimmed(name, "manual_steering_range", modern, show_steering_angle=False)
+
+
+@DESIGNS
+def test_b024_steering_angle_range_used_by_steering_ratio(ui_env, modern):
+    assert not dimmed("steering_angle", "manual_steering_range", modern, show_steering_angle=False,
+                      show_steering_ratio=True)
+    assert dimmed("steering_angle", "manual_steering_range", modern, show_steering_angle=False,
+                  show_steering_ratio=False)

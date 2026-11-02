@@ -149,6 +149,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, overlays Température des freins et températures des pneus : `heatmap_name` n'est plus grisée quand elle sert (heatmap automatique désactivée), et elle est grisée quand la heatmap automatique la choisit.
 - `Options des overlays`, Pincement : désactiver `enable_symmetric_toe_angle` ne grise plus les options des valeurs, et les options du pincement total sont grisées quand `show_total_toe_angle` est désactivée.
 - `Options des overlays`, LED de régime et LED lever-pied : le nombre, la taille et le contour des LED ne sont plus grisés avec les LED d'un seul côté (par défaut), ni les couleurs des LED par `show_rpm_flickering_above_critical` ou `show_lift_and_coast`.
+- `Options des overlays`, Volant, Jauge de direction et Angle de direction : `manual_steering_range` n'est plus grisée quand la lecture de l'angle est masquée, car elle fait toujours tourner le volant et la barre (et sert au rapport de direction).
 
 ## 0.28.1 (2026-11-01)
 

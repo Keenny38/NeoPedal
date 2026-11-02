@@ -133,7 +133,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "track_clock": (OptionFix(dependencies={"enable_time_scaled_countdown": "show_sunlight_phase_countdown"}),),
     "lap_time_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
     "stint_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
-    "steering_meter": (OptionFix(MODERN, dependencies={"scale_mark_degree": "show_scale_mark"}),),
+    "steering_meter": (OptionFix(MODERN, dependencies={"scale_mark_degree": "show_scale_mark"}),
+                       OptionFix(dependencies={"manual_steering_range": ""})),
     "tyre_overview": (OptionFix(dependencies={
         "flat_spot_threshold": "show_tyre_alerts",
         "show_inner_center_outer": "show_surface_temperature",
@@ -170,6 +171,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                          "font_color_total_toe_angle_positive", "font_color_total_toe_angle_negative",
                          "background_color_total_toe_angle"), "show_total_toe_angle"),
     }),),
+    # Manual range: turns the wheel & bar whether the angle is read or not (Steering Angle: see ANY_OF)
+    "steering_wheel": (OptionFix(dependencies={"manual_steering_range": ""}),),
+    "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
 }
 
 
@@ -253,6 +257,7 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "steering_angle": {"manual_steering_range": ("show_steering_angle", "show_steering_ratio")},
     "tyre_overview": {
         "show_layer_labels": ("show_carcass_temperature", "show_inner_layer_temperature"),
         # Tread left & tread gauge (modern design only: classic one follows show_wear, see OPTION_FIXES)
