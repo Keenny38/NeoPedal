@@ -278,6 +278,7 @@ def calc_tyre_wear(output: WheelsInfo, min_delta_distance: float, lock_threshold
             delta_array_raw[:] = (WHEELS_DELTA_DEFAULT,)
             delta_array_last = (WHEELS_DELTA_DEFAULT,)
             is_valid_delta = False
+            delta_recording = False  # lap in progress (reset mid-lap): partial, never a lap wear
             last_lap_stime = 0.0
             output.lastLapTreadWear[:] = WHEELS_ZERO
 
@@ -292,13 +293,15 @@ def calc_tyre_wear(output: WheelsInfo, min_delta_distance: float, lock_threshold
 
         if lap_stime != last_lap_stime:
             last_lap_stime = lap_stime  # reset time stamp counter
-            output.lastLapTreadWear[:] = tread_wear_curr
-            # Update delta array for non-pit lap
-            if len(delta_array_raw) > 1 and not is_pit_lap:
-                delta_array_last = tuple(delta_array_raw)
-                tread_wear_valid[:] = tread_wear_curr
-            elif not is_valid_delta:  # save for first/out lap
-                tread_wear_valid[:] = tread_wear_curr
+            # Lap recorded from its start only: app started or reset mid-lap, partial lap never a lap wear
+            if delta_recording:
+                output.lastLapTreadWear[:] = tread_wear_curr
+                # Update delta array for non-pit lap
+                if len(delta_array_raw) > 1 and not is_pit_lap:
+                    delta_array_last = tuple(delta_array_raw)
+                    tread_wear_valid[:] = tread_wear_curr
+                elif not is_valid_delta:  # save for first/out lap
+                    tread_wear_valid[:] = tread_wear_curr
             tread_wear_curr[:] = WHEELS_ZERO
             delta_array_raw[:] = (WHEELS_DELTA_DEFAULT,)
             delta_recording = laptime_curr < 1
@@ -417,6 +420,7 @@ def calc_brake_wear(output: WheelsInfo, min_delta_distance: float):
             delta_array_raw[:] = (WHEELS_DELTA_DEFAULT,)
             delta_array_last = (WHEELS_DELTA_DEFAULT,)
             is_valid_delta = False
+            delta_recording = False  # lap in progress (reset mid-lap): partial, never a lap wear
             last_lap_stime = 0.0
             output.lastLapBrakeWear[:] = WHEELS_ZERO
             output.failureBrakeThickness[:] = brake_failure_thickness(
@@ -438,13 +442,15 @@ def calc_brake_wear(output: WheelsInfo, min_delta_distance: float):
 
         if lap_stime != last_lap_stime:
             last_lap_stime = lap_stime  # reset time stamp counter
-            output.lastLapBrakeWear[:] = brake_wear_curr
-            # Update delta array for non-pit lap
-            if len(delta_array_raw) > 1 and not is_pit_lap:
-                delta_array_last = tuple(delta_array_raw)
-                brake_wear_valid[:] = brake_wear_curr
-            elif not is_valid_delta:  # save for first/out lap
-                brake_wear_valid[:] = brake_wear_curr
+            # Lap recorded from its start only: app started or reset mid-lap, partial lap never a lap wear
+            if delta_recording:
+                output.lastLapBrakeWear[:] = brake_wear_curr
+                # Update delta array for non-pit lap
+                if len(delta_array_raw) > 1 and not is_pit_lap:
+                    delta_array_last = tuple(delta_array_raw)
+                    brake_wear_valid[:] = brake_wear_curr
+                elif not is_valid_delta:  # save for first/out lap
+                    brake_wear_valid[:] = brake_wear_curr
             brake_wear_curr[:] = WHEELS_ZERO
             delta_array_raw[:] = (WHEELS_DELTA_DEFAULT,)
             delta_recording = laptime_curr < 1

@@ -101,6 +101,7 @@ Fixes from an audit of the VR overlay.
 - Consumption history (Race Calculator): switching to another track and class (or following a car of another class) while a save was waiting no longer replaces the history file of the former one with the new one's laps, and the latest laps are no longer lost on a reload.
 - Le Mans Ultimate: drivers with a long name (over 31 bytes, accents count double) get their energy per lap column (Standings, Relative), and their contacts in the Black Box; the game cuts names in its shared memory.
 - Session recorder replays (Le Mans Ultimate): going back in a replay no longer resets the incidents, penalties and track limits to 0 for the rest of the playback, and a seek forward or a fast speed (x2, x4) no longer loses those of the frames jumped.
+- Tyre and brake wear: with the app started (or the car reset) in the middle of a lap, that partial lap is no longer taken as the wear of a lap (Tyre Wear, Tyre Overview, Lap Time History, Black Box): laps left were too optimistic during the next lap.
 
 ## 0.28.1 (2026-11-01)
 

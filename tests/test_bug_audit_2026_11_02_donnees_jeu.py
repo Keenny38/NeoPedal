@@ -679,3 +679,35 @@ def test_b017_replay_results_kept_after_seek_back_and_skipped_frames(ui_env):
         assert incidents() == control[197]
     finally:
         session.close()
+
+
+# --- B-018: app started mid-lap (recorded session): partial first lap never a last lap or valid lap wear
+def test_b018_partial_first_lap_never_lap_wear(ui_env, monkeypatch):
+    from neopedal.api_control import api
+    from neopedal.module_info import ModuleInfo, minfo
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession, lockstep_modules
+
+    fresh = ModuleInfo()
+    for name in ModuleInfo.__slots__:
+        monkeypatch.setattr(minfo, name, getattr(fresh, name))
+    for name in ("active", "paused", "resets", "shown", "session_type", "in_pits"):
+        monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
+    realtime_state.active = realtime_state.paused = realtime_state.shown = realtime_state.in_pits = False
+    realtime_state.resets = 0
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    monkeypatch.setattr(api, "_api", session.connector)
+    monkeypatch.setattr(api, "read", session.reader)
+    wear = {}  # completed laps: (last lap wear, front left)
+    try:
+        with lockstep_modules(monkeypatch, ["module_wheels"], cfg) as lockstep:
+            for index in range(100):  # app started at 39 % of a lap, line crossed at frame 97
+                lockstep.step(lambda index=index: session.load(index))
+                wear[session.reader.lap.completed_laps()] = (
+                    minfo.wheels.lastLapTreadWear[0], minfo.wheels.estimatedValidTreadWear[0])
+            lockstep.finish()
+    finally:
+        session.close()
+    last_lap, estimated = wear[max(wear)]
+    assert last_lap == 0.0  # lap driven from 39 %: no last lap wear
+    assert estimated < 0.1  # estimate of the new lap from its own wear only, not 0.39 of a partial lap

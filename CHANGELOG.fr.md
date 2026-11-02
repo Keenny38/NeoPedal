@@ -101,6 +101,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Historique de consommation (Calculateur de course) : passer à un autre circuit et une autre catégorie (ou suivre une voiture d'une autre catégorie) pendant qu'une sauvegarde attendait ne remplace plus le fichier d'historique de l'ancien par les tours du nouveau, et les derniers tours ne sont plus perdus au rechargement.
 - Le Mans Ultimate : les pilotes au nom long (plus de 31 octets, les accents comptent double) ont leur colonne d'énergie par tour (Classement, Relatif) et leurs contacts dans le HUD tableau de bord ; le jeu coupe les noms dans sa mémoire partagée.
 - Replays de l'enregistreur de session (Le Mans Ultimate) : revenir en arrière dans un replay ne remet plus les incidents, pénalités et limites de piste à 0 pour le reste de la lecture, et un saut en avant ou une vitesse rapide (x2, x4) ne perd plus ceux des images sautées.
+- Usure des pneus et des freins : avec l'app lancée (ou la voiture remise à zéro) en plein tour, ce tour partiel n'est plus pris pour l'usure d'un tour (Usure des pneus, Vue d'ensemble des pneus, Historique des temps au tour, HUD tableau de bord) : les tours restants étaient trop optimistes pendant le tour suivant.
 
 ## 0.28.1 (2026-11-01)
 
