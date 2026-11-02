@@ -3618,8 +3618,11 @@ Show driver position change in class instead of overall. This option is enabled 
     show_invalid_lap_indicator
 Modern design: show lap progress in loss color while game invalidated current lap (track limits). This option only works for `LMU`.
 
-    show_invalid_lap_highlight, warning_color_invalid_lap
+    show_invalid_lap_highlight
 Classic layout: show lap number background in `warning_color_invalid_lap` while game invalidated current lap (track limits), before `warning_color_maximum_laps`. This option only works for `LMU`. Default is disabled.
+
+    warning_color_invalid_lap
+Classic layout: set lap number background color while game invalidated current lap, see `show_invalid_lap_highlight`.
 
 [**`Back to Top`**](#)
 
@@ -3850,7 +3853,7 @@ Show nearest pace notes comments info behind current vehicle position.
 Enable line break for displaying multi-line comments. To break a line into multiple lines, add `\n` to any part of the comment.
 
     show_debugging
-Show nearest pace notes index number behind current vehicle position, and distance value (meters) behind current position to next index position.
+Show track distance (meters) of the pace note behind current vehicle position and of the next pace note, as `behind >> next`.
 
     pace_notes_width, comments_width, debugging_width
 Set maximum display width, value in chars, such as 10 = 10 chars.
@@ -5587,7 +5590,7 @@ Show nearest track notes comments info behind current vehicle position.
 Enable line break for displaying multi-line comments. To break a line into multiple lines, add `\n` to any part of the comment.
 
     show_debugging
-Show nearest track notes index number behind current vehicle position, and distance value (meters) behind current position to next index position.
+Show track distance (meters) of the track note behind current vehicle position and of the next track note, as `behind >> next`.
 
     track_notes_width, comments_width, debugging_width
 Set maximum display width, value in chars, such as 10 = 10 chars.
@@ -6126,7 +6129,7 @@ For example, if minimum safe tyre tread is around 10%, then for triple-stint tyr
 Set warning threshold for total remaining tyre in percentage. Default is `30` percent.
 
     warning_threshold_wear
-Set warning threshold for total amount tyre wear of last lap in percentage. Default is `3` percent.
+Set warning threshold in percentage for tyre wear of last lap, live tyre wear of current lap and flat spot wear. Default is `3` percent.
 
     warning_threshold_laps
 Set warning threshold for estimated tyre lifespan in laps. Default is `5` laps.

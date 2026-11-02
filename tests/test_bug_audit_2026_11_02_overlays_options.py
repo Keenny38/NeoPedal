@@ -1387,3 +1387,13 @@ def test_b092_visibility_context_help(ui_env):
     for name in ("fuel", "standings", "radar"):
         assert "In Pits" in option_help_english(name, "visibility_context")
         assert option_help_specific(name, "visibility_context")
+
+
+# B-093: helps describing another option or other values
+def test_b093_helps_describe_their_option(ui_env):
+    from neopedal.i18n.options import option_help_english
+
+    assert "Default is disabled" not in option_help_english("laps_and_position", "warning_color_invalid_lap")
+    for name in ("pace_notes", "track_notes"):
+        assert "index number" not in option_help_english(name, "show_debugging")
+    assert "flat spot" in option_help_english("tyre_wear", "warning_threshold_wear")

@@ -933,7 +933,7 @@
             "show_position_overall": "Show your current overall position against all drivers in a session.",
             "show_predicted_extra_laps": "Show number of more (or less) laps prediction on top of total estimated laps in race, based on leader's lap time pace and player's estimated pit stop duration.\n\nPredicted extra laps reading is not added to the estimated laps reading, and is not taken into fuel calculation. Positive reading indicates there may be extra final laps on top of total estimated laps; negative reading indicates there may be less final laps on top of total estimated laps.\n\nFor example, a 12.45(+1) reading means there are 12.45 total estimated laps, plus 1 predicted final lap, which may result 12.45 + 1 = 13.45 final estimated laps.\n\nNote, this option only works for time-based race type, and there is no guarantee…",
             "show_track_limits_points": "Show current track cut points against total track limits points per penalty. The limit is shown in races only (no penalty in practice and qualifying).",
-            "warning_color_invalid_lap": "Classic layout: show lap number background in warning_color_invalid_lap while game invalidated current lap (track limits), before warning_color_maximum_laps. This option only works for LMU. Default is disabled.",
+            "warning_color_invalid_lap": "Classic layout: set lap number background color while game invalidated current lap, see show_invalid_lap_highlight.",
             "warning_color_maximum_laps": "Set warning color that shows 1 lap before exceeding maximum laps in qualify (or indicates the last lap of a lap-type race)."
         },
         "lift_and_coast_led": {
@@ -1106,7 +1106,7 @@
             "pit_notes_text": "Set custom notes and comments to be displayed while in pit lane.",
             "show_background": "Show background color. Turn off to show text only.",
             "show_comments": "Show nearest pace notes comments info behind current vehicle position.",
-            "show_debugging": "Show nearest pace notes index number behind current vehicle position, and distance value (meters) behind current position to next index position.",
+            "show_debugging": "Show track distance (meters) of the pace note behind current vehicle position and of the next pace note, as behind >> next.",
             "show_pace_notes": "Show nearest pace notes info behind current vehicle position.",
             "show_pit_notes_while_in_pit": "Show custom notes while in pit lane."
         },
@@ -1715,7 +1715,7 @@
             "pit_notes_text": "Set custom notes and comments to be displayed while in pit lane.",
             "show_background": "Show background color. Turn off to show text only.",
             "show_comments": "Show nearest track notes comments info behind current vehicle position.",
-            "show_debugging": "Show nearest track notes index number behind current vehicle position, and distance value (meters) behind current position to next index position.",
+            "show_debugging": "Show track distance (meters) of the track note behind current vehicle position and of the next track note, as behind >> next.",
             "show_pit_notes_while_in_pit": "Show custom notes while in pit lane.",
             "show_track_notes": "Show nearest track notes info behind current vehicle position.",
             "track_notes_uppercase": "Set track notes text to uppercase.",
@@ -1897,7 +1897,7 @@
             "warning_threshold_laps": "Set warning threshold for estimated tyre lifespan in laps. Default is 5 laps.",
             "warning_threshold_minutes": "Set warning threshold for estimated tyre lifespan in minutes. Default is 6 minutes.",
             "warning_threshold_remaining": "Set warning threshold for total remaining tyre in percentage. Default is 30 percent.",
-            "warning_threshold_wear": "Set warning threshold for total amount tyre wear of last lap in percentage. Default is 3 percent."
+            "warning_threshold_wear": "Set warning threshold in percentage for tyre wear of last lap, live tyre wear of current lap and flat spot wear. Default is 3 percent."
         },
         "units": {
             "distance_unit": "Available units: Meter, Feet.",

@@ -272,6 +272,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Résultats et replays` : les commandes de replay encore en attente (recherche d'un tour, sauts) ne sont plus envoyées au jeu une fois la page fermée.
 - Overlays Relatif, Classement et Rivaux, design moderne : la colonne Tendance est assez large pour sa valeur (elle touchait la colonne DR/SR) et sa flèche et sa valeur sont centrées.
 - Options d'overlay : `visibility_context` (quand un overlay est affiché) a un texte d'aide.
+- Options d'overlay : les textes d'aide de `warning_color_invalid_lap` (Tours et position), `show_debugging` (Notes de pilotage, Notes de piste) et `warning_threshold_wear` (Usure des pneus) décrivent ce que font ces options (ils décrivaient une autre option ou d'autres valeurs).
 
 ## 0.28.1 (2026-11-01)
 
