@@ -147,6 +147,7 @@ Fixes from an audit of the VR overlay.
 - `Results & Replays`, `Replays` list: a replay deselected with `Ctrl` + click is no longer the one moved to the recycle bin by the `Delete` key and the `Delete` buttons of the selection (nor the one exported or protected by `More`): they act on the selected replays.
 - `Overlay Options`: `Undo` and `Redo` no longer bring back, after another preset was loaded, an edit made for the previous preset, which `Apply` then saved into the new preset without asking.
 - `Overlay Options`, Brake Temperature and tyre temperature overlays: `heatmap_name` is no longer dimmed while it is used (automatic heatmap off), and is dimmed while the automatic heatmap picks it.
+- `Overlay Options`, Wheel Toe: turning `enable_symmetric_toe_angle` off no longer dims the reading options, and the total toe options are dimmed while `show_total_toe_angle` is off instead.
 
 ## 0.28.1 (2026-11-01)
 

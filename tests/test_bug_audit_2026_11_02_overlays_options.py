@@ -253,3 +253,27 @@ HEATMAP_OVERLAYS = ("brake_temperature", "tyre_temperature", "tyre_inner_layer",
 def test_b021_heatmap_name_dimmed_only_with_automatic_heatmap(ui_env, name, modern):
     assert dimmed(name, "heatmap_name", modern, enable_heatmap_auto_matching=True)
     assert not dimmed(name, "heatmap_name", modern, enable_heatmap_auto_matching=False)
+
+
+def shown_keys(name: str, modern: bool) -> tuple[str, ...]:
+    from neopedal.ui.quick.overlay_options_backend import build_layout
+
+    return build_layout(name, dict(cfg.user.setting[name], enable_classic_layout=not modern)).keys
+
+
+# B-022: wheel toe section led by enable_symmetric_toe_angle (dimming every reading), totals not led by their switch
+TOE_WHEEL = ("decimal_places_toe_angle", "toe_angle_smoothing_samples", "font_color_toe_angle",
+             "background_color_toe_angle", "show_total_toe_angle")
+TOE_TOTAL = ("decimal_places_total_toe_angle", "total_toe_angle_smoothing_samples",
+             "font_color_total_toe_angle_positive", "font_color_total_toe_angle_negative",
+             "background_color_total_toe_angle")
+
+
+@DESIGNS
+def test_b022_wheel_toe_options_follow_their_own_switch(ui_env, modern):
+    keys = shown_keys("wheel_toe", modern)
+    for key in (key for key in TOE_WHEEL if key in keys):
+        assert not dimmed("wheel_toe", key, modern, enable_symmetric_toe_angle=False), key
+    for key in (key for key in TOE_TOTAL if key in keys):
+        assert not dimmed("wheel_toe", key, modern, enable_symmetric_toe_angle=False, show_total_toe_angle=True), key
+        assert dimmed("wheel_toe", key, modern, show_total_toe_angle=False), key

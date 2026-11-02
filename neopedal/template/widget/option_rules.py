@@ -156,6 +156,15 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "tyre_inner_layer": (OptionFix(dependencies={"heatmap_name": ""}),),
     "tyre_carcass": (OptionFix(dependencies={"heatmap_name": ""}),),
     "tyre_temp_trend": (OptionFix(dependencies={"heatmap_name": ""}),),
+    # Symmetric toe only flips the sign of right wheels: no option of its own; totals follow their switch
+    "wheel_toe": (OptionFix(dependencies={
+        **dict.fromkeys(("decimal_places_toe_angle", "toe_angle_smoothing_samples", "font_color_toe_angle",
+                         "background_color_toe_angle"), ""),
+        "show_total_toe_angle": "show_total_toe_angle",
+        **dict.fromkeys(("decimal_places_total_toe_angle", "total_toe_angle_smoothing_samples",
+                         "font_color_total_toe_angle_positive", "font_color_total_toe_angle_negative",
+                         "background_color_total_toe_angle"), "show_total_toe_angle"),
+    }),),
 }
 
 
