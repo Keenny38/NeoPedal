@@ -205,6 +205,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Notes de pilotage et Notes de piste : les textes des notes et commentaires de stand sont grisés quand `enable_auto_hide_if_not_available` masque l'overlay à leur place.
 - `Options des overlays` : une option ouverte depuis `Trouver une option` ou d'un clic sur l'aperçu est affichée même quand `Masquer les options inutilisées` la cacherait.
 - `Options des overlays` : `Appliquer` dans un preset verrouillé n'affiche plus `Options enregistrées` ; il indique que les modifications d'un preset verrouillé ne sont pas enregistrées.
+- Overlays déplacés avec les flèches : un chargement de preset, un redémarrage ou une fermeture juste après la dernière touche ne perd plus la nouvelle place pour la configuration d'écrans.
 
 ## 0.28.1 (2026-11-01)
 

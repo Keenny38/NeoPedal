@@ -149,6 +149,9 @@ class EditMode(QObject):
         self._layout_timer.setSingleShot(True)
         self._layout_timer.setInterval(LAYOUT_STORE_DELAY_MS)
         self._layout_timer.timeout.connect(self.store_layout)
+        from .. import loader
+
+        loader.on_pending_write(self._flush_layout)  # written before reload, restart & quit (B-033)
 
     @property
     def editing(self) -> bool:

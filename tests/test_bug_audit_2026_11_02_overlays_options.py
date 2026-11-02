@@ -948,3 +948,16 @@ def test_b032_locked_preset_apply_notice(ui_env, monkeypatch):
     monkeypatch.setitem(cfg.user.filelock, cfg.filename.setting, {})
     overlay_options.OverlayOptions.applied(SimpleNamespace(module_control=None), ["fuel"])
     assert shown and shown[0] != "Options saved" and "locked" in shown[0]
+
+
+# B-033: screen layout of arrow key moves stored 0.6 s later, lost by a reload or quit within that time
+def test_b033_pending_layout_written_before_reload(ui_env, monkeypatch):
+    from neopedal import loader
+    from neopedal.widget._edit_mode import edit_mode
+
+    mode = edit_mode()
+    stored = []
+    monkeypatch.setattr(mode, "store_layout", lambda: stored.append(1))
+    mode.store_layout_soon()
+    loader.write_pending()  # reload, restart or quit
+    assert stored == [1] and not mode._layout_timer.isActive()
