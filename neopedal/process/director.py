@@ -560,7 +560,8 @@ class RaceWatcher:
                 state.box_time += now - state.box_since
                 state.box_since = -1.0
             stops = self.pit_stops.get(car.slot)
-            open_stop = bool(stops) and stops[-1].duration <= 0  # closed: stop seen already (replay rewound into it)
+            # Closed: stop seen already (replay rewound into it)
+            open_stop = stops is not None and len(stops) > 0 and stops[-1].duration <= 0
             if stops and open_stop:
                 stops[-1] = stops[-1]._replace(duration=duration, stopped=state.box_time)
             state.stint_lap = car.laps
