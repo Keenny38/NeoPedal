@@ -169,8 +169,9 @@ def display_value(kind: OptionKind, value: Any) -> str:
     return str(value)
 
 
-def check_value(key: str, kind: OptionKind, value: Any) -> str:
-    """Why value is invalid for option (English, translate with trm), "" if valid
+def check_value(key: str, kind: OptionKind, value: Any, overlay: str = "") -> str:
+    """Why value is invalid for option (of overlay: its own limits, see option_limit; English, translate with
+    trm), "" if valid
 
     Folder paths are checked when saved only (checking creates the folder), see parse_path.
     """
@@ -181,7 +182,7 @@ def check_value(key: str, kind: OptionKind, value: Any) -> str:
             return "Number required"
         if kind.kind == KIND_INTEGER and float(value) % 1 != 0:
             return "Whole number required"
-        return limit_error(key, float(value))
+        return limit_error(key, float(value), overlay)
     if not isinstance(value, str):
         return "Text required"
     if kind.kind == KIND_COLOR:
@@ -232,9 +233,9 @@ def parse_path(text: str) -> str | None:
     return value
 
 
-def number_range(key: str) -> tuple[float, float]:
-    """Allowed range of numeric option (very wide if not limited)"""
-    limit = option_limit(key)
+def number_range(key: str, overlay: str = "") -> tuple[float, float]:
+    """Allowed range of numeric option (of overlay, see option_limit; very wide if not limited)"""
+    limit = option_limit(key, overlay)
     minimum = limit.minimum if limit.minimum is not None else -1e9
     maximum = limit.maximum if limit.maximum is not None else 1e9
     return minimum, maximum

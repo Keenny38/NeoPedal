@@ -702,7 +702,7 @@ class OverlayOptionsBackend(PageBackend):
             row["choiceIndex"] = choices.index(value)
         elif kind.kind in NUMBER_KINDS and isinstance(value, (int, float)) and not isinstance(value, bool):
             places = decimals(value, default) if kind.kind != KIND_INTEGER else 0
-            minimum, maximum = number_range(key)
+            minimum, maximum = number_range(key, name)
             row.update(number=float(value), decimals=places, step=10 ** -places if places else 1.0,
                        minimum=float(minimum), maximum=float(maximum), hint=unit_hint_text(key, value),
                        rangeText=range_text(minimum, maximum))
@@ -1352,7 +1352,7 @@ class OverlayOptionsBackend(PageBackend):
         else:
             self._typed.pop(oid, None)
         kind = self.kind(key)
-        reason = check_value(key, kind, value) if text is None else text_reason(key, kind, text)
+        reason = check_value(key, kind, value, name) if text is None else text_reason(key, kind, text, name)
         if text is not None and not reason:
             value = text_value(kind, text)
         if reason:
@@ -1568,11 +1568,11 @@ class OverlayOptionsBackend(PageBackend):
                         continue
                     kind = self.kind(key)
                     if (kind.kind in NUMBER_KINDS and isinstance(value, (int, float))
-                            and not isinstance(value, bool) and limit_error(key, float(value))):
-                        limited = clamp_to_limit(key, value)
+                            and not isinstance(value, bool) and limit_error(key, float(value), name)):
+                        limited = clamp_to_limit(key, value, name)
                         report.append(f"{name}: {key} {format_number(value)} -> {format_number(limited)} (limit)")
                         value = limited
-                    error = check_value(key, kind, value)
+                    error = check_value(key, kind, value, name)
                     if not error and kind.kind == KIND_CHOICE and value not in choice_values(kind):
                         error = "not a choice"
                     if error:
@@ -2220,12 +2220,12 @@ def preview_signature(name: str, values: dict, zoom: float, scenario: str = "") 
         return object()
 
 
-def text_reason(key: str, kind: OptionKind, text: str) -> str:
-    """Why typed text is invalid (English), "" if valid"""
+def text_reason(key: str, kind: OptionKind, text: str, overlay: str = "") -> str:
+    """Why typed text is invalid for option (of overlay, see check_value; English), "" if valid"""
     if kind.kind in NUMBER_KINDS:
         value = parse_number(kind, text)
-        return "Number required" if value is None else check_value(key, kind, value)
-    return check_value(key, kind, text)
+        return "Number required" if value is None else check_value(key, kind, value, overlay)
+    return check_value(key, kind, text, overlay)
 
 
 def text_value(kind: OptionKind, text: str) -> Any:

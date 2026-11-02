@@ -70,6 +70,7 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     ("padding", OptionLimit(0, 10)),  # bar padding: font size multiplier
     ("^radar_radius$", OptionLimit(5, 200)),
     ("^number_of_led$", OptionLimit(1, 100, True)),
+    ("^decimal_places_energy_remaining$", OptionLimit(0, 2, True)),  # modern columns show 2 at most
     ("^decimal_places", OptionLimit(0, 9, True)),
     ("^maximum_(loading|saving)_attempts$", OptionLimit(1, 100, True)),
     ("^maximum_vehicles_per_split_others$", OptionLimit(0, 126, True)),  # 0 = other classes hidden
@@ -85,9 +86,20 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     # Counts of drawn items: designs draw that many (large counts: huge overlays)
     ("^number_of_(rpm_leds|led)$", OptionLimit(1, 100, True)),
     ("^number_of_delta_laptime$", OptionLimit(2, 5, True)),
-    ("^number_of_prediction$", OptionLimit(0, 10, True)),
-    ("^number_of_(event_log_lines|notifications|lines|forecasts)$", OptionLimit(1, 50, True)),
+    ("^number_of_laps$", OptionLimit(2, 100, True)),
+    ("^number_of_drivers$", OptionLimit(0, 6, True)),
+    ("^number_of_prediction$", OptionLimit(0, 20, True)),
+    ("^number_of_extra_laps$", OptionLimit(1, 1000, True)),
+    ("^number_of_lines$", OptionLimit(1, 20, True)),
+    ("^number_of_notifications$", OptionLimit(1, 8, True)),
+    ("^number_of_forecasts$", OptionLimit(1, 4, True)),
+    ("^number_of_event_log_lines$", OptionLimit(1, 50, True)),
     ("^number_of_", OptionLimit(0, 1000, True)),
+    # Friction circle G radius (huge: rings drawn one per G), steering range (degrees, 0 = from game), dot
+    ("^display_radius_g$", OptionLimit(1, 20)),
+    ("_radius_g$", OptionLimit(0, 20)),
+    ("^manual_steering_range$", OptionLimit(0, 3600)),
+    ("^dot_size$", OptionLimit(1, 1000)),
     # Car dimensions (mm) of slope angles: 0 froze the angle, negative flipped it
     ("^(wheelbase|wheel_track_(front|rear))$", OptionLimit(100, 10000)),
     # Pixel sizes & positions inside overlays (screen position_x/y: any screen layout, not limited)
@@ -103,9 +115,25 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
 )
 
 
+# Limits of one overlay (overlay, option key), before OPTION_LIMITS: options of the same name read
+# differently by overlays (designs cut values beyond these)
+OVERLAY_LIMITS: dict[tuple[str, str], OptionLimit] = {
+    ("gap_trend", "number_of_laps"): OptionLimit(2, 50, True),
+    ("track_map", "number_of_prediction"): OptionLimit(1, 20, True),
+    ("relative_finish_order", "number_of_prediction"): OptionLimit(0, 10, True),
+    **dict.fromkeys(((name, "decimal_places") for name in ("delta_graph", "gap_trend", "telemetry_compare")),
+                    OptionLimit(0, 3, True)),
+    # Modern design shows 2 at most: classic one the same (designs show the same reading)
+    **dict.fromkeys(((name, "decimal_places") for name in ("heading", "steering_wheel", "wind_direction")),
+                    OptionLimit(0, 2, True)),
+}
+
+
 @lru_cache(maxsize=1024)
-def option_limit(key: str) -> OptionLimit:
-    """Limit of option key, NO_LIMIT if not listed"""
+def option_limit(key: str, overlay: str = "") -> OptionLimit:
+    """Limit of option key (of overlay: its own limit first, see OVERLAY_LIMITS), NO_LIMIT if not listed"""
+    if (overlay, key) in OVERLAY_LIMITS:
+        return OVERLAY_LIMITS[overlay, key]
     for pattern, limit in OPTION_LIMITS:
         if re.search(pattern, key):
             return limit
@@ -117,9 +145,10 @@ def format_number(value: float) -> str:
     return f"{value:g}"
 
 
-def limit_error(key: str, value: float) -> str:
-    """Why value breaks limit of option (English, translate with trm), "" if within limit"""
-    limit = option_limit(key)
+def limit_error(key: str, value: float, overlay: str = "") -> str:
+    """Why value breaks limit of option (of overlay, see option_limit; English, translate with trm), "" if
+    within limit"""
+    limit = option_limit(key, overlay)
     if limit.integer and value % 1 != 0:
         return "Whole number required"
     minimum, maximum = limit.minimum, limit.maximum
@@ -132,9 +161,9 @@ def limit_error(key: str, value: float) -> str:
     return ""
 
 
-def clamp_to_limit(key: str, value: float) -> float:
-    """Value within limit of option (same type: whole number kept as int)"""
-    limit = option_limit(key)
+def clamp_to_limit(key: str, value: float, overlay: str = "") -> float:
+    """Value within limit of option (of overlay, see option_limit; same type: whole number kept as int)"""
+    limit = option_limit(key, overlay)
     clamped = value
     if limit.minimum is not None and clamped < limit.minimum:
         clamped = limit.minimum

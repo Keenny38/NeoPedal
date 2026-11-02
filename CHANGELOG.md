@@ -219,6 +219,7 @@ Fixes from an audit of the VR overlay.
 - Friction Circle overlay, classic look: a huge `dot_size` no longer makes a dot picture of hundreds of MB; the dot is at most the circle radius.
 - Gear overlay, modern look: the reading of a hidden bar no longer widens the overlay with an empty area.
 - Rake Angle, Roll Angle and Steering Angle overlays: `wheelbase` and `wheel_track_front` / `wheel_track_rear` are limited to 100 - 10000 mm (0 froze the angle, a negative value flipped it).
+- Overlay Options: number limits match what overlays show: Gap Trend `number_of_laps` 2 - 50, Stint Timer `number_of_drivers` 0 - 6, Chat `number_of_lines` 1 - 20, Race Notifications 1 - 8, Weather Forecast 1 - 4, Track Map `number_of_prediction` 1 - 20, `number_of_extra_laps` at least 1, Delta Graph, Gap Trend and Telemetry Compare `decimal_places` 0 - 3, Heading, Steering Wheel and Wind Direction 0 - 2 (both looks now show the same decimals), `decimal_places_energy_remaining` 0 - 2, `*_radius_g` up to 20, `manual_steering_range` up to 3600 and `dot_size` 1 - 1000 (larger values were accepted and cut without telling).
 
 ## 0.28.1 (2026-11-01)
 

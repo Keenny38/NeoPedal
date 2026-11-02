@@ -1181,3 +1181,43 @@ def test_b048_car_dimensions_limited(key):
     assert limit_error(key, 0) and limit_error(key, -1800)
     assert not limit_error(key, 1800) and not limit_error(key, 2800)
     assert clamp_to_limit(key, 0) == 100
+
+
+# B-059: page limits wider than what overlays read (values accepted, cut without telling)
+@pytest.mark.parametrize("name, key, minimum, maximum", [
+    ("gap_trend", "number_of_laps", 2, 50), ("tyre_temp_trend", "number_of_laps", 2, 100),
+    ("stint_timer", "number_of_drivers", 0, 6), ("chat", "number_of_lines", 1, 20),
+    ("race_notifications", "number_of_notifications", 1, 8), ("weather_forecast", "number_of_forecasts", 1, 4),
+    ("track_map", "number_of_prediction", 1, 20), ("relative_finish_order", "number_of_prediction", 0, 10),
+    ("relative_finish_order", "number_of_extra_laps", 1, 1000),
+    ("gap_trend", "decimal_places", 0, 3), ("delta_graph", "decimal_places", 0, 3),
+    ("telemetry_compare", "decimal_places", 0, 3), ("steering_wheel", "decimal_places", 0, 2),
+    ("heading", "decimal_places", 0, 2), ("wind_direction", "decimal_places", 0, 2),
+    ("speedometer", "decimal_places", 0, 9), ("standings", "decimal_places_energy_remaining", 0, 2),
+    ("friction_circle", "display_radius_g", 1, 20), ("friction_circle", "reference_circle_1_radius_g", 0, 20),
+    ("steering_wheel", "manual_steering_range", 0, 3600), ("heading", "dot_size", 1, 1000),
+])
+def test_b059_limits_match_overlay_code(ui_env, name, key, minimum, maximum):
+    from neopedal.ui.quick.option_kinds import number_range
+
+    assert number_range(key, name) == (minimum, maximum)
+
+
+def test_b059_page_refuses_value_beyond_overlay_limit(options):
+    from tests.test_overlay_options import row
+
+    options.selectOverlay("gap_trend")
+    assert row(options, "gap_trend/number_of_laps")["maximum"] == 50
+    options.setNumber("gap_trend/decimal_places", 9)
+    assert options.errorCount == 1
+    options.setNumber("gap_trend/decimal_places", 3)
+    assert options.errorCount == 0
+
+
+def test_b059_defaults_within_limits_of_their_overlay(ui_env):
+    from neopedal.template.option_limits import limit_error
+    from neopedal.template.setting_widget import WIDGET_DEFAULT
+
+    assert not [(name, key, value) for name, values in WIDGET_DEFAULT.items() for key, value in values.items()
+                if isinstance(value, (int, float)) and not isinstance(value, bool)
+                and limit_error(key, float(value), name)]
