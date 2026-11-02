@@ -42,12 +42,18 @@ def test_lmu_results_stream_read_by_shared_loop(monkeypatch):
     streams = []
     monkeypatch.setattr(lmu_connector.LMUResults, "update", lambda self, stream: streams.append(stream))
     data.scoring.scoringInfo.mCurrentET = 1.0
+
+    def resume():  # data changed after the first tick
+        data.scoring.scoringInfo.mCurrentET = 1.1
+        zone.results.append(True)
+
     sync._SyncData__update_loop(ScriptedStop([
-        lambda: zone.results.append(True),  # resumed
+        lambda: zone.results.append(True),  # first tick: frozen until data changes
+        resume,  # resumed
         lambda: zone.results.append(True),  # stream read
         lambda: zone.results.append(True),  # same timestamp: stream not read again
     ]))
-    assert len(streams) == 1 and sync.results.timestamp == 1.0
+    assert len(streams) == 1 and sync.results.timestamp == 1.1
 
 
 def test_rf2_has_no_results_stream():

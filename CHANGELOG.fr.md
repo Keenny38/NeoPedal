@@ -108,6 +108,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate : les pilotes au nom long (plus de 31 octets, les accents comptent double) ont leur colonne d'énergie par tour (Classement, Relatif) et leurs contacts dans le HUD tableau de bord ; le jeu coupe les noms dans sa mémoire partagée.
 - Replays de l'enregistreur de session (Le Mans Ultimate) : revenir en arrière dans un replay ne remet plus les incidents, pénalités et limites de piste à 0 pour le reste de la lecture, et un saut en avant ou une vitesse rapide (x2, x4) ne perd plus ceux des images sautées.
 - Usure des pneus et des freins : avec l'app lancée (ou la voiture remise à zéro) en plein tour, ce tour partiel n'est plus pris pour l'usure d'un tour (Usure des pneus, Vue d'ensemble des pneus, Historique des temps au tour, HUD tableau de bord) : les tours restants étaient trop optimistes pendant le tour suivant.
+- Le Mans Ultimate et rFactor 2 : lancer l'app, charger un preset ou redémarrer l'API pendant que le jeu est en pause dans un menu n'affiche plus les overlays environ 2 secondes avec des données figées ; ils attendent que les données du jeu bougent.
 
 ## 0.28.1 (2026-11-01)
 

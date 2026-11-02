@@ -70,7 +70,8 @@ def test_connector_freeze_and_resume_notified(state, monkeypatch):
 
     sync._SyncData__update_loop(ScriptedStop([
         lambda: versions.append(state.version),  # started: notified
-        lambda: (zone.results.append(True), versions.append(state.version)),  # resumed
+        lambda: (setattr(data.scoring.scoringInfo, "mCurrentET", 1.1), zone.results.append(True),
+                 versions.append(state.version)),  # data changed after the first tick: resumed
         lambda: versions.append(state.version),
         later,
         lambda: versions.append(state.version),  # frozen

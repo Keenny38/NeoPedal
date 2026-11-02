@@ -50,6 +50,15 @@ def wait_until(check, timeout=5.0) -> bool:
     return False
 
 
+def moving(scoring_info, check):
+    """Check made while game time moves on: the update loop resumes only once data changes after its first tick
+    (frozen data at start never taken for live data)"""
+    def step() -> bool:
+        scoring_info.mCurrentET += 0.001
+        return check()
+    return step
+
+
 @pytest.fixture
 def game(monkeypatch):
     """3 cars, player in scoring slot 2 (id 7) & telemetry slot 1, controllable clock"""
@@ -79,7 +88,7 @@ def test_player_synced_and_resets_counted(game):
     assert info.playerIndex == 2 and info.rf2ScorVeh().mID == 7 and info.rf2TeleVeh().mID == 7
     assert info.rf2TeleVeh(0).mID == 3  # telemetry slot matched by id
     scor.mScoringInfo.mCurrentET = 1.0  # data moving: resumed
-    assert wait_until(lambda: info._sync.synced and not info.isPaused)
+    assert wait_until(moving(scor.mScoringInfo, lambda: info._sync.synced and not info.isPaused))
     assert info.isActive  # ignition on
     resets = info.vehicleResets
     scor.mVehicles[2].mInGarageStall = 1  # back to garage
@@ -95,7 +104,7 @@ def test_pause_when_data_stops(game):
     info, scor, _, clock = game
     info.start()
     scor.mScoringInfo.mCurrentET = 1.0
-    assert wait_until(lambda: not info.isPaused)
+    assert wait_until(moving(scor.mScoringInfo, lambda: not info.isPaused))
     clock["offset"] = 10.0  # no new data for 10 s
     assert wait_until(lambda: info.isPaused) and not info.isActive
 
@@ -104,7 +113,7 @@ def test_player_lost_then_index_override(game):
     info, scor, _, _ = game
     info.start()
     scor.mScoringInfo.mCurrentET = 1.0
-    assert wait_until(lambda: info._sync.synced)
+    assert wait_until(moving(scor.mScoringInfo, lambda: info._sync.synced))
     scor.mVehicles[2].mIsPlayer = False  # player left: paused after 5 tries
     for step in range(8):
         scor.mScoringInfo.mCurrentET = 2.0 + step

@@ -22,7 +22,7 @@ from neopedal.replay import RecordingSources, ReplayControl, ReplayFile, ReplayM
 from pyLMUSharedMemory import lmu_data, lmu_mmap
 from tests.test_replay import Clock, make_frames, write_replay
 from tests.test_restapi_connector import TASKS, config
-from tests.test_rf2_connector import game, wait_until  # noqa: F401
+from tests.test_rf2_connector import game, moving, wait_until  # noqa: F401
 
 
 class MemoryShmm:
@@ -180,7 +180,7 @@ def test_no_reset_counted_while_player_not_synced(game):  # noqa: F811
     info, scor, _, _ = game
     scor.mScoringInfo.mCurrentET = 10.0  # data not frozen: synced state set by update loop
     info.start()
-    assert wait_until(lambda: info._sync.synced and info.playerIndex == 2)
+    assert wait_until(moving(scor.mScoringInfo, lambda: info._sync.synced and info.playerIndex == 2))
     scor.mScoringInfo.mCurrentET = 11.0  # first tick with a player slot id: one reset by construction
     assert wait_until(lambda: info.vehicleResets == 1)
     resets = info.vehicleResets
@@ -265,7 +265,7 @@ def test_results_purged_on_session_change_with_larger_elapsed_time(lmu_sync):
     scor_info.mCurrentET = 1800.0
     data.scoring.scoringStream = b'<TrackLimits et="10.0" Driver="Driver 7" Action="Warning">\n'
     sync.start(0)
-    assert wait_until(lambda: sync.results.data.get(b"Driver 7", {}).get("track_cut") == 1)
+    assert wait_until(moving(scor_info, lambda: sync.results.data.get(b"Driver 7", {}).get("track_cut") == 1))
     # Joined a race on another track, further into its session
     scor_info.mTrackName = b"Le Mans"
     scor_info.mSession = 10

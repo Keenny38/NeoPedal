@@ -299,7 +299,7 @@ class SyncData:
         _notify = notifier.notify
         _read_data = self._read_data
         results = getattr(self, "results", None)  # results stream data of connector, None if none
-        freezed_timestamp = 0  # store freezed timestamp
+        freezed_timestamp: float | None = None  # store freezed timestamp, None: first tick (see below)
         last_session_timestamp = 0  # store last timestamp
         last_update_time = 0.0
         data_freezed = True  # whether data is freezed
@@ -392,8 +392,13 @@ class SyncData:
                 last_slot_id = slot_id
 
             if data_freezed:
-                # Check while IN freeze state
-                if freezed_timestamp != last_session_timestamp:
+                # Check while IN freeze state; first tick (start, restart): data must change to resume, frozen
+                # data (game paused, closed with mapping kept) never shown as new, unless replay held on purpose
+                if freezed_timestamp is None and not self.dataset.replay_paused():
+                    freezed_timestamp = last_session_timestamp
+                    self.paused = True  # until data changes
+                    realtime_state.notify_change()
+                elif freezed_timestamp != last_session_timestamp:
                     update_delay = 0.01
                     self.paused = data_freezed = False
                     data_synced = None  # player synced again on resume

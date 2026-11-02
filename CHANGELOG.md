@@ -108,6 +108,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate: drivers with a long name (over 31 bytes, accents count double) get their energy per lap column (Standings, Relative), and their contacts in the Black Box; the game cuts names in its shared memory.
 - Session recorder replays (Le Mans Ultimate): going back in a replay no longer resets the incidents, penalties and track limits to 0 for the rest of the playback, and a seek forward or a fast speed (x2, x4) no longer loses those of the frames jumped.
 - Tyre and brake wear: with the app started (or the car reset) in the middle of a lap, that partial lap is no longer taken as the wear of a lap (Tyre Wear, Tyre Overview, Lap Time History, Black Box): laps left were too optimistic during the next lap.
+- Le Mans Ultimate and rFactor 2: starting the app, loading a preset or restarting the API while the game is paused in a menu no longer shows the overlays for about 2 seconds with frozen data; they wait for the game data to move.
 
 ## 0.28.1 (2026-11-01)
 

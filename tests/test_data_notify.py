@@ -434,7 +434,8 @@ def test_lmu_loop_rebuilds_maps_and_notifies_only_on_new_data(notifier, monkeypa
 
     data.scoring.scoringInfo.mCurrentET = 1.0
     stop = ScriptedStop((
-        tick(True),  # 1 new data: resumed
+        tick(True),  # 1 new data, first tick: data must change to resume (frozen data at start)
+        tick(True, new_sample),  # 1b new sample: resumed
         tick(),  # 2 player synced (resume), synced state notified
         tick(),  # 3 nothing new
         tick(True, new_sample),  # 4 new sample
@@ -444,8 +445,8 @@ def test_lmu_loop_rebuilds_maps_and_notifies_only_on_new_data(notifier, monkeypa
     ))
     sync._SyncData__update_loop(stop)
     notified.append(woken.is_set())
-    assert notified[1:] == [True, True, False, True, False, True, False]  # notified by previous tick
-    assert len(maps) == 2  # ticks with new data only
+    assert notified[1:] == [True, True, True, False, True, False, True, False]  # notified by previous tick
+    assert len(maps) == 3  # ticks with new data only
     assert len(syncs) == 3  # resume, new sample, override change
     assert sync.player_scor_index == 1 and sync.synced
     assert sync.tele_map[1] == (0, 1)
@@ -478,7 +479,12 @@ def test_lmu_player_lost_paused_after_5_ticks_without_new_data(notifier):
     """Player sync result kept while data unchanged: player paused after same number of ticks as before"""
     sync, zone, data = lmu_sync()
     data.scoring.scoringInfo.mCurrentET = 1.0
-    steps = [lambda: zone.results.append(True), lambda: None]
+
+    def resume():  # data changed after the first tick
+        data.scoring.scoringInfo.mCurrentET = 1.1
+        zone.results.append(True)
+
+    steps = [lambda: zone.results.append(True), resume, lambda: None]
 
     def player_left():
         data.scoring.vehScoringInfo[0].mIsPlayer = False
@@ -523,7 +529,10 @@ def test_rf2_loop_skips_maps_without_new_data(notifier, monkeypatch):
         rf2_connector.SyncData, "_SyncData__update_tele_map", lambda self: (maps.append(1), original_map(self)))
     woken = threading.Event()
     notifier.subscribe(woken)
-    sync._SyncData__update_loop(ScriptedStop([lambda: results.append(True)] + [lambda: None] * 3))
+    def resume():  # elapsed time changed after the first tick, no new copy of telemetry
+        scor.mScoringInfo.mCurrentET = 1.1
+
+    sync._SyncData__update_loop(ScriptedStop([lambda: results.append(True), resume] + [lambda: None] * 3))
     assert len(maps) == 1 and sync.synced and woken.is_set()
     assert rf2_connector.MMapDataSet.update_mmap(SimpleNamespace(
         scor=SimpleNamespace(update=lambda: False), tele=SimpleNamespace(update=lambda: None), replaying=False,

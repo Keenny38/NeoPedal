@@ -711,3 +711,20 @@ def test_b018_partial_first_lap_never_lap_wear(ui_env, monkeypatch):
     last_lap, estimated = wear[max(wear)]
     assert last_lap == 0.0  # lap driven from 39 %: no last lap wear
     assert estimated < 0.1  # estimate of the new lap from its own wear only, not 0.39 of a partial lap
+
+
+# --- B-021: connector started on frozen game data (game paused, preset reloaded): never resumed on it
+def test_b021_start_on_frozen_data_stays_paused(lmu_game, monkeypatch):
+    sync, data = lmu_game
+    seen = []
+
+    def record():
+        seen.append((sync.paused, sync.synced, sync.resets))
+
+    def next_sample():
+        data.scoring.scoringInfo.mCurrentET += 0.2
+
+    run_loop(sync, Ticks(monkeypatch, [record] * 30 + [next_sample, record]))  # 30 ticks of frozen data
+    assert all(not synced and not resets for _, synced, resets in seen[:-1])  # never shown as live data
+    assert all(paused for paused, _, _ in seen[1:-1])  # paused from the first tick (seen[0]: before it)
+    assert seen[-1][0] is False  # data moving: resumed
