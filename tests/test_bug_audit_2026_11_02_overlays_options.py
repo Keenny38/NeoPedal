@@ -934,3 +934,17 @@ def test_b031_focused_option_shown_with_used_only_filter(options):
     options.selectOverlay("speedometer")
     options.focus_option("acceleration", "speed_range_6_start")
     assert options.rowIndex("acceleration/speed_range_6_start") >= 0
+
+
+# B-032: Apply in a locked preset told "Options saved"
+def test_b032_locked_preset_apply_notice(ui_env, monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal.ui import overlay_options
+
+    shown = []
+    monkeypatch.setattr(overlay_options, "show_toast", lambda parent, text: shown.append(text))
+    monkeypatch.setattr(overlay_options, "run_after_saving", lambda callback: None)
+    monkeypatch.setitem(cfg.user.filelock, cfg.filename.setting, {})
+    overlay_options.OverlayOptions.applied(SimpleNamespace(module_control=None), ["fuel"])
+    assert shown and shown[0] != "Options saved" and "locked" in shown[0]

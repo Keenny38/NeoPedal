@@ -36,8 +36,9 @@ from PySide6.QtWidgets import QColorDialog, QDialog, QFileDialog, QMessageBox, Q
 
 from .. import app_signal
 from ..const_file import ConfigType, FileFilter
-from ..i18n import current_language, tr
+from ..i18n import current_language, tr, trm
 from ..module_control import ModuleControl, wctrl
+from ..setting import cfg
 from ._common import BaseDialog, DialogSingleton, UIScaler, page_host, run_after_saving, translate_filter
 from .toast import show_toast
 
@@ -276,7 +277,10 @@ class OverlayOptions(BaseDialog):
         first of Recently Edited)"""
         from .quick.overlay_backend import note_edited
 
-        show_toast(self, tr("Options saved"))
+        if cfg.filename.setting in cfg.user.filelock:  # never written (B-032)
+            show_toast(self, trm("Changes to locked preset will not be saved."))
+        else:
+            show_toast(self, tr("Options saved"))
         note_edited(names)
         run_after_saving(partial(restart_overlays, self.module_control, names))
 
