@@ -529,7 +529,7 @@ class HomeBackend(PageBackend):
         records = self._records
         if records is None:  # read with the debrief: card place kept meanwhile
             return
-        from .stats_analysis import parse_goals, weekly_progress
+        from .stats_analysis import parse_goals, personal_bests, weekly_progress
         from .stats_common import CONFIG_NAME
 
         goals = parse_goals(cfg.user.config.get(CONFIG_NAME, {}).get("goals"))
@@ -538,8 +538,17 @@ class HomeBackend(PageBackend):
         if key == self._week_key:
             return
         self._week_key = key
-        self.jobs.run("weekly progress", lambda: weekly_progress(records, goals, now), self.week_read,
-                      self.week_failed, key="week")
+
+        def progress() -> list[dict]:
+            """Personal bests of the stats file as the driver stats page takes them (lap times completed from
+            results files): same goals near or reached on both pages"""
+            from ...userfile.driver_stats import load_stats_json_file
+
+            stats_user = load_stats_json_file(filepath=cfg.path.config, show_log=False)
+            bests = personal_bests(stats_user) if stats_user is not None else None
+            return weekly_progress(records, goals, now, bests=bests)
+
+        self.jobs.run("weekly progress", progress, self.week_read, self.week_failed, key="week")
 
     def week_read(self, items: list[dict]):
         self.publish("week", week_card(items), self.weekChanged)

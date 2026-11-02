@@ -91,6 +91,7 @@ Fixes from an audit of the VR overlay.
 - Home page session debrief: laps driven in the hour repeated when clocks go back are found, from the exact lap end time saved with each lap.
 - Home page session debrief: when the best lap of the stint has no lap file, corners are no longer compared with an older lap slower than it shown as your personal best lap.
 - Home page session debrief: once every session is removed from the history, a debrief being read meanwhile no longer shows up again.
+- Home page `This Week`: a lap time goal beaten by a lap time completed from race results counts as reached, as on Driver Stats and in the session debrief, instead of showing a gap to the goal.
 - Spectate and Broadcast Director (`Overlays follow the car on air`), Le Mans Ultimate and rFactor 2: overlays switch to the car you follow at once, instead of mixing it for a moment with the car followed before (lap times, fuel and laps of the former car taken for the new one's, a pit lane entry measured at the new car's place, part of a lap saved as the track map).
 - Spectate and Broadcast Director: following another car just after the car followed crossed the line no longer keeps the delta, sectors and fuel overlays on the former car for 10 seconds.
 - Spectate and Broadcast Director: laps and data of the car you follow are no longer saved as yours (delta best, best sectors, consumption history, fuel and energy references, recorded laps, pit lane measures and track map), as the docs say; they are still shown.

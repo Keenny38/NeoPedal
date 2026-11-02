@@ -830,3 +830,27 @@ def test_b036_history_emptied_drops_debrief_being_read():
         _records=None)
     HomeBackend.refresh_debrief(page, None)
     assert cancelled == ["debrief"]
+
+
+# B-024
+def test_b024_home_week_uses_personal_bests_of_stats_file(stats_folder, monkeypatch):
+    """Personal best completed from race results (not in history) beats the goal: Home and Driver Stats agree"""
+    from types import SimpleNamespace
+
+    from neopedal.setting import cfg
+    from neopedal.ui.quick import home_backend
+    from neopedal.ui.quick.stats_common import CONFIG_NAME
+
+    now = 2_000_000_000.0
+    write_stats(stats_folder, {"Spa": {"GT3": {"pb": 99.9}}})
+    monkeypatch.setattr(cfg.user, "config", {**getattr(cfg.user, "config", {}),
+                                             CONFIG_NAME: {"goals": {"Spa|GT3": 100.0}}}, raising=False)
+    monkeypatch.setattr(home_backend.time, "time", lambda: now)
+    records = [driver_history.SessionRecord(time=now - 86400, track="Spa", vehicle="GT3", best=100.3, seconds=600,
+                                            valid=5)]
+    jobs = []
+    page = SimpleNamespace(_records=records, _week_key=None, week_read=None, week_failed=None,
+                           jobs=SimpleNamespace(run=lambda name, work, *args, **kwargs: jobs.append(work)))
+    home_backend.HomeBackend.refresh_week(page)
+    kinds = [item["kind"] for item in jobs[0]()]
+    assert "goal_near" not in kinds

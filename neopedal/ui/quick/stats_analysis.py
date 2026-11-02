@@ -286,6 +286,20 @@ def parse_goals(value: Any) -> dict[str, float]:
     return {str(key): laptime for key, entry in value.items() if (laptime := _laptime(entry))}
 
 
+def personal_bests(stats_user: Mapping) -> dict[tuple[str, str], float]:
+    """Personal best of each (track, vehicle) of stats file (0 if none), as weekly_progress takes them"""
+    bests = {}
+    for track, vehicles in stats_user.items():
+        if not track or not isinstance(vehicles, dict):
+            continue
+        for vehicle, data in vehicles.items():
+            if isinstance(data, dict):
+                best = data.get("pb", 0)
+                valid = isinstance(best, (int, float)) and not isinstance(best, bool) and 0 < best < MAX_SECONDS
+                bests[(str(track), str(vehicle))] = float(best) if valid else 0.0
+    return bests
+
+
 def weekly_progress(records: Iterable[SessionRecord], goals: Mapping[str, float], now: float,
                     days: int = WEEK_DAYS, near: float = NEAR_GOAL,
                     bests: Mapping[tuple[str, str], float] | None = None) -> list[dict]:
