@@ -217,6 +217,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.replay_time = -1.0
         self.replay_rate = 0.0  # replay seconds per second, measured between answers
         self.time_received = 0.0  # time.time() of replay time answer
+        self._jumped = False  # replay time moved by a command since last answer: no rate measured across it
         self.last_command = ""  # last playback command sent while replay open
         self.rewatching = False  # replay of live session opened from page (back to live possible)
         self.seconds_before = int(settings.get("seconds_before", SECONDS_BEFORE)) if isinstance(
@@ -557,6 +558,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         now = time.time()
         if replay_time < 0:
             rate = 0.0
+        elif self._jumped:  # jump (seek, lap, incident): rate of before kept, measured again from this answer
+            rate, self._jumped = self.replay_rate, False
         elif self.replay_time >= 0 and now - self.time_received > 0.2:
             rate = (replay_time - self.replay_time) / (now - self.time_received)
             rate = rate if abs(rate) < 50 else 0.0  # jumped: unknown
@@ -583,6 +586,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
                 self.action_after = time.monotonic() + ACTION_SETTLE
             else:
                 self.action = None
+        self._jumped = self._jumped or any(not isinstance(command, tuple) or command[1].startswith("/rest/watch/replaytime/")
+                                           for command in self.sending)  # time moved: next answer after it
         self.sending = ()
         if not accepted:
             self.notify(tr("Game did not accept the command"), True)
