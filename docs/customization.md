@@ -638,6 +638,21 @@ Set opacity for entire widget. By default, all widgets have a 90% opacity settin
     visibility_context
 Set when the widget is shown: `Always` (default), `Race`, `Qualifying & Race`, `Practice & Qualifying`, `On Track` (hidden in pit lane) or `In Pits` (shown in pit lane only). Outside sessions the widget is always shown. Can also be set from the widget menu while editing overlays in game.
 
+    swap_upper_caption, swap_lower_caption
+Swap caption row position (classic layout): upper captions are shown below their values instead of above, lower captions above their values instead of below.
+
+    bar_padding_horizontal, bar_padding_vertical
+Classic layout: set text padding, as a multiple of character width on left and right sides (`bar_padding_horizontal`), and of capital letter height above and below (`bar_padding_vertical`).
+
+    font_scale_caption
+Classic layout: set caption font size, as a multiplier of `font_size`.
+
+    caption_text*
+Classic layout: set custom caption text, shown while `show_caption` is enabled. Modern design shows its own labels.
+
+    horizontal_gap, vertical_gap
+Classic layout: set gap in pixels between left and right wheels (`horizontal_gap`), and between front and rear wheels (`vertical_gap`).
+
     stream_visibility
 Where the widget is shown when [Stream Overlay](#stream-overlay) is enabled: `Screen & Stream` (default), `Stream Only` (window fully transparent on screen while widgets are locked, still sent to streaming software; visible while unlocked, to move it), or `Screen Only` (never sent to streaming software). Can also be set for every widget from `Stream Overlays` page.
 
@@ -2223,6 +2238,9 @@ Note, to properly count acceleration from `0` start speed, set slightly higher v
     speed_drop_threshold
 Set threshold for detecting speed drop during acceleration timing, which cancels timing when speed dropped below threshold. Default is `1` m/s.
 
+    bar_width
+Set each column width, value in chars, such as 10 = 10 chars. Default is `6`. Minimum width is limited to `4`.
+
 [**`Back to Top`**](#)
 
 
@@ -2271,6 +2289,9 @@ Set minimum time interval between each warning flash. Default is `0.2` seconds. 
     freeze_duration
 Set freeze duration (seconds) for displaying previous lap total drained/regenerated battery charge after crossing finish line. Value range in `0` to `30` seconds. Default is `10` seconds. Not frozen after a lap recorded only in part (app started during the lap): current lap is shown.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -2302,6 +2323,15 @@ Set value to `0` to manual override and use front allocation, which is commonly 
 
 Set value to `1` to manual override and use rear allocation, which is commonly seen in LMDh class.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
+    show_brake_bias
+Show front brake bias (percentage), or front and rear bias with `show_front_and_rear`.
+
+    suffix_brake_migration
+Set suffix text displayed after brake migration value. Default is `F`. Set to `""` to hide suffix text.
+
 [**`Back to Top`**](#)
 
 
@@ -2323,6 +2353,9 @@ Show maximum braking rate difference (g) in percentage (%) instead.
     show_front_wheel_lock_duration, show_rear_wheel_lock_duration
 Show maximum front and rear wheel lock duration (seconds) per lap under braking. Duration increases when tyre slip ratio has exceeded `wheel_lock_threshold` value that set in [Wheels Module](#wheels-module), and resets on first braking input of a new lap.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -2331,6 +2364,12 @@ Show maximum front and rear wheel lock duration (seconds) per lap under braking.
 
     show_brake_input
 Show raw brake input on each brake. This option can be useful to check amount difference between brake input and applied brake pressure.
+
+    bar_width
+Set each brake pressure bar width in pixels (classic layout). Default is `50`. Minimum width is limited to `20`.
+
+    brake_input_size
+Set raw brake input mark thickness in pixels (`show_brake_input`), drawn along top edge of front bars and bottom edge of rear bars (classic layout). Default is `3`.
 
 [**`Back to Top`**](#)
 
@@ -2496,6 +2535,9 @@ Set maximum number of display digits.
     show_distance_into_lap
 Show distance into current lap.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -2591,6 +2633,9 @@ Show tyre integrity reading, measured from the wheel with the lowest tread depth
     low_*_integrity_threshold
 Set low integrity threshold for displaying warning indication.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -2683,6 +2728,15 @@ Show delta against personal last lap time (deltalast). Note: deltalast will be r
 
     show_game_deltabest_if_available
 Show delta to best lap computed by game (`LMU`) instead of delta computed by APP, when game provides it. Game delta (best lap as defined by game) replaces session deltabest reading. Delta computed by APP is used when game delta is unavailable (`RF2`). Default is disabled.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
+    delta_display_range
+Set maximum display range (gain or loss) in seconds for delta reading, accepts decimal place. Default is `99.999` seconds.
+
+    freeze_duration
+Set freeze duration (seconds) for displaying previous lap time difference against each lap time source after crossing finish line. Value range in `0` to `30` seconds. Default is `3` seconds. Set to `0` to disable. Difference is against each reference lap as it was when the lap started (no deltalast if last lap went through pit lane), or against best lap of game for session deltabest while game delta is shown.
 
 [**`Back to Top`**](#)
 
@@ -2836,6 +2890,12 @@ Show official corner numbers (or names, at Le Mans) along bottom of elevation pl
     show_position_mark
 Show player's current position line mark.
 
+    elevation_progress_line_width, elevation_line_width, zero_elevation_line_width, start_line_width, sector_line_width
+Set line width in pixels (classic layout).
+
+    position_mark_width
+Set width in pixels of player's current position line mark (classic layout).
+
 [**`Back to Top`**](#)
 
 
@@ -2904,6 +2964,9 @@ Set number of samples for reducing data fluctuation. Lower value may result more
 
     show_net_change_per_lap
 Show temperature net change per lap.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -3201,6 +3264,9 @@ Set reference circle line style. `0` for dashed line, `1` for solid line.
     reference_circle_*_width
 Set reference circle line width in pixels.
 
+    dot_outline_width
+Set g force dot outline width in pixels (`dot_outline_color`). Set `0` to hide outline (classic layout).
+
 [**`Back to Top`**](#)
 
 
@@ -3320,6 +3386,9 @@ Set custom caption text.
     swap_upper_caption, swap_lower_caption
 Swap caption row position.
 
+    caption_text_remaining, caption_text_refueling, caption_text_absolute_refueling, caption_text_estimated_laps, caption_text_estimated_minutes, caption_text_estimated_consumption, caption_text_saving_target, caption_text_pitstop_count, caption_text_early_pitstop_count, caption_text_delta_consumption, caption_text_end_remaining
+Classic layout: set custom caption text, shown while `show_caption` is enabled. Modern design shows its own labels.
+
 [**`Back to Top`**](#)
 
 
@@ -3368,6 +3437,9 @@ While enabled, a `BIAS` column will be displayed, which shows amount added fuel 
 Set number of remaining pit stops threshold for auto calibrating target fuel (or energy) saving bias. Default value is `0.1`.
 
 Fuel (or energy) saving calculation is biased towards pit entry position when number of estimated remaining pit stops is greater than the threshold, otherwise biased towards finish line.
+
+    bar_width
+Set each column width, value in chars, such as 10 = 10 chars. Default is `5`. Minimum width is limited to `4`.
 
 [**`Back to Top`**](#)
 
@@ -3479,6 +3551,15 @@ Set amount samples for calculating maximum average consumption per second, which
     show_consumption_reading
 Show fuel or energy consumption per second reading.
 
+    speed_limiter_padding_horizontal
+Set padding on left and right sides of speed limiter text, value multiplies font character width (classic layout). Default is `0.3`.
+
+    show_inverted_consumption
+Invert consumption bar progression (classic layout).
+
+    consumption_bar_height
+Set consumption bar height in pixels (classic layout).
+
 [**`Back to Top`**](#)
 
 
@@ -3535,6 +3616,12 @@ Set center mark line style. `0` for dashed line, `1` for solid line.
 
     center_mark_width
 Set center mark line width in pixels.
+
+    dot_size
+Set center dot size in pixels (classic layout). Minimum size is limited to `1`.
+
+    dot_outline_width
+Set center dot outline width in pixels (`dot_outline_color`). Set `0` to hide outline (classic layout).
 
 [**`Back to Top`**](#)
 
@@ -3624,6 +3711,9 @@ Classic layout: show lap number background in `warning_color_invalid_lap` while 
     warning_color_invalid_lap
 Classic layout: set lap number background color while game invalidated current lap, see `show_invalid_lap_highlight`.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -3671,6 +3761,9 @@ Show average tyre wear (percent) per lap.
     show_wear_sign
 Show tyre wear percentage sign.
 
+    caption_text_fuel, caption_text_virtual_energy
+Set custom caption text of fuel column (classic layout): `caption_text_fuel` while fuel is shown, `caption_text_virtual_energy` while virtual energy is shown instead (`show_virtual_energy_if_available`).
+
 [**`Back to Top`**](#)
 
 
@@ -3715,6 +3808,18 @@ Set percentage threshold for triggering wheel lock warning under braking. `0.3` 
     wheel_slip_threshold
 Set percentage threshold for triggering wheel slip warning under acceleration. `0.1` means 10% of tyre slip ratio.
 
+    display_margin
+Set display margin around LEDs in pixels (classic layout).
+
+    show_background
+Show background behind LEDs: `background_color` in classic layout, a panel in modern design.
+
+    led_outline_width
+Set LED outline width in pixels (`led_outline_color`). Set `0` to hide outline (classic layout).
+
+    show_lift_and_coast
+Show lift and coast progress asked by the game (hybrid energy management): LEDs light up as progress grows, in critical color once over `lift_and_coast_multiplier_critical`. Wheel lock, ABS, wheel slip and TC warnings light all LEDs instead.
+
 [**`Back to Top`**](#)
 
 
@@ -3754,8 +3859,8 @@ Show start line mark.
     show_sector_line
 Show sector line mark.
 
-    show_vehicle_standings
-Show vehicle standings info on navigation map.
+    show_vehicle_class_standings
+Show overall position number on each vehicle of navigation map.
 
     show_circle_vehicle_shape
 Set `True` to show vehicle in circle shape, set `False` for arrow shape.
@@ -3768,6 +3873,15 @@ Set vehicle vertical position offset (percentage) relative to display size, valu
 
     vehicle_outline_width
 Set vehicle outline width.
+
+    start_line_width, sector_line_width
+Set start line and sector line width in pixels (classic layout).
+
+    start_line_length, sector_line_length
+Set start line and sector line length in pixels, on each side of track center line (classic layout).
+
+    vehicle_outline_width_player
+Set player vehicle outline width (classic layout).
 
 [**`Back to Top`**](#)
 
@@ -3795,6 +3909,9 @@ Set minimum time delay between each P2P activation, unit in seconds.
 
     maximum_activation_time_per_lap
 Set maximum P2P activation time per lap, unit in seconds.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -3827,6 +3944,12 @@ Show current front anti-roll bar level.
 
     show_rear_arb
 Show current rear anti-roll bar level.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
+    caption_text_abs, caption_text_tc, caption_text_tc_cut, caption_text_tc_slip, caption_text_brake_migration, caption_text_motor_map, caption_text_front_arb, caption_text_rear_arb
+Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.
 
 [**`Back to Top`**](#)
 
@@ -3863,6 +3986,9 @@ Auto hide this widget if pace notes data is not available for current track, or 
 
     maximum_display_duration
 Set maximum display duration (seconds) of each note. Set to `-1` to always display notes. Default is `-1`.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -4009,6 +4135,9 @@ Show number of vehicles that stopped in pit lane, and number of vehicles current
     pit_requests
 Show number of vehicles that requested for pit stop, and number of vehicles currently outside pit lane.
 
+    bar_width
+Set each column width (classic layout), value in chars, such as 10 = 10 chars. Default is `5`. Width is limited to `3` to `20`.
+
 [**`Back to Top`**](#)
 
 
@@ -4093,6 +4222,9 @@ Modern design: show what ends stints of the plan: fuel, energy, driver stint tim
 
     show_consumption_estimate
 Modern design: show consumption estimate used by fuel (or energy) module: from game, from last lap, or median of recent laps (with number of laps). Default is disabled.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -4220,6 +4352,21 @@ The three values define an invisible rectangle area(unit meter) that auto hides 
 
     vehicle_maximum_visible_distance_ahead, behind, side
 The three values define an invisible rectangle area(unit meter) that hides any vehicle outside the rectangle area. Default value is `-1`, which auto scales with `radar_radius` value. Set to any positive value to customize vehicle visible range. Note, each value is measured from center of player's vehicle position.
+
+    angle_mark_style
+Classic layout: set angle mark line style. `0` for dashed line, `1` for solid line.
+
+    angle_mark_radius
+Classic layout: set angle mark size by radius(unit meter). Modern design draws angle marks across the whole radar.
+
+    angle_mark_width
+Classic layout: set angle mark line width in pixels.
+
+    auto_hide_minimum_distance_behind, auto_hide_minimum_distance_side
+The three values define an invisible rectangle area(unit meter) that auto hides radar if no vehicle is within the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize radar auto-hide range. Note, each value is measured from center of player's vehicle position.
+
+    vehicle_maximum_visible_distance_behind, vehicle_maximum_visible_distance_side
+The three values define an invisible rectangle area(unit meter) that hides any vehicle outside the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize vehicle visible range. Note, each value is measured from center of player's vehicle position.
 
 [**`Back to Top`**](#)
 
@@ -4425,6 +4572,58 @@ Show vehicles parked in garage stall. Default is `false`. Note, local player is 
     additional_players_front, additional_players_behind
 Set additional players shown on relative list. Each value is limited to a maximum of 60 additional players (for a total of 120 additional players). Default is `0`. With fewer cars than rows, each car is shown once, ahead or behind (where it is nearer).
 
+    show_best_laptime
+Classic layout: show driver's session best lap time. Modern design: see `column_best_laptime`.
+
+    show_average_laptime
+Classic layout: show driver's average lap time calculated from (five) most recent laps. Modern design: see `column_average_laptime`.
+
+    show_energy_remaining
+Classic layout: show remaining virtual energy reading in percentage from each driver, with 4 different states: - Unavailable: virtual energy reading is not available currently, default color grey. - High: above 30% remaining, default color green. - low: from 30% to 10% remaining, default color orange. - critical: 10% or lower remaining, default color red.
+
+Note, for vehicle without virtual energy, remaining fuel (only if available) will be displayed instead. If fuel data is not available from game API, then nothing will be displayed.
+
+Modern design: see `column_energy_remaining`.
+
+    show_vehicle_integrity
+Classic layout: show opponent vehicle integrity reading.
+
+The integrity reading is calculated from hull damage, detachable wheels and parts, and displayed as: - Full integrity (no damage), as - (default color grey). - High integrity (lightly damaged hull), from 9 to 5 (default color blue). - Low integrity (severely damaged hull, and most likely has detached wheels or parts), from 4 to 0 (default color red).
+
+Modern design: see `column_vehicle_integrity`.
+
+    show_incidents
+Classic layout: show total number of incidents for each driver from current session. This option helps tracking opponent's safeness and cleanness during long race. This option only works for LMU.
+
+Note, incidents are counted from vehicle contacts and track cuts only for each individual driver. Incidents are not counted towards team. Incidents are only counted while this APP is running, and reset if changed session or restarted this APP.
+
+Modern design: see `column_incidents`.
+
+    show_stint_laps
+Classic layout: show number of completed laps from current stint and estimated total stint laps. Note, it may require a few laps to get accurate estimate. Modern design: see `column_stint_laps`.
+
+    show_speed_trap
+Classic layout: show fastest recorded speed of each driver per lap at user-defined speed trap position on track. This option can be useful to keep track of each driver's straight line performance from most recent lap.
+
+Note, speed trap position is defined in tracks.json preset, which can be customized via Track Info Editor. Default speed trap position is set at start/finish line.
+
+Modern design: see `column_speed_trap`.
+
+    show_lift_and_coast_time
+Classic layout: show most recent recorded lift and coast time (in seconds) from each driver. Modern design: see `column_lift_and_coast_time`.
+
+    show_best_laptime_from_recent_laps_in_race
+Show driver's best lap time from (five) most recent laps in race session. This option provides a better view of driver's recent performance during longer race.
+
+    incidents_high_threshold, incidents_extreme_threshold
+Set threshold for showing color indication when number of incidents are equal or above.
+
+    lift_and_coast_reset_threshold
+Set time threshold (in seconds) for resetting recent recorded lift and coast time. Default is 60 seconds.
+
+    lift_and_coast_highlight_threshold
+Set minimum time threshold (in seconds) for highlighting lift and coast time. Default is 1 seconds.
+
 [**`Back to Top`**](#)
 
 
@@ -4566,6 +4765,9 @@ Set number of optional prediction columns with customizable pit time. Value rang
     prediction_*_leader_pit_time, prediction_*_player_pit_time
 Set prediction pit time for leader or local player.
 
+    bar_width
+Set each column width, value in chars, such as 10 = 10 chars. Default is 5. Minimum width is limited to 3.
+
 [**`Back to Top`**](#)
 
 
@@ -4580,6 +4782,9 @@ Set bottoming ride height (in millimeters). This option is used for vehicle that
 
     show_axle_ride_height
 Modern design: show front and rear ride height from game (aerodynamic reference, in millimeters) between left and right tiles. If game does not provide axle ride height (always `0` in `LMU`), the average ride height of the two wheels of each axle is shown instead.
+
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
 
 [**`Back to Top`**](#)
 
@@ -4649,6 +4854,9 @@ Show roll angle difference between front and rear roll angles.
     show_roll_angle_ratio
 Show roll angle ratio between front and rear. 50% indicates equal roll angle; less than 50% indicates rear rolls more than front.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -4689,6 +4897,15 @@ Show RPM LED flash effect when speed limiter is activated.
 
     speed_limiter_flash_interval
 Set minimum time interval between each LED flash. Default is `0.25` seconds. Minimum value is limited to `0.2`.
+
+    display_margin
+Classic layout: set margin in pixels between LEDs and widget edge. Default is `4`.
+
+    show_background
+Show widget background: `background_color` in classic layout, a panel in modern design (LEDs set further from its edge). Default is disabled.
+
+    led_outline_width
+Classic layout: set LED outline width in pixels, in `led_outline_color`. Set `0` to hide outline. Default is `2`.
 
 [**`Back to Top`**](#)
 
@@ -4751,6 +4968,9 @@ Note, this option only works for time-based race type, and there is no guarantee
     show_field_level
 Modern design, off by default (`LMU` only): average Driver Rank & Safety Rank of the drivers of an online race (`S3 · G1`, in color of the average Driver Rank), from their RaceControl profiles (see `column_driver_ranks` of Relative). Needs `enable_online_driver_ranks`; dashes offline.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -4765,6 +4985,9 @@ Set minimum slip angle difference threshold (in degrees) for neutral steer, over
 
 Note, value should be set as negative angle for oversteer, and positive angle for understeer. Most cars run slightly higher front slip angle in steady cornering, raise understeer threshold if understeer color shows too often for a balanced car.
 
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
+
 [**`Back to Top`**](#)
 
 
@@ -4776,6 +4999,9 @@ Set optimal slip ratio range (percentage) for optimal and critical slip ratio co
 
     slip_ratio_maximum_range
 Set visualized maximum slip ratio display range (percentage), value range in `10` to `100`. Default is `50` percent.
+
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
 
 [**`Back to Top`**](#)
 
@@ -5095,6 +5321,9 @@ Note, this value does not take account of slip angle effect, which can be differ
     show_turning_radius_under_slip_angle
 Show turning radius affected by slip angle.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -5153,6 +5382,21 @@ Show steering rotation reference line, which can be useful to see if physical st
     show_rotation_line_while_stationary_only
 Show rotation line only while vehicle is stationary (less than 1m/s).
 
+    show_background
+Classic layout: show square background that covers entire widget, in `background_color`. Default is disabled.
+
+    show_circle_background
+Classic layout: show round background behind steering wheel, in `background_color_circle`. Default is enabled.
+
+    show_degree_sign
+Set `true` to show degree sign for steering angle reading.
+
+    rotation_line_width
+Classic layout: set rotation line width in pixels. Default is `3`.
+
+    rotation_line_margin
+Classic layout: set gap in pixels between rotation line and widget edge, limited to a quarter of `display_size`. Default is `2`.
+
 [**`Back to Top`**](#)
 
 
@@ -5203,6 +5447,12 @@ Show lap time consistency (percent) between stint best and stint average non-bes
     show_consistency_sign
 Show consistency percentage sign.
 
+    swap_upper_caption
+Classic layout: show caption row below stint rows instead of above.
+
+    caption_text_virtual_energy
+Classic layout: set custom caption text of fuel column while it shows virtual energy (`show_virtual_energy_if_available`).
+
 [**`Back to Top`**](#)
 
 
@@ -5243,6 +5493,9 @@ Show percentage force ratio between each and total suspension force. Set `false`
 
 Note, gauge bar shows force ratio of each suspension, full at `50%` of total suspension force (half bar at `25%`, equal force on four wheels).
 
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
+
 [**`Back to Top`**](#)
 
 
@@ -5259,6 +5512,15 @@ Show front and rear third spring position mark relative to each suspension posit
 Show a visualized line indicating maximum suspension position range under compression, which can be useful to check suspension travel limits. While this option enabled, the suspension position line will also change its color to match `maximum_position_range_color` when reaching maximum position. The visualized line will not be displayed if maximum position range is negative (such as with too much packers).
 
 Note, maximum suspension position calculation is handled by [Wheels Module](#wheels-module), and resets after exited garage. A minimum of two laps are required to get sensible readings.
+
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
+
+    third_spring_position_mark_width
+Classic layout: set third spring position mark width in pixels. Minimum width is limited to `1`. Default is `2`.
+
+    maximum_position_range_size
+Classic layout: set thickness in pixels of maximum position range line, drawn along top edge of front wheel bars and bottom edge of rear wheel bars. Set `0` to hide line. Default is `3`.
 
 [**`Back to Top`**](#)
 
@@ -5299,6 +5561,9 @@ Show current suspension position (millimeter).
     show_live_position_relative_to_static_position
 Show current suspension position (millimeter) relative to static position instead.
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -5313,6 +5578,9 @@ Show NeoPedal's CPU utilization (percent) and memory usage (MB).
 
     average_samples
 Set number of samples for average CPU utilization calculation. Lower value may result more fluctuated reading. Set `1` to disable averaging.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -5429,6 +5697,9 @@ See Wiki Appendix page for sunrise and sunset reference table for some common tr
     enable_time_scaled_countdown
 Enable time scaled countdown, which scales with session track clock time scale multiplier. This option is disabled by default: countdown is in real time (track time left divided by time scale).
 
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
 [**`Back to Top`**](#)
 
 
@@ -5492,8 +5763,8 @@ Show proximity circle around player's position, which helps to quickly spot play
     proximity_circle_radius
 Set proximity circle radius in meters. Default radius is `150` meters.
 
-    show_vehicle_standings
-Show vehicle standings info on track map. Note, if `enable_multi_class_styling` is enabled, position in class will be displayed for each vehicle class instead.
+    show_vehicle_class_standings
+Show position number on each vehicle on track map: overall position, or position in class while both `enable_multi_class_styling` and `show_position_in_class` are enabled.
 
     enable_multi_class_styling
 Show vehicles in multi-class color styles on map instead. Multi-class color can be customized from [Vehicle Class Editor](#vehicle-class-editor).
@@ -5559,11 +5830,26 @@ Show pit-out prediction based on user-defined fixed pitstop duration instead. Th
 
 While this option is enabled, total pit-out duration is calculated from the sum of `pit-out time offset`, `fixed pit stop duration` and `estimated pit lane pass-through duration`. It's required to enter and exit pit lane at least once to get correct total pit-out duration.
 
-    fixed_pitstop_duration
+    fixed_pitstop_duration_*
 Set fixed amount pit stop duration (in seconds). Note, only `stopped` time should be considered for this option. Set to `0` if only passing through pit lane (such as `Drive Through`). Set to `-1` to disable this option.
 
     show_pitstop_duration
 Show pit stop duration reading on top of each prediction circle.
+
+    start_line_width, start_line_length
+Classic layout: set start line mark width, and length on each side of track line, in pixels.
+
+    sector_line_width, sector_line_length
+Classic layout: set sector line mark width, and length on each side of track line, in pixels.
+
+    proximity_circle_width
+Classic layout: set proximity circle line width in pixels. Set `0` to hide circle.
+
+    vehicle_outline_width_player, vehicle_outline_width, vehicle_outline_width_safety_car, vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind
+Classic layout: set vehicle outline width in pixels: player (`vehicle_outline_width_player`), opponents (`vehicle_outline_width`), safety car (`vehicle_outline_width_safety_car`), and opponents laps ahead or behind player (`vehicle_outline_width_laps_ahead`, `vehicle_outline_width_laps_behind`, while `show_lap_difference_outline` is enabled). Set `0` to hide outline.
+
+    prediction_outline_width, auto_prediction_outline_width
+Classic layout: set line width in pixels of pit-out prediction circles (`prediction_outline_width`), and of auto-estimated prediction circle (`auto_prediction_outline_width`, see `enable_auto_pitout_prediction`). Set `0` to hide circle.
 
 [**`Back to Top`**](#)
 
@@ -5603,6 +5889,9 @@ Auto hide this widget if track notes data is not available for current track, or
 
     maximum_display_duration
 Set maximum display duration (seconds) of each note. Set to `-1` to always display notes. Default is `-1`.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
 
 [**`Back to Top`**](#)
 
@@ -5798,6 +6087,21 @@ Set reference line width in pixels. Set value to `0` to hide line.
     display_order_*
 Set display order of plot lines.
 
+    show_brake
+Show filtered brake plot. Note, some vehicles may not provide filtered pedal input value, which the value will be zero.
+
+    show_raw_brake
+Show unfiltered brake instead (plot and pedal bar).
+
+    show_clutch
+Show filtered clutch plot. Note, some vehicles may not provide filtered pedal input value, which the value will be zero.
+
+    show_raw_clutch
+Show unfiltered clutch instead (plot and pedal bar).
+
+    show_ffb
+Show force feedback plot, see `show_absolute_ffb`.
+
 [**`Back to Top`**](#)
 
 
@@ -5838,6 +6142,9 @@ Show tyre compound symbol of each tyre (one per axle in `RF2`) that matches spec
     show_compound_color_by_type
 Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
 
+    swap_style
+Classic layout: swap heatmap color between font and background color, also for rate of change readings.
+
 [**`Back to Top`**](#)
 
 
@@ -5849,6 +6156,9 @@ Set visualized maximum tyre deflection display range (millimeter).
 
     lift_off_threshold
 Set millimeter threshold of tyre deflection for detecting lifted wheels. Default threshold is `1` millimeter.
+
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
 
 [**`Back to Top`**](#)
 
@@ -5898,6 +6208,9 @@ Show percentage load ratio between each and total tyre load. Set `false` to show
 
     low_load_threshold
 Show warning indication when load is at or below the threshold. The threshold is in the unit shown: percentage of total load while `show_tyre_load_ratio` is enabled (default), Newtons otherwise. Default is `1`.
+
+    bar_width
+Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to `20`. Default is `50`.
 
 [**`Back to Top`**](#)
 
@@ -6170,6 +6483,33 @@ Positive value indicates more laps can be run on fuel than virtual energy; in ot
 
 Note, depleting virtual energy could result a `Stop-Go` penalty in `LMU`; while running out of fuel means no power for vehicle and would result retirement from race. So it is a good idea to keep fuel bias close to `0.0`, and slightly towards positive side to avoid depleting fuel before virtual energy.
 
+    show_low_energy_warning_flash
+Show low energy warning flash effect when below `low_energy_lap_threshold`.
+
+    low_energy_lap_threshold
+Set amount lap threshold to show low energy indicator when total completable laps of remaining virtual energy is equal or less than this value. Default is `2` laps before running out of energy.
+
+    show_energy_level_bar
+Show visualized horizontal energy level bar.
+
+    energy_level_bar_height
+Classic layout: set energy level bar height in pixels. Minimum height is limited to `1`.
+
+    show_starting_energy_level_mark
+Show starting energy level mark of current stint. Default mark color is red (classic layout).
+
+    show_refilling_level_mark
+Show estimated energy level mark after refilling. Classic layout: if the mark is not visible on energy level bar, total refilling has exceeded full energy capacity; default mark color is green.
+
+    starting_energy_level_mark_width, refilling_level_mark_width
+Classic layout: set energy level mark width in pixels. Minimum width is limited to `1`.
+
+    caption_text_refilling, caption_text_absolute_refilling
+Classic layout: set custom caption text of refilling value, and of absolute refilling value (`show_absolute_refilling`).
+
+    caption_text_fuel_ratio, caption_text_fuel_bias
+Classic layout: set custom caption text, shown while `show_caption` is enabled. Modern design shows its own labels.
+
 [**`Back to Top`**](#)
 
 
@@ -6262,6 +6602,9 @@ Set number of forecasts to display. Value range in `1` to `4`. Default is `4` fo
     show_unavailable_data
 Show columns with unavailable weather data. Set `False` to auto hide columns with unavailable data. Note, auto hide only works for time-based race.
 
+    rain_chance_bar_height
+Classic layout: set rain chance bar height in pixels. Minimum height is limited to `1`. Default is `5`.
+
 [**`Back to Top`**](#)
 
 
@@ -6285,6 +6628,12 @@ Show cross weight (known as `wedge`) in percentage.
 
     smoothing_samples
 Set number of samples for reducing data fluctuation. Lower value may result more fluctuated reading. Set `1` to disable smoothing.
+
+    layout
+2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
+
+    show_percentage_sign
+Set `true` to show percentage sign for weight distribution values.
 
 [**`Back to Top`**](#)
 
@@ -6712,6 +7061,33 @@ Custom labels of damage and incident events. Defaults are `DAMAGE` and `IMPACT`.
 
 Options of this widget in Overlay Options page are in sections, one per part of the widget: General, Profile & Data, Size & Layout, Visual Style, Units, Steering & Wheel Slip, Tyre Temperature, Tyre Pressure, Tyre Wear & Status, Tyre Readings, Brakes, Suspension, RPM LEDs, Gear & Speed, Center Column, Fuel & Energy Gauges, Battery, Damage Panel, Incident Recorder & Event Log, Labels and Center Column Order. The live preview shows changes before saving. The page shows this widget in simple mode, showing on/off and choice options plus the few common ones; tick `Advanced Options` to show every option (colors, thresholds, labels). Click a section title to collapse or expand it, `Reset` beside it resets that section only; a search looks through every option, collapsed or advanced ones included. Options that only matter while another option is on are dimmed while it is off, and options set by the selected `display_profile` are locked in italic, naming the profile. `Color Theme…` sets every color at once (Default, Colorblind Safe), saved only with Apply. The table button of `tyre_target_by_compound` edits it as a table. Each label text sits in the section of the part it names. Default colors follow one palette: red for warnings and hot, cyan for cold and low, green for good, orange and yellow for intermediate states.
 
+    status_icons_side
+Set side of headlights, wipers and engine icons, between front and rear wheels: `Left` (default) or `Right` (above ABS, TC, brake bias and motor map chips).
+
+    status_icon_scale
+Set size of headlights, wipers and engine icons, relative to their default size (minimum `0.2`). Icons are made smaller if room between the wheels is too small. Default is `1.0`.
+
+    font_scale_engine
+Set text size of engine state (`text_engine_off`, `text_ignition`) and of oil and water temperatures below engine icon, relative to default size (minimum `0.2`). Default is `1.0`.
+
+    show_headlights_indicator
+Show a headlights icon between the wheels (side set by `status_icons_side`), lit in `headlights_active_color` while headlights are on. Enabled by default.
+
+    show_engine_status
+Show an engine icon after headlights and wipers icons: `engine_off_color` with `text_engine_off` while ignition is off, `engine_ignition_color` with `text_ignition` while ignition is on and engine is not running (stalled or starting), `engine_running_color` with oil and water temperatures below it while engine runs (`engine_warning_color` once a temperature reaches its warning temperature). Enabled by default.
+
+    stalling_rpm_threshold
+Set engine RPM below which engine is shown as not running while ignition is on (`text_ignition`, stalled or starting). Default is `100`.
+
+    engine_oil_warning_temperature, engine_water_warning_temperature
+Set oil and water temperature (Celsius) from which engine status is shown in `engine_warning_color`, also used by engine overheat events of event log (`show_engine_overheat_events`). Default is `125` and `105`.
+
+    text_oil, text_water
+Set labels of oil and water temperatures below engine icon, also used by engine overheat events. Default is `OIL` and `H2O`.
+
+    text_engine_off, text_ignition
+Set text shown below engine icon while ignition is off (default `OFF`), and while ignition is on with engine not running (default `IGN`).
+
 [**`Back to Top`**](#)
 
 
@@ -6786,6 +7162,12 @@ Show direction marks: north mark, major marks (east, south, west) and minor mark
 
     direction_mark_north_length, direction_mark_major_length, direction_mark_minor_length
 Set inner end of direction marks as a fraction of mark radius.
+
+    show_background
+Classic layout: show square background that covers entire widget, in `background_color`. Default is disabled.
+
+    direction_mark_north_width, direction_mark_major_width, direction_mark_minor_width
+Classic layout: set line width in pixels of north mark, major marks (east, south, west) and minor marks. Set `0` to hide marks.
 
 [**`Back to Top`**](#)
 

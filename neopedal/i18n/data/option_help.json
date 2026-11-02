@@ -7,6 +7,9 @@
             "api_name": "Set API name for accessing data from supported API.",
             "bar_gap": "Set gap (screen pixel) between elements in a widget, only accept integer, 1 = 1 pixel.",
             "bar_padding": "Set widget edge padding value that multiplies and scales with font_size. Default is 0.2 for most widgets. Increase padding value will further increase each element width in widget.",
+            "bar_padding_horizontal": "Classic layout: set text padding, as a multiple of character width on left and right sides (bar_padding_horizontal), and of capital letter height above and below (bar_padding_vertical).",
+            "bar_padding_vertical": "Classic layout: set text padding, as a multiple of character width on left and right sides (bar_padding_horizontal), and of capital letter height above and below (bar_padding_vertical).",
+            "caption_text*": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
             "color": "Set color in hexadecimal color codes with alpha value (opacity). The color code format starts with #, then follows by two-digit hexadecimal numbers for each channel in the order of alpha, red, green, blue. Note, alpha is optional and can be omitted. User can select a new color without manual editing, by double-clicking on color entry box in Settings page.",
             "decimal_places": "Set amount decimal places to keep.",
             "display_order": "Set display order of each info column or row.",
@@ -18,8 +21,10 @@
             "enable_legacy_api_selection": "Enable legacy API selection. This option is disabled by default.\n\nImportant note, legacy APIs are deprecated and no longer maintained or supported, and will be removed in the future. It is not recommended to use them.",
             "font_name": "Select a font to be displayed in widget. Mono type font is highly recommended.\n\nNote, selected font must be already installed in operation system; if not, manually install required font. Default fallback font will be used if font is not found or installed in operation system.",
             "font_offset_vertical": "Manually set font vertical offset. Default is 0. Negative value will offset font upward, and position value for downward. This option only takes effect when enable_auto_font_offset is set to false.",
+            "font_scale_caption": "Classic layout: set caption font size, as a multiplier of font_size.",
             "font_size": "Set font size in pixel, increase or decrease font size will also apply to widget size.",
             "font_weight": "Acceptable values: Thin, Extra Light, Light, Normal, Medium, Semi Bold, Bold, Extra Bold, Black.\n\nNote, not every weight may be available for selected font.",
+            "horizontal_gap": "Classic layout: set gap in pixels between left and right wheels (horizontal_gap), and between front and rear wheels (vertical_gap).",
             "idle_update_interval": "Set refresh rate for module while idling for conserving resources.",
             "inner_gap": "Set gap (screen pixel) between elements in a widget, only accept integer, 1 = 1 pixel.",
             "opacity": "Set opacity for entire widget. By default, all widgets have a 90% opacity setting, which equals value 0.9. Lower value adds more transparency to widget. Acceptable value range in 0.0 to 1.0. Note, opacity can also be set by adjusting alpha value in color options for individual elements.",
@@ -28,11 +33,15 @@
             "prefix": "Set prefix text that displayed beside corresponding data. Set to \"\" to hide prefix text.",
             "show_caption": "Show short caption description on widget. Modern design: turned off, hides the labels above tiles and values (overlays whose classic caption is off by default keep their modern labels).",
             "stream_visibility": "Where the widget is shown when Stream Overlay is enabled: Screen & Stream (default), Stream Only (window fully transparent on screen while widgets are locked, still sent to streaming software; visible while unlocked, to move it), or Screen Only (never sent to streaming software). Can also be set for every widget from Stream Overlays page.",
+            "swap_lower_caption": "Swap caption row position (classic layout): upper captions are shown below their values instead of above, lower captions above their values instead of below.",
+            "swap_upper_caption": "Swap caption row position (classic layout): upper captions are shown below their values instead of above, lower captions above their values instead of below.",
             "text_alignment": "Set text alignment. Acceptable value: Left, Center, Right.",
             "update_interval": "Set refresh rate for widget or module in milliseconds. A value of 20 means refreshing every 20ms, which equals 50fps. Since most data from sharedmemory plugin is capped at 50fps, and most operation system has a roughly 15ms minimum sleep time, setting value less than 10 has no benefit, and extreme low value may result significant increase of CPU usage.",
+            "vertical_gap": "Classic layout: set gap in pixels between left and right wheels (horizontal_gap), and between front and rear wheels (vertical_gap).",
             "visibility_context": "Set when the widget is shown: Always (default), Race, Qualifying & Race, Practice & Qualifying, On Track (hidden in pit lane) or In Pits (shown in pit lane only). Outside sessions the widget is always shown. Can also be set from the widget menu while editing overlays in game."
         },
         "acceleration": {
+            "bar_width": "Set each column width, value in chars, such as 10 = 10 chars. Default is 6. Minimum width is limited to 4.",
             "layout": "Set column horizontal display order. Set 0 to show from left to right. Set 1 to show from right to left instead.",
             "speed_drop_threshold": "Set threshold for detecting speed drop during acceleration timing, which cancels timing when speed dropped below threshold. Default is 1 m/s.",
             "speed_range_*_end": "Set the start and end target speed values for measuring acceleration time. Speed value is defined in meter per second, and displayed according Speed Units setting. To hide specific slot, set both target speed values to 0.\n\nNote, to properly count acceleration from 0 start speed, set slightly higher value such as 0.6 instead of '0', because vehicle in game will not be sitting perfectly still at 0 speed while stopped.",
@@ -125,6 +134,7 @@
         "battery": {
             "freeze_duration": "Set freeze duration (seconds) for displaying previous lap total drained/regenerated battery charge after crossing finish line. Value range in 0 to 30 seconds. Default is 10 seconds. Not frozen after a lap recorded only in part (app started during the lap): current lap is shown.",
             "high_battery_threshold": "Set percentage threshold for displaying low or high battery charge warning indicator. Default high threshold is 95 percent (default color purple), low threshold is 10 percent (default color red).",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "low_battery_threshold": "Set percentage threshold for displaying low or high battery charge warning indicator. Default high threshold is 95 percent (default color purple), low threshold is 10 percent (default color red).",
             "number_of_warning_flashes": "Set number of warning flashes that will be played for a limited number of times. Default is 10 flashes. Minimum value is limited to 3.",
             "show_activation_timer": "Show electric boost motor activation timer.",
@@ -209,6 +219,8 @@
             "enable_tyre_pressure_target": "Highlight tyre pressure below minimum (tyre_pressure_low_color) or above maximum (tyre_pressure_high_color). Values in kPa, psi or bar, the unit is found from the value (under 10 is bar, 10 to 60 is psi, above is kPa), so 23-27 works as psi and 1.6-1.9 as bar whatever pressure unit is displayed. Defaults are 160 and 190 (kPa).",
             "enable_wheel_suspension_motion": "Move tyre and brake disc with the suspension wheel mount (enabled by default). Disable to keep them fixed, suspension travel then only shows on the coilover.",
             "energy_gauge_color": "Gauge fill colors. Below gauge_low_lap_threshold estimated laps (default 2), the gauge and its reading turn gauge_low_color and pulse with alert_pulse_frequency.",
+            "engine_oil_warning_temperature": "Set oil and water temperature (Celsius) from which engine status is shown in engine_warning_color, also used by engine overheat events of event log (show_engine_overheat_events). Default is 125 and 105.",
+            "engine_water_warning_temperature": "Set oil and water temperature (Celsius) from which engine status is shown in engine_warning_color, also used by engine overheat events of event log (show_engine_overheat_events). Default is 125 and 105.",
             "event_log_line_scale": "Size of each block relative to its default, on top of display_scale: tyres & brakes, center column width (normal layout), fuel / energy gauge & stint rows height, event log lines height. Value range 0.5 to 3. Battery gauge, damage panel and incident trace have their own battery_bar_scale, damage_panel_scale and trace_height_scale.",
             "fixed_height": "Force widget width and/or height in pixels, 0 (default) follows content. Content is scaled uniformly to fit inside (never distorted) and centered, background fills the whole widget. With only one set, the other follows the content proportions.",
             "fixed_width": "Force widget width and/or height in pixels, 0 (default) follows content. Content is scaled uniformly to fit inside (never distorted) and centered, background fills the whole widget. With only one set, the other follows the content proportions.",
@@ -224,6 +236,7 @@
             "font_color_tyre_temperature_warming": "Tyre temperature text turns cold color below this temperature (Celsius), or warming color while still below it but rising (see trends). 0 disables. Default is 70. Above tyre_temperature_warning_threshold it turns font_color_tyre_temperature_warning.",
             "font_color_tyre_temperature_warning": "Highlight tyre temperature (Celsius) at or above this threshold. Set 0 to disable. Default is 110.",
             "font_scale_battery": "Show charge percentage on a readout at the top of the battery bar. font_scale_battery sets its text size relative to font_size, value range in 0.3 to 4, default 0.9.",
+            "font_scale_engine": "Set text size of engine state (text_engine_off, text_ignition) and of oil and water temperatures below engine icon, relative to default size (minimum 0.2). Default is 1.0.",
             "font_scale_gear": "Set text size of gear, speed and RPM, relative to font_size. Defaults are 3.0, 1.6 and 0.75. Widget height adapts to these sizes.\n\nAll texts of this widget are automatically reduced if they do not fit in their box (for example large font, long values, TC 10/10/10), and follow font_name, font_weight, Global Font Override and modern overlay font.",
             "font_scale_rpm": "Set text size of gear, speed and RPM, relative to font_size. Defaults are 3.0, 1.6 and 0.75. Widget height adapts to these sizes.\n\nAll texts of this widget are automatically reduced if they do not fit in their box (for example large font, long values, TC 10/10/10), and follow font_name, font_weight, Global Font Override and modern overlay font.",
             "font_scale_speed": "Set text size of gear, speed and RPM, relative to font_size. Defaults are 3.0, 1.6 and 0.75. Widget height adapts to these sizes.\n\nAll texts of this widget are automatically reduced if they do not fit in their box (for example large font, long values, TC 10/10/10), and follow font_name, font_weight, Global Font Override and modern overlay font.",
@@ -293,6 +306,7 @@
             "show_delta_best": "Show delta to best lap in the center column, colored by gain or loss, from Delta module.",
             "show_energy_gauge": "Show fuel gauge and virtual energy gauge at the bottom, one full-width bar each, like the level bar of Fuel and Virtual Energy widgets: filled to current level (percent of capacity), with a mark at stint start level and a mark at the level after refuel/refill (current level plus amount needed to finish). Label on the left, remaining amount & estimated laps, then amount to add (+12.4 L, in refill mark color when fuel must be added) on the right, from Fuel module and Energy module. The energy row stays empty on cars without virtual energy, so the widget never resizes.",
             "show_engine_overheat_events": "Log oil or water temperature reaching engine_oil_warning_temperature or engine_water_warning_temperature (critical, OIL HOT 126°), once each time it gets hot. Default label is HOT. Enabled by default.",
+            "show_engine_status": "Show an engine icon after headlights and wipers icons: engine_off_color with text_engine_off while ignition is off, engine_ignition_color with text_ignition while ignition is on and engine is not running (stalled or starting), engine_running_color with oil and water temperatures below it while engine runs (engine_warning_color once a temperature reaches its warning temperature). Enabled by default.",
             "show_event_log": "Event log below the trace: puncture, flat spot, detached wheel, damage and incidents, newest on top, with lap and session time (L12 04:31 PUNCT FR). Critical events use incident_color. Tyre events need show_tyre_status.",
             "show_flag_events": "Log a yellow flag in any sector and a blue flag for you, each once when it comes out. Defaults are YELLOW and BLUE. Enabled by default.",
             "show_fuel_gauge": "Show fuel gauge and virtual energy gauge at the bottom, one full-width bar each, like the level bar of Fuel and Virtual Energy widgets: filled to current level (percent of capacity), with a mark at stint start level and a mark at the level after refuel/refill (current level plus amount needed to finish). Label on the left, remaining amount & estimated laps, then amount to add (+12.4 L, in refill mark color when fuel must be added) on the right, from Fuel module and Energy module. The energy row stays empty on cars without virtual energy, so the widget never resizes.",
@@ -301,6 +315,7 @@
             "show_gauge_start_mark": "Stint start level mark and level after refuel/refill mark.",
             "show_gear": "Show engaged gear (N neutral, R reverse), vehicle speed (unit from Units setting) and engine RPM with RPM bar.",
             "show_gear_speed_cluster": "Draw gear and speed together in one block of the center column: thin RPM accent along the top in gear color (turns shift color over redline), large gear, large speed and its unit below (KM/H). In normal layout the block grows to fill free room of the center column, so no empty space is left between items. Enabled by default, speed display order is then ignored.",
+            "show_headlights_indicator": "Show a headlights icon between the wheels (side set by status_icons_side), lit in headlights_active_color while headlights are on. Enabled by default.",
             "show_incident_recorder": "Incident recorder: a trace panel shows the last recorder_duration seconds (default 15) of speed (line), throttle & brake (filled areas), ABS & TC activity (ticks on top) and wheel lock & spin (marks at bottom). An incident is detected on an impact reported by the game (contact with a car or a wall, even without much speed loss; light contacts such as kerbs or underbody scraping, impact magnitude under 200, are not incidents), on a deceleration above incident_deceleration_threshold measured over 150 ms (g, default 4, 0 disables; a single telemetry step is too noisy, and a prototype already brakes at 3 to 3.5 g), or on new body or suspension damage. The recording continues 2 seconds after the…",
             "show_laptime": "Show current lap time in the center column, from Delta module.",
             "show_lift_and_coast": "Show lift & coast progress asked by the game (hybrid energy management, Le Mans Ultimate) as a bar in the center column. Disabled by default.",
@@ -349,6 +364,9 @@
             "slip_warning_minimum_speed": "Minimum speed (km/h) for lock & spin warning. Default is 10.",
             "slow_data_update_interval": "Update interval (milliseconds) of slow changing data: temperatures, pressure, wear, damage, fuel & energy. Fast data (slip warning, steering, center column, battery) still follows update_interval. 0 updates everything every time. Default is 200. The widget is also only repainted when something visible changed.",
             "smooth_transition_duration": "Fade tyre and brake heatmap colors from one grade to the next over smooth_transition_duration seconds (default 0.4), instead of stepping. 0 turns fading off.",
+            "stalling_rpm_threshold": "Set engine RPM below which engine is shown as not running while ignition is on (text_ignition, stalled or starting). Default is 100.",
+            "status_icon_scale": "Set size of headlights, wipers and engine icons, relative to their default size (minimum 0.2). Icons are made smaller if room between the wheels is too small. Default is 1.0.",
+            "status_icons_side": "Set side of headlights, wipers and engine icons, between front and rear wheels: Left (default) or Right (above ABS, TC, brake bias and motor map chips).",
             "suspension_airborne_color": "Spring color, pulsing, while the wheel is in the air (tyre load near zero with the car moving): kerb strike, crest, or two wheels lifting in a corner.",
             "suspension_bump_color": "Spring turns bump stop color, pulsing with alert_pulse_frequency, while the bump rubber is loaded. A spring alone gives a force growing linearly with deflection: that line is learned from suspension force at low damper speed in the lower part of the travel, and contact is shown once force in the upper part of the travel is above it by more than suspension_bump_force_margin (fraction, default 0.3). Judged at low to medium damper speed only, where damper force does not hide the spring force.",
             "suspension_bump_force_margin": "Spring turns bump stop color, pulsing with alert_pulse_frequency, while the bump rubber is loaded. A spring alone gives a force growing linearly with deflection: that line is learned from suspension force at low damper speed in the lower part of the travel, and contact is shown once force in the upper part of the travel is above it by more than suspension_bump_force_margin (fraction, default 0.3). Judged at low to medium damper speed only, where damper force does not hide the spring force.",
@@ -369,11 +387,13 @@
             "text_delta": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_detached": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_energy": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
+            "text_engine_off": "Set text shown below engine icon while ignition is off (default OFF), and while ignition is on with engine not running (default IGN).",
             "text_flat_spot": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_front_arb": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_fuel": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_gap": "Show time gap to the car ahead and to the car behind on track, any class (GAP 1.2 | 3.0, seconds, - if none), from the game (Le Mans Ultimate). Disabled by default.",
             "text_headlights": "Also show driving events in the pop-up: pit limiter, headlights and wipers turned on, off or to another mode (LIM ON, WIPER AUTO). Enabled by default.",
+            "text_ignition": "Set text shown below engine icon while ignition is off (default OFF), and while ignition is on with engine not running (default IGN).",
             "text_impact": "Custom labels of damage and incident events. Defaults are DAMAGE and IMPACT.\n\nOptions of this widget in Overlay Options page are in sections, one per part of the widget: General, Profile & Data, Size & Layout, Visual Style, Units, Steering & Wheel Slip, Tyre Temperature, Tyre Pressure, Tyre Wear & Status, Tyre Readings, Brakes, Suspension, RPM LEDs, Gear & Speed, Center Column, Fuel & Energy Gauges, Battery, Damage Panel, Incident Recorder & Event Log, Labels and Center Column Order. The live preview shows changes before saving. The page shows this widget in simple mode, showing on/off and choice options plus the few common ones; tick Advanced Options to show every option (colors,…",
             "text_integrity_aero": "Show remaining body integrity in the middle, or aero integrity if the car reports it, with its source label (defaults BODY and AERO).",
             "text_integrity_body": "Show remaining body integrity in the middle, or aero integrity if the car reports it, with its source label (defaults BODY and AERO).",
@@ -382,6 +402,7 @@
             "text_limiter": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_locking": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_motor_map": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
+            "text_oil": "Set labels of oil and water temperatures below engine icon, also used by engine overheat events. Default is OIL and H2O.",
             "text_overheat": "Log oil or water temperature reaching engine_oil_warning_temperature or engine_water_warning_temperature (critical, OIL HOT 126°), once each time it gets hot. Default label is HOT. Enabled by default.",
             "text_penalty": "Log each new penalty (critical, with the number of penalties) and each new track limits point (LIMITS 2/4, points per penalty when the game reports it, LMU only; critical once a penalty is reached). Defaults are PENALTY and LIMITS. Enabled by default.",
             "text_pit": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
@@ -400,6 +421,7 @@
             "text_tc_slip": "Custom label texts, for translation or shorter abbreviations. Defaults are PUNCT, FLAT, OFF, ABS, TC, BB, BMIG, MAP, LOCK, DELTA, TIME, PIT, LIM, SPD, RPM, Fuel, Energy, Wear/lap, Pres, TC SLIP, TC CUT, ARB F and ARB R (track limits label: text_track_limits, see event log).\n\nThe order of the center column items can be changed with the arrows of the Center Column Order section of Overlay Options page.",
             "text_track_limits": "Log each new penalty (critical, with the number of penalties) and each new track limits point (LIMITS 2/4, points per penalty when the game reports it, LMU only; critical once a penalty is reached). Defaults are PENALTY and LIMITS. Enabled by default.",
             "text_wall": "Log each contact of the player with another car (CONTACT and its driver name) or a wall (WALL), from the contact list of the game (LMU, Rest API enable_race_info option), at the time of the contact. Contacts with the same car within 2 seconds are logged once, contacts from before the widget started are not logged. Defaults are CONTACT and WALL. Enabled by default.",
+            "text_water": "Set labels of oil and water temperatures below engine icon, also used by engine overheat events. Default is OIL and H2O.",
             "text_wipers": "Also show driving events in the pop-up: pit limiter, headlights and wipers turned on, off or to another mode (LIM ON, WIPER AUTO). Enabled by default.",
             "text_wipers_auto": "Show a wipers icon next to headlights icon, lit while wipers run, with their mode below it (AUTO, SLOW, FAST). Enabled by default.",
             "text_wipers_fast": "Show a wipers icon next to headlights icon, lit while wipers run, with their mode below it (AUTO, SLOW, FAST). Enabled by default.",
@@ -435,12 +457,16 @@
         },
         "brake_bias": {
             "electric_braking_allocation": "Set allocation for calculating brake migration under different electric braking allocation from specific vehicle (rF2 only, LMU brake migration is read from game). Note, vehicle that has not electric braking, or has disabled regeneration, is not affected by this option. Incorrect allocation value will result wrong brake migration reading from vehicle that has electric braking activated.\n\nSet value to -1 to enable auto-detection, which automatically checks whether electric braking is activated on either axles while braking, and sets allocation accordingly. This is enabled by default. Note, it may take a few brakes to detect correct allocation.\n\nSet value to 0 to manual override and use front…",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_baseline_bias_delta": "Show delta between current and baseline brake bias, which can be useful for keeping track of brake bias changes easier during a long race. Baseline brake bias is automatically set (and reset) while vehicle is stationary in pit lane or stationary during formation lap.",
+            "show_brake_bias": "Show front brake bias (percentage), or front and rear bias with show_front_and_rear.",
             "show_brake_migration": "Show real-time brake migration change, as commonly seen in LMH and LMDh classes.\n\nNote, in LMU, brake migration is read from game telemetry, and following calculation, calibration and electric_braking_allocation option are not used. In rF2, brake migration is calculated based on brake input and brake pressure telemetry data, and is affected by pedal force setting from car setup and electric braking allocation of specific vehicle.\n\nTo get accurate brake migration reading, it is necessary for brake pedal to reach fully pressed state for at least once while entering track to recalibrate brake pressure scaling for brake migration calculation. It is normally not required to do manually, as…",
             "show_front_and_rear": "Show both front and rear bias. Default is false.",
-            "show_percentage_sign": "Set true to show percentage sign for brake bias value."
+            "show_percentage_sign": "Set true to show percentage sign for brake bias value.",
+            "suffix_brake_migration": "Set suffix text displayed after brake migration value. Default is F. Set to \"\" to hide suffix text."
         },
         "brake_performance": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_delta_braking_rate": "Show maximum braking rate difference (g) against transient maximum braking rate, and resets on the next braking.",
             "show_delta_braking_rate_in_percentage": "Show maximum braking rate difference (g) in percentage (%) instead.",
             "show_front_wheel_lock_duration": "Show maximum front and rear wheel lock duration (seconds) per lap under braking. Duration increases when tyre slip ratio has exceeded wheel_lock_threshold value that set in Wheels Module, and resets on first braking input of a new lap.",
@@ -449,6 +475,8 @@
             "show_transient_maximum_braking_rate": "Show transient maximum braking rate (g) from last braking input, and resets after 3 seconds."
         },
         "brake_pressure": {
+            "bar_width": "Set each brake pressure bar width in pixels (classic layout). Default is 50. Minimum width is limited to 20.",
+            "brake_input_size": "Set raw brake input mark thickness in pixels (show_brake_input), drawn along top edge of front bars and bottom edge of rear bars (classic layout). Default is 3.",
             "show_brake_input": "Show raw brake input on each brake. This option can be useful to check amount difference between brake input and applied brake pressure."
         },
         "brake_temperature": {
@@ -498,6 +526,7 @@
             "show_next_corner": "Show next corner: official number or name (else number of corner found on reference lap), and distance to its apex."
         },
         "cruise": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "odometer_maximum_digits": "Set maximum number of display digits.",
             "show_compass": "Show compass directions with three-figure bearings that matches game's cardinal directions.",
             "show_distance_into_lap": "Show distance into current lap.",
@@ -527,6 +556,7 @@
             "wheel_width": "Set wheel width, height in pixels. Minimum value is limited to 1."
         },
         "damage_stats": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "low_*_integrity_threshold": "Set low integrity threshold for displaying warning indication.",
             "show_aero_integrity": "Show body aero integrity reading.",
             "show_body_integrity": "Show bodywork integrity reading.",
@@ -559,6 +589,9 @@
             "swap_style": "Swap time gain and loss color between font and background color."
         },
         "deltabest_extended": {
+            "delta_display_range": "Set maximum display range (gain or loss) in seconds for delta reading, accepts decimal place. Default is 99.999 seconds.",
+            "freeze_duration": "Set freeze duration (seconds) for displaying previous lap time difference against each lap time source after crossing finish line. Value range in 0 to 30 seconds. Default is 3 seconds. Set to 0 to disable. Difference is against each reference lap as it was when the lap started (no deltalast if last lap went through pit lane), or against best lap of game for session deltabest while game delta is shown.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_all_time_deltabest": "Show deltabest against personal all time best lap time.",
             "show_deltalast": "Show delta against personal last lap time (deltalast). Note: deltalast will be reset upon ESC.",
             "show_game_deltabest_if_available": "Show delta to best lap computed by game (LMU) instead of delta computed by APP, when game provides it. Game delta (best lap as defined by game) replaces session deltabest reading. Delta computed by APP is used when game delta is unavailable (RF2). Default is disabled.",
@@ -609,6 +642,10 @@
             "display_height": "Set widget display height in pixels. Minimum height is limited to 10.",
             "display_margin_*": "Set widget display margin in pixels. Maximum margin is limited to half of display_height value.",
             "display_width": "Set widget display width in pixels. Minimum width is limited to 20.",
+            "elevation_line_width": "Set line width in pixels (classic layout).",
+            "elevation_progress_line_width": "Set line width in pixels (classic layout).",
+            "position_mark_width": "Set width in pixels of player's current position line mark (classic layout).",
+            "sector_line_width": "Set line width in pixels (classic layout).",
             "show_background": "Show widget background.",
             "show_corner_numbers": "Show official corner numbers (or names, at Le Mans) along bottom of elevation plot, for circuits known by the app (as in Lap Telemetry Viewer). A label over the previous one is left out. Corners are placed once per track map, in background. Default is disabled.",
             "show_elevation_background": "Show background of elevation plot.",
@@ -620,7 +657,9 @@
             "show_position_mark": "Show player's current position line mark.",
             "show_sector_line": "Show sector line mark.",
             "show_start_line": "Show start line mark.",
-            "show_zero_elevation_line": "Show zero elevation reference line in game's coordinate system."
+            "show_zero_elevation_line": "Show zero elevation reference line in game's coordinate system.",
+            "start_line_width": "Set line width in pixels (classic layout).",
+            "zero_elevation_line_width": "Set line width in pixels (classic layout)."
         },
         "engine": {
             "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
@@ -637,6 +676,7 @@
             "show_water_temperature": "Show water temperature."
         },
         "engine_temperature": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "overheat_threshold_oil": "Set temperature threshold for oil and water overheat color indicator, unit in Celsius.",
             "overheat_threshold_water": "Set temperature threshold for oil and water overheat color indicator, unit in Celsius.",
             "rate_of_change_interval": "Set time interval in seconds for rate of change calculation. Default interval is 10 seconds. Minimum interval is limited to 1 second, maximum interval is limited to 60 seconds.",
@@ -730,6 +770,7 @@
             "center_mark_width": "Set center mark line width in pixels.",
             "display_radius_g": "Set viewable g force range by radius(g).",
             "display_size": "Set widget size in pixels.",
+            "dot_outline_width": "Set g force dot outline width in pixels (dot_outline_color). Set 0 to hide outline (classic layout).",
             "dot_size": "Set g force dot size in pixels.",
             "fade_in_radius": "Set fade in/out radius, value range in 0.0 to 1.0.",
             "fade_out_radius": "Set fade in/out radius, value range in 0.0 to 1.0.",
@@ -767,6 +808,17 @@
             "*saving_target": "Estimated fuel saving target consumption reading for making one less pit stop.",
             "bar_width": "Set each column width, value in chars, such as 10 = 10 chars. Default is 5. Minimum width is limited to 3.",
             "caption_text": "Set custom caption text.",
+            "caption_text_absolute_refueling": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_delta_consumption": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_early_pitstop_count": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_end_remaining": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_estimated_consumption": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_estimated_laps": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_estimated_minutes": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_pitstop_count": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_refueling": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_remaining": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_saving_target": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
             "fuel_level_bar_height": "Set fuel level bar height in pixels.",
             "low_fuel_lap_threshold": "Set amount lap threshold to show low fuel indicator when total completable laps of remaining fuel is equal or less than this value. Default is 2 laps before running out of fuel.",
             "number_of_warning_flashes": "Set number of warning flashes that will be played for a limited number of times. Default is 10 flashes. Minimum value is limited to 3.",
@@ -795,6 +847,7 @@
             "warning_flash_interval": "Set minimum time interval between each warning flash. Default is 0.4 seconds. Minimum value is limited to 0.2."
         },
         "fuel_energy_saver": {
+            "bar_width": "Set each column width, value in chars, such as 10 = 10 chars. Default is 5. Minimum width is limited to 4.",
             "enable_pit_entry_bias": "Auto calibrate target fuel (or energy) saving bias towards either pit entry position or finish line, depending on number of estimated remaining pit stops.\n\nThis feature is made specially for tracks that have pit entry position located far away from finish line, which it is necessary to take pit entry position into fuel saving calculation for increased accuracy.\n\nWhile enabled, a BIAS column will be displayed, which shows amount added fuel (or energy) bias towards pit entry position, as well as percentage pit entry bias from finish line, When bias is 0, it means there is no pit entry bias added.",
             "layout": "Set target laps horizontal display order. Set 0 to show from left (less laps) to right (more laps). Set 1 to show from right to left instead.",
             "minimum_reserve": "Set minimum amount fuel or virtual energy in tank that is excluded from saving calculation and reserved for the end of stint. Default is 0.2 Liter for fuel (or % for virtual energy).",
@@ -812,6 +865,7 @@
         },
         "gear": {
             "battery_bar_height": "Set battery bar height in pixels.",
+            "consumption_bar_height": "Set consumption bar height in pixels (classic layout).",
             "consumption_progression_exponential_scale": "Apply exponential scale to consumption progression, value range in 1.0 to 10.0. This option affects visual only. Increase this option to scale up high end consumption range. Set to 1.0 to disable exponential scale. This option is useful to enlarge changes at high end consumption range for certain vehicles.",
             "font_scale_speed": "Set font scale for speed reading. This option only takes effect when show_speed_below_gear is enabled. Default is 0.5.",
             "high_battery_threshold": "Set percentage threshold for displaying low or high battery charge warning indicator. Default high threshold is 95 percent (default color purple), low threshold is 10 percent (default color red).",
@@ -830,6 +884,7 @@
             "show_consumption_bar": "Show fuel or energy consumption per second in a visualized progression bar.",
             "show_consumption_reading": "Show fuel or energy consumption per second reading.",
             "show_inverted_battery": "Invert battery bar progression.",
+            "show_inverted_consumption": "Invert consumption bar progression (classic layout).",
             "show_inverted_rpm": "Invert RPM bar progression.",
             "show_rpm_bar": "Show a RPM bar at bottom of gear widget, which moves when RPM reaches range between safe and maximum RPM.",
             "show_rpm_flickering_above_critical": "Show flickering effects when RPM is above critical range and gear is lower than maximum gear.",
@@ -839,6 +894,7 @@
             "show_speed_limiter": "Show pit speed limiter indicator.",
             "show_speed_limiter_pit_reminder": "Show speed limiter reminder while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only): outlined speed limiter in modern design, speed limiter text in swapped colors (background_color_speed_limiter text on font_color_speed_limiter) in classic layout. Same option for modern design and classic layout. Default is enabled.",
             "show_virtual_energy_if_available": "Show virtual energy consumption instead of fuel consumption if available.",
+            "speed_limiter_padding_horizontal": "Set padding on left and right sides of speed limiter text, value multiplies font character width (classic layout). Default is 0.3.",
             "speed_limiter_text": "Set custom pit speed limiter text which shows when speed limiter is engaged."
         },
         "general_keybinding": {
@@ -884,6 +940,8 @@
             "center_mark_style": "Set center mark line style. 0 for dashed line, 1 for solid line.",
             "center_mark_width": "Set center mark line width in pixels.",
             "display_size": "Set widget size in pixels.",
+            "dot_outline_width": "Set center dot outline width in pixels (dot_outline_color). Set 0 to hide outline (classic layout).",
+            "dot_size": "Set center dot size in pixels (classic layout). Minimum size is limited to 1.",
             "show_background": "Show background color that covers entire widget.",
             "show_center_mark": "Show center mark.",
             "show_circle_background": "Show circle background color.",
@@ -909,6 +967,8 @@
             "wheel_slip_threshold": "Set percentage threshold for triggering wheel slip warning under acceleration. 0.1 means 10% of tyre slip ratio."
         },
         "lap_time_history": {
+            "caption_text_fuel": "Set custom caption text of fuel column (classic layout): caption_text_fuel while fuel is shown, caption_text_virtual_energy while virtual energy is shown instead (show_virtual_energy_if_available).",
+            "caption_text_virtual_energy": "Set custom caption text of fuel column (classic layout): caption_text_fuel while fuel is shown, caption_text_virtual_energy while virtual energy is shown instead (show_virtual_energy_if_available).",
             "lap_time_history_count": "Set the number of lap time history display. Default is to show 10 most recent lap times.",
             "layout": "2 layouts are available: 0 = vertical layout, 1 = reversed vertical layout.",
             "show_delta": "Show lap time delta between two consecutive laps. Modern design: faster in green, slower in yellow (red is kept for invalid laps).",
@@ -924,6 +984,7 @@
             "show_wear_sign": "Show tyre wear percentage sign."
         },
         "laps_and_position": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_invalid_lap_highlight": "Classic layout: show lap number background in warning_color_invalid_lap while game invalidated current lap (track limits), before warning_color_maximum_laps. This option only works for LMU. Default is disabled.",
             "show_invalid_lap_indicator": "Modern design: show lap progress in loss color while game invalidated current lap (track limits). This option only works for LMU.",
             "show_laps": "Show your completed laps with current lap progression (for example 5.50: 5 laps done, halfway through the 6th) and total race laps. If total race laps is not available, such as in time-based session, estimated total laps will be displayed instead, and a ~ sign will be displayed before estimated total laps reading. Estimated total laps is the lap the race ends on, when crossing the line after the timer ended (whole laps): total minus current lap reading is the same as estimated laps reading of Session widget.\n\nNote, estimated total laps reading is calculated based on local player's lap time pace, which can be different from in-game HUD reading.\n\nThis reading does not concern about race…",
@@ -937,15 +998,19 @@
             "warning_color_maximum_laps": "Set warning color that shows 1 lap before exceeding maximum laps in qualify (or indicates the last lap of a lap-type race)."
         },
         "lift_and_coast_led": {
+            "display_margin": "Set display margin around LEDs in pixels (classic layout).",
             "display_orientation": "Set LED display orientation: 0 = left to right (horizontal), 1 = bottom to top (vertical), 2 = right to left (horizontal), 3 = top to bottom (vertical).",
             "double_side_led_gap": "Set horizontal gap (in pixels) between double side LEDs.",
             "enable_double_side_led": "Show a second set of LEDs on the opposite side.",
             "led_height": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
+            "led_outline_width": "Set LED outline width in pixels (led_outline_color). Set 0 to hide outline (classic layout).",
             "led_radius": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
             "led_width": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
             "lift_and_coast_multiplier_critical": "This value multiplies maximum lift and coast range, which sets critical range of lift and coast LED.",
             "number_of_led": "Set number of LED to display. Minimum LED is limited to 3.",
             "show_abs_activation": "Show ABS activation state.",
+            "show_background": "Show background behind LEDs: background_color in classic layout, a panel in modern design.",
+            "show_lift_and_coast": "Show lift and coast progress asked by the game (hybrid energy management): LEDs light up as progress grows, in critical color once over lift_and_coast_multiplier_critical. Wheel lock, ABS, wheel slip and TC warnings light all LEDs instead.",
             "show_tc_activation": "Show TC activation state.",
             "show_wheel_lock": "Show wheel lock state.",
             "show_wheel_slip": "Show wheel slip state.",
@@ -1047,15 +1112,20 @@
             "fade_out_radius": "Set fade in/out radius, value range in 0.0 to 1.0.",
             "map_outline_width": "Set navigation map outline width.",
             "map_width": "Set navigation map line width.",
+            "sector_line_length": "Set start line and sector line length in pixels, on each side of track center line (classic layout).",
+            "sector_line_width": "Set start line and sector line width in pixels (classic layout).",
             "show_background": "Show background color that covers entire widget.",
             "show_circle_background": "Show circle background color.",
             "show_circle_vehicle_shape": "Set True to show vehicle in circle shape, set False for arrow shape.",
             "show_fade_out": "Fade out view edge.",
             "show_sector_line": "Show sector line mark.",
             "show_start_line": "Show start line mark.",
-            "show_vehicle_standings": "Show vehicle standings info on navigation map.",
+            "show_vehicle_class_standings": "Show overall position number on each vehicle of navigation map.",
+            "start_line_length": "Set start line and sector line length in pixels, on each side of track center line (classic layout).",
+            "start_line_width": "Set start line and sector line width in pixels (classic layout).",
             "vehicle_offset": "Set vehicle vertical position offset (percentage) relative to display size, value range in 0.0 to 1.0.",
             "vehicle_outline_width": "Set vehicle outline width.",
+            "vehicle_outline_width_player": "Set player vehicle outline width (classic layout).",
             "vehicle_size": "Set vehicle size in pixels.",
             "view_radius": "Set viewable distance (unit meter) across widget width, not from center: 500 shows 500 meters from left to right edge, 250 meters from center to edge. Default is 500 meters. Minimum value is limited to 5."
         },
@@ -1067,6 +1137,15 @@
             "notify_spectate_mode": "Show notification while spectate mode is enabled."
         },
         "onboard_setting": {
+            "caption_text_abs": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_brake_migration": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_front_arb": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_motor_map": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_rear_arb": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_tc": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_tc_cut": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "caption_text_tc_slip": "Set custom caption text of each setting. Modern design shows its own labels while these texts are left at default.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_abs": "Show current ABS level.",
             "show_brake_migration": "Show current brake migration level.",
             "show_front_arb": "Show current front anti-roll bar level.",
@@ -1100,6 +1179,7 @@
             "debugging_width": "Set maximum display width, value in chars, such as 10 = 10 chars.",
             "enable_auto_hide_if_not_available": "Auto hide this widget if pace notes data is not available for current track, or in pit lane without pit notes (tagged #pit).",
             "enable_comments_line_break": "Enable line break for displaying multi-line comments. To break a line into multiple lines, add \\n to any part of the comment.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "maximum_display_duration": "Set maximum display duration (seconds) of each note. Set to -1 to always display notes. Default is -1.",
             "pace_notes_width": "Set maximum display width, value in chars, such as 10 = 10 chars.",
             "pit_comments_text": "Set custom notes and comments to be displayed while in pit lane.",
@@ -1151,6 +1231,7 @@
         "pit_stop_estimate": {
             "actual_relative_refill": "Show actual relative refilling, as the total additional fuel or virtual energy that will be added in next pit stop according to remaining fuel or virtual energy and user refill setting from MFD Pitstop page.",
             "additional_pitstop_time": "Set additional pit stop time that is not part of pass_duration or stop_duration. Default value is 2 seconds, which is the average time it takes to decelerate and accelerate towards and away from pit spot.",
+            "bar_width": "Set each column width (classic layout), value in chars, such as 10 = 10 chars. Default is 5. Width is limited to 3 to 20.",
             "lengthy_stop_duration_threshold": "Set warning threshold for lengthy pit stop duration in seconds. Default is 60 seconds. This option can be useful to check for unusually long pit stop duration, such as repairing.",
             "minimum_total_duration": "Show estimated minimum total pit time, which is the sum of pass_duration, stop_duration, and additional_pitstop_time. Note, this reading is recalculated only while not in pit lane.",
             "pass_duration": "Show estimated pit-lane pass through (drive-through) time, calculated from pit-entry to pit-exit line. Average accuracy is within 0.5 seconds. Note, for any new tracks, at least one pit-lane pass through is required to record data for pass through time calculation.",
@@ -1170,6 +1251,7 @@
             "activation_threshold_gear": "Set minimum gear threshold for P2P ready indicator.",
             "activation_threshold_speed": "Set minimum speed threshold for P2P ready indicator, unit in KPH.",
             "activation_threshold_throttle": "Set minimum throttle input percentage threshold for P2P ready indicator, value range in 0.0 to 1.0. Default is 0.6 (60%).",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "maximum_activation_time_per_lap": "Set maximum P2P activation time per lap, unit in seconds.",
             "minimum_activation_time_delay": "Set minimum time delay between each P2P activation, unit in seconds.",
             "show_activation_timer": "Show electric boost motor activation timer.",
@@ -1190,6 +1272,7 @@
         "race_plan": {
             "enable_live_consumption": "With enable_live_replan: rest of the race planned with the lap time, fuel & energy per lap of the latest 5 valid laps at race pace of the race (at least 3, laps of practice & qualifying sessions left out), as the Game Session source of the race calculator, even with the race calculator closed. Disabled: values of the race calculator.",
             "enable_live_replan": "Plan the rest of the race again at each lap & stop during a race, from the car: laps & time done, fuel, energy & tyres of now, stops done, driver in the car & driving time of each driver, penalties to serve (time race: fewer laps) and pending repair (next stop longer). Disabled: plan made before the race is followed.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "pit_window_laps": "Set number of laps before next stop from which next stop is highlighted with warning_color_pit_window.",
             "show_consumption_estimate": "Modern design: show consumption estimate used by fuel (or energy) module: from game, from last lap, or median of recent laps (with number of laps). Default is disabled.",
             "show_energy": "Show virtual energy to add at next stop.",
@@ -1203,7 +1286,12 @@
             "show_tyres": "Show number of tyres to change at next stop, highlighted with highlight_color_tyre_change when tyres are changed. Tyres of race calculator tyre plan, or 4 tyres at stops proposed from minimum tread when tyre plan has no tyre."
         },
         "radar": {
+            "angle_mark_radius": "Classic layout: set angle mark size by radius(unit meter). Modern design draws angle marks across the whole radar.",
+            "angle_mark_style": "Classic layout: set angle mark line style. 0 for dashed line, 1 for solid line.",
+            "angle_mark_width": "Classic layout: set angle mark line width in pixels.",
             "auto_hide_minimum_distance_ahead": "The three values define an invisible rectangle area(unit meter) that auto hides radar if no vehicle is within the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize radar auto-hide range. Note, each value is measured from center of player's vehicle position.",
+            "auto_hide_minimum_distance_behind": "The three values define an invisible rectangle area(unit meter) that auto hides radar if no vehicle is within the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize radar auto-hide range. Note, each value is measured from center of player's vehicle position.",
+            "auto_hide_minimum_distance_side": "The three values define an invisible rectangle area(unit meter) that auto hides radar if no vehicle is within the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize radar auto-hide range. Note, each value is measured from center of player's vehicle position.",
             "auto_hide_time_threshold": "Set amount time(unit second) before triggering auto hide. Default is 1 second. Note, this option has no effect while enable_radar_fade is enabled.",
             "behind": "The three values define an invisible rectangle area(unit meter) that auto hides radar if no vehicle is within the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize radar auto-hide range. Note, each value is measured from center of player's vehicle position.",
             "center_mark_radius": "Set center mark size by radius(unit meter).",
@@ -1244,6 +1332,8 @@
             "vehicle_border_radius": "Set vehicle round border radius.",
             "vehicle_length": "Set vehicle overall size (length and width), value in meters.",
             "vehicle_maximum_visible_distance_ahead": "The three values define an invisible rectangle area(unit meter) that hides any vehicle outside the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize vehicle visible range. Note, each value is measured from center of player's vehicle position.",
+            "vehicle_maximum_visible_distance_behind": "The three values define an invisible rectangle area(unit meter) that hides any vehicle outside the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize vehicle visible range. Note, each value is measured from center of player's vehicle position.",
+            "vehicle_maximum_visible_distance_side": "The three values define an invisible rectangle area(unit meter) that hides any vehicle outside the rectangle area. Default value is -1, which auto scales with radar_radius value. Set to any positive value to customize vehicle visible range. Note, each value is measured from center of player's vehicle position.",
             "vehicle_outline_width": "Set vehicle outline width.",
             "vehicle_width": "Set vehicle overall size (length and width), value in meters."
         },
@@ -1292,11 +1382,18 @@
             "font_color_mixed_compound": "Classic layout, one compound per car (show_compound_for_each_wheel disabled): symbol (first character) and color shown when the wheels of a car do not all have the same compound. Default symbol is X. The modern design always shows the compounds of each axle, or of each wheel, when they differ.",
             "font_color_same_lap": "Set font color for lap difference. Note, font_color_laps_ahead and font_color_laps_behind applies to race session only.",
             "garage_status_text": "Set custom garage status text which shows when driver is in garage.",
+            "incidents_extreme_threshold": "Set threshold for showing color indication when number of incidents are equal or above.",
+            "incidents_high_threshold": "Set threshold for showing color indication when number of incidents are equal or above.",
+            "lift_and_coast_highlight_threshold": "Set minimum time threshold (in seconds) for highlighting lift and coast time. Default is 1 seconds.",
+            "lift_and_coast_reset_threshold": "Set time threshold (in seconds) for resetting recent recorded lift and coast time. Default is 60 seconds.",
             "mixed_compound_symbol": "Classic layout, one compound per car (show_compound_for_each_wheel disabled): symbol (first character) and color shown when the wheels of a car do not all have the same compound. Default symbol is X. The modern design always shows the compounds of each axle, or of each wheel, when they differ.",
             "nearest_time_gap_threshold_behind": "Set nearest time gap threshold (in seconds) for opponent who is in front of or behind player. Default is 1 second for front, and 2 seconds for behind.",
             "nearest_time_gap_threshold_front": "Set nearest time gap threshold (in seconds) for opponent who is in front of or behind player. Default is 1 second for front, and 2 seconds for behind.",
             "number_of_delta_laptime": "Set number of delta lap time records to display. Minimum number is limited to 2, maximum is limited to 5.",
             "pit_status_text": "Set custom pit status text which shows when driver is in pit.",
+            "show_average_laptime": "Classic layout: show driver's average lap time calculated from (five) most recent laps. Modern design: see column_average_laptime.",
+            "show_best_laptime": "Classic layout: show driver's session best lap time. Modern design: see column_best_laptime.",
+            "show_best_laptime_from_recent_laps_in_race": "Show driver's best lap time from (five) most recent laps in race session. This option provides a better view of driver's recent performance during longer race.",
             "show_brand_logo": "Show user-defined brand logo if available.",
             "show_class": "Show vehicle class categories. Class alias name and color are fully customizable in classes.json preset, see Vehicle Class Editor section for details.\n\nNote, random color will be displayed for unknown class name that is not defined in classes.json preset.",
             "show_class_name": "Modern design, class column (on by default): class name, then position in class. Off: position in class alone, on a square of class color (narrower column).",
@@ -1305,8 +1402,10 @@
             "show_compound_for_each_wheel": "Show tyre compound symbol for each wheel. Compound symbol display order is arranged as front left, front right, rear left, rear right. This option is enabled by default.\n\nDisable this option to show a single symbol for all tyres, which allows a more compact view. If mixed tyres are used, a X symbol will be displayed instead, which can be customized by mixed_compound_symbol option.",
             "show_driver_name": "Show driver name.",
             "show_energy_per_lap_average": "Modern design column, off by default (LMU only): virtual energy each driver used in the last lap, as the game gives it to its Rest API (/rest/strategy/usage, read every 10 seconds while the column is shown), in percent of a full tank. With show_energy_per_lap_average, average of the last 5 laps instead. Laps with a pit stop or a refill are left out. A dash for cars without virtual energy or before a complete lap.",
+            "show_energy_remaining": "Classic layout: show remaining virtual energy reading in percentage from each driver, with 4 different states: - Unavailable: virtual energy reading is not available currently, default color grey. - High: above 30% remaining, default color green. - low: from 30% to 10% remaining, default color orange. - critical: 10% or lower remaining, default color red.\n\nNote, for vehicle without virtual energy, remaining fuel (only if available) will be displayed instead. If fuel data is not available from game API, then nothing will be displayed.\n\nModern design: see column_energy_remaining.",
             "show_highlighted_fastest_last_laptime": "Highlight the fastest last lap time within the same class if available.",
             "show_highlighted_nearest_time_gap": "Show highlighted color on opponents within nearest time gap threshold.",
+            "show_incidents": "Classic layout: show total number of incidents for each driver from current session. This option helps tracking opponent's safeness and cleanness during long race. This option only works for LMU.\n\nNote, incidents are counted from vehicle contacts and track cuts only for each individual driver. Incidents are not counted towards team. Incidents are only counted while this APP is running, and reset if changed session or restarted this APP.\n\nModern design: see column_incidents.",
             "show_invalid_lap_in_red": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
             "show_inverted_delta_laptime_layout": "Enable this option to invert layout order for delta lap time records.",
             "show_lap_delta": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
@@ -1314,6 +1413,7 @@
             "show_lap_sectors": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
             "show_lap_trend": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
             "show_laptime": "Show driver's last lap time or pit stop duration if available. Invalid lap time is preceded by asterisk mark, such as *1:23.54.",
+            "show_lift_and_coast_time": "Classic layout: show most recent recorded lift and coast time (in seconds) from each driver. Modern design: see column_lift_and_coast_time.",
             "show_out_and_in_laps": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
             "show_pit_request": "Show pit request color indicator on pit stop count column.",
             "show_pit_status": "Show indicator whether driver is currently in pit or garage, or causes yellow flag.",
@@ -1326,11 +1426,14 @@
             "show_position_change_in_class": "Show driver position change in class instead of overall. This option is enabled by default.",
             "show_position_in_class": "Show driver's position standing in class.",
             "show_running_lap_time": "Modern design, lap time column (Relative, Standings, Rivals): Time, delta and running time share one place, shown in turn (narrow column): show_running_lap_time (on by default) shows the time of the lap being driven, moving with the game telemetry (Standings: whole seconds for other cars, tenths for yours); after the line, the completed lap for 4 seconds (with its colors and trend), then the time behind the driver's personal best for 4 seconds. Without running time, lap time and delta are shown in turn every 4 seconds. Standings and Rivals outside races, without best lap column: best lap of each driver instead (purple when fastest of its class, show_highlighted_fastest_last_laptime).…",
+            "show_speed_trap": "Classic layout: show fastest recorded speed of each driver per lap at user-defined speed trap position on track. This option can be useful to keep track of each driver's straight line performance from most recent lap.\n\nNote, speed trap position is defined in tracks.json preset, which can be customized via Track Info Editor. Default speed trap position is set at start/finish line.\n\nModern design: see column_speed_trap.",
+            "show_stint_laps": "Classic layout: show number of completed laps from current stint and estimated total stint laps. Note, it may require a few laps to get accurate estimate. Modern design: see column_stint_laps.",
             "show_time_gap": "Show relative time gap between player and opponents.",
             "show_time_gap_sign": "Show plus or minus sign for time gap. - sign indicates opponent's relative position is in front of player, + sign indicates the opposite.",
             "show_tyre_compound": "Show tyre compound symbol for tyre that matches specific tyre compounds defined in compounds.json preset.",
             "show_vehicle_brand_as_name": "Show vehicle brand name instead of vehicle name. If brand name does not exist, vehicle name will be displayed instead.",
             "show_vehicle_in_garage": "Show vehicles parked in garage stall. Default is false. Note, local player is always displayed.",
+            "show_vehicle_integrity": "Classic layout: show opponent vehicle integrity reading.\n\nThe integrity reading is calculated from hull damage, detachable wheels and parts, and displayed as: - Full integrity (no damage), as - (default color grey). - High integrity (lightly damaged hull), from 9 to 5 (default color blue). - Low integrity (severely damaged hull, and most likely has detached wheels or parts), from 4 to 0 (default color red).\n\nModern design: see column_vehicle_integrity.",
             "show_vehicle_name": "Show vehicle name. Note, game API outputs skin livery name as vehicle name, which means actual displayed name depends on what skin livery name is called. For example, some vehicles may add team name and/or class name in skin livery name, some may not.",
             "time_gap_align_center": "Align time gap in the center when enabled. Default is right alignment when disabled.",
             "time_gap_width": "Set time gap display width, value is in chars, 5 = 5 chars wide.",
@@ -1341,6 +1444,7 @@
             "yellow_flag_status_text": "Set custom yellow flag status text which shows when driver causes (or likely to) yellow flag. Note, unlike in-game yellow flag, the indicator is always displayed when driver's speed is below 28kph (outside pit lane), regardless whether driver has caused yellow flag on track."
         },
         "relative_finish_order": {
+            "bar_width": "Set each column width, value in chars, such as 10 = 10 chars. Default is 5. Minimum width is limited to 3.",
             "layout": "2 layouts are available: 0 = show columns from left to right, 1 = show columns from right to left.",
             "near_finish_range": "Set detection range (in seconds) near (before) start/finish line to show color indicator when vehicle is within the range (or less). Default is 20 seconds. Default color is orange.",
             "near_start_range": "Set detection range (in seconds) near (after) start/finish line to show color indicator when vehicle is within the range (or less). Default is 20 seconds. Default color is green.",
@@ -1358,6 +1462,7 @@
             "remote_control_port": "Set server port. Default is 8337."
         },
         "ride_height": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "bottoming_height_*": "Set bottoming ride height (in millimeters). This option is used for vehicle that hits ground before ride height reading reaches zero.",
             "ride_height_maximum_range": "Set visualized maximum ride height display range (millimeter).",
             "show_axle_ride_height": "Modern design: show front and rear ride height from game (aerodynamic reference, in millimeters) between left and right tiles. If game does not provide axle ride height (always 0 in LMU), the average ride height of the two wheels of each axle is shown instead."
@@ -1383,6 +1488,7 @@
             "time_interval_align_center": "Align time interval in the center when enabled. Default is right alignment when disabled."
         },
         "roll_angle": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "roll_angle_ratio_smoothing_samples": "Set number of samples for reducing data fluctuation. Lower value may result more fluctuated reading. Set 1 to disable smoothing.",
             "roll_angle_smoothing_samples": "Set number of samples for reducing data fluctuation. Lower value may result more fluctuated reading. Set 1 to disable smoothing.",
             "show_degree_and_percentage_sign": "Set true to show degree and percentage sign.",
@@ -1392,8 +1498,10 @@
             "wheel_track_rear": "Set front and rear wheel track in millimeters. Default is 1800 millimeters. This option affects roll angle calculation accuracy."
         },
         "rpm_led": {
+            "display_margin": "Classic layout: set margin in pixels between LEDs and widget edge. Default is 4.",
             "enable_double_side_led": "Enable Outside to Center LED layout (as opposite to Left to Right layout). While this option is enabled, total number of LED is doubled.",
             "led_height": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
+            "led_outline_width": "Classic layout: set LED outline width in pixels, in led_outline_color. Set 0 to hide outline. Default is 2.",
             "led_radius": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
             "led_width": "Set LED width, height, radius in pixels. To achieve circle LED, set a higher radius value.",
             "number_of_led": "Set number of LED to display. Minimum LED is limited to 3.",
@@ -1402,6 +1510,7 @@
             "rpm_multiplier_over_rev": "This value multiplies maximum RPM value, which sets over rev range of RPM LED.",
             "rpm_multiplier_redline": "This value multiplies maximum RPM value, which sets redline range of RPM LED.",
             "rpm_multiplier_safe": "This value multiplies maximum RPM value, which sets safe range of RPM LED.",
+            "show_background": "Show widget background: background_color in classic layout, a panel in modern design (LEDs set further from its edge). Default is disabled.",
             "show_rpm_flickering_above_critical": "Show flickering effects when RPM is above critical range and gear is lower than maximum gear.",
             "show_speed_limiter_flash": "Show RPM LED flash effect when speed limiter is activated.",
             "speed_limiter_flash_interval": "Set minimum time interval between each LED flash. Default is 0.25 seconds. Minimum value is limited to 0.2."
@@ -1414,6 +1523,7 @@
             "target_laptime": "Set target laptime for display target reference lap and sector time. Set Theoretical to show theoretical best sector time. Set Personal to show sector time from personal best lap time. Note, if enable_all_time_best_sectors option is enabled in Sectors Module, all time best sectors data will be displayed instead, otherwise only current session best sectors data will be displayed."
         },
         "session": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "session_text_*": "Set custom session name text.",
             "show_estimated_laps": "Show estimated total remaining laps (from current lap position towards finish line) based on total remaining session time and local player's lap time pace.\n\nNote, this is the same value that used for calculating estimated refueling value in Fuel Module.\n\nThis reading does not concern about race leader's lap time pace, which means there may be an extra final lap on top of it. See show_predicted_extra_laps option below for extra laps prediction.",
             "show_field_level": "Modern design, off by default (LMU only): average Driver Rank & Safety Rank of the drivers of an online race (S3 · G1, in color of the average Driver Rank), from their RaceControl profiles (see column_driver_ranks of Relative). Needs enable_online_driver_ranks; dashes offline.",
@@ -1424,11 +1534,13 @@
             "system_clock_format": "Set clock format string. To show seconds, add %S, such as %H:%M:%S %p. See link for full list of format codes."
         },
         "slip_angle": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "minimum_oversteer_slip_angle_difference": "Set minimum slip angle difference threshold (in degrees) for neutral steer, oversteer and understeer color indication. Slip angle difference is average front slip angle minus average rear slip angle (both as absolute values): understeer color shows while difference is above understeer threshold, oversteer color shows while difference is below oversteer threshold. Default is -1.0 and 1.5 degrees.\n\nNote, value should be set as negative angle for oversteer, and positive angle for understeer. Most cars run slightly higher front slip angle in steady cornering, raise understeer threshold if understeer color shows too often for a balanced car.",
             "minimum_understeer_slip_angle_difference": "Set minimum slip angle difference threshold (in degrees) for neutral steer, oversteer and understeer color indication. Slip angle difference is average front slip angle minus average rear slip angle (both as absolute values): understeer color shows while difference is above understeer threshold, oversteer color shows while difference is below oversteer threshold. Default is -1.0 and 1.5 degrees.\n\nNote, value should be set as negative angle for oversteer, and positive angle for understeer. Most cars run slightly higher front slip angle in steady cornering, raise understeer threshold if understeer color shows too often for a balanced car.",
             "slip_angle_maximum_range": "Set visualized maximum slip angle display range (degrees). Default is 15 degrees."
         },
         "slip_ratio": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "slip_ratio_maximum_range": "Set visualized maximum slip ratio display range (percentage), value range in 10 to 100. Default is 50 percent.",
             "slip_ratio_optimal_range": "Set optimal slip ratio range (percentage) for optimal and critical slip ratio color indication, value range in 0 to 100. Default is 30 percent."
         },
@@ -1525,6 +1637,7 @@
             "time_interval_width": "Set time interval display width (classic layout), value is in chars, 4 = 4 chars wide."
         },
         "steering_angle": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "manual_steering_range": "Manually set steering display range in degrees. Set to 0 to read physical steering range from API. This option may be useful when steering range value is not provided by some vehicles.",
             "minimum_oversteer_slip_angle_difference": "Set minimum slip angle difference threshold (in degrees) for neutral steer, oversteer and understeer color indication.\n\nNote, value should be set as negative angle for oversteer, and positive angle for understeer.",
             "minimum_understeer_slip_angle_difference": "Set minimum slip angle difference threshold (in degrees) for neutral steer, oversteer and understeer color indication.\n\nNote, value should be set as negative angle for oversteer, and positive angle for understeer.",
@@ -1554,12 +1667,18 @@
             "display_margin": "Set widget display margin in pixels.",
             "display_size": "Set widget display size in pixels.",
             "manual_steering_range": "Manually set steering display range in degrees. Set to 0 to read physical steering range from API. This option may be useful when steering range value is not provided by some vehicles.",
+            "rotation_line_margin": "Classic layout: set gap in pixels between rotation line and widget edge, limited to a quarter of display_size. Default is 2.",
+            "rotation_line_width": "Classic layout: set rotation line width in pixels. Default is 3.",
+            "show_background": "Classic layout: show square background that covers entire widget, in background_color. Default is disabled.",
+            "show_circle_background": "Classic layout: show round background behind steering wheel, in background_color_circle. Default is enabled.",
             "show_custom_steering_wheel": "Show user-defined custom steering wheel image instead of default image.",
+            "show_degree_sign": "Set true to show degree sign for steering angle reading.",
             "show_rotation_line": "Show steering rotation reference line, which can be useful to see if physical steering wheel is misaligned.",
             "show_rotation_line_while_stationary_only": "Show rotation line only while vehicle is stationary (less than 1m/s).",
             "show_steering_angle": "Show steering angle in degrees."
         },
         "stint_history": {
+            "caption_text_virtual_energy": "Classic layout: set custom caption text of fuel column while it shows virtual energy (show_virtual_energy_if_available).",
             "layout": "2 layouts are available: 0 = vertical layout, 1 = reversed vertical layout.",
             "show_consistency": "Show lap time consistency (percent) between stint best and stint average non-best lap time. Note, pit-in and pit-out laps are excluded from calculation.",
             "show_consistency_sign": "Show consistency percentage sign.",
@@ -1573,7 +1692,8 @@
             "show_virtual_energy_if_available": "Show virtual energy consumption instead of fuel consumption if available. This option is enabled by default.",
             "show_wear": "Show total average tyre wear (percent) in the stint.",
             "show_wear_sign": "Show tyre wear percentage sign.",
-            "stint_history_count": "Set the number of stint history display. Default is to show 2 most recent stints."
+            "stint_history_count": "Set the number of stint history display. Default is to show 2 most recent stints.",
+            "swap_upper_caption": "Classic layout: show caption row below stint rows instead of above."
         },
         "stint_timer": {
             "maximum_stint_minutes": "Set maximum stint length in minutes for stint countdown. Countdown is shown in warning color near the end, and as negative time in loss color once exceeded. Set 0 to disable. Default is 0.",
@@ -1593,14 +1713,19 @@
             "stream_overlay_port": "Set server port. Default is 8339."
         },
         "suspension_force": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "show_force_ratio": "Show percentage force ratio between each and total suspension force. Set false to show individual suspension force in Newtons.\n\nNote, gauge bar shows force ratio of each suspension, full at 50% of total suspension force (half bar at 25%, equal force on four wheels)."
         },
         "suspension_position": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
+            "maximum_position_range_size": "Classic layout: set thickness in pixels of maximum position range line, drawn along top edge of front wheel bars and bottom edge of rear wheel bars. Set 0 to hide line. Default is 3.",
             "position_maximum_range": "Set visualized maximum display range of suspension position (millimeter).",
             "show_maximum_position_range": "Show a visualized line indicating maximum suspension position range under compression, which can be useful to check suspension travel limits. While this option enabled, the suspension position line will also change its color to match maximum_position_range_color when reaching maximum position. The visualized line will not be displayed if maximum position range is negative (such as with too much packers).\n\nNote, maximum suspension position calculation is handled by Wheels Module, and resets after exited garage. A minimum of two laps are required to get sensible readings.",
-            "show_third_spring_position_mark": "Show front and rear third spring position mark relative to each suspension position."
+            "show_third_spring_position_mark": "Show front and rear third spring position mark relative to each suspension position.",
+            "third_spring_position_mark_width": "Classic layout: set third spring position mark width in pixels. Minimum width is limited to 1. Default is 2."
         },
         "suspension_travel": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_bump_travel": "Show bump travel (millimeter) between static and maximum recorded suspension position. Note, bump travel may not be available if static suspension position was not recorded.",
             "show_live_position": "Show current suspension position (millimeter).",
             "show_live_position_relative_to_static_position": "Show current suspension position (millimeter) relative to static position instead.",
@@ -1613,6 +1738,7 @@
         },
         "system_performance": {
             "average_samples": "Set number of samples for average CPU utilization calculation. Lower value may result more fluctuated reading. Set 1 to disable averaging.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_neopedal_performance": "Show NeoPedal's CPU utilization (percent) and memory usage (MB).",
             "show_system_performance": "Show system's overall CPU utilization (percent) and memory usage (GB). Note, sampling interval is determined by update_interval setting."
         },
@@ -1651,6 +1777,7 @@
         "track_clock": {
             "enable_time_scaled_countdown": "Enable time scaled countdown, which scales with session track clock time scale multiplier. This option is disabled by default: countdown is in real time (track time left divided by time scale).",
             "enable_track_clock_synchronization": "Enable auto time scale synchronization (and track clock in rF2). enable_restapi_access must be enabled to synchronize time scale from Rest API.\n\nNote, synchronization may not work in multiplayer.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_sunlight_phase_countdown": "Show sunlight phase countdown timer and indicator. The timer counts down towards each of four primary sunlight phases: sunrise, midday, sunset, midnight. An arrow indicator (modern design: next phase name) is displayed alongside in color of period in progress: night color before sunrise and midnight, day color before midday and sunset. Dashes are shown while sunrise and sunset are not known.\n\nThis countdown timer can be used to check how long until sunrise or sunset for planning strategy.\n\nNote, game does not provide sunrise and sunset data. Sunrise and sunset hours must be manually defined in Track Info Editor to get correct readings.\n\nSee Wiki Appendix page for sunrise and sunset…",
             "show_time_scale": "Show current session track clock time scale multiplier.",
             "show_track_clock": "Show current in-game clock time of the circuit. In LMU, track clock is the time of day given by game, always in sync whatever the options below; in rF2, it is calculated from session time and time scale.",
@@ -1661,12 +1788,13 @@
             "area_margin": "Set area margin size.",
             "area_size": "Set area display size.",
             "auto_prediction_additional_pitstop_time": "Set additional pit stop time it takes to decelerate and accelerate towards and away from pit spot. This option corresponds to additional_pitstop_time option from Pit stop estimate Widget, and both should be set to same amount. Default value is 2 seconds.",
+            "auto_prediction_outline_width": "Classic layout: set line width in pixels of pit-out prediction circles (prediction_outline_width), and of auto-estimated prediction circle (auto_prediction_outline_width, see enable_auto_pitout_prediction). Set 0 to hide circle.",
             "display_detail_level": "Sets detail level for track map. Default value is 1, which auto adjusts map detail according to display size. Higher value reduces map detail and RAM usage, and may also help reduce rough edges from large map. Set to 0 for full detail.",
             "display_orientation": "Set track map display orientation in degrees. For example, a 270 value will rotate map by 270 degrees clockwise. Default value is 0, which always displays track map North Up in game's coordinate system.",
             "enable_auto_pitout_prediction": "Show auto-estimated pit-out duration prediction. Default indication shows as a green circle. This option does not count towards number_of_prediction limit.\n\nAuto estimated pit-out duration is calculated in the same way as Pit Stop Estimate Widget.\n\nNote, this option only works for LMU, and enable_restapi_access must be enabled in LMU API setting.",
             "enable_fixed_pitout_prediction": "Show pit-out prediction based on user-defined fixed pitstop duration instead. This option overrides pitout_duration_minimum and pitout_duration_increment options.\n\nWhile this option is enabled, total pit-out duration is calculated from the sum of pit-out time offset, fixed pit stop duration and estimated pit lane pass-through duration. It's required to enter and exit pit lane at least once to get correct total pit-out duration.",
             "enable_multi_class_styling": "Show vehicles in multi-class color styles on map instead. Multi-class color can be customized from Vehicle Class Editor.\n\nNote, while multi-class styling is enabled, following color styles will not be displayed: vehicle_color_player, vehicle_color_leader, vehicle_color_same_lap, vehicle_color_laps_ahead, vehicle_color_laps_behind.",
-            "fixed_pitstop_duration": "Set fixed amount pit stop duration (in seconds). Note, only stopped time should be considered for this option. Set to 0 if only passing through pit lane (such as Drive Through). Set to -1 to disable this option.",
+            "fixed_pitstop_duration_*": "Set fixed amount pit stop duration (in seconds). Note, only stopped time should be considered for this option. Set to 0 if only passing through pit lane (such as Drive Through). Set to -1 to disable this option.",
             "map_color_sector_*": "Set map sector color.",
             "map_outline_width": "Set track map outline width.",
             "map_width": "Set track map line width.",
@@ -1675,8 +1803,12 @@
             "pitout_duration_increment": "Set each pit stop duration (in seconds) increment after previous prediction. Default increment is 10 seconds. This option has no effect if enable_fixed_pitout_prediction is enabled.\n\nNote, each time when pit stop duration of the nearest prediction exceeded current pit stop timer, the prediction circle will be removed, and a new prediction circle will be appended with pit stop duration increment after the last prediction.",
             "pitout_duration_minimum": "Set pit stop duration (in seconds) of first prediction. This option has no effect if enable_fixed_pitout_prediction is enabled.",
             "pitout_time_offset": "Set amount time offset (in seconds) for catching up with vehicle speed after pit-out. Default is 3 seconds.\n\nNote, this value is important for accurate prediction, as initial vehicle speed is much slower after pit-out, so extra time is needed for driver to catch up, and also affected by pit-out line location. For most tracks, this extra time after pit-out is roughly within 1 to 5 seconds.",
+            "prediction_outline_width": "Classic layout: set line width in pixels of pit-out prediction circles (prediction_outline_width), and of auto-estimated prediction circle (auto_prediction_outline_width, see enable_auto_pitout_prediction). Set 0 to hide circle.",
             "proximity_circle_radius": "Set proximity circle radius in meters. Default radius is 150 meters.",
+            "proximity_circle_width": "Classic layout: set proximity circle line width in pixels. Set 0 to hide circle.",
             "safety_car_text": "Set custom text for safety car. Default is SC.",
+            "sector_line_length": "Classic layout: set sector line mark width, and length on each side of track line, in pixels.",
+            "sector_line_width": "Classic layout: set sector line mark width, and length on each side of track line, in pixels.",
             "show_background": "Show widget background.",
             "show_corner_numbers": "Show official corner numbers (or names, at Le Mans) outside their bend, for circuits known by the app (as in Lap Telemetry Viewer). A label over an earlier one is left out. Corners are placed once per track map, in background. Default is disabled.",
             "show_custom_player_color_in_multi_class": "Show custom player vehicle color (defined in vehicle_color_player option) while enable_multi_class_styling option is enabled.",
@@ -1692,8 +1824,15 @@
             "show_sector_line": "Show sector line mark.",
             "show_sector_performance": "Modern design: road of each sector colored by your most recent time in it, as the game live timing and the Standings sector bars: purple when equal to the best sector of your class in the session, green when equal to your best sector of completed laps, orange when slower. Sectors not timed yet keep road color. Default is enabled.",
             "show_start_line": "Show start line mark.",
-            "show_vehicle_standings": "Show vehicle standings info on track map. Note, if enable_multi_class_styling is enabled, position in class will be displayed for each vehicle class instead.",
+            "show_vehicle_class_standings": "Show position number on each vehicle on track map: overall position, or position in class while both enable_multi_class_styling and show_position_in_class are enabled.",
+            "start_line_length": "Classic layout: set start line mark width, and length on each side of track line, in pixels.",
+            "start_line_width": "Classic layout: set start line mark width, and length on each side of track line, in pixels.",
             "update_interval": "Set refresh interval in milliseconds. Default is 50. Car positions are computed at each update, the map is repainted only when a car moved by at least one pixel, and at most 25 times per second (each repaint redraws the whole map).",
+            "vehicle_outline_width": "Classic layout: set vehicle outline width in pixels: player (vehicle_outline_width_player), opponents (vehicle_outline_width), safety car (vehicle_outline_width_safety_car), and opponents laps ahead or behind player (vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind, while show_lap_difference_outline is enabled). Set 0 to hide outline.",
+            "vehicle_outline_width_laps_ahead": "Classic layout: set vehicle outline width in pixels: player (vehicle_outline_width_player), opponents (vehicle_outline_width), safety car (vehicle_outline_width_safety_car), and opponents laps ahead or behind player (vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind, while show_lap_difference_outline is enabled). Set 0 to hide outline.",
+            "vehicle_outline_width_laps_behind": "Classic layout: set vehicle outline width in pixels: player (vehicle_outline_width_player), opponents (vehicle_outline_width), safety car (vehicle_outline_width_safety_car), and opponents laps ahead or behind player (vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind, while show_lap_difference_outline is enabled). Set 0 to hide outline.",
+            "vehicle_outline_width_player": "Classic layout: set vehicle outline width in pixels: player (vehicle_outline_width_player), opponents (vehicle_outline_width), safety car (vehicle_outline_width_safety_car), and opponents laps ahead or behind player (vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind, while show_lap_difference_outline is enabled). Set 0 to hide outline.",
+            "vehicle_outline_width_safety_car": "Classic layout: set vehicle outline width in pixels: player (vehicle_outline_width_player), opponents (vehicle_outline_width), safety car (vehicle_outline_width_safety_car), and opponents laps ahead or behind player (vehicle_outline_width_laps_ahead, vehicle_outline_width_laps_behind, while show_lap_difference_outline is enabled). Set 0 to hide outline.",
             "vehicle_scale": "Set vehicle scale that multiplies base vehicle size. Note, base vehicle size is determined by font size and bar padding. Minimum scale is limited to 1.0.",
             "vehicle_scale_player": "Set vehicle scale that multiplies base vehicle size. Note, base vehicle size is determined by font size and bar padding. Minimum scale is limited to 1.0.",
             "vehicle_scale_safety_car": "Set vehicle scale that multiplies base vehicle size. Note, base vehicle size is determined by font size and bar padding. Minimum scale is limited to 1.0."
@@ -1710,6 +1849,7 @@
             "debugging_width": "Set maximum display width, value in chars, such as 10 = 10 chars.",
             "enable_auto_hide_if_not_available": "Auto hide this widget if track notes data is not available for current track, or in pit lane without pit notes (tagged #pit).",
             "enable_comments_line_break": "Enable line break for displaying multi-line comments. To break a line into multiple lines, add \\n to any part of the comment.",
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "maximum_display_duration": "Set maximum display duration (seconds) of each note. Set to -1 to always display notes. Default is -1.",
             "pit_comments_text": "Set custom notes and comments to be displayed while in pit lane.",
             "pit_notes_text": "Set custom notes and comments to be displayed while in pit lane.",
@@ -1761,8 +1901,11 @@
             "show_abs_activation": "Show ABS activation plot, which overlaps brake plot when active.",
             "show_abs_activation_flash": "Flash brake bar in abs_activation_color while ABS is active. Default is enabled.",
             "show_absolute_ffb": "Convert force feedback value to absolute value before plotting. Set to false to show force feedback plot in both positive and negative range.",
+            "show_brake": "Show filtered brake plot. Note, some vehicles may not provide filtered pedal input value, which the value will be zero.",
             "show_brake_bar": "Show pedal bar of throttle, brake, clutch and force feedback, while show_pedal_bars is enabled. Bars do not depend on plots: a bar can be shown without its plot.",
+            "show_clutch": "Show filtered clutch plot. Note, some vehicles may not provide filtered pedal input value, which the value will be zero.",
             "show_clutch_bar": "Show pedal bar of throttle, brake, clutch and force feedback, while show_pedal_bars is enabled. Bars do not depend on plots: a bar can be shown without its plot.",
+            "show_ffb": "Show force feedback plot, see show_absolute_ffb.",
             "show_ffb_bar": "Show pedal bar of throttle, brake, clutch and force feedback, while show_pedal_bars is enabled. Bars do not depend on plots: a bar can be shown without its plot.",
             "show_inverted_pedal": "Invert pedal range display.",
             "show_inverted_steering": "Invert steering plot direction.",
@@ -1770,6 +1913,8 @@
             "show_pedal_bar_brake_pressure": "Fill brake bar with brake pressure applied on all wheels instead of brake input, which auto scales with maximum brake pressure and shows amount of brake released by ABS. Default is disabled.",
             "show_pedal_bar_readings": "Show reading (percentage of input as filled) beyond empty end of each pedal bar. Default is disabled.",
             "show_pedal_bars": "Show pedal bars (Pedal widget design) beside newest plot samples, one for each shown throttle, brake, clutch and force feedback plot. Bar fills to input as plotted, and shows raw input too: narrow part of bar in classic layout, white tick in modern design, where force feedback bar turns orange while clipping. Default is disabled.",
+            "show_raw_brake": "Show unfiltered brake instead (plot and pedal bar).",
+            "show_raw_clutch": "Show unfiltered clutch instead (plot and pedal bar).",
             "show_raw_throttle": "Show unfiltered throttle instead.",
             "show_reference_line": "Show reference line.",
             "show_slip_angle_difference": "Show slip angle difference plot (difference between average front and rear slip angle). Plot line that draws above the center reference line indicates understeer tendency; while below the center reference line indicates oversteer tendency.",
@@ -1797,9 +1942,11 @@
             "show_compound_color_by_type": "Show different compound color by compound type, which can be customized in Tyre Compound Editor.",
             "show_degree_sign": "Set true to show degree sign for each temperature value.",
             "show_rate_of_change": "Show carcass temperature rate of change for a specific time interval.",
-            "show_tyre_compound": "Show tyre compound symbol of each tyre (one per axle in RF2) that matches specific tyre compounds defined in compounds.json preset."
+            "show_tyre_compound": "Show tyre compound symbol of each tyre (one per axle in RF2) that matches specific tyre compounds defined in compounds.json preset.",
+            "swap_style": "Classic layout: swap heatmap color between font and background color, also for rate of change readings."
         },
         "tyre_deflection": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "deflection_maximum_range": "Set visualized maximum tyre deflection display range (millimeter).",
             "lift_off_threshold": "Set millimeter threshold of tyre deflection for detecting lifted wheels. Default threshold is 1 millimeter."
         },
@@ -1815,6 +1962,7 @@
             "swap_style": "Swap heatmap color between font and background color."
         },
         "tyre_load": {
+            "bar_width": "Classic layout: set width of each wheel gauge bar in pixels. Minimum width is limited to 20. Default is 50.",
             "low_load_threshold": "Show warning indication when load is at or below the threshold. The threshold is in the unit shown: percentage of total load while show_tyre_load_ratio is enabled (default), Newtons otherwise. Default is 1.",
             "show_tyre_load_ratio": "Show percentage load ratio between each and total tyre load. Set false to show individual tyre load in Newtons."
         },
@@ -1914,10 +2062,22 @@
         "virtual_energy": {
             "*fuel_bias": "Show fuel bias (unit in laps) that calculated from estimated laps difference between fuel and virtual energy.\n\nPositive value indicates more laps can be run on fuel than virtual energy; in other words, virtual energy will deplete sooner than fuel. For example, a value of +1.5 indicates that there will be 1.5 laps of extra fuel remaining after virtual energy depleted.\n\nNote, depleting virtual energy could result a Stop-Go penalty in LMU; while running out of fuel means no power for vehicle and would result retirement from race. So it is a good idea to keep fuel bias close to 0.0, and slightly towards positive side to avoid depleting fuel before virtual energy.",
             "*fuel_ratio": "Show fuel ratio between estimated fuel and energy consumption, which can help balance fuel and energy usage, as well as providing refueling reference for adjusting pit stop Fuel ratio during race.",
+            "caption_text_absolute_refilling": "Classic layout: set custom caption text of refilling value, and of absolute refilling value (show_absolute_refilling).",
+            "caption_text_fuel_bias": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_fuel_ratio": "Classic layout: set custom caption text, shown while show_caption is enabled. Modern design shows its own labels.",
+            "caption_text_refilling": "Classic layout: set custom caption text of refilling value, and of absolute refilling value (show_absolute_refilling).",
+            "energy_level_bar_height": "Classic layout: set energy level bar height in pixels. Minimum height is limited to 1.",
+            "low_energy_lap_threshold": "Set amount lap threshold to show low energy indicator when total completable laps of remaining virtual energy is equal or less than this value. Default is 2 laps before running out of energy.",
+            "refilling_level_mark_width": "Classic layout: set energy level mark width in pixels. Minimum width is limited to 1.",
             "show_absolute_refilling": "Show absolute refilling value instead of relative refilling when enabled. Note, + or - sign is not displayed with absolute refilling.",
+            "show_energy_level_bar": "Show visualized horizontal energy level bar.",
             "show_fuel_bias": "Show fuel ratio, and fuel bias, each on its own.",
             "show_fuel_ratio": "Show fuel ratio, and fuel bias, each on its own.",
+            "show_low_energy_warning_flash": "Show low energy warning flash effect when below low_energy_lap_threshold.",
             "show_refilling": "Show refilling value (on by default), see show_refueling of Fuel.",
+            "show_refilling_level_mark": "Show estimated energy level mark after refilling. Classic layout: if the mark is not visible on energy level bar, total refilling has exceeded full energy capacity; default mark color is green.",
+            "show_starting_energy_level_mark": "Show starting energy level mark of current stint. Default mark color is red (classic layout).",
+            "starting_energy_level_mark_width": "Classic layout: set energy level mark width in pixels. Minimum width is limited to 1.",
             "update_interval": "Set refresh interval in milliseconds. Default is 100. Values change slowly (fuel & energy of a lap, laps left): faster refresh only costs CPU."
         },
         "vr_overlay": {
@@ -1952,6 +2112,7 @@
             "icon_size": "Set size of weather icons in pixels. Minimum value is limited to 16. Modern design: icons scaled from their default size (32), columns widened to fit.",
             "layout": "2 layouts are available: 0 = show columns from left to right, 1 = show columns from right to left. Note, the now column always shows current weather condition.",
             "number_of_forecasts": "Set number of forecasts to display. Value range in 1 to 4. Default is 4 forecasts.",
+            "rain_chance_bar_height": "Classic layout: set rain chance bar height in pixels. Minimum height is limited to 1. Default is 5.",
             "show_ambient_temperature": "Show estimated ambient temperature reading for upcoming weather. Note, the now column always shows current ambient temperature instead.",
             "show_estimated_time": "Show estimated time reading for upcoming weather. Note, estimated time reading only works in time-based race. Other race type such as lap-based race shows n/a instead.",
             "show_rain_chance_bar": "Show visualized rain chance bar reading for upcoming weather. Note, the now column always shows current raininess instead.",
@@ -1966,9 +2127,11 @@
             "web_dashboard_port": "Set server port. Default is 8338."
         },
         "weight_distribution": {
+            "layout": "2 layouts are available: 0 = vertical layout, 1 = horizontal layout.",
             "show_cross_weight": "Show cross weight (known as wedge) in percentage.",
             "show_front_to_rear_distribution": "Show front to rear weight distribution in percentage.",
             "show_left_to_right_distribution": "Show left to right weight distribution in percentage.",
+            "show_percentage_sign": "Set true to show percentage sign for weight distribution values.",
             "smoothing_samples": "Set number of samples for reducing data fluctuation. Lower value may result more fluctuated reading. Set 1 to disable smoothing."
         },
         "wheel_camber": {
@@ -1994,10 +2157,14 @@
         "wind_direction": {
             "decimal_places": "Set amount decimal places of wind speed reading, value range in 0 to 2. Default is 1 decimal place.",
             "direction_mark_major_length": "Set inner end of direction marks as a fraction of mark radius.",
+            "direction_mark_major_width": "Classic layout: set line width in pixels of north mark, major marks (east, south, west) and minor marks. Set 0 to hide marks.",
             "direction_mark_minor_length": "Set inner end of direction marks as a fraction of mark radius.",
+            "direction_mark_minor_width": "Classic layout: set line width in pixels of north mark, major marks (east, south, west) and minor marks. Set 0 to hide marks.",
             "direction_mark_north_length": "Set inner end of direction marks as a fraction of mark radius.",
+            "direction_mark_north_width": "Classic layout: set line width in pixels of north mark, major marks (east, south, west) and minor marks. Set 0 to hide marks.",
             "display_margin": "Set margin of direction marks from widget edge in pixel.",
             "display_size": "Set widget size in pixel.",
+            "show_background": "Classic layout: show square background that covers entire widget, in background_color. Default is disabled.",
             "show_circle_background": "Show round background.",
             "show_direction_mark": "Show direction marks: north mark, major marks (east, south, west) and minor marks every 30 degrees.",
             "show_wind_speed": "Show wind speed reading, in wind speed unit set in Units dialog.",

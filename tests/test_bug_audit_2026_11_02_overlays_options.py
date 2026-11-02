@@ -1413,3 +1413,262 @@ def test_b084_position_change_helps_distinct(ui_env):
     overall = option_help_english("race_notifications", "show_position_change")
     in_class = option_help_english("race_notifications", "show_position_change_in_class")
     assert overall and in_class and overall != in_class
+
+
+# B-094 to B-157: options without help (and stale keys / wrong wildcard matches of B-093)
+MISSING_HELPS = {
+    "acceleration": (
+        "bar_width"
+    ),
+    "battery": (
+        "layout"
+    ),
+    "black_box": (
+        "status_icons_side status_icon_scale font_scale_engine show_headlights_indicator "
+        "show_engine_status stalling_rpm_threshold engine_oil_warning_temperature "
+        "engine_water_warning_temperature text_oil text_water text_engine_off text_ignition"
+    ),
+    "brake_bias": (
+        "layout show_brake_bias suffix_brake_migration"
+    ),
+    "brake_performance": (
+        "layout"
+    ),
+    "brake_pressure": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "brake_input_size font_scale_caption caption_text"
+    ),
+    "brake_temperature": (
+        "horizontal_gap vertical_gap"
+    ),
+    "brake_wear": (
+        "font_scale_caption caption_text_remaining caption_text_wear_difference "
+        "caption_text_live_wear_difference caption_text_lifespan_laps caption_text_lifespan_minutes"
+    ),
+    "cruise": (
+        "layout"
+    ),
+    "damage_stats": (
+        "layout"
+    ),
+    "deltabest": (
+        "bar_padding_horizontal bar_padding_vertical"
+    ),
+    "deltabest_extended": (
+        "layout delta_display_range freeze_duration"
+    ),
+    "drs": (
+        "bar_padding_horizontal bar_padding_vertical"
+    ),
+    "elevation": (
+        "elevation_progress_line_width elevation_line_width zero_elevation_line_width "
+        "start_line_width sector_line_width position_mark_width"
+    ),
+    "engine_temperature": (
+        "layout"
+    ),
+    "friction_circle": (
+        "dot_outline_width"
+    ),
+    "fuel": (
+        "font_scale_caption"
+    ),
+    "fuel_energy_saver": (
+        "bar_width"
+    ),
+    "gear": (
+        "bar_padding_horizontal bar_padding_vertical speed_limiter_padding_horizontal "
+        "show_inverted_consumption consumption_bar_height"
+    ),
+    "heading": (
+        "dot_size dot_outline_width"
+    ),
+    "lap_time_history": (
+        "font_scale_caption caption_text_laps caption_text_time caption_text_delta "
+        "caption_text_fuel caption_text_virtual_energy caption_text_fuel_ratio caption_text_wear "
+        "swap_upper_caption"
+    ),
+    "laps_and_position": (
+        "layout"
+    ),
+    "lift_and_coast_led": (
+        "display_margin show_background led_outline_width show_lift_and_coast"
+    ),
+    "navigation": (
+        "start_line_width start_line_length sector_line_width sector_line_length "
+        "show_vehicle_class_standings vehicle_outline_width_player"
+    ),
+    "onboard_setting": (
+        "layout font_scale_caption caption_text_abs caption_text_tc caption_text_tc_cut "
+        "caption_text_tc_slip caption_text_brake_migration caption_text_motor_map "
+        "caption_text_front_arb caption_text_rear_arb swap_upper_caption"
+    ),
+    "pace_notes": (
+        "layout"
+    ),
+    "pit_stop_estimate": (
+        "bar_width font_scale_caption caption_text_pass_duration caption_text_pit_timer "
+        "caption_text_stop_duration caption_text_minimum_total_duration "
+        "caption_text_actual_relative_refill caption_text_total_relative_refill "
+        "caption_text_estimated_laps caption_text_estimated_minutes caption_text_pit_occupancy "
+        "caption_text_pit_requests swap_upper_caption swap_lower_caption"
+    ),
+    "push_to_pass": (
+        "layout"
+    ),
+    "race_plan": (
+        "layout"
+    ),
+    "radar": (
+        "angle_mark_style angle_mark_radius angle_mark_width auto_hide_minimum_distance_behind "
+        "auto_hide_minimum_distance_side vehicle_maximum_visible_distance_behind "
+        "vehicle_maximum_visible_distance_side"
+    ),
+    "relative": (
+        "show_best_laptime show_best_laptime_from_recent_laps_in_race show_average_laptime "
+        "show_energy_remaining show_vehicle_integrity show_incidents incidents_high_threshold "
+        "incidents_extreme_threshold show_stint_laps show_speed_trap show_lift_and_coast_time "
+        "lift_and_coast_reset_threshold lift_and_coast_highlight_threshold"
+    ),
+    "relative_finish_order": (
+        "bar_width"
+    ),
+    "ride_height": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "roll_angle": (
+        "layout"
+    ),
+    "rpm_led": (
+        "display_margin show_background led_outline_width"
+    ),
+    "session": (
+        "layout"
+    ),
+    "slip_angle": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "slip_ratio": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "steering_angle": (
+        "layout"
+    ),
+    "steering_meter": (
+        "bar_padding_horizontal bar_padding_vertical"
+    ),
+    "steering_wheel": (
+        "show_background show_circle_background show_degree_sign rotation_line_width "
+        "rotation_line_margin"
+    ),
+    "stint_history": (
+        "font_scale_caption caption_text_laps caption_text_time caption_text_fuel "
+        "caption_text_virtual_energy caption_text_tyre caption_text_wear caption_text_delta "
+        "caption_text_consistency swap_upper_caption"
+    ),
+    "suspension_force": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "suspension_position": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "third_spring_position_mark_width maximum_position_range_size font_scale_caption "
+        "caption_text"
+    ),
+    "suspension_travel": (
+        "layout font_scale_caption caption_text_total_travel caption_text_bump_travel "
+        "caption_text_rebound_travel caption_text_travel_ratio caption_text_motion_ratio "
+        "caption_text_minimum_position caption_text_maximum_position caption_text_live_position"
+    ),
+    "system_performance": (
+        "layout"
+    ),
+    "track_clock": (
+        "layout"
+    ),
+    "track_map": (
+        "start_line_width start_line_length sector_line_width sector_line_length "
+        "proximity_circle_width show_vehicle_class_standings vehicle_outline_width_player "
+        "vehicle_outline_width vehicle_outline_width_safety_car vehicle_outline_width_laps_ahead "
+        "vehicle_outline_width_laps_behind prediction_outline_width auto_prediction_outline_width "
+        "fixed_pitstop_duration_1 fixed_pitstop_duration_2 fixed_pitstop_duration_3 "
+        "fixed_pitstop_duration_4 fixed_pitstop_duration_5 fixed_pitstop_duration_6 "
+        "fixed_pitstop_duration_7 fixed_pitstop_duration_8 fixed_pitstop_duration_9 "
+        "fixed_pitstop_duration_10"
+    ),
+    "track_notes": (
+        "layout"
+    ),
+    "traffic": (
+        "font_scale_caption caption_text_slower caption_text_leader caption_text_faster"
+    ),
+    "trailing": (
+        "show_brake show_raw_brake show_clutch show_raw_clutch show_ffb"
+    ),
+    "tyre_carcass": (
+        "horizontal_gap vertical_gap swap_style"
+    ),
+    "tyre_deflection": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "tyre_inner_layer": (
+        "horizontal_gap vertical_gap"
+    ),
+    "tyre_load": (
+        "bar_padding_horizontal bar_padding_vertical bar_width horizontal_gap vertical_gap "
+        "font_scale_caption caption_text"
+    ),
+    "tyre_pressure": (
+        "horizontal_gap vertical_gap"
+    ),
+    "tyre_temperature": (
+        "horizontal_gap vertical_gap"
+    ),
+    "tyre_wear": (
+        "font_scale_caption caption_text_remaining caption_text_wear_difference "
+        "caption_text_live_wear_difference caption_text_flat_spot caption_text_lifespan_laps "
+        "caption_text_lifespan_minutes caption_text_end_stint_remaining"
+    ),
+    "virtual_energy": (
+        "show_low_energy_warning_flash low_energy_lap_threshold show_energy_level_bar "
+        "energy_level_bar_height show_starting_energy_level_mark starting_energy_level_mark_width "
+        "show_refilling_level_mark refilling_level_mark_width font_scale_caption "
+        "caption_text_refilling caption_text_absolute_refilling"
+    ),
+    "weather_forecast": (
+        "rain_chance_bar_height"
+    ),
+    "weight_distribution": (
+        "layout show_percentage_sign"
+    ),
+    "wheel_camber": (
+        "horizontal_gap vertical_gap font_scale_caption caption_text"
+    ),
+    "wheel_toe": (
+        "horizontal_gap vertical_gap font_scale_caption caption_text"
+    ),
+    "wind_direction": (
+        "show_background direction_mark_north_width direction_mark_major_width "
+        "direction_mark_minor_width"
+    ),
+}
+
+
+@pytest.mark.parametrize("name", sorted(MISSING_HELPS))
+def test_b094_every_option_has_help(ui_env, name):
+    from neopedal.i18n.options import option_help_english
+
+    missing = [key for key in "".join(MISSING_HELPS[name]).split() if not option_help_english(name, key)]
+    assert not missing
+
+
+def test_b094_fuel_caption_help_is_a_caption_help(ui_env):
+    from neopedal.i18n.options import option_help_english
+
+    for name in ("fuel", "virtual_energy"):
+        assert "caption" in option_help_english(name, "caption_text_remaining")
+    assert "show_vehicle_standings" not in str(option_help_english("track_map", "show_vehicle_class_standings"))
