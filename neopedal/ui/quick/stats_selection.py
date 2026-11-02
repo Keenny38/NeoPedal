@@ -428,9 +428,11 @@ class StatsSelection(StatsHost):
         self.save_viewer_config(goals_reached=reached)
         from ..toast import show_toast
 
-        track, vehicle, best = beaten[-1]
+        # Every goal beaten told (all marked as told), one line each
+        text = "<br>".join(trm(f"Goal reached: <b>{track}</b> · {vehicle} · {calc.sec2laptime_full(best)}")
+                           for track, vehicle, best in beaten)
         with suppress(RuntimeError):  # page window closing
-            show_toast(self._window, trm(f"Goal reached: <b>{track}</b> · {vehicle} · {calc.sec2laptime_full(best)}"))
+            show_toast(self._window, text)
 
     # Stints & consistency of selected vehicle: recorded laps of its track & class folder
     def update_stints(self, background: bool = True):

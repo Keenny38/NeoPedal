@@ -870,3 +870,23 @@ def test_b027_goal_changed_on_stats_page_refreshes_home_debrief(monkeypatch):
     page = SimpleNamespace(_record_read=True, _record=record, refresh_debrief=debriefs.append)
     HomeBackend.refresh_last_session(page)
     assert debriefs == [record]
+
+
+# B-025
+def test_b025_every_goal_beaten_meanwhile_announced(monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal.ui import toast
+    from neopedal.ui.quick.stats_selection import StatsSelection
+
+    shown = []
+    monkeypatch.setattr(toast, "show_toast", lambda window, text, **kwargs: shown.append(text))
+    saved = {}
+    page = SimpleNamespace(
+        goals=lambda: {"Spa|GT3": 130.0, "Monza|GT3": 110.0}, reached_goals=list, _window=None,
+        stats_temp={"Spa": {"GT3": {"pb": 129.0}}, "Monza": {"GT3": {"pb": 109.5}}},
+        save_viewer_config=lambda **values: saved.update(values), page_visible=True,
+        defer_while_hidden=lambda callback: False)
+    StatsSelection.check_goals(page)
+    assert saved["goals_reached"] == ["Spa|GT3", "Monza|GT3"]
+    assert len(shown) == 1 and "Spa" in shown[0] and "Monza" in shown[0]
