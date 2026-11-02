@@ -713,6 +713,11 @@ class RankWatcher:
                 self._online_next = now + wait
                 return
             self._online_next = now + ONLINE_SECONDS
+            if account and ranks.steam_id and ranks.steam_id != account:
+                # Signed in to another account than the one located (stale): ranks not the player's, read again
+                # at the usual interval only (dropped by every check otherwise, then read again at once)
+                logger.info("RANKS: online ranks of another account than the one in use, not shown")
+                return
             if account and not ranks.steam_id:  # answer without Steam ID: ranks of the account read for (never
                 ranks = ranks._replace(steam_id=account)  # given to another one after a Steam account switch)
             self._online_ranks, self._online_pending = (ranks, self._wall_clock()), True

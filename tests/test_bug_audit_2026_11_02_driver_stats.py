@@ -676,3 +676,21 @@ def test_b017_cut_short_game_file_still_shows_online_ranks(tmp_path):
     watcher._checked_time = -99
     watcher.check()
     assert watcher.find_name("Me") is not None
+
+
+# B-018
+def test_b018_online_answer_for_other_account_not_read_again_every_check(tmp_path):
+    from neopedal.process import driver_ranks as dr
+
+    storage = os.path.join(tmp_path, "storage.json")
+    with open(storage, "w", encoding="utf-8") as file:
+        file.write("{}")
+    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_B, "", "", dr.Rank("Gold", 2, 10), None))
+    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)),
+                             lambda: os.path.join(tmp_path, "ranks.history"), online=online,
+                             run_online=lambda work: work())
+    for _ in range(5):
+        watcher._checked_time = -99
+        watcher.check()
+    assert online.calls == 1  # one sign in, not one per check
+    assert watcher.player is None or watcher.player.driver != dr.Rank("Gold", 2, 10)
