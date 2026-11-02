@@ -122,3 +122,48 @@ def test_b001_track_map_of_lap_cut_short_not_saved(tele, tmp_path):  # noqa: F81
     gen.send(1)
     gen.send(1)
     assert not (tmp_path / "SimTrack.svg").exists()
+
+
+# --- B-002: lap waiting for validation dropped once another car is followed
+@pytest.fixture
+def followed(monkeypatch):
+    """Scripted reader of car followed: car["slot"] slot id, car["last"] game last lap time"""
+    from types import SimpleNamespace
+
+    from neopedal.api_control import api
+
+    car = {"slot": 3, "last": 0.0, "index": 0}
+    monkeypatch.setattr(api, "read", SimpleNamespace(
+        vehicle=SimpleNamespace(slot_id=lambda index=None: car["slot"], player_index=lambda: car["index"]),
+        timing=SimpleNamespace(last_laptime=lambda index=None: car["last"]),
+    ))
+    monkeypatch.setattr(realtime_state, "active", True)
+    return car
+
+
+def test_b002_pending_lap_of_former_car_dropped_at_once(followed):
+    from neopedal.module._base import PendingLap
+    from neopedal.module._lap_state import LOAD, LapState
+
+    resolved = []
+    state = LapState(lambda lap, valid: resolved.append(valid))
+    state.receive(0)
+    state.pending = PendingLap(90.0, 120.0)  # car 3 just crossed the line, game lap time not given yet
+    followed["slot"] = 5  # another car followed: its last lap time never matches
+    followed["last"] = 95.0
+    assert state.receive(1) == LOAD  # new car loaded at once, not after PENDING_WAIT
+    assert resolved == [False] and state.pending is None
+
+
+def test_b002_pending_lap_still_waits_for_same_car(followed):
+    from neopedal.module._base import PendingLap
+    from neopedal.module._lap_state import LOAD, SKIP, LapState
+
+    state = LapState(lambda lap, valid: None)
+    state.receive(0)
+    state.pending = PendingLap(90.0, 120.0)
+    followed["index"] = -1  # player left (not synced): lap still waits for the game lap time
+    assert state.receive(1) == SKIP and state.pending is not None
+    followed["index"] = 0
+    followed["last"] = 90.0  # back to garage just after the line: same car validates its lap
+    assert state.receive(1) == LOAD and state.pending is None

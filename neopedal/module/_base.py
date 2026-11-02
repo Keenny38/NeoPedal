@@ -133,6 +133,17 @@ def derived_stamp(delta: Any) -> tuple:
         return (derived_updates.sequence, realtime_state.resets)
     return (data_stamp(), delta.lapDistance)
 
+def followed_slot_id() -> int | None:
+    """Slot id of car followed (player, or player index override), None if no car synced or unknown"""
+    try:
+        vehicle = api.read.vehicle
+        if vehicle.player_index() < 0:  # not synced: zeroed structure, no car
+            return None
+        return vehicle.slot_id()
+    except (AttributeError, TypeError):
+        return None
+
+
 class PendingLap:
     """Lap just completed, waiting for validation by game lap time (scoring updates slower than telemetry)
 
@@ -145,22 +156,31 @@ class PendingLap:
         finish: game elapsed time at the line.
         data: lap data of module.
         deadline: clock time limit of validation once player left track, 0 while driving.
+        slot_id: slot id of car that drove lap (player or car followed), None if unknown.
     """
 
-    __slots__ = ("laptime", "finish", "data", "deadline")
+    __slots__ = ("laptime", "finish", "data", "deadline", "slot_id")
 
     def __init__(self, laptime: float, finish: float, data: Any = None):
         self.laptime = laptime
         self.finish = finish
         self.data = data
         self.deadline = 0.0
+        self.slot_id = followed_slot_id()
 
     def matched(self, laptime_valid: float) -> bool:
         """Whether game last lap time (laptime_valid) is the lap time of this lap"""
         return laptime_valid > 0 and abs(laptime_valid - self.laptime) < 0.001
 
+    def other_car(self) -> bool:
+        """Whether another car is followed now (spectate, Director): its lap times never validate this lap"""
+        slot_id = followed_slot_id()
+        return slot_id is not None and self.slot_id is not None and slot_id != self.slot_id
+
     def confirmed(self) -> bool:
         """Whether game last lap time is the lap time of this lap"""
+        if self.other_car():
+            return False
         try:
             return self.matched(api.read.timing.last_laptime())
         except (AttributeError, TypeError):
@@ -179,7 +199,7 @@ class PendingLap:
             self.deadline = monotonic() + PENDING_WAIT
         if self.confirmed():
             return True
-        if final or monotonic() >= self.deadline:
+        if final or monotonic() >= self.deadline or self.other_car():
             return False
         return None
 
