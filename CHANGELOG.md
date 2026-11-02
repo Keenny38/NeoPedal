@@ -210,6 +210,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Black Box: the `Colorblind Safe` color theme also converts the damage panel, energy, lift and coast, refill mark and high battery colors, which stayed red / green.
 - Black Box previews (`Overlay Options`, `Overlays` page): the battery bar, energy gauge, stint comparison and ABS / TC chips are shown, as switching them on seemed to do nothing.
 - Laps and Position overlay, modern look: with a track limits limit of 1 point, `0/1` is no longer shown red.
+- Delta Graph overlay: the position mark stays on the curve with 0 or 1 decimal place, instead of moving by steps of the rounded delta.
 
 ## 0.28.1 (2026-11-01)
 

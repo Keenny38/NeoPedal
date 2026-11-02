@@ -1029,3 +1029,26 @@ def test_b054_limit_of_one_point_not_red_at_zero(ui_env, bundled_fonts):
 
     found, negative = _with_preview_widget(cfg, "laps_and_position", values, 1.0, colors)
     assert found and negative not in found
+
+
+# B-056: Delta Graph mark placed on the rounded delta (steps off the curve with few decimal places)
+@DESIGNS
+def test_b056_delta_graph_mark_on_delta(ui_env, bundled_fonts, modern):
+    from neopedal.demo_data import demo_session
+    from neopedal.ui.widget_preview import _with_preview_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    session = demo_session(cfg.user.setting["standings"])
+
+    def mark_y(widget):
+        session.minfo.delta.deltaBest = 0.4
+        return widget.read_graph()[2]
+
+    old = session.minfo.delta.deltaBest
+    try:
+        marks = [_with_preview_widget(cfg, "delta_graph", dict(cfg.user.setting["delta_graph"], decimal_places=places,
+                                                               enable_classic_layout=not modern), 1.0, mark_y)
+                 for places in (0, 3)]
+    finally:
+        session.minfo.delta.deltaBest = old
+    assert abs(marks[0] - marks[1]) < 1  # was: 0 decimal place put the mark at 0 s (delta rounded)

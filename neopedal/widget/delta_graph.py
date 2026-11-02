@@ -274,7 +274,8 @@ class DeltaGraphMixin:
         mark_y = chart.center().y()
         if finite(delta):
             reading = round(calc.sym_max(delta, 99.99), self.decimals)
-            mark_y = round(scale_y(reading, chart, -self.delta_range, self.delta_range) * dpr) / dpr
+            # Mark on the delta itself: rounded reading moved it by steps off the curve (B-056)
+            mark_y = round(scale_y(calc.sym_max(delta, 99.99), chart, -self.delta_range, self.delta_range) * dpr) / dpr
         mark_x = chart.left()
         if finite(progress):
             mark_x = round((chart.left() + min(max(progress, 0.0), 1.0) * chart.width()) * dpr) / dpr
