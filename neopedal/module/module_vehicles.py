@@ -185,7 +185,7 @@ class Realtime(DataModule):
                         # Names of every car read again after other session or car count change
                         name_turn if (
                             last_veh_total == veh_total
-                            and last_session_elapsed <= session_elapsed
+                            and last_session_elapsed <= scoring_time
                             and last_in_race == in_race
                         ) else None,
                         veh_total,
@@ -196,11 +196,13 @@ class Realtime(DataModule):
                         if in_race:
                             update_finish_time(output, max_finish_time_diff)
 
-                        if last_session_elapsed > session_elapsed or last_in_race != in_race:  # other session
+                        # Other session: session (scoring) time gone back, never the telemetry time of a car
+                        # followed (another car may lag behind, or read 0 without telemetry row)
+                        if last_session_elapsed > scoring_time or last_in_race != in_race:
                             reset_session_timing(output)
                         if (
                             last_veh_total != veh_total
-                            or last_session_elapsed > session_elapsed
+                            or last_session_elapsed > scoring_time
                             or last_in_race != in_race
                         ):
                             update_qualify_position(output)
@@ -210,7 +212,7 @@ class Realtime(DataModule):
                             output.finishLapOffsetLeader = 0.0
 
                         last_veh_total = veh_total
-                        last_session_elapsed = session_elapsed
+                        last_session_elapsed = scoring_time
                         last_in_race = in_race
 
                 else:

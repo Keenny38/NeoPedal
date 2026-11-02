@@ -1132,3 +1132,41 @@ def test_b037_character_cut_by_name_field_dropped():
     assert bytes_to_str(cut) == cached_bytes_to_str()(cut) == "A" * 30
     assert bytes_to_str(b"ab\xffcd") == "ab�cd"  # invalid byte inside text still replaced
     assert cached_bytes_to_str("cp1252")(b"Jos\xe9") == "Jos\xe9"
+
+
+# --- B-038: a car followed without telemetry (recorded session: other cars' telemetry stripped) is no new session
+def test_b038_followed_car_clock_never_a_new_session(ui_env, monkeypatch):
+    from neopedal.api_control import api
+    from neopedal.module import module_vehicles
+    from neopedal.module_info import VehiclesInfo, minfo
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession, lockstep_modules
+
+    for name in ("active", "paused", "resets", "shown", "session_type", "in_pits"):
+        monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
+    realtime_state.active = realtime_state.paused = realtime_state.shown = False
+
+    def play(follow_at: int | None) -> list:
+        monkeypatch.setattr(minfo, "vehicles", VehiclesInfo())
+        monkeypatch.setattr(module_vehicles, "_index_slot_ids", {})
+        monkeypatch.setattr(module_vehicles, "_point_times", {})
+        session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+        monkeypatch.setattr(api, "_api", session.connector)
+        monkeypatch.setattr(api, "read", session.reader)
+        try:
+            with lockstep_modules(monkeypatch, ["module_vehicles"], cfg) as lockstep:
+                for frame in range(440):
+                    def load(frame=frame):
+                        if frame == follow_at:  # spectate a car whose telemetry reads 0 (elapsed time 0)
+                            session.sync.override_player_index = True
+                            session.sync.player_slot_id = session.reader.vehicle.slot_id(5)
+                        session.load(frame)
+                    lockstep.step(load)
+                lockstep.finish()
+                output = minfo.vehicles
+                return [(tuple(data.sectors.best), data.classBestSectors)
+                        for data in output.dataSet[:output.totalVehicles]]
+        finally:
+            session.close()
+
+    assert play(430) == play(None)
