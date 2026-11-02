@@ -1337,3 +1337,16 @@ def test_b055_track_limits_points_fit(ui_env, layout):
         assert target.text.strip() == "10.25/12.5" and len(target.text) <= cell
     finally:
         widget.deleteLater()
+
+
+# B-067: Fuel & Virtual Energy (modern) tiles sized for 2 decimal places: more were cut or spilled over
+@pytest.mark.parametrize("name, key", [
+    ("fuel", "decimal_places_end_remaining"), ("fuel", "decimal_places_remaining"),
+    ("fuel", "decimal_places_estimated_minutes"), ("virtual_energy", "decimal_places_estimated_laps"),
+    ("virtual_energy", "decimal_places_fuel_ratio"),
+])
+def test_b067_consumption_tiles_fit_decimals(ui_env, bundled_fonts, name, key):
+    shown = {"show_fuel_ratio": True, "show_refueling": True, "show_refilling": True}
+    values = {option: value for option, value in shown.items() if option in cfg.user.setting[name]}
+    assert picture_width(name, True, **values, **{key: 6}) > picture_width(name, True, **values)
+    assert picture_width(name, True, **values, **{key: 0}) == picture_width(name, True, **values)

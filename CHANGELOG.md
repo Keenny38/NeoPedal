@@ -227,6 +227,7 @@ Fixes from an audit of the VR overlay.
 - Roll Angle, Differential, Weight Distribution, Damage Stats and System Performance overlays, classic look: the prefix of a hidden item no longer widens the overlay.
 - Damage overlay, classic look: a punctured wheel keeps its suspension damage color inside the puncture outline.
 - Laps and Position overlay, classic look: track limits points against the race limit (such as 10.25/12.5) are no longer cut off.
+- Fuel and Virtual Energy overlays, modern look: values with 3 decimal places or more are no longer cut off or spilled over the next tile.
 
 ## 0.28.1 (2026-11-01)
 

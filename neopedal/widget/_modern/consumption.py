@@ -70,6 +70,12 @@ TILES = (
     (Stat("delta", "Delta", "+8.88"), "show_delta_consumption"),
     (Stat("end", "End", "888.88"), "show_end_remaining"),
 )
+# Decimal places option of each tile (decimal_places_<name>)
+TILE_DECIMALS = {
+    "laps": "estimated_laps", "minutes": "estimated_minutes", "used": "estimated_consumption",
+    "save": "saving_target", "pits": "pitstop_count", "early": "early_pitstop_count",
+    "delta": "delta_consumption", "end": "end_remaining",
+}
 
 
 COMMON_OPTIONS = (
@@ -113,7 +119,9 @@ class ConsumptionPanel(StatsMixin, ModernOverlay):
         else:
             self.warn_flash = None
 
-        stats = [stat for stat, option in TILES if wcfg[option]]
+        # Value samples as wide as values with the decimal places set (B-067)
+        stats = [stat._replace(sample=number_sample(stat.sample, decimals(wcfg, TILE_DECIMALS[stat.key])))
+                 for stat, option in TILES if wcfg[option]]
         stats += extra_stats
         self.keys = tuple(stat.key for stat in stats)
         columns = 4 if len(stats) <= 8 else 5
@@ -123,9 +131,10 @@ class ConsumptionPanel(StatsMixin, ModernOverlay):
         tiles_top = pad + hero_h + (gauge_h + unit * 0.45 if gauge_h else unit * 0.1)
         hero_w = 0.0
         if self.show_remaining:
-            hero_w += self.text_width("hero", "888.88") + self.text_width("small", self.symbol) + unit * 1.5
+            hero_w += (self.text_width("hero", number_sample("888.88", self.dec_remaining))
+                       + self.text_width("small", self.symbol) + unit * 1.5)
         if self.show_refill:
-            hero_w += self.text_width("value", "+888.88") + unit * 1.5
+            hero_w += self.text_width("value", number_sample("+888.88", self.dec_refill)) + unit * 1.5
         width, height = self.build_stats(stats, columns=columns, top=tiles_top, min_width=hero_w)
         self.rect_hero = QRectF(pad + inner, pad, width - (pad + inner) * 2, hero_h)
         self.rect_gauge = QRectF(pad + inner, pad + hero_h + unit * 0.05, width - (pad + inner) * 2, gauge_h)
@@ -227,6 +236,12 @@ class ConsumptionPanel(StatsMixin, ModernOverlay):
                 values.append(Value(f"{data.end:.{decimals(wcfg, 'end_remaining')}f}"))
         values += extra_values
         self.refresh((tuple(values), remaining, refill, low, level))
+
+
+def number_sample(sample: str, places: int) -> str:
+    """Widest text of a number: sample, with more decimal places when places asks for more"""
+    whole, _, fraction = sample.partition(".")
+    return f"{whole}.{'8' * places}" if places > len(fraction) else sample
 
 
 def decimals(wcfg: Mapping[str, Any], name: str) -> int:

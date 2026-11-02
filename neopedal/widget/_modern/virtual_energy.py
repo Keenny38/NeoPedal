@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING
 
 from ...module_info import minfo
 from .base import DASH, signed
-from .consumption import COMMON_OPTIONS, ConsumptionPanel, Names, decimals
+from .consumption import COMMON_OPTIONS, ConsumptionPanel, Names, decimals, number_sample
 from .stats import Stat, Value
 
 if TYPE_CHECKING:
@@ -64,9 +64,10 @@ class Realtime(ConsumptionPanel):
         self.symbol = "%"
         self.show_ratio = bool(self.wcfg["show_fuel_ratio"])
         self.show_bias = bool(self.wcfg["show_fuel_bias"])
-        extra = [Stat("ratio", "Ratio", "8.888")] if self.show_ratio else []
+        wcfg = self.wcfg
+        extra = [Stat("ratio", "Ratio", number_sample("8.888", decimals(wcfg, "fuel_ratio")))] if self.show_ratio else []
         if self.show_bias:
-            extra.append(Stat("bias", "Bias", "+8.88"))
+            extra.append(Stat("bias", "Bias", number_sample("+8.88", decimals(wcfg, "fuel_bias"))))
         self.setup_panel(extra)
 
     def timerEvent(self, event):

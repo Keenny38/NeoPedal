@@ -227,6 +227,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlays Angle de roulis, Différentiel, Répartition des masses, Statistiques de dégâts et Performances système, design classique : le préfixe d'un élément masqué n'élargit plus l'overlay.
 - Overlay Dégâts, design classique : une roue crevée garde sa couleur de dégât de suspension à l'intérieur du contour de crevaison.
 - Overlay Tours et position, design classique : les points de limites de piste face à la limite de la course (par exemple 10.25/12.5) ne sont plus coupés.
+- Overlays Carburant et Énergie virtuelle, design moderne : les valeurs à 3 décimales ou plus ne sont plus coupées et ne débordent plus sur la case suivante.
 
 ## 0.28.1 (2026-11-01)
 
