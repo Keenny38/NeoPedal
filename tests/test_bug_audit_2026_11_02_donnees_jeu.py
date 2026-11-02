@@ -761,6 +761,7 @@ def test_b022_lmu_events_read_as_a_queue(monkeypatch):
 
 # --- B-023: a GET acting on the game (open a replay) never sent twice after the game dropped the connection
 def test_b023_acting_get_never_sent_twice():
+    import contextlib
     import socket
     import threading
 
@@ -772,7 +773,7 @@ def test_b023_acting_get_never_sent_twice():
     server.listen(4)
 
     def handle(conn):
-        with conn:
+        with conn, contextlib.suppress(OSError):  # client gone (connection reset): nothing more to read
             data = b""
             while True:
                 while b"\r\n\r\n" not in data:
