@@ -909,3 +909,36 @@ def test_b039_goal_toast_waits_until_page_shown(monkeypatch):
     page.check_goals = lambda: StatsSelection.check_goals(page)
     StatsSelection.check_goals(page)
     assert deferred and not shown and not saved
+
+
+# B-020
+def test_b020_clean_rate_counts_each_race_once():
+    """Team race of 3 stints (driver swaps) with contacts & a clean solo race: 1 of 2 races clean"""
+    from types import SimpleNamespace
+
+    from neopedal.ui.quick.stats_table import StatsTable
+
+    dirty = SimpleNamespace(kind="Race", contacts=2, penalties=0, path="dirty.xml", position=0, grid=0,
+                            class_grid=0)
+    clean = SimpleNamespace(kind="Race", contacts=0, penalties=0, path="clean.xml", position=0, grid=0,
+                            class_grid=0)
+    records = [driver_history.SessionRecord(time=time, track="Spa", vehicle="GT3", session=4)
+               for time in (100.0, 200.0, 300.0)]
+    records.append(driver_history.SessionRecord(time=1000.0, track="Spa", vehicle="GT3", session=4, finish=1,
+                                                position=1))
+    links = {records[0]: dirty, records[1]: dirty, records[2]: dirty, records[3]: clean}
+
+    class Table(StatsTable):
+        history_index = {("Spa", "GT3"): records}
+
+        def latest_version(self):
+            return ""
+
+        def record_version(self, record):
+            return ""
+
+        def record_result(self, record):
+            return links[record]
+
+    cell = Table().history_cells("Spa", "GT3", 0.0)["clean_rate"]
+    assert cell.value == 50.0 and cell.tip.startswith("1 of 2 races")

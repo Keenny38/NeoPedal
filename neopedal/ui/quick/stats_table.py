@@ -341,8 +341,8 @@ class StatsTable(StatsHost):
             gained = places_gained(record, summary if record.start_position <= 0 else None)
             if gained is not None:
                 gains.append(gained)
-            if summary is not None and summary.kind == "Race":
-                linked.append(summary)
+            if summary is not None and summary.kind == "Race" and all(summary.path != race.path for race in linked):
+                linked.append(summary)  # team race: one result for every stint, counted once
         gained_value = sum(gains) / len(gains) if gains else None
         cells["gained"] = Cell(signed(gained_value, 1) if gained_value is not None else "-", gained_value,
                                round(gained_value, 2) if gained_value is not None else None,
