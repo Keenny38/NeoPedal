@@ -26,6 +26,7 @@ days (weekly_progress: records, goals reached or near, shared with the Home page
 from __future__ import annotations
 
 import re
+import time
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, NamedTuple
@@ -192,7 +193,8 @@ class Upcoming(NamedTuple):
 
 
 def parse_start(value: Any) -> float:
-    """ISO time of RaceControl (UTC when no zone) to Unix time, 0 if unreadable"""
+    """ISO time of RaceControl (UTC when no zone) to Unix time, 0 if unreadable or before 1970 (empty date of the
+    service: 0001-01-01)"""
     if not isinstance(value, str) or not value:
         return 0.0
     try:
@@ -201,7 +203,8 @@ def parse_start(value: Any) -> float:
         return 0.0
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
-    return moment.timestamp()
+    stamp = moment.timestamp()
+    return stamp if stamp > 0 else 0.0
 
 
 def _text(value: Any) -> str:
@@ -236,12 +239,14 @@ def parse_events(tier: str, data: Any) -> list[Upcoming]:
     return events
 
 
-def read_upcoming(get) -> list[Upcoming]:
-    """Next races of every tier (get: RaceControl GET path -> JSON, None if not read), soonest first (worker
-    thread)"""
+def read_upcoming(get, now: float | None = None) -> list[Upcoming]:
+    """Next races of every tier (get: RaceControl GET path -> JSON, None if not read), soonest first, races
+    started already left out (worker thread)"""
     events: list[Upcoming] = []
     for tier in DAILY_TIERS:
         events.extend(parse_events(tier, get(f"api/v1/daily/list/{tier}?take=2")))
+    started = time.time() if now is None else now
+    events = [event for event in events if event.start >= started]
     events.sort(key=lambda event: event.start)
     return events[:MAX_UPCOMING]
 

@@ -1070,3 +1070,24 @@ def test_b034_backups_rotated_by_creation_in_the_hour_repeated(tmp_path):
     assert create_versioned_backup("driver.stats", filepath, max_count=2, min_interval=0)
     names = sorted(name for name in os.listdir(filepath) if name.startswith("driver.stats.backup-auto-"))
     assert os.path.basename(newer) in names and os.path.basename(older) not in names
+
+
+# B-038
+def test_b038_upcoming_races_without_empty_date_or_started_ones():
+    from neopedal.ui.quick import stats_analysis
+
+    def event(starts: str, race_starts: str = "") -> dict:
+        return {"configuration": {"title": "Sprint", "starts": starts,
+                                  "content": {"track": {"name": "SPA", "friendly": "Spa"}}},
+                "raceStartsAt": race_starts}
+
+    now = 1_793_600_000.0
+    soon = stats_analysis.datetime.fromtimestamp(now + 3600, stats_analysis.UTC).isoformat()
+    past = stats_analysis.datetime.fromtimestamp(now - 3600, stats_analysis.UTC).isoformat()
+    assert stats_analysis.parse_start("0001-01-01T00:00:00") == 0.0  # empty date of the service
+    races = stats_analysis.parse_events("advanced", [event("0001-01-01T00:00:00", soon)])
+    assert races and races[0].start == now + 3600  # race start used instead
+    answers = {"advanced": [event(past), event(soon)]}
+    read = stats_analysis.read_upcoming(lambda path: next((data for tier, data in answers.items() if tier in path),
+                                                          None), now=now)
+    assert [race.start for race in read] == [now + 3600]

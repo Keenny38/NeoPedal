@@ -249,7 +249,8 @@ def test_official_races_parsed_and_matched():
         "Algarve International Circuit"
     assert stats_analysis.stats_track(races[0], ["Monza"], names) == ""
     asked = []
-    read = stats_analysis.read_upcoming(lambda path: asked.append(path) or ([event] if "advanced" in path else None))
+    read = stats_analysis.read_upcoming(lambda path: asked.append(path) or ([event] if "advanced" in path else None),
+                                        now=races[0].start - 3600)  # an hour before the race
     assert len(read) == 1 and len(asked) == 3 and asked[0].startswith("api/v1/daily/list/beginner")
 
 
