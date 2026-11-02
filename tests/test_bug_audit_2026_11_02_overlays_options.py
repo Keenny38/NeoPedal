@@ -893,3 +893,12 @@ def test_b084_class_position_change_own_switch(ui_env, modern):
 @DESIGNS
 def test_b085_wind_calm_threshold(ui_env, modern):
     assert not dimmed("wind_direction", "wind_strength_threshold_calm", modern, show_wind_strength_color=False)
+
+
+# B-086: Flag options active without their part
+@DESIGNS
+def test_b086_flag_options_follow_their_part(ui_env, modern):
+    assert dimmed("flag", "green_flag_text", modern, show_start_lights=False)
+    assert dimmed("flag", "disqualify_text", modern, show_finish_state=False)
+    assert dimmed("flag", "show_speed_limiter_off_warning", modern, show_speed_limiter=False)
+    assert dimmed("flag", "show_speed_limit_difference", modern, show_current_speed_while_limiter_on=False)

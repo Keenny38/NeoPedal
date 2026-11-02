@@ -199,6 +199,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Chat (design classique) : les couleurs des messages ne sont plus grisées quand `show_message_time` est désactivée.
 - `Options des overlays`, Notifications de course : `show_position_change_in_class` n'est plus grisée quand `show_position_change` est désactivée.
 - `Options des overlays`, Direction du vent : `wind_strength_threshold_calm` n'est plus grisée quand `show_wind_strength_color` est désactivée.
+- `Options des overlays`, Drapeau : les textes du drapeau vert et de la disqualification (design moderne), l'alerte limiteur désactivé et `show_speed_limit_difference` sont grisés quand leur élément est masqué.
 
 ## 0.28.1 (2026-11-01)
 

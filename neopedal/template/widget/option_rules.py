@@ -300,6 +300,13 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         ("font_color_message", "font_color_new_message", "background_color_message"), "")),),
     "race_notifications": (OptionFix(dependencies={"show_position_change_in_class": ""}),),  # own notification
     "wind_direction": (OptionFix(dependencies={"wind_strength_threshold_calm": ""}),),  # arrow or calm dot
+    "flag": (OptionFix(MODERN, dependencies={
+        "green_flag_text": "show_start_lights", "green_flag_duration": "show_start_lights",
+        "disqualify_text": "show_finish_state",
+    }), OptionFix(dependencies={  # limiter part: off warning & speed limit difference
+        "show_speed_limiter_off_warning": "show_speed_limiter",
+        "show_speed_limit_difference": "show_current_speed_while_limiter_on",
+    })),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

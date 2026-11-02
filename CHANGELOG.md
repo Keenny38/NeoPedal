@@ -199,6 +199,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Chat (classic look): the message colors are no longer dimmed while `show_message_time` is off.
 - `Overlay Options`, Race Notifications: `show_position_change_in_class` is no longer dimmed while `show_position_change` is off.
 - `Overlay Options`, Wind Direction: `wind_strength_threshold_calm` is no longer dimmed while `show_wind_strength_color` is off.
+- `Overlay Options`, Flag: the green flag and disqualify texts (modern look), the speed limiter off warning and `show_speed_limit_difference` are dimmed while their part is hidden.
 
 ## 0.28.1 (2026-11-01)
 
