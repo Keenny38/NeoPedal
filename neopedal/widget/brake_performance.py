@@ -92,8 +92,8 @@ class Realtime(Overlay):
                 self.wcfg["background_color_braking_rate_gain"],
                 self.wcfg["background_color_delta_braking_rate"],
             )
-            self.bar_delta_rate = self.set_rawtext(
-                text="+0.00",
+            self.bar_delta_rate = self.set_rawtext(  # first text as shown by the option chosen (B-047)
+                text="+0%" if self.wcfg["show_delta_braking_rate_in_percentage"] else "+0.00",
                 width=bar_width,
                 fixed_height=font_m.height,
                 offset_y=font_m.voffset,

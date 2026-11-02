@@ -212,6 +212,7 @@ Fixes from an audit of the VR overlay.
 - Laps and Position overlay, modern look: with a track limits limit of 1 point, `0/1` is no longer shown red.
 - Delta Graph overlay: the position mark stays on the curve with 0 or 1 decimal place, instead of moving by steps of the rounded delta.
 - Engine Temperature overlay, classic look: a net change per lap of 0 (first lap, unchanged lap) is no longer shown in the cooling color.
+- Brake Performance overlay, classic look: with `show_delta_braking_rate_in_percentage`, the delta shows `+0%` before the first braking instead of `+0.00`.
 
 ## 0.28.1 (2026-11-01)
 

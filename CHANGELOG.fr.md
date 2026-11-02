@@ -212,6 +212,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Tours et position, design moderne : avec une limite de 1 point de limites de piste, `0/1` n'est plus affiché en rouge.
 - Overlay Graphique de delta : le repère de position reste sur la courbe avec 0 ou 1 décimale, au lieu d'avancer par paliers du delta arrondi.
 - Overlay Température moteur, design classique : une variation par tour nulle (premier tour, tour sans changement) n'est plus affichée dans la couleur de refroidissement.
+- Overlay Performance de freinage, design classique : avec `show_delta_braking_rate_in_percentage`, le delta affiche `+0%` avant le premier freinage au lieu de `+0.00`.
 
 ## 0.28.1 (2026-11-01)
 

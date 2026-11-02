@@ -1064,3 +1064,16 @@ def test_b066_engine_temperature_zero_net_change_neutral(ui_env):
     widget = SimpleNamespace(temp_scale=1.0, bar_style_rate=("loss", "gain", "neutral"))
     Realtime.update_net(widget, target, 90.0, 0.0)  # first lap: no change yet
     assert target.fg == "neutral"
+
+
+# B-047: Brake Performance (classic) "+0.00" before first braking in percentage mode
+def test_b047_brake_performance_percentage_first_text(ui_env):
+    from neopedal.widget import brake_performance
+
+    cfg.user.setting["brake_performance"].update(enable_classic_layout=True, show_delta_braking_rate=True,
+                                                 show_delta_braking_rate_in_percentage=True)
+    widget = brake_performance.Realtime(cfg, "brake_performance")
+    try:
+        assert widget.bar_delta_rate.text == "+0%"  # before any update (first braking)
+    finally:
+        widget.deleteLater()
