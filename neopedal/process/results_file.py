@@ -272,6 +272,9 @@ def parse_entry(element: ET.Element) -> Entry:
         Swap((swap.text or "").strip(), _int(swap.get("startLap")), _int(swap.get("endLap")))
         for swap in element.iter("Swap")
     )
+    if (len(swaps) > 1 and swaps[0].start_lap == swaps[0].end_lap == 1 and swaps[0].driver != swaps[1].driver
+            and not any(lap.number == 1 and lap.time > 0 for lap in laps)):
+        swaps = swaps[1:]  # other name on untimed lap 1 only (practice, qualifying, 82 cars seen): not a driver
     aids = element.findall("ControlAndAids")
     return Entry(
         name=_text(element, "Name"),

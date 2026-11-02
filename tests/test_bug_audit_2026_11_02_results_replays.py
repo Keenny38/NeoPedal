@@ -633,3 +633,19 @@ def test_b028_race_time_never_shows_60_seconds():
     assert race_time_text(3599.9996) == "1:00:00.000"
     assert race_time_text(59.9996) == "1:00.000"
     assert race_time_text(83.4561) == "1:23.456"
+
+
+# B-029: another name on the untimed lap 1 only (practice, qualifying) shown as a co-driver of the player's car
+def test_b029_no_phantom_driver_on_untimed_first_lap():
+    from neopedal.process import results_file as rf
+    from neopedal.process.results_text import driver_names
+    from tests.test_race_results import PRACTICE_NAME, PRACTICE_XML
+
+    swaps = ('<Swap startLap="1" endLap="1">Someone Else</Swap>\n<Swap startLap="2" endLap="5">Offline Player</Swap>\n'
+             '<Lap num="1" p="2" et="10.0">--.----</Lap>\n<Lap num="2" p="2" et="120.0">107.5000</Lap>\n')
+    xml = PRACTICE_XML.format(laps=5).replace("<Name>Offline Player</Name>", "<Name>Offline Player</Name>\n" + swaps)
+    player = rf.parse_results(xml.encode("utf-8"), PRACTICE_NAME, ["offline player"]).player_entry
+    assert driver_names(player) == ["Offline Player"]
+    team = xml.replace("--.----", "110.2000")  # timed first lap: a real stint, kept
+    assert driver_names(rf.parse_results(team.encode("utf-8"), PRACTICE_NAME, ["offline player"]).player_entry) == [
+        "Someone Else", "Offline Player"]
