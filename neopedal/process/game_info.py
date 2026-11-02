@@ -139,6 +139,13 @@ class Standing(NamedTuple):
     blue: bool = False  # blue flag shown to car
 
 
+def _text(value: Any) -> str:
+    """Text field of game answer, TypeError if not text (null, number...: entry left out, never "None")"""
+    if not isinstance(value, str):
+        raise TypeError("not text")
+    return value
+
+
 def parse_chat(data: Any, default: tuple) -> tuple[ChatMessage, ...]:
     """Chat messages, oldest first"""
     if not isinstance(data, list):
@@ -146,7 +153,7 @@ def parse_chat(data: Any, default: tuple) -> tuple[ChatMessage, ...]:
     messages = []
     for entry in data:
         try:
-            text = str(entry["message"]).strip()
+            text = _text(entry["message"]).strip()
             if text:
                 messages.append(ChatMessage(_finite(entry["timestamp"]) * CHAT_TIME_SCALE, text))
         except (KeyError, OverflowError, TypeError, ValueError):
@@ -160,7 +167,7 @@ def _contacts_of(entries: list) -> list[Contact]:
     contacts = []
     for entry in entries:
         try:
-            contacts.append(Contact(_finite(entry["et"]), str(entry["player"]), str(entry["contactWith"])))
+            contacts.append(Contact(_finite(entry["et"]), _text(entry["player"]), _text(entry["contactWith"])))
         except (KeyError, OverflowError, TypeError, ValueError):
             continue
     return contacts
@@ -377,7 +384,7 @@ def parse_standings(standings: Any) -> list[Standing]:
             cars.append(Standing(
                 slot=int(car["slotID"]),
                 position=_number(car.get("position"), int),
-                driver=str(car["driverName"]),
+                driver=_text(car["driverName"]),
                 number=str(car.get("carNumber") or ""),
                 car_class=str(car.get("carClass") or ""),
                 vehicle=str(car.get("vehicleName") or ""),
@@ -489,7 +496,7 @@ def parse_session_time(info: Any) -> float:
     if not isinstance(info, dict):
         return -1.0
     value = info.get("currentEventTime")
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0:
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value < math.inf:
         return float(value)
     return -1.0
 

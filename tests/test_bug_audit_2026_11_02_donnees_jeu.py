@@ -1091,3 +1091,15 @@ def test_b034_demo_field_lap_relation_as_in_game(ui_env):
         if laps_behind >= 1:  # a lap or more behind the leader: gap in whole laps
             assert data.gapBehindLeader == laps_behind
     assert any(data.isLapped > 0 for data in cars)  # cars laps ahead of the player shown as ahead
+
+
+# --- B-035: null or other non text fields of game answers never turned into the text "None"
+def test_b035_null_text_fields_left_out():
+    from neopedal.process import game_info
+
+    chat = game_info.parse_chat([{"message": None, "timestamp": 1}, {"message": "hi", "timestamp": 2}], ())
+    assert [message.text for message in chat] == ["hi"]
+    contacts = game_info._contacts_of([{"et": 1.0, "player": "A", "contactWith": None},
+                                       {"et": 2.0, "player": "A", "contactWith": "B"}])
+    assert [(contact.time, contact.other) for contact in contacts] == [(2.0, "B")]
+    assert game_info.parse_session_time({"currentEventTime": float("inf")}) == -1.0
