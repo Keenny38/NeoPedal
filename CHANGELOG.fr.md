@@ -112,6 +112,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Usure des pneus et des freins : avec l'app lancée (ou la voiture remise à zéro) en plein tour, ce tour partiel n'est plus pris pour l'usure d'un tour (Usure des pneus, Vue d'ensemble des pneus, Historique des temps au tour, HUD tableau de bord) : les tours restants étaient trop optimistes pendant le tour suivant.
 - Le Mans Ultimate et rFactor 2 : lancer l'app, charger un preset ou redémarrer l'API pendant que le jeu est en pause dans un menu n'affiche plus les overlays environ 2 secondes avec des données figées ; ils attendent que les données du jeu bougent.
 - Le Mans Ultimate : les événements du jeu de la mémoire partagée sont lus comme la file qu'ils sont (début et fin de session et conduite étaient toujours vus comme signalés) ; les copies des données du jeu n'en dépendent plus.
+- Résultats et replays, Le Mans Ultimate : l'ouverture d'un replay du jeu n'est jamais envoyée deux fois quand le jeu coupe la connexion juste après (replay chargé deux fois).
 
 ## 0.28.1 (2026-11-01)
 

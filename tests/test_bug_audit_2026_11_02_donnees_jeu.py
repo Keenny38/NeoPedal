@@ -757,3 +757,49 @@ def test_b022_lmu_events_read_as_a_queue(monkeypatch):
     finally:
         live = None
         control.close()
+
+
+# --- B-023: a GET acting on the game (open a replay) never sent twice after the game dropped the connection
+def test_b023_acting_get_never_sent_twice():
+    import socket
+    import threading
+
+    from neopedal.game_rest import GameConnection
+
+    plays = []
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))  # ephemeral port: never the game's
+    server.listen(4)
+
+    def handle(conn):
+        with conn:
+            data = b""
+            while True:
+                while b"\r\n\r\n" not in data:
+                    chunk = conn.recv(4096)
+                    if not chunk:
+                        return
+                    data += chunk
+                head, data = data.split(b"\r\n\r\n", 1)
+                path = head.split(b" ")[1].decode()
+                if path.startswith("/rest/watch/play/"):
+                    plays.append(path)
+                    return  # game acts (replay loading) and drops the connection without answer
+                conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n[]")
+
+    def serve():
+        while True:
+            try:
+                conn, _ = server.accept()
+            except OSError:
+                return
+            threading.Thread(target=handle, args=(conn,), daemon=True).start()
+
+    threading.Thread(target=serve, daemon=True).start()
+    try:
+        with GameConnection(address=("127.0.0.1", server.getsockname()[1])) as game:
+            assert game.get("/rest/watch/replays") == []  # connection kept for the next request
+            assert not game.send("GET", "/rest/watch/play/3")
+    finally:
+        server.close()
+    assert plays == ["/rest/watch/play/3"]

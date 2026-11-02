@@ -135,9 +135,13 @@ class GameConnection:
             self.connection = None
 
     def request(self, method: str, resource: str, body: str | None = None,
-                max_body: int = MAX_BODY) -> tuple[int, bytes]:
+                max_body: int = MAX_BODY, command: bool = False) -> tuple[int, bytes]:
         """Status & body of answer, (0, b"") if no answer (or not read in REQUEST_SECONDS),
-        (STATUS_TOO_LARGE, b"") if its body is above max_body bytes"""
+        (STATUS_TOO_LARGE, b"") if its body is above max_body bytes
+
+        Args:
+            command: request acting on the game (a GET too, such as /rest/watch/play): never sent twice.
+        """
         if self.failed or self.address is None:
             return 0, b""
         host, port = self.address
@@ -170,7 +174,7 @@ class GameConnection:
                 # Sent again only when the game cannot have acted on it: a GET (no side effect), or a request
                 # not written to a kept connection the game had closed meanwhile. A command (POST, PUT) sent and
                 # left unanswered fails: sent twice, the game could act twice (pit menu written, replay toggled)
-                if attempt or not (method == "GET" or (reused and not sent)):
+                if attempt or not ((method == "GET" and not command) or (reused and not sent)):
                     break
             except OSError:  # not running: host resolved again next time
                 forget_hostname(host, port)
@@ -196,7 +200,7 @@ class GameConnection:
     def send(self, method: str, resource: str, body: str | None = None) -> bool:
         if body is None and method == "PUT":
             body = "{}"
-        return 200 <= self.request(method, resource, body)[0] < 300
+        return 200 <= self.request(method, resource, body, command=True)[0] < 300  # commands, GET ones too
 
 
 def _parsed(work: Callable[[], Any], parse: Callable[[Any], Any]) -> Any:
