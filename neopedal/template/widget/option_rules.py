@@ -220,7 +220,13 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                          "background_color_total_toe_angle"), "show_total_toe_angle"),
     }),),
     # Manual range: turns the wheel & bar whether the angle is read or not (Steering Angle: see ANY_OF)
-    "steering_wheel": (OptionFix(dependencies={"manual_steering_range": ""}),),
+    "steering_wheel": (OptionFix(dependencies={
+        "manual_steering_range": "",
+        # Angle reading (off by default)
+        **dict.fromkeys(("decimal_places", "show_degree_sign", "steering_angle_offset_x", "steering_angle_offset_y",
+                         "font_color_steering_angle"), "show_steering_angle"),
+    }), OptionFix(CLASSIC, dependencies=dict.fromkeys(
+        ("font_name", "font_size", "font_weight", "enable_auto_font_offset"), "show_steering_angle"))),
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),  # delta box, any source
                   # Range of the reading, animation & layout of the bar

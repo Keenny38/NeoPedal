@@ -786,3 +786,12 @@ def test_b064_gear_consumption_and_fonts(ui_env, modern):
     if not modern:
         assert dimmed("gear", "font_scale_speed", modern, show_speed_below_gear=False)
         assert dimmed("gear", "font_size_rpm", modern, show_rpm_reading=False)
+
+
+# B-070: Steering Wheel angle reading options active without the reading
+@DESIGNS
+def test_b070_steering_wheel_reading_options(ui_env, modern):
+    keys = shown_keys("steering_wheel", modern)
+    for key in ("decimal_places", "show_degree_sign", "font_color_steering_angle", "font_name"):
+        if key in keys:
+            assert dimmed("steering_wheel", key, modern, show_steering_angle=False), key

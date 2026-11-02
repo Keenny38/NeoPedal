@@ -187,6 +187,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Gear: the RPM zones (multipliers, colors, flicker) are no longer dimmed while the RPM bar is hidden, as they also color the gear.
 - `Overlay Options`, Engine Temperature: the temperature prefixes no longer follow the water temperature, the rate of change interval and smoothing follow `show_rate_of_change` instead of the net change, and the rate colors stay active while either reading shows.
 - `Overlay Options`, Gear: the consumption bar options are dimmed while the bar is hidden (default), and the speed and reading fonts (classic look) while what they size is hidden.
+- `Overlay Options`, Steering Wheel: the angle reading options (decimal places, degree sign, offsets, color, font) are dimmed while `show_steering_angle` is off.
 
 ## 0.28.1 (2026-11-01)
 
