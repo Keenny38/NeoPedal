@@ -495,10 +495,11 @@ def test_b016_app_closing_waits_for_stats_edit_being_saved(monkeypatch):
     from neopedal.ui.quick import stats_io
 
     monkeypatch.setattr(stats_io, "_edits_running", set())
-    monkeypatch.setattr(loader, "_close_waiters", [])
+    waiters = "_close_waiters" if hasattr(loader, "on_close") else "_pending_writers"
+    monkeypatch.setattr(loader, waiters, [])
     finished = threading.Event()
     stats_io.track_edit(finished)
-    assert stats_io.wait_edits in loader._close_waiters  # run by loader.close (quit, restart, system end)
+    assert stats_io.wait_edits in getattr(loader, waiters)  # run by loader.close (quit, restart, system end)
     assert stats_io.wait_edits(timeout=0.0) is False
     saving = threading.Timer(0.05, finished.set)  # edit thread writing history, then stats
     saving.start()

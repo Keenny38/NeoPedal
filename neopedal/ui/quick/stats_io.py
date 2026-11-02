@@ -182,7 +182,9 @@ def track_edit(finished: threading.Event) -> None:
     changed by the process end (see wait_edits)"""
     from ... import loader
 
-    loader.on_close(wait_edits)
+    # Waited once closing (quit, restart, system end), else before quit & restart write their settings
+    register = getattr(loader, "on_close", None) or loader.on_pending_write
+    register(wait_edits)
     with _edits_lock:
         for event in [event for event in _edits_running if event.is_set()]:
             _edits_running.discard(event)
