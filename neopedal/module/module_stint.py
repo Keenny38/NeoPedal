@@ -22,6 +22,7 @@ Stint module
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from time import monotonic
 
@@ -36,10 +37,12 @@ from ..userfile.consumption_history import (
     rewrite_consumption_history,
     save_consumption_history_file,
 )
-from ..userfile.data_saver import queue_save
+from ..userfile.data_saver import SYNC_SAVE_TIMEOUT, queue_save, wait_data_saver
 from ..userfile.heatmap import select_compound_symbol
 from ..validator import generator_init
 from ._base import CHECKPOINT_INTERVAL, MODULE_STOP, WAIT_STATE_CHANGE, DataModule, own_car_data
+
+logger = logging.getLogger(__name__)
 
 
 class Realtime(DataModule):
@@ -105,7 +108,8 @@ def write_consumption_history(
     """
     save_consumption_history_file(dataset=laps, filepath=filepath, filename=combo_name)
     with output.consumptionLock:
-        if output.consumptionDataVersion != version:
+        # History of another combo loaded meanwhile (reset): never written in this combo's file
+        if output.consumptionDataVersion != version and output.consumptionCombo == combo_name:
             # Laps deleted meanwhile (saved by Race Calculator under the lock, maybe before this write):
             # history of now written again, deleted laps never back in file
             rewrite_consumption_history(output.consumptionDataSet, filepath, combo_name)
@@ -163,6 +167,9 @@ def record_consumption_history(output: HistoryInfo, filepath: str):
             # Load data
             own_car = own_car_data()
             combo_name = api.read.session.combo_name()
+            # Saves still queued (checkpoint) written before the file is read back
+            if not wait_data_saver(SYNC_SAVE_TIMEOUT):
+                logger.warning("data saving not finished before reload")
             dataset, readable = read_consumption_history_file(
                 filepath=filepath,
                 filename=combo_name,
@@ -172,6 +179,7 @@ def record_consumption_history(output: HistoryInfo, filepath: str):
             with output.consumptionLock:
                 output.consumptionDataSet = deque(dataset, output.consumptionDataSet.maxlen)
                 output.consumptionDataVersion += 1
+                output.consumptionCombo = combo_name
             next_checkpoint = monotonic() + CHECKPOINT_INTERVAL
 
         # Update at start of lap

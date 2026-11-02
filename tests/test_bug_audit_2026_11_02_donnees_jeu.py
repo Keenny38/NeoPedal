@@ -577,3 +577,43 @@ def test_b014_energy_presence_follows_the_car():
         assert not presence.update(0.0, idle=False, now=float(second))
     presence.car_changed((10, "Hypercar"))
     assert presence.update(0.5, idle=False, now=61.0)
+
+
+# --- B-015: consumption history of a combo never rewritten with the history of another combo loaded meanwhile
+def test_b015_queued_history_save_never_writes_other_combo(ui_env, monkeypatch, tmp_path):
+    import threading
+    from types import SimpleNamespace
+
+    from neopedal.api_control import api
+    from neopedal.module import module_stint
+    from neopedal.module_info import ConsumptionDataSet, HistoryInfo, minfo
+    from neopedal.userfile.consumption_history import read_consumption_history_file, save_consumption_history_file
+    from neopedal.userfile.data_saver import DATA_SAVER, wait_data_saver
+
+    path = f"{tmp_path.as_posix()}/"
+    save_consumption_history_file([ConsumptionDataSet(lapNumber=n, lapTimeLast=90.0 + n) for n in (3, 2, 1)],
+                                  path, "Track - A")
+    combo, laps = {"name": "Track - A"}, {"n": 3}
+    monkeypatch.setattr(api, "read", SimpleNamespace(
+        session=SimpleNamespace(combo_name=lambda: combo["name"]),
+        lap=SimpleNamespace(completed_laps=lambda index=None: laps["n"])))
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "spectating", False)
+    monkeypatch.setattr(module_stint, "CHECKPOINT_INTERVAL", 0.0)  # checkpoint due at once
+    delta = SimpleNamespace(lapTimeCurrent=5.0, lapTimeLast=95.0, isValidLap=True)
+    monkeypatch.setattr(minfo, "delta", delta)
+    monkeypatch.setattr(minfo, "fuel", SimpleNamespace(lastLapPartial=False, lastLapConsumption=2.0, capacity=100.0))
+    output = HistoryInfo()
+    gen = module_stint.record_consumption_history(output=output, filepath=path)
+    gen.send(1)  # combo A loaded (3 laps)
+    gate = threading.Event()
+    DATA_SAVER.submit(gate.wait, 5)  # data saver busy with another save
+    laps["n"] = 4
+    gen.send(1)  # lap 4 recorded, checkpoint save queued behind
+    combo["name"] = "Track - B"  # car of another class followed before the queued save runs
+    delta.lapTimeCurrent = 30.0
+    threading.Timer(0.1, gate.set).start()
+    gen.send(2)  # reset: combo B loaded
+    assert wait_data_saver(5)
+    file_a, _ = read_consumption_history_file(path, "Track - A")
+    assert {1, 2, 3, 4} <= {data.lapNumber for data in file_a}  # lap 4 added, laps of A kept

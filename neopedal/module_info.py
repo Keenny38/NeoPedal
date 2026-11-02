@@ -932,6 +932,7 @@ class HistoryInfo:
         "consumptionLock",
         "consumptionDataVersion",
         "consumptionDataSet",
+        "consumptionCombo",
         "stintDataVersion",
         "stintDataCurrent",
         "stintDataSet",
@@ -941,6 +942,7 @@ class HistoryInfo:
         self.consumptionLock = threading.Lock()
         self.consumptionDataVersion: int = 0
         self.consumptionDataSet: deque[ConsumptionDataSet] = deque([ConsumptionDataSet()], 100)
+        self.consumptionCombo: str = ""  # combo name (track & class) of consumption data set loaded
         self.stintDataVersion: int = 0
         self.stintDataCurrent: StintData = StintData()
         self.stintDataSet: deque[StintDataSet] = deque([StintDataSet()], 100)

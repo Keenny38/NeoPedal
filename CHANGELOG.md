@@ -92,6 +92,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate and rFactor 2, spectating with no car of yours followed: overlays that show the cars (Track Map, Relative, Radar...) update again at the game telemetry rate instead of about 10 times a second.
 - Le Mans Ultimate: the gap to the car ahead on track shows in the Black Box (it was always `-`: the game gives it as a negative number).
 - Le Mans Ultimate, Spectate and Broadcast Director: following a car without virtual energy (LMP2, GT3) after a Hypercar no longer shows its virtual energy at 0 % and 0 laps (Virtual Energy, Flag low energy alert, Fuel Energy Saver); it is hidden as for your own car.
+- Consumption history (Race Calculator): switching to another track and class (or following a car of another class) while a save was waiting no longer replaces the history file of the former one with the new one's laps, and the latest laps are no longer lost on a reload.
 
 ## 0.28.1 (2026-11-01)
 

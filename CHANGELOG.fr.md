@@ -92,6 +92,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate et rFactor 2, en spectateur sans voiture à vous suivie : les overlays qui montrent les voitures (Carte du circuit, Relatif, Radar...) se mettent de nouveau à jour au rythme de la télémétrie du jeu au lieu d'environ 10 fois par seconde.
 - Le Mans Ultimate : l'écart avec la voiture devant sur la piste s'affiche dans le HUD tableau de bord (il restait toujours à `-` : le jeu le donne en nombre négatif).
 - Le Mans Ultimate, Spectateur et Régie de course : suivre une voiture sans énergie virtuelle (LMP2, GT3) après une Hypercar n'affiche plus son énergie virtuelle à 0 % et 0 tour (Énergie virtuelle, alerte d'énergie basse du Drapeau, Économiseur carburant/énergie) ; elle est masquée comme pour votre propre voiture.
+- Historique de consommation (Calculateur de course) : passer à un autre circuit et une autre catégorie (ou suivre une voiture d'une autre catégorie) pendant qu'une sauvegarde attendait ne remplace plus le fichier d'historique de l'ancien par les tours du nouveau, et les derniers tours ne sont plus perdus au rechargement.
 
 ## 0.28.1 (2026-11-01)
 
