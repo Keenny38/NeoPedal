@@ -918,3 +918,10 @@ def test_b087_track_map_mode_options(ui_env):
 def test_b088_radar_fade_follows_auto_hide(ui_env, modern):
     for key in ("enable_radar_fade", "radar_fade_in_radius"):
         assert dimmed("radar", key, modern, enable_auto_hide=False), key
+
+
+# B-090: notes pit texts active while the overlay hides instead
+@pytest.mark.parametrize("name", ["pace_notes", "track_notes"])
+def test_b090_notes_pit_texts(ui_env, name):
+    assert dimmed(name, "pit_notes_text", True, enable_auto_hide_if_not_available=True)
+    assert not dimmed(name, "pit_notes_text", True, enable_auto_hide_if_not_available=False)

@@ -504,6 +504,13 @@ def _track_map(values: Mapping) -> Inactive:
     return inactive
 
 
+def _notes(values: Mapping) -> Inactive:
+    """Placeholder texts of pits without notes: overlay hidden then by auto hide"""
+    if values.get("enable_auto_hide_if_not_available", False):
+        return dict.fromkeys(("pit_notes_text", "pit_comments_text"), ("off", "enable_auto_hide_if_not_available"))
+    return {}
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -519,6 +526,8 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
+    "pace_notes": _notes,
+    "track_notes": _notes,
     "track_map": _track_map,
     "lap_time_history": _energy_caption,
     "stint_history": _energy_caption,
