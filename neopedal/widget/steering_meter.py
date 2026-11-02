@@ -20,7 +20,7 @@
 Steering meter Widget
 """
 
-from math import isfinite
+from math import ceil, isfinite
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QRectF, Qt
@@ -33,6 +33,8 @@ from ._painter import fill_rect
 
 if TYPE_CHECKING:
     from ..template.widget_config_types import SteeringMeterConfig
+
+MIN_MARK_GAP = 0.01  # pixels between drawn scale marks: closer ones fill the same pixel columns
 
 
 class Realtime(Overlay):
@@ -152,7 +154,9 @@ class Realtime(Overlay):
         if self.wcfg["show_scale_mark"] and mark_num:
             mark_color = self.wcfg["scale_mark_color"]
             offset = self.bar_edge + self.bar_width
-            for idx in range(mark_num):
+            # Marks drawn at most 100 per pixel: a huge range drew millions (frozen app, B-006), same picture
+            step = max(1, ceil(MIN_MARK_GAP / mark_gap)) if mark_gap > 0 else 1
+            for idx in range(step - 1, mark_num, step):
                 gap = mark_gap * (idx + 1)
                 painter.fillRect(offset - gap, 0, 1, self.bar_height, mark_color)
                 painter.fillRect(offset + gap, 0, 1, self.bar_height, mark_color)

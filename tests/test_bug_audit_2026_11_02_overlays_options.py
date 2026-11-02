@@ -139,3 +139,18 @@ def test_b005_friction_circle_modern_big_radius_drawn_at_once(ui_env, bundled_fo
     huge = render_widget(cfg, "friction_circle", dict(values, display_radius_g=1e6)).toImage()
     assert time.perf_counter() - started < 5  # was: about 50 s (one million rings & labels)
     assert not huge.isNull() and huge.size() == normal.size()
+
+
+# B-006: steering meter (classic) drew every scale mark, even a pixel apart: a typo in the range froze the app
+def test_b006_steering_meter_classic_huge_range_drawn_at_once(ui_env, bundled_fonts):
+    import time
+
+    from neopedal.ui.widget_preview import render_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    values = dict(cfg.user.setting["steering_meter"], enable_classic_layout=True, show_scale_mark=True)
+    normal = render_widget(cfg, "steering_meter", dict(values, manual_steering_range=900)).toImage()
+    started = time.perf_counter()
+    huge = render_widget(cfg, "steering_meter", dict(values, manual_steering_range=10**9)).toImage()
+    assert time.perf_counter() - started < 5  # was: about 7 s (50 million marks)
+    assert not huge.isNull() and huge.size() == normal.size()
