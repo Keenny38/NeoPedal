@@ -37,6 +37,7 @@ from collections.abc import Iterable, Sequence
 from statistics import mean, pstdev
 from typing import NamedTuple
 
+from ..formatter import strip_invalid_char
 from .driver_history import SessionRecord
 from .telemetry_lap import LapFile, lap_files, lap_folder_name, lap_number_of, lap_timestamp_of, read_lap_info
 
@@ -107,7 +108,8 @@ def stint_folder(telemetry_path: str, record: SessionRecord) -> str:
     """Recorded laps folder of stint (track & game class), empty if class unknown (older records)"""
     if not record.vehicle_class or not telemetry_path:
         return ""
-    return os.path.join(telemetry_path, lap_folder_name(f"{record.track} - {record.vehicle_class}"))
+    # Combo name as the recorder module saves it: characters not allowed in file names stripped
+    return os.path.join(telemetry_path, lap_folder_name(strip_invalid_char(f"{record.track} - {record.vehicle_class}")))
 
 
 def stint_window(record: SessionRecord) -> tuple[float, float]:

@@ -752,3 +752,17 @@ def test_b021_debrief_leaves_out_laps_of_previous_stint(tmp_path):
     debrief = session_debrief.build_debrief(record, [previous, record], str(tmp_path))
     assert [lap.number for lap in debrief.laps] == [1, 2, 3]
     assert "lap007" not in debrief.best_path
+
+
+# B-022
+def test_b022_debrief_finds_laps_of_class_with_invalid_file_characters(tmp_path):
+    """rF2 mod class "GT3/GT4": laps saved by the recorder module in "Spa - GT3GT4" found by the debrief"""
+    from neopedal.formatter import strip_invalid_char
+    from neopedal.userfile import session_debrief
+    from neopedal.userfile.telemetry_lap import lap_folder_name
+
+    folder = os.path.join(tmp_path, lap_folder_name(strip_invalid_char("Spa - GT3/GT4")))
+    write_debrief_lap(folder, 1, 120.0, DEBRIEF_T - 100)
+    record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="Car A", best=120.0, valid=1,
+                                          seconds=130, vehicle_class="GT3/GT4")
+    assert len(session_debrief.build_debrief(record, [record], str(tmp_path)).laps) == 1
