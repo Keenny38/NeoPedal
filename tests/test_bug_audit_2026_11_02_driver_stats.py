@@ -1030,3 +1030,23 @@ def test_b031_friend_stats_saved_again_with_bom_read(tmp_path):
     with open(path, "w", encoding="utf-8-sig") as file:
         json.dump(document, file)
     assert stint_analysis.load_friend(path)["name"] == "Friend"
+
+
+# B-032
+def test_b032_card_picture_never_left_half_written(tmp_path):
+    from neopedal.ui.quick import stats_sharing
+
+    target = os.path.join(tmp_path, "card.png")
+    with open(target, "wb") as file:
+        file.write(b"previous card")
+
+    class FullDisk:
+        def save(self, filename, kind):
+            with open(filename, "wb") as file:
+                file.write(b"\x89PNG half")
+            return False
+
+    assert stats_sharing.save_png(FullDisk(), target) is False
+    with open(target, "rb") as file:
+        assert file.read() == b"previous card"
+    assert os.listdir(tmp_path) == ["card.png"]  # no temporary file left

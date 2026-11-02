@@ -23,6 +23,7 @@ Driver stats viewer part (StatsSharing, mixin of DriverStatsBackend): Exports (t
 from __future__ import annotations
 
 import csv
+import errno
 import html
 import logging
 import os
@@ -37,7 +38,7 @@ from ...const_app import VERSION
 from ...formatter import strip_invalid_char
 from ...i18n import tr, trm
 from ...rank_info import ranks
-from ...userfile import pb_code
+from ...userfile import atomic_path, pb_code
 from ...userfile.driver_history import SessionRecord, best_lap_date
 from ...userfile.lap_reference import LEVEL_COLORS
 from ...userfile.pb_code import SharedBest
@@ -69,6 +70,17 @@ from .stint_analysis import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def save_png(image, filename: str) -> bool:
+    """Picture saved as PNG through a temporary file (no half written picture left: full disk), True if saved"""
+    try:
+        with atomic_path(filename) as temp_filename:
+            if not image.save(temp_filename, b"PNG"):
+                raise OSError(errno.EIO, "picture not written", filename)
+    except OSError:
+        return False
+    return True
 
 
 class StatsSharing(StatsHost):
@@ -398,7 +410,7 @@ class StatsSharing(StatsHost):
                                                   "PNG (*.png)")
         if not filename:
             return
-        if not draw_card(data).save(filename, b"PNG"):
+        if not save_png(draw_card(data), filename):
             self.warning(trm(f"Unable to export: {filename}"))
             return
         self.toast_exported(filename)
