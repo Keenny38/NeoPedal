@@ -473,7 +473,10 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         if "standings" in state:
             self.record_laps()
         replay_time = standings_time(self.standings) if active and "standings" in state else -1.0
-        self.update_replay_time(replay_time if replay_time >= 0 or not active else state["time"])
+        if self.rewatching:  # replay of the live session: standings & session time stay those of live (time unknown)
+            self.update_replay_time(-1.0)
+        else:
+            self.update_replay_time(replay_time if replay_time >= 0 or not active else state["time"])
         live_time = state["time"] if not active else -1.0
         if live_time != self.live_time:
             self.live_time = live_time

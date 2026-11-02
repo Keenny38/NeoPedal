@@ -149,13 +149,23 @@ class ReplaysStandings(ReplaysBase):
         return self.camera_lap()
 
     def camera_lap(self) -> int:
+        if self.rewatching:  # replay of the live session: standings tell live laps, not those of the replay
+            return 0
         car = next((car for car in self.standings if car.slot == self.focused_slot()), None)
         return car.laps + 1 if car is not None else 0
+
+    def laps_unknown(self) -> bool:
+        """Replay of the live session: laps of its replay unknown (told)"""
+        if self.rewatching:
+            self.notify(tr("Laps of the replay of a live session are unknown: use the timeline"), True)
+        return self.rewatching
 
     @Slot(int)
     def stepLap(self, step: int):
         """Replay goes to start of previous (-1) or next (1) lap of car followed by camera
         (lap start seen before: at once, else looked for)"""
+        if self.laps_unknown():
+            return
         slot, lap = self.focused_slot(), self.camera_lap() + step
         if self.state != REPLAY or slot < 0 or lap < 1:
             return
@@ -169,7 +179,7 @@ class ReplaysStandings(ReplaysBase):
     def goToLap(self, key: str):
         """Replay goes to start of a lap (asked in the page) of car, camera on car"""
         car = self.car_of(key)
-        if car is None or self.state != REPLAY:
+        if car is None or self.state != REPLAY or self.laps_unknown():
             return
 
         def go(lap: int):

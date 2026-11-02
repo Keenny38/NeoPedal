@@ -246,3 +246,28 @@ def test_b007_jump_in_live_session_asks_first(replays_page, monkeypatch):  # noq
     backend.jumpTo(key, "")
     wait_commands(backend)
     assert ("POST", "/rest/replay/toggleactive") in replays_page.sent
+
+
+# B-008: replay of the live session showed live time & laps (standings stay live), lap steps never reached their lap,
+# and the jump sent right after the replay opened could be ignored by the game
+def test_b008_replay_of_live_session_time_and_laps_unknown(replays_page, monkeypatch):  # noqa: F811
+    backend = answered(replays_page, GAME_ANSWERS)
+    assert backend.replayTime > 0 and backend.cameraLap > 0  # replay of a recorded session: from standings
+    backend.rewatching = True  # replay of the live session opened by a jump
+    answered(replays_page, GAME_ANSWERS)
+    assert backend.replayTime == -1 and backend.cameraLap == 0
+    replays_page.sent.clear()
+    backend.stepLap(1)
+    wait_commands(backend)
+    assert replays_page.sent == [] and backend.noticeError and "timeline" in backend.noticeText
+
+
+def test_b008_live_replay_waits_before_taking_commands(monkeypatch):
+    from neopedal.ui.quick import replays_common
+
+    slept: list[float] = []
+    monkeypatch.setattr(replays_common.time, "sleep", slept.append)
+    active = iter([False, False, True])
+    connection = SimpleNamespace(get=lambda resource: next(active), send=lambda *args: True)
+    assert replays_common.enter_replay(connection)
+    assert slept[-1] == replays_common.REPLAY_READY  # replay open: commands after a moment

@@ -58,7 +58,7 @@ from ...process.results_text import MISSING, gap_seconds_text, laps_behind_text,
 from ...template.setting_status_colors import SAME_TIME
 from ...userfile.track_geometry import parse_points
 from . import page_settings
-from .game_camera import Command
+from .game_camera import REPLAY_READY, Command
 from .models import DictListModel
 
 if TYPE_CHECKING:
@@ -342,6 +342,7 @@ def enter_replay(connection: GameConnection) -> bool:
     while time.monotonic() < end:  # replay time ignored until replay is open
         time.sleep(0.2)
         if connection.get(ACTIVE_RESOURCE) is True:
+            time.sleep(REPLAY_READY)  # replay just open: replay time & camera commands ignored for a moment
             return True
     return False
 
