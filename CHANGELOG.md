@@ -207,6 +207,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`: `Apply` in a locked preset no longer says `Options saved`; it tells that changes to a locked preset are not saved.
 - Overlays moved with the arrow keys: a preset load, restart or quit right after the last key press no longer loses the new place for the screen setup.
 - `Overlay Options`, Black Box: options hidden by the automatic compact mode are noted as set by `auto_compact_display_scale`, no longer by the display profile.
+- `Overlay Options`, Black Box: the `Colorblind Safe` color theme also converts the damage panel, energy, lift and coast, refill mark and high battery colors, which stayed red / green.
 
 ## 0.28.1 (2026-11-01)
 

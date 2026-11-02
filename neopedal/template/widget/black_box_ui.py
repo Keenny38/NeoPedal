@@ -257,7 +257,12 @@ def _theme(*colors: str) -> dict[str, str]:
 
 BLACK_BOX_COLOR_THEMES: dict[str, dict[str, str]] = {
     "Default": {},
-    "Colorblind Safe": _theme("#D55E00", "#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#CC79A7"),
+    "Colorblind Safe": {
+        **_theme("#D55E00", "#56B4E9", "#009E73", "#E69F00", "#F0E442", "#0072B2", "#CC79A7"),
+        # Other defaults of the same meaning (damage panel, energy, lift and coast, refill mark, battery)
+        **dict.fromkeys(("#2FB36A", "#22CC88", "#2FE06A"), "#009E73"),
+        "#E0182D": "#D55E00", "#FF5A1F": "#E69F00", "#AA22AA": "#CC79A7",
+    },
 }
 
 

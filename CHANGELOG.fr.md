@@ -207,6 +207,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays` : `Appliquer` dans un preset verrouillé n'affiche plus `Options enregistrées` ; il indique que les modifications d'un preset verrouillé ne sont pas enregistrées.
 - Overlays déplacés avec les flèches : un chargement de preset, un redémarrage ou une fermeture juste après la dernière touche ne perd plus la nouvelle place pour la configuration d'écrans.
 - `Options des overlays`, HUD tableau de bord : les options masquées par le mode compact automatique sont notées comme réglées par `auto_compact_display_scale`, et plus par le profil d'affichage.
+- `Options des overlays`, HUD tableau de bord : le thème de couleurs `Colorblind Safe` convertit aussi les couleurs du panneau de dégâts, de l'énergie, du lift and coast, du repère de remplissage et de la batterie haute, restées rouge / vert.
 
 ## 0.28.1 (2026-11-01)
 

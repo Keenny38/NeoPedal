@@ -973,3 +973,14 @@ def test_b037_compact_mode_note_names_its_option(options):
     options.setAdvanced(True)
     note = row(options, "black_box/show_tyre_compound")["note"]
     assert option_label("auto_compact_display_scale") in note
+
+
+# B-038: Black Box colorblind theme left red / green pairs (damage panel, energy, refill mark)
+def test_b038_colorblind_theme_converts_semantic_colors(ui_env):
+    from neopedal.template.widget.black_box_ui import BLACK_BOX_COLOR_THEMES, theme_color
+
+    theme = BLACK_BOX_COLOR_THEMES["Colorblind Safe"]
+    defaults = cfg.default.setting["black_box"]
+    for key in ("damage_panel_suspension_color", "damage_panel_body_color_detached", "energy_gauge_color",
+                "gauge_refill_mark_color", "warning_color_high_battery"):
+        assert theme_color(defaults[key], theme) != defaults[key].upper(), key
