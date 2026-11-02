@@ -294,6 +294,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         **dict.fromkeys(("slip_angle_offset_x", "slip_angle_offset_y", "font_color_slip_angle"),
                         "show_slip_angle_reading"),
     }),),
+    "spotter": (OptionFix(CLASSIC, dependencies=dict.fromkeys(  # bars drawn with or without background
+        ("bar_color_nearby", "bar_color_critical", "bar_color_clear"), "")),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

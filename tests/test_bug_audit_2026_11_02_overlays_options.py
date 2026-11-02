@@ -868,3 +868,10 @@ def test_b081_heading_slip_reading_own_switch(ui_env, modern):
         assert dimmed("heading", "font_color_slip_angle", modern, show_slip_angle_reading=False)
         assert not dimmed("heading", "font_color_slip_angle", modern, show_yaw_angle_reading=False,
                           show_slip_angle_reading=True)
+
+
+# B-082: Spotter (classic) bar colors dimmed without the bar background
+def test_b082_spotter_bar_colors(ui_env):
+    for key in ("bar_color_nearby", "bar_color_critical", "bar_color_clear"):
+        assert not dimmed("spotter", key, False, show_bar_background=False), key
+    assert dimmed("spotter", "bar_background_color", False, show_bar_background=False)
