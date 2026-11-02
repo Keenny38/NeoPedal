@@ -1052,3 +1052,15 @@ def test_b056_delta_graph_mark_on_delta(ui_env, bundled_fonts, modern):
     finally:
         session.minfo.delta.deltaBest = old
     assert abs(marks[0] - marks[1]) < 1  # was: 0 decimal place put the mark at 0 s (delta rounded)
+
+
+# B-066: Engine Temperature (classic) net change of 0 in cooling color
+def test_b066_engine_temperature_zero_net_change_neutral(ui_env):
+    from types import SimpleNamespace
+
+    from neopedal.widget.engine_temperature import Realtime
+
+    target = SimpleNamespace(last=None, text="", fg="", update=lambda: None)
+    widget = SimpleNamespace(temp_scale=1.0, bar_style_rate=("loss", "gain", "neutral"))
+    Realtime.update_net(widget, target, 90.0, 0.0)  # first lap: no change yet
+    assert target.fg == "neutral"

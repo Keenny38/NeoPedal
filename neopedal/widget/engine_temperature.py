@@ -317,5 +317,6 @@ class Realtime(Overlay):
             else:
                 text = f"{temp:.1f}"
             target.text = text
-            target.fg = self.bar_style_rate[change > 0]
+            # Neutral color when shown as 0 (index 2), as the rate of change (B-066)
+            target.fg = self.bar_style_rate[2 if float(text) == 0 else change > 0]
             target.update()

@@ -211,6 +211,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Aperçus du HUD tableau de bord (`Options des overlays`, page `Overlays`) : la barre de batterie, la jauge d'énergie, la comparaison de relais et les pastilles ABS / TC sont affichées ; les activer semblait ne rien faire.
 - Overlay Tours et position, design moderne : avec une limite de 1 point de limites de piste, `0/1` n'est plus affiché en rouge.
 - Overlay Graphique de delta : le repère de position reste sur la courbe avec 0 ou 1 décimale, au lieu d'avancer par paliers du delta arrondi.
+- Overlay Température moteur, design classique : une variation par tour nulle (premier tour, tour sans changement) n'est plus affichée dans la couleur de refroidissement.
 
 ## 0.28.1 (2026-11-01)
 

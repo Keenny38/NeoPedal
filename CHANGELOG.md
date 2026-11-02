@@ -211,6 +211,7 @@ Fixes from an audit of the VR overlay.
 - Black Box previews (`Overlay Options`, `Overlays` page): the battery bar, energy gauge, stint comparison and ABS / TC chips are shown, as switching them on seemed to do nothing.
 - Laps and Position overlay, modern look: with a track limits limit of 1 point, `0/1` is no longer shown red.
 - Delta Graph overlay: the position mark stays on the curve with 0 or 1 decimal place, instead of moving by steps of the rounded delta.
+- Engine Temperature overlay, classic look: a net change per lap of 0 (first lap, unchanged lap) is no longer shown in the cooling color.
 
 ## 0.28.1 (2026-11-01)
 
