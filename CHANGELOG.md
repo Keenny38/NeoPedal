@@ -180,6 +180,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Track Clock: the time scale options are no longer dimmed with the clock hidden while the time scale or the countdown shows, and `track_clock_time_scale` is dimmed while synced with the game.
 - `Overlay Options`, Delta Best: `delta_display_range` is no longer dimmed with the delta bar hidden, while `enable_animated_deltabest` and `layout` are dimmed then.
 - `Overlay Options`, Session: the estimated laps prefix and colors are no longer dimmed while `show_predicted_extra_laps` is off, and `show_predicted_extra_laps` is dimmed while the estimated laps are hidden.
+- `Overlay Options`, Timing (classic look): `font_color_invalid_last` is no longer dimmed with the last lap hidden, as it also colors an invalid current lap.
 
 ## 0.28.1 (2026-11-01)
 

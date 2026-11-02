@@ -221,6 +221,7 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "session": (OptionFix(dependencies=dict.fromkeys(
         ("prefix_estimated_laps", "font_color_estimated_laps", "background_color_estimated_laps",
          "show_predicted_extra_laps"), "show_estimated_laps")),),
+    "timing": (OptionFix(CLASSIC, dependencies={"font_color_invalid_last": ""}),),  # last & current lap (ANY_OF)
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
@@ -375,6 +376,7 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "timing": {"font_color_invalid_last": ("show_last", "show_current")},
     "track_clock": dict.fromkeys(("enable_track_clock_synchronization", "track_clock_time_scale"),
                                  ("show_track_clock", "show_time_scale", "show_sunlight_phase_countdown")),
     "force": {"warning_color_liftforce": ("show_front_downforce", "show_rear_downforce")},

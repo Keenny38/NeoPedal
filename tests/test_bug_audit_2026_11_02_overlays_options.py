@@ -726,3 +726,9 @@ def test_b051_session_estimated_laps_options(ui_env, modern):
         if key in keys:
             assert not dimmed("session", key, modern, show_predicted_extra_laps=False), key
     assert dimmed("session", "show_predicted_extra_laps", modern, show_estimated_laps=False)
+
+
+# B-052: Timing (classic) invalid lap color dimmed with last lap hidden, though current lap uses it
+def test_b052_timing_invalid_color_of_last_or_current_lap(ui_env):
+    assert not dimmed("timing", "font_color_invalid_last", False, show_last=False, show_current=True)
+    assert dimmed("timing", "font_color_invalid_last", False, show_last=False, show_current=False)

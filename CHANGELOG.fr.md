@@ -180,6 +180,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Horloge de piste : les options d'échelle de temps ne sont plus grisées avec l'horloge masquée quand l'échelle ou le compte à rebours est affiché, et `track_clock_time_scale` est grisée quand l'horloge suit le jeu.
 - `Options des overlays`, Delta best : `delta_display_range` n'est plus grisée avec la barre de delta masquée, et `enable_animated_deltabest` et `layout` sont grisées dans ce cas.
 - `Options des overlays`, Session : le préfixe et les couleurs des tours estimés ne sont plus grisés quand `show_predicted_extra_laps` est désactivée, et `show_predicted_extra_laps` est grisée quand les tours estimés sont masqués.
+- `Options des overlays`, Chronométrage (design classique) : `font_color_invalid_last` n'est plus grisée avec le dernier tour masqué, car elle colore aussi un tour en cours invalide.
 
 ## 0.28.1 (2026-11-01)
 
