@@ -1397,3 +1397,10 @@ def test_b093_helps_describe_their_option(ui_env):
     for name in ("pace_notes", "track_notes"):
         assert "index number" not in option_help_english(name, "show_debugging")
     assert "flat spot" in option_help_english("tyre_wear", "warning_threshold_wear")
+
+
+# B-013: help of maximum_vehicles_combined_mode said it is unused in split mode (it acts with one class)
+def test_b013_combined_count_help_tells_single_class(ui_env):
+    from neopedal.i18n.options import option_help_english
+
+    assert "one class" in option_help_english("standings", "maximum_vehicles_combined_mode")

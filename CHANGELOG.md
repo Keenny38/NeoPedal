@@ -273,6 +273,7 @@ Fixes from an audit of the VR overlay.
 - Relative, Standings and Rivals overlays, modern look: the Trend column is wide enough for its rate (it touched the DR/SR column) and its arrow and rate are centered.
 - Overlay Options: `visibility_context` (when an overlay is shown) has a help text.
 - Overlay Options: help texts of Laps and Position `warning_color_invalid_lap`, Pace Notes and Track Notes `show_debugging` and Tyre Wear `warning_threshold_wear` describe what these options do (they described another option or other values).
+- Standings overlay: the help of `maximum_vehicles_combined_mode` tells it also applies in split mode when the session has one class.
 
 ## 0.28.1 (2026-11-01)
 

@@ -4930,7 +4930,7 @@ Set minimum amount top place vehicles to display: top of player's class in split
 Set maximum amount vehicles to display in exclusive mode, which takes effect when `enable_single_class_exclusive_mode` is enabled.
 
     maximum_vehicles_combined_mode
-Set maximum amount vehicles to display in combined mode, which takes effect when `enable_multi_class_split_mode` is not enabled. When total vehicle number is lower than this value, extra rows will auto-hide. When total vehicle number is above this value, the top 3 vehicles will always show, and rest of the vehicles will be selected from the nearest front and behind places related to player, with a space (`split_gap`) between the top places and the places around player when places in between are left out.
+Set maximum amount vehicles to display in combined mode, which takes effect when `enable_multi_class_split_mode` is not enabled, or in a session of one class only (split mode falls back to combined mode). When total vehicle number is lower than this value, extra rows will auto-hide. When total vehicle number is above this value, the top 3 vehicles will always show, and rest of the vehicles will be selected from the nearest front and behind places related to player, with a space (`split_gap`) between the top places and the places around player when places in between are left out.
 
     maximum_vehicles_split_mode
 Set maximum amount vehicles to display in split mode, which takes effect when in multi-class session and `enable_multi_class_split_mode` is enabled. If total vehicle number is above this value, any extra vehicles will not be shown. Default is `50`, which is sufficient in most case.
