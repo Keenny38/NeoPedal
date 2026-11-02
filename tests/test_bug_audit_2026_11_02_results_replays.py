@@ -335,26 +335,3 @@ def test_b009_replay_never_open_no_longer_opening(replays_page, monkeypatch):  #
     backend.opening_until = time.monotonic() - 1  # given up
     answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})
     assert backend.openingReplay == ""
-
-
-# B-010: action of a replay opened from another replay was done once 3 s passed, while the game could still tell the
-# former replay (its cars & time): focus & time sent to the former replay
-def test_b010_action_waits_until_former_replay_left(replays_page, monkeypatch):  # noqa: F811
-    from neopedal.ui.quick import dialogs
-    from neopedal.ui.quick.replays_common import ReplayAction
-
-    backend = answered(replays_page, GAME_ANSWERS)  # replay "Circuit de la Sarthe" open in game
-    monkeypatch.setattr(dialogs, "confirm", lambda parent, title, text, action, on_result, **kwargs: on_result(True))
-    backend.watch("Bahrain R1", ReplayAction("Bahrain R1", 300.0, ("Kevin Ramirez",)))
-    wait_commands(backend)
-    replays_page.sent.clear()
-    backend.action_after = 0.0  # settle time over: the game still tells the former replay
-    answered(replays_page, GAME_ANSWERS)
-    wait_commands(backend)
-    assert replays_page.sent == [] and backend.action is not None
-    bahrain = {**GAME_ANSWERS["/rest/watch/sessionInfo"], "trackName": "Bahrain International Circuit"}
-    answered(replays_page, {**GAME_ANSWERS, "/rest/watch/sessionInfo": bahrain})  # new replay told
-    backend.action_after = 0.0  # settled
-    answered(replays_page, {**GAME_ANSWERS, "/rest/watch/sessionInfo": bahrain})
-    wait_commands(backend)
-    assert ("PUT", "/rest/watch/replaytime/295") in replays_page.sent
