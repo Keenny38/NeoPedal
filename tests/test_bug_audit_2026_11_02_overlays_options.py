@@ -708,3 +708,11 @@ def test_b049_track_clock_time_scale_options(ui_env, modern):
     assert not dimmed("track_clock", "track_clock_time_scale", modern, enable_track_clock_synchronization=False,
                       **hidden_clock)
     assert dimmed("track_clock", "track_clock_time_scale", modern, enable_track_clock_synchronization=True)
+
+
+# B-050: Delta Best reading range under the bar switch, bar options without it
+@DESIGNS
+def test_b050_deltabest_range_and_bar_options(ui_env, modern):
+    assert not dimmed("deltabest", "delta_display_range", modern, show_delta_bar=False)
+    assert dimmed("deltabest", "enable_animated_deltabest", modern, show_delta_bar=False)
+    assert dimmed("deltabest", "layout", modern, show_delta_bar=False)

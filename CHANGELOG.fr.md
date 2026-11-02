@@ -178,6 +178,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Force (design classique) : `warning_color_liftforce` est grisée quand les lignes d'appui avant et arrière sont masquées.
 - `Options des overlays`, Pression de freinage, Hauteur de caisse, Force de suspension, Position de suspension, Angle de dérive, Taux de glissement, Charge des pneus et Déflexion des pneus (design classique) : `bar_gap` est grisée quand la légende est masquée, car elle n'espace que la légende.
 - `Options des overlays`, Horloge de piste : les options d'échelle de temps ne sont plus grisées avec l'horloge masquée quand l'échelle ou le compte à rebours est affiché, et `track_clock_time_scale` est grisée quand l'horloge suit le jeu.
+- `Options des overlays`, Delta best : `delta_display_range` n'est plus grisée avec la barre de delta masquée, et `enable_animated_deltabest` et `layout` sont grisées dans ce cas.
 
 ## 0.28.1 (2026-11-01)
 

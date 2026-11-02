@@ -178,6 +178,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Force (classic look): `warning_color_liftforce` is dimmed while the front and rear downforce rows are hidden.
 - `Overlay Options`, Brake Pressure, Ride Height, Suspension Force, Suspension Position, Slip Angle, Slip Ratio, Tyre Load and Tyre Deflection (classic look): `bar_gap` is dimmed while the caption is hidden, as it only spaces the caption.
 - `Overlay Options`, Track Clock: the time scale options are no longer dimmed with the clock hidden while the time scale or the countdown shows, and `track_clock_time_scale` is dimmed while synced with the game.
+- `Overlay Options`, Delta Best: `delta_display_range` is no longer dimmed with the delta bar hidden, while `enable_animated_deltabest` and `layout` are dimmed then.
 
 ## 0.28.1 (2026-11-01)
 

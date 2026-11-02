@@ -200,7 +200,10 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     # Manual range: turns the wheel & bar whether the angle is read or not (Steering Angle: see ANY_OF)
     "steering_wheel": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
-    "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),),  # delta box, any source
+    "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),  # delta box, any source
+                  # Range of the reading, animation & layout of the bar
+                  OptionFix(dependencies={"delta_display_range": "", "enable_animated_deltabest": "show_delta_bar",
+                                          "layout": "show_delta_bar"})),
     # Classic standings (no declared sections): class modes have their own options, see _standings
     "standings": (OptionFix(CLASSIC, dependencies={
         **dict.fromkeys(("enable_single_class_exclusive_mode", "maximum_vehicles_combined_mode",
