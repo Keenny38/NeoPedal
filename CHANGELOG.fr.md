@@ -218,6 +218,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Radar, design classique : les cercles de distance sont dessinés avec leur épaisseur décimale (2,9 était dessiné à 2 pixels).
 - Overlay Cercle d'adhérence, design classique : une très grande valeur de `dot_size` ne crée plus une image du point de plusieurs centaines de Mo ; le point fait au plus le rayon du cercle.
 - Overlay Rapport, design moderne : la valeur d'une barre masquée n'élargit plus l'overlay d'une zone vide.
+- Overlays Angle de rake, Angle de roulis et Angle de braquage : `wheelbase` et `wheel_track_front` / `wheel_track_rear` sont limités de 100 à 10000 mm (0 figeait l'angle, une valeur négative l'inversait).
 
 ## 0.28.1 (2026-11-01)
 

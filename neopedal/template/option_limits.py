@@ -88,6 +88,8 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     ("^number_of_prediction$", OptionLimit(0, 10, True)),
     ("^number_of_(event_log_lines|notifications|lines|forecasts)$", OptionLimit(1, 50, True)),
     ("^number_of_", OptionLimit(0, 1000, True)),
+    # Car dimensions (mm) of slope angles: 0 froze the angle, negative flipped it
+    ("^(wheelbase|wheel_track_(front|rear))$", OptionLimit(100, 10000)),
     # Pixel sizes & positions inside overlays (screen position_x/y: any screen layout, not limited)
     ("^(position|mirror_position)_[xy]$", NO_LIMIT),
     ("^(edge_|radar_)?fade_(in|out)_radius$", OptionLimit(0, 1)),  # fraction of radius

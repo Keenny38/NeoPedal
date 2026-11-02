@@ -1171,3 +1171,13 @@ def test_b068_gear_reading_of_hidden_bar(ui_env, bundled_fonts):
     hidden = {"show_rpm_bar": False, "decimal_places_rpm": 9}
     assert picture_width("gear", True, show_rpm_reading=True, **hidden) == picture_width(
         "gear", True, show_rpm_reading=False, **hidden)
+
+
+# B-048: wheelbase & wheel track accepted 0 (angle frozen) or negative (angle flipped)
+@pytest.mark.parametrize("key", ["wheelbase", "wheel_track_front", "wheel_track_rear"])
+def test_b048_car_dimensions_limited(key):
+    from neopedal.template.option_limits import clamp_to_limit, limit_error
+
+    assert limit_error(key, 0) and limit_error(key, -1800)
+    assert not limit_error(key, 1800) and not limit_error(key, 2800)
+    assert clamp_to_limit(key, 0) == 100

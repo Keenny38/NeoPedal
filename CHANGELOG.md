@@ -218,6 +218,7 @@ Fixes from an audit of the VR overlay.
 - Radar overlay, classic look: distance circles are drawn with their decimal width (2.9 was drawn 2 pixels wide).
 - Friction Circle overlay, classic look: a huge `dot_size` no longer makes a dot picture of hundreds of MB; the dot is at most the circle radius.
 - Gear overlay, modern look: the reading of a hidden bar no longer widens the overlay with an empty area.
+- Rake Angle, Roll Angle and Steering Angle overlays: `wheelbase` and `wheel_track_front` / `wheel_track_rear` are limited to 100 - 10000 mm (0 froze the angle, a negative value flipped it).
 
 ## 0.28.1 (2026-11-01)
 
