@@ -887,3 +887,9 @@ def test_b083_chat_message_colors(ui_env):
 @DESIGNS
 def test_b084_class_position_change_own_switch(ui_env, modern):
     assert not dimmed("race_notifications", "show_position_change_in_class", modern, show_position_change=False)
+
+
+# B-085: Wind Direction calm threshold dimmed without strength colors
+@DESIGNS
+def test_b085_wind_calm_threshold(ui_env, modern):
+    assert not dimmed("wind_direction", "wind_strength_threshold_calm", modern, show_wind_strength_color=False)
