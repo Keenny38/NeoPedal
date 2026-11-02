@@ -136,6 +136,7 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         "show_tread_grooves": "show_tyre_graphic",
         "show_pressure_target_range": "enable_tyre_pressure_target",
         "show_wear_per_lap": "",  # own row, with or without tread gauge
+        "heatmap_name": "",  # used while automatic heatmap is off (see INACTIVE_RULES)
         "warning_threshold_remaining": "show_wear",
         "warning_threshold_laps": "show_lifespan_laps",
         # Target ranges & their colors: of pressure target (itself of shown pressure)
@@ -149,6 +150,12 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "track_map": (OptionFix(dependencies={
         "auto_prediction_additional_pitstop_time": "enable_auto_pitout_prediction"}),),
     "corner_coach": (OptionFix(dependencies={"braking_point_tolerance": "show_braking_point"}),),
+    # Heatmap picked by compound or brake while automatic: own option used only with it off (see INACTIVE_RULES)
+    "brake_temperature": (OptionFix(dependencies={"heatmap_name": ""}),),
+    "tyre_temperature": (OptionFix(dependencies={"heatmap_name": ""}),),
+    "tyre_inner_layer": (OptionFix(dependencies={"heatmap_name": ""}),),
+    "tyre_carcass": (OptionFix(dependencies={"heatmap_name": ""}),),
+    "tyre_temp_trend": (OptionFix(dependencies={"heatmap_name": ""}),),
 }
 
 
@@ -198,6 +205,11 @@ def _radar(values: Mapping) -> Inactive:
     return {"auto_hide_time_threshold": ("off", "enable_radar_fade")} if values.get("enable_radar_fade") else {}
 
 
+def _heatmap(values: Mapping) -> Inactive:
+    """Heatmap option: not used while the heatmap is picked by compound or brake"""
+    return {"heatmap_name": ("off", "enable_heatmap_auto_matching")} if values.get("enable_heatmap_auto_matching") else {}
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -213,6 +225,12 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
+    "brake_temperature": _heatmap,
+    "tyre_temperature": _heatmap,
+    "tyre_inner_layer": _heatmap,
+    "tyre_carcass": _heatmap,
+    "tyre_overview": _heatmap,
+    "tyre_temp_trend": _heatmap,
 }
 
 

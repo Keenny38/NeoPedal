@@ -146,6 +146,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options` and `Find Option`: a position typed, reset or imported without keeping positions is no longer put back to the old one at the next start, preset load or screen change (positions per screen setup, `enable_layout_per_screen_setup`).
 - `Results & Replays`, `Replays` list: a replay deselected with `Ctrl` + click is no longer the one moved to the recycle bin by the `Delete` key and the `Delete` buttons of the selection (nor the one exported or protected by `More`): they act on the selected replays.
 - `Overlay Options`: `Undo` and `Redo` no longer bring back, after another preset was loaded, an edit made for the previous preset, which `Apply` then saved into the new preset without asking.
+- `Overlay Options`, Brake Temperature and tyre temperature overlays: `heatmap_name` is no longer dimmed while it is used (automatic heatmap off), and is dimmed while the automatic heatmap picks it.
 
 ## 0.28.1 (2026-11-01)
 

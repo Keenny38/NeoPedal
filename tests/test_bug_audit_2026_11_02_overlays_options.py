@@ -226,3 +226,30 @@ def test_b002_edit_typed_on_after_preset_load_asks_before_apply(options, monkeyp
     options.typeText(oid, "77")  # keys typed on in the same field: merged step
     assert options._preset == "B.json"  # was "": saved into B with no question had A been loaded meanwhile
 
+
+# Page rules (Overlay Options): option dimmed ("Used only while...") only while it does nothing
+def dimmed(name: str, key: str, modern: bool, **values) -> bool:
+    """Option row dimmed by the page for these values (on/off option it depends on, or rules of option_rules)"""
+    from neopedal.ui.quick.overlay_options_backend import OverlayOptionsBackend, build_layout
+
+    shown = dict(cfg.user.setting[name], **values)
+    if "enable_classic_layout" in shown:
+        shown["enable_classic_layout"] = not modern
+    layout = build_layout(name, shown)
+    assert key in layout.keys, f"{name}/{key} not shown"
+    overrides = OverlayOptionsBackend._overrides(layout, shown)
+    return (bool(OverlayOptionsBackend._off_control(layout, shown, overrides, key))
+            or key in OverlayOptionsBackend._inactive(layout, shown))
+
+
+DESIGNS = pytest.mark.parametrize("modern", [True, False], ids=["modern", "classic"])
+HEATMAP_OVERLAYS = ("brake_temperature", "tyre_temperature", "tyre_inner_layer", "tyre_carcass", "tyre_overview",
+                    "tyre_temp_trend")
+
+
+# B-021: heatmap_name dimmed while used (automatic heatmap off), active while unused (on)
+@DESIGNS
+@pytest.mark.parametrize("name", HEATMAP_OVERLAYS)
+def test_b021_heatmap_name_dimmed_only_with_automatic_heatmap(ui_env, name, modern):
+    assert dimmed(name, "heatmap_name", modern, enable_heatmap_auto_matching=True)
+    assert not dimmed(name, "heatmap_name", modern, enable_heatmap_auto_matching=False)
