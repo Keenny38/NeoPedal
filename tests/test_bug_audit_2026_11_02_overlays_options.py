@@ -442,3 +442,17 @@ def test_b012_color_themes_of_classic_black_box_only(options):
     cfg.user.setting["black_box"]["enable_classic_layout"] = True
     options.refresh()
     assert options.overlayInfo["themes"]
+
+
+# B-014: Standings (classic): every class mode option under split mode (exclusive & combined modes dimmed)
+def test_b014_classic_standings_class_modes(ui_env):
+    no_split = {"enable_multi_class_split_mode": False}
+    for key in ("enable_single_class_exclusive_mode", "maximum_vehicles_combined_mode", "minimum_top_vehicles",
+                "split_gap"):
+        assert not dimmed("standings", key, False, **no_split), key
+    assert not dimmed("standings", "maximum_vehicles_exclusive_mode", False, enable_single_class_exclusive_mode=True,
+                      **no_split)
+    assert dimmed("standings", "maximum_vehicles_exclusive_mode", False, enable_single_class_exclusive_mode=False)
+    assert dimmed("standings", "maximum_vehicles_split_mode", False, enable_single_class_exclusive_mode=True)
+    assert dimmed("standings", "show_time_gap_from_same_class", False, enable_single_class_exclusive_mode=False,
+                  **no_split)

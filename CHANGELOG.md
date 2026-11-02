@@ -160,6 +160,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Black Box: `Save shown items as` no longer saves the items hidden by the automatic compact mode (small overlay) as hidden in the user profile.
 - `Overlay Options`, Standings: `maximum_vehicles_combined_mode` is no longer dimmed in split mode, as it sets the number of cars of sessions with one class.
 - `Overlay Options`, Black Box: color themes are offered in the classic look only; in the modern look they wrote colors it hides, which then stopped following the overlay theme (Modern Light, colorblind colors).
+- `Overlay Options`, Standings (classic look): turning split mode off no longer dims the exclusive mode, the combined mode car count, the minimum top cars and the skipped places gap; options of the class modes not in use are dimmed instead.
 
 ## 0.28.1 (2026-11-01)
 

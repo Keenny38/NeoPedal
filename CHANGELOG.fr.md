@@ -160,6 +160,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, HUD tableau de bord : `Enregistrer les éléments affichés comme` n'enregistre plus comme masqués dans le profil utilisateur les éléments cachés par le mode compact automatique (overlay réduit).
 - `Options des overlays`, Classement : `maximum_vehicles_combined_mode` n'est plus grisée en mode scindé, car elle fixe le nombre de voitures des sessions à une seule catégorie.
 - `Options des overlays`, HUD tableau de bord : les thèmes de couleurs ne sont proposés qu'en design classique ; en design moderne, ils écrivaient des couleurs masquées, qui ne suivaient alors plus le thème des overlays (Modern Light, couleurs pour daltoniens).
+- `Options des overlays`, Classement (design classique) : désactiver le mode scindé ne grise plus le mode exclusif, le nombre de voitures du mode combiné, le minimum de voitures de tête ni l'écart des places sautées ; ce sont les options des modes non utilisés qui sont grisées.
 
 ## 0.28.1 (2026-11-01)
 

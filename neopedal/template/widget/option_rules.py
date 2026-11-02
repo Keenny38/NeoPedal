@@ -198,6 +198,12 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "steering_wheel": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),),  # delta box, any source
+    # Classic standings (no declared sections): class modes have their own options, see _standings
+    "standings": (OptionFix(CLASSIC, dependencies={
+        **dict.fromkeys(("enable_single_class_exclusive_mode", "maximum_vehicles_combined_mode",
+                         "minimum_top_vehicles", "split_gap"), ""),
+        "maximum_vehicles_exclusive_mode": "enable_single_class_exclusive_mode",
+    }),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
@@ -253,6 +259,21 @@ def _mixed_compound(values: Mapping) -> Inactive:
     return inactive
 
 
+def _standings(values: Mapping) -> Inactive:
+    """Class mode options doing nothing in the mode chosen (exclusive first, then split, else combined), as
+    drivers_ui.standings_inactive of the modern design"""
+    inactive = _mixed_compound(values)
+    if values.get("enable_single_class_exclusive_mode", False):
+        for key in ("enable_multi_class_split_mode", "class_order", "maximum_vehicles_split_mode",
+                    "maximum_vehicles_per_split_player", "maximum_vehicles_per_split_others",
+                    "maximum_vehicles_combined_mode"):
+            inactive[key] = ("off", "enable_single_class_exclusive_mode")
+    elif not values.get("enable_multi_class_split_mode", False):  # one list of every class
+        for key in ("show_time_gap_from_same_class", "show_time_interval_from_same_class"):
+            inactive[key] = ("on", "enable_multi_class_split_mode")
+    return inactive
+
+
 def _predictions(values: Mapping) -> Inactive:
     count = values.get("number_of_prediction", 0)
     return {key: ("count", "number_of_prediction") for key in values
@@ -283,7 +304,7 @@ def _black_box(values: Mapping) -> Inactive:
 
 INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "relative": _mixed_compound,
-    "standings": _mixed_compound,
+    "standings": _standings,
     "rivals": _mixed_compound,
     "relative_finish_order": _predictions,
     "acceleration": _speed_ranges,
