@@ -110,6 +110,7 @@ Fixes from an audit of the VR overlay.
 - Session recorder replays (Le Mans Ultimate): going back in a replay no longer resets the incidents, penalties and track limits to 0 for the rest of the playback, and a seek forward or a fast speed (x2, x4) no longer loses those of the frames jumped.
 - Tyre and brake wear: with the app started (or the car reset) in the middle of a lap, that partial lap is no longer taken as the wear of a lap (Tyre Wear, Tyre Overview, Lap Time History, Black Box): laps left were too optimistic during the next lap.
 - Le Mans Ultimate and rFactor 2: starting the app, loading a preset or restarting the API while the game is paused in a menu no longer shows the overlays for about 2 seconds with frozen data; they wait for the game data to move.
+- Le Mans Ultimate: the game events of the shared memory are read as the queue they are (session start, end and driving events were always seen as set); copies of game data no longer depend on them.
 
 ## 0.28.1 (2026-11-01)
 

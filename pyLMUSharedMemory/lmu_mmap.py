@@ -155,11 +155,9 @@ class MMapControl:
         Returns:
             True if data copy updated, False if not copied or same data (copy unchanged).
         """
-        # Check if game updating data
+        # Copy once data changed, with scoring & telemetry vehicle counts matching (generic events are a queue
+        # of event values, see LMUEvent: never flags of the game updating data)
         if (
-            self._realtime.generic.events.SME_UPDATE_SCORING
-            or self._realtime.generic.events.SME_UPDATE_TELEMETRY
-        ) and (
             self._realtime.scoring.scoringInfo.mNumVehicles
             == self._realtime.telemetry.activeVehicles
         ) and self.__changed():

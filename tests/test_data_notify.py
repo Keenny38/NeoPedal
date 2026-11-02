@@ -243,9 +243,7 @@ def test_lmu_copy_reports_new_data():
     control.data = lmu_data.LMUObjectOut.from_buffer(control._buffer)
     update = control._MMapControl__buffer_copy
     live = control._realtime
-    live.scoring.scoringInfo.mCurrentET = 5.0
-    assert update() is False and control.data.scoring.scoringInfo.mCurrentET == 0.0  # game not updating
-    live.generic.events.SME_UPDATE_TELEMETRY = 1
+    live.scoring.scoringInfo.mCurrentET = 5.0  # copied once changed (generic events: a queue, see LMUEvent)
     assert update() is True and control.data.scoring.scoringInfo.mCurrentET == 5.0
     assert update() is False  # same data
     live.generic.FFBTorque = 0.5

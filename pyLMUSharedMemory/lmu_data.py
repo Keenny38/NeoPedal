@@ -410,9 +410,18 @@ class LMUPathData(ctypes.Structure):
 
 
 class LMUEvent(ctypes.Structure):
-    """Remapping of 'SharedMemoryEvent' enum as struct from SharedMemoryInterface.hpp"""
+    """Remapping of 'SharedMemoryEvent' enum as struct from SharedMemoryInterface.hpp
+
+    'events[SME_MAX]' of SharedMemoryGeneric is a queue of SharedMemoryEvent values (game header: "queue of
+    events", CopySharedMemoryObj switches on the values), unused entries hold SME_MAX (16): each field holds an
+    event value of the queue, never a flag of the event it is named after. See queued.
+    """
 
     __slots__ = ()
+
+    def queued(self, event: int) -> bool:
+        """Whether event (SharedMemoryEvent value: index of its field, see LMU_EVENTS) is in the queue"""
+        return event in (ctypes.c_uint * len(self._fields_)).from_buffer(self)
     _pack_ = 4
     _fields_ = [
         ("SME_ENTER", ctypes.c_uint),
@@ -433,6 +442,9 @@ class LMUEvent(ctypes.Structure):
         ("SME_FFB", ctypes.c_uint),
         # omit "SME_MAX"
     ]
+
+
+LMU_EVENTS = {name: value for value, (name, _) in enumerate(LMUEvent._fields_)}  # SharedMemoryEvent values
 
 
 class LMUGeneric(ctypes.Structure):

@@ -728,3 +728,32 @@ def test_b021_start_on_frozen_data_stays_paused(lmu_game, monkeypatch):
     assert all(not synced and not resets for _, synced, resets in seen[:-1])  # never shown as live data
     assert all(paused for paused, _, _ in seen[1:-1])  # paused from the first tick (seen[0]: before it)
     assert seen[-1][0] is False  # data moving: resumed
+
+
+# --- B-022: LMU generic events are a queue of event values (recorded: 15, 11, 16...), never flags
+def test_b022_lmu_events_read_as_a_queue(monkeypatch):
+    import mmap
+    from types import SimpleNamespace
+
+    from neopedal.adapter import lmu_reader
+    from pyLMUSharedMemory import lmu_mmap
+
+    data = lmu_data.LMUObjectOut()
+    queue = (lmu_data.ctypes.c_uint * 16).from_buffer(data.generic.events)
+    queue[:] = (15, 11) + (16,) * 14  # as recorded: FFB & telemetry update queued, unused entries SME_MAX
+    state = lmu_reader.State(SimpleNamespace(lmuGeneric=data.generic), None)
+    assert state.session_events() == (False, False, False, False)  # no session event queued
+    queue[2] = 6  # SME_START_SESSION queued
+    assert state.session_events() == (True, False, False, False)
+    # Copy access never waits for event flags: data changed with an empty (zero filled) queue still copied
+    monkeypatch.setattr(lmu_mmap, "platform_mmap", lambda name, size: mmap.mmap(-1, size))
+    monkeypatch.setattr(lmu_mmap, "open_game_lock", lambda name: None, raising=False)  # no game lock here
+    control = lmu_mmap.MMapControl("test", lmu_data.LMUObjectOut)
+    control.create(0)
+    live = lmu_data.LMUObjectOut.from_buffer(control._mmap_buffer)
+    live.scoring.scoringInfo.mCurrentET = 5.0
+    try:
+        assert control.update() is True and control.data.scoring.scoringInfo.mCurrentET == 5.0
+    finally:
+        live = None
+        control.close()

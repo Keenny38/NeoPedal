@@ -28,6 +28,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from pyLMUSharedMemory.lmu_data import LMU_EVENTS
 from pyLMUSharedMemory.lmu_mmap import MAX_VEHICLES
 
 from ..calculation import (
@@ -128,12 +129,12 @@ class State(_reader.State, DataAdapter):
         Set while game signals the event (LMU shared memory generic events), all False for rF2.
         For information only, not used to detect session or active state (meaning not verified).
         """
-        events = self.shmm.lmuGeneric.events
+        events = self.shmm.lmuGeneric.events  # queue of event values (see lmu_data.LMUEvent)
         return (
-            bool(events.SME_START_SESSION),
-            bool(events.SME_END_SESSION),
-            bool(events.SME_ENTER_REALTIME),
-            bool(events.SME_EXIT_REALTIME),
+            events.queued(LMU_EVENTS["SME_START_SESSION"]),
+            events.queued(LMU_EVENTS["SME_END_SESSION"]),
+            events.queued(LMU_EVENTS["SME_ENTER_REALTIME"]),
+            events.queued(LMU_EVENTS["SME_EXIT_REALTIME"]),
         )
 
 
