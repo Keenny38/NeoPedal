@@ -285,7 +285,7 @@ def test_modern_driver_list_options_shown():
     assert "show_vehicle_in_garage" in modern_module("relative").Realtime.options
     for name, keys in (
         ("standings", ("show_lap_difference",)),
-        ("rivals", ("show_player_highlighted", "show_lap_difference", "show_highlighted_fastest_last_laptime")),
+        ("rivals", ("show_lap_difference", "show_highlighted_fastest_last_laptime")),  # no player (B-078)
     ):
         options = modern_module(name).Realtime.options
         for key in keys:

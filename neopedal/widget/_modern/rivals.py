@@ -50,7 +50,7 @@ class Realtime(DriverTable):
 
     COLUMNS = RIVALS_COLUMNS
     options = (
-        *DRIVER_OPTIONS,
+        *(key for key in DRIVER_OPTIONS if key != "show_player_highlighted"),  # player never listed (B-078)
         "column_delta_laptime", "number_of_delta_laptime", "show_inverted_delta_laptime_layout",
         "display_order_delta_laptime",
         "column_time_interval", "decimal_places_time_interval", "display_order_time_interval",
