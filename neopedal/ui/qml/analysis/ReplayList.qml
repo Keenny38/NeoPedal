@@ -91,12 +91,12 @@ Item {
         Action {
             text: replays.checkedCount > 1 ? i18n.tr("Export %1 Replays…").arg(replays.checkedCount) : i18n.tr("Export Replay…")
             enabled: replays.replayFolder !== "" && replays.selectedReplay !== "" && !replays.copying
-            onTriggered: replays.exportReplays(replays.selectedReplay)
+            onTriggered: replays.exportReplays(replays.selectionKey())
         }
         Action {
             text: replays.selectedProtected ? i18n.tr("Unprotect") : i18n.tr("Protect From Deletion")
             enabled: replays.selectedReplay !== ""
-            onTriggered: replays.toggleProtected(replays.selectedReplay)
+            onTriggered: replays.toggleProtected(replays.selectionKey())
         }
         MenuSeparator {}
         Action {
@@ -153,7 +153,7 @@ Item {
                 enabled: replays.replayFolder !== "" && replays.selectedReplay !== "" && !replays.trashing
                 flat: true
                 size: "sm"
-                onClicked: replays.deleteReplays(replays.selectedReplay)
+                onClicked: replays.deleteReplays(replays.selectionKey())
             }
             TpButton {
                 id: moreButton
@@ -261,7 +261,7 @@ Item {
                     text: i18n.tr("Delete")
                     flat: true
                     size: "sm"
-                    onClicked: replays.deleteReplays(replays.selectedReplay)
+                    onClicked: replays.deleteReplays(replays.selectionKey())
                 }
                 TpButton {
                     glyph: theme.glyphs.remove
@@ -292,7 +292,7 @@ Item {
             Keys.onDownPressed: { replays.moveReplaySelection(1); root.showSelected() }
             Keys.onReturnPressed: replays.watchReplay(replays.selectedReplay)
             Keys.onEnterPressed: replays.watchReplay(replays.selectedReplay)
-            Keys.onDeletePressed: replays.deleteReplays(replays.selectedReplay)
+            Keys.onDeletePressed: replays.deleteReplays(replays.selectionKey())
             Keys.onEscapePressed: replays.selectReplay(replays.selectedReplay)
             Keys.onPressed: function(event) {
                 if (event.matches(StandardKey.SelectAll)) { replays.selectAllReplays(); event.accepted = true }

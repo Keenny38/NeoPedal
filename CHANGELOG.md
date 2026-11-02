@@ -144,6 +144,7 @@ Fixes from an audit of the VR overlay.
 - Friction Circle overlay, modern look: a very big `display_radius_g` (typing mistake) no longer freezes the app while drawing its reference rings.
 - Steering Meter overlay, classic look: a very big `manual_steering_range` (typing mistake) no longer freezes the app while drawing its scale marks.
 - `Overlay Options` and `Find Option`: a position typed, reset or imported without keeping positions is no longer put back to the old one at the next start, preset load or screen change (positions per screen setup, `enable_layout_per_screen_setup`).
+- `Results & Replays`, `Replays` list: a replay deselected with `Ctrl` + click is no longer the one moved to the recycle bin by the `Delete` key and the `Delete` buttons of the selection (nor the one exported or protected by `More`): they act on the selected replays.
 
 ## 0.28.1 (2026-11-01)
 

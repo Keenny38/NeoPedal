@@ -166,6 +166,14 @@ class ReplaysList(ReplaysBase):
         self.set_checked(checked)
         self.selectionChanged.emit()  # every click told, same replay too: results page shows its session again
 
+    @Slot(result=str)
+    def selectionKey(self) -> str:
+        """Replay given to the actions of the selection (Delete, Export, Protect): current replay, else one of the
+        selected replays when the current one was deselected with Ctrl (never the replay just deselected)"""
+        if not self.checked or self.selected_replay in self.checked:
+            return self.selected_replay
+        return next((row["key"] for row in self._replays_model.rows if row["key"] in self.checked), min(self.checked))
+
     @Slot()
     def selectAllReplays(self):
         self.set_checked({row["key"] for row in self._replays_model.rows})
