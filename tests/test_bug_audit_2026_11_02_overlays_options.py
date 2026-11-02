@@ -698,3 +698,13 @@ def test_b043_force_lift_color_follows_downforce_rows(ui_env):
 def test_b044_bar_gap_follows_caption(ui_env, name):
     assert dimmed(name, "bar_gap", False, show_caption=False)
     assert not dimmed(name, "bar_gap", False, show_caption=True)
+
+
+# B-049: Track Clock time scale options under the clock switch; manual scale active while synced
+@DESIGNS
+def test_b049_track_clock_time_scale_options(ui_env, modern):
+    hidden_clock = {"show_track_clock": False, "show_time_scale": True}
+    assert not dimmed("track_clock", "enable_track_clock_synchronization", modern, **hidden_clock)
+    assert not dimmed("track_clock", "track_clock_time_scale", modern, enable_track_clock_synchronization=False,
+                      **hidden_clock)
+    assert dimmed("track_clock", "track_clock_time_scale", modern, enable_track_clock_synchronization=True)

@@ -150,6 +150,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                                           "warning_color_pit_window": "show_next_stop"}),),
     "track_clock": (OptionFix(dependencies={
         "enable_time_scaled_countdown": "show_sunlight_phase_countdown",
+        # Time scale: of the clock, the scale reading & the countdown (see ANY_OF)
+        "enable_track_clock_synchronization": "", "track_clock_time_scale": "",
         # Colors of the countdown & its arrow, time scaled or not
         **dict.fromkeys(("font_color_sunlight_phase_countdown", "background_color_sunlight_phase_countdown",
                          "font_color_phase_day", "font_color_phase_night"), "show_sunlight_phase_countdown"),
@@ -329,6 +331,13 @@ def _rules(*rules: Callable[[Mapping], Inactive]) -> Callable[[Mapping], Inactiv
     return rule
 
 
+def _track_clock(values: Mapping) -> Inactive:
+    """Time scale set by hand: not used while synced with the game"""
+    if values.get("enable_track_clock_synchronization", True):
+        return {"track_clock_time_scale": ("off", "enable_track_clock_synchronization")}
+    return {}
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -344,6 +353,7 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
+    "track_clock": _track_clock,
     "brake_temperature": _rules(_heatmap, _swap_colors("font_color_temperature", "background_color_temperature")),
     "tyre_temperature": _heatmap,
     "tyre_inner_layer": _heatmap,
@@ -358,6 +368,8 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "track_clock": dict.fromkeys(("enable_track_clock_synchronization", "track_clock_time_scale"),
+                                 ("show_track_clock", "show_time_scale", "show_sunlight_phase_countdown")),
     "force": {"warning_color_liftforce": ("show_front_downforce", "show_rear_downforce")},
     "trailing": _TRAILING_SHARED,
     "steering_angle": {"manual_steering_range": ("show_steering_angle", "show_steering_ratio")},
