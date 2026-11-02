@@ -56,6 +56,7 @@ from PySide6.QtCore import (
     QModelIndex,
     QObject,
     QPersistentModelIndex,
+    QPoint,
     QRect,
     QSize,
     QSortFilterProxyModel,
@@ -788,6 +789,7 @@ class OverlayBackend(PageBackend):
         self._background: dict[str, Any] = {}  # screenshot under the screen view: url & desktop rect
         # Page undo history (Ctrl+Z, toasts): (kind, overlay name or "", undo action, preset), last change last
         self._undo: list[tuple[str, str, Callable[[], object], str]] = []
+        self._moved_to: dict[str, QPoint] = {}  # overlay: place of its last move from the page (see undo_move)
         self._inputs_changed = False  # setting refreshed while hidden: previews checked once shown
         self._shown_once = False  # page shown at least once: a refresh while hidden waits for the next show
         self._refresh_pending = (False, False)  # states & marks changed by refreshes not yet shown (see refresh)
@@ -1483,14 +1485,32 @@ class OverlayBackend(PageBackend):
         move, rect = movable
         pos = clamped_position(rect, x, y, bounds_of(rect for _, rect, _ in screen_rects()))
         if pos != rect.topLeft():
+            before = rect.topLeft()
             if merge:
                 move(pos, "Move", merge=True)  # presses in a row: one undo step, layout stored once they stop
             else:
                 move(pos, "Move")
+            self._moved_to[name] = QPoint(pos)
             label = module_label(name)
             self.overlayMoved.emit(label)
             self._toast(trm(f"Overlay moved, not saved (locked preset): {label}") if self.presetLocked
-                        else trm(f"Overlay moved: {label}"), self._push_undo("move", name, self.undoMove, merge))
+                        else trm(f"Overlay moved: {label}"),
+                        self._push_undo("move", name, lambda: self.undo_move(name, before), merge))
+        self._update_screen()
+
+    def undo_move(self, name: str, before: QPoint):
+        """Move of the page put back (presses in a row merged: their first place), never another change of the
+        edit mode history made since (was: Ctrl+Z undid the last in-game change, of any overlay, B-004)"""
+        from ...widget._base import position_values
+        from ...widget._edit_mode import edit_mode
+
+        step = edit_mode().history.peek_undo()
+        if step is None or (step.name, step.text, step.before) == (name, "Move", position_values(before)):
+            edit_mode().undo()  # last step of the history (or none): undone there, redo kept
+        else:
+            movable = self._movable(name)
+            if movable is not None and movable[1].topLeft() == self._moved_to.get(name):  # not moved since
+                movable[0](before, "Move")
         self._update_screen()
 
     @Slot(str, int, int)
