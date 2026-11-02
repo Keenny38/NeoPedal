@@ -712,3 +712,43 @@ def test_b037_driver_username_never_given_ranks_of_a_homonym():
     field.poll(["Alex Martin", "Speedy"])
     assert field.ranks_of("Alex Martin").driver == dr.Rank("Gold", 2, 10)
     assert field.ranks_of("Speedy").driver == dr.Rank("Bronze", 1, 0)
+
+
+# Home debrief: laps recorded as the recorder module writes them
+DEBRIEF_T = 1_790_000_000
+
+
+def write_debrief_lap(folder: str, number: int, laptime: float, end: float, vehicle: str = "Car A",
+                      session_start: float = 0.0, finished: float = 0.0) -> str:
+    from neopedal.module.module_recorder import lap_filename
+
+    os.makedirs(folder, exist_ok=True)
+    name = lap_filename(number, laptime, True, end)
+    info = {"vehicle": vehicle, "session_start": session_start}
+    if finished:
+        info["finished"] = finished
+    with open(os.path.join(folder, name), "w", encoding="utf-8") as file:
+        file.write("# " + json.dumps(info) + "\n")
+        file.write("distance\n0\n")
+    return name
+
+
+# B-021
+def test_b021_debrief_leaves_out_laps_of_previous_stint(tmp_path):
+    """Back to garage 40 s, out again: last lap of previous stint (saved before its record) not in debrief"""
+    from neopedal.userfile import session_debrief
+    from neopedal.userfile.telemetry_lap import lap_folder_name
+
+    folder = os.path.join(tmp_path, lap_folder_name("Spa - GT3"))
+    previous_end = DEBRIEF_T
+    write_debrief_lap(folder, 7, 119.0, previous_end - 30, session_start=DEBRIEF_T - 3000)
+    start = previous_end + 40
+    for number in range(1, 4):
+        write_debrief_lap(folder, number, 121.0 + number * 0.1, start + 125 * number, session_start=DEBRIEF_T - 3000)
+    previous = driver_history.SessionRecord(time=previous_end, track="Spa", vehicle="Car A", best=119.0, valid=5,
+                                            seconds=700, vehicle_class="GT3")
+    record = driver_history.SessionRecord(time=start + 125 * 3 + 30, track="Spa", vehicle="Car A", session=1,
+                                          best=121.1, valid=3, seconds=125 * 3 + 30, vehicle_class="GT3")
+    debrief = session_debrief.build_debrief(record, [previous, record], str(tmp_path))
+    assert [lap.number for lap in debrief.laps] == [1, 2, 3]
+    assert "lap007" not in debrief.best_path

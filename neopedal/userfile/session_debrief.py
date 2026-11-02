@@ -129,11 +129,18 @@ def debrief_lap(lap: LapFile, info: dict) -> DebriefLap:
     )
 
 
-def stint_laps(folder: str, record: SessionRecord, files: Sequence[LapFile] | None = None) -> list[DebriefLap]:
-    """Laps recorded during stint, in driving order"""
+def stint_laps(folder: str, record: SessionRecord, files: Sequence[LapFile] | None = None,
+               previous: float = 0.0) -> list[DebriefLap]:
+    """Laps recorded during stint, in driving order
+
+    Args:
+        previous: end of stint saved before this one (any track), 0 if none: laps saved until then are of that
+            stint (back to garage for a short setup change, next session straight away).
+    """
     if not folder:
         return []
     start, end = stint_window(record)
+    start = max(start, previous + 0.5)  # lap file times are whole seconds (name): a lap of previous stint never
     found = [lap for lap in (lap_files(folder) if files is None else files)
              if start <= lap_timestamp_of(lap.filename) <= end and lap.lap_time > 0]
     found.sort(key=lambda lap: (lap_timestamp_of(lap.filename), lap_number_of(lap.filename)))
@@ -189,9 +196,11 @@ def build_debrief(record: SessionRecord, records: Iterable[SessionRecord], telem
         personal_best: personal best of driver stats (this stint included), 0 if unknown: an older faster lap
             than history knows (records dropped over history limit, imported stats) still counts.
     """
+    records = list(records)
     folder = stint_folder(telemetry_path, record)
     files = lap_files(folder) if folder else []
-    laps = stint_laps(folder, record, files)
+    previous = max((other.time for other in records if other.time < record.time), default=0.0)
+    laps = stint_laps(folder, record, files, previous)
     valid = [lap for lap in laps if lap.valid]
     best = record.best if record.best > 0 else min((lap.time for lap in valid), default=0.0)
     pace, consistency, pace_laps = pace_of(laps, best)
