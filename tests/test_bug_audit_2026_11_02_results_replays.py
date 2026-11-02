@@ -10,6 +10,7 @@ from PySide6.QtCore import QCoreApplication
 
 from tests.test_dialog_pages import window  # noqa: F401 (window: fixture)
 from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_commands, wait_requests  # noqa: F401 (fixtures)
+from tests.test_race_results import results_folder  # noqa: F401 (fixture)
 
 CTRL = 0x04000000  # Qt.KeyboardModifier.ControlModifier
 QML = os.path.join(os.path.dirname(__file__), "..", "neopedal", "ui", "qml", "analysis")
@@ -372,3 +373,39 @@ def test_b012_unreadable_protections_kept_and_bulk_deletion_off(window, monkeypa
     backend.keepLatest()
     assert asked == [] and backend.noticeError and "game_replays.json.bad" in backend.noticeText
     backend.release_resources()
+
+
+# B-018: every reload (page shown again, F5, a new file of another session) showed the same session again with its
+# lists reset to the top and the chart animated again
+def test_b018_reload_keeps_views_of_same_session(results_backend):
+    from tests.test_race_results import PRACTICE_NAME, wait_until
+
+    backend = results_backend
+    backend.select(next(info.path for info in backend.sessions if info.path.endswith(PRACTICE_NAME)))
+    assert wait_until(lambda: backend.shown_key.endswith(PRACTICE_NAME))
+    resets: list[str] = []
+    backend.classificationModel.modelReset.connect(lambda: resets.append("classification"))
+    backend.eventModel.modelReset.connect(lambda: resets.append("events"))
+    backend.chartChanged.connect(lambda: resets.append("chart"))
+    backend.page_hidden()
+    backend.page_shown()  # nothing changed on disk
+    assert wait_until(lambda: not backend.loading)
+    for _ in range(30):
+        QCoreApplication.processEvents()
+    assert resets == [] and backend.shown_key.endswith(PRACTICE_NAME)
+
+
+@pytest.fixture
+def results_backend(results_folder):  # noqa: F811
+    from PySide6.QtCore import QEvent
+
+    from neopedal.ui.quick.results_backend import RaceResultsBackend
+    from tests.test_race_results import wait_until
+
+    backend = RaceResultsBackend()
+    backend.page_shown()
+    assert wait_until(lambda: backend.loaded_once)
+    yield backend
+    backend.release()
+    backend.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

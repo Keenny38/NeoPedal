@@ -1311,6 +1311,7 @@ class RaceResultsBackend(PageBackend):
         """Session shown, none if result is None (failed: session picked whose file could not be read)"""
         self.reading = ""
         changed_session = key != self.shown_key
+        same_result = not changed_session and result is not None and result is self.result  # read again, unchanged
         self.shown_key = key if result is not None else ""
         self.selected_key = self.shown_key or failed
         self.failed_key = failed
@@ -1342,6 +1343,8 @@ class RaceResultsBackend(PageBackend):
             self.commentsChanged.emit()
         self.selectionChanged.emit()
         self.update_tabs()
+        if same_result:  # page shown again, F5, other file: lists, chart & scroll kept (header & tabs told above)
+            return
         self.refresh_session()
 
     def refresh_session(self):
