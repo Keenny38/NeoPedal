@@ -241,7 +241,7 @@ def live_race_length() -> tuple[str, int] | None:
     if session.finish_type() == 1:  # laps only
         laps = api.read.lap.maximum()
         return ("laps", laps) if 0 < laps < 100000 else None
-    minutes = round((session.end() - max(session.start(), 0)) / 60)
+    minutes = round(session.end() / 60)  # session length (session.start(): time of day of event start)
     return ("minutes", minutes) if minutes > 0 else None
 
 

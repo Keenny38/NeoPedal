@@ -258,7 +258,7 @@ def read_race_state(unit_fuel: Callable[[float], float], counter: StopCounter,
     game_stops = api.read.vehicle.number_pitstops()
     laps_done = api.read.lap.completed_laps()
     progress = api.read.lap.progress()
-    elapsed = max(session.elapsed() - max(session.start(), 0.0), 0.0)
+    elapsed = max(session.elapsed(), 0.0)  # session.start(): time of day, not an elapsed time
     penalty = api.read.vehicle.penalty()
     penalties = max(api.read.vehicle.number_penalties(), penalty.pending, 0)
     stops = counter.update(  # fuel in liters: a refuel is seen from the same amount whatever the display unit

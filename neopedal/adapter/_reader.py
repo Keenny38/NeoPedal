@@ -363,7 +363,7 @@ class Session(ABC):
 
     @abstractmethod
     def start(self) -> float:
-        """Session start time (seconds)"""
+        """Event start time of day (seconds since midnight), not an elapsed time"""
 
     @abstractmethod
     def end(self) -> float:

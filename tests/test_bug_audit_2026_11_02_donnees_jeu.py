@@ -448,3 +448,27 @@ def test_b009_resume_after_pause_keeps_sector_bests(ui_env, monkeypatch):
         monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
     realtime_state.active = realtime_state.paused = realtime_state.shown = False
     assert play_vehicles(monkeypatch, 436, 430) == play_vehicles(monkeypatch, 436, None)
+
+
+# --- B-008: session.start() is the event start time of day, never subtracted from the session elapsed time
+@pytest.fixture
+def race_session(monkeypatch):
+    """Race read as recorded in LMU: start() 43200 (12:00, seconds since midnight), 287 s into a 3 h session"""
+    from types import SimpleNamespace
+
+    from neopedal.api_control import api
+
+    session = SimpleNamespace(
+        session_type=lambda: 4, finish_type=lambda: 0, in_race=lambda: True, start=lambda: 43200.0,
+        elapsed=lambda: 287.0, end=lambda: 10800.0, track_time=lambda: 43487.0, time_scale=lambda: 1.0)
+    monkeypatch.setattr(api, "read", SimpleNamespace(session=session))
+    return session
+
+
+def test_b008_race_length_and_start_time_of_live_race(race_session):
+    from neopedal import race_live_data
+    from neopedal.ui.quick import race_model
+
+    assert race_live_data.race_length() == ("minutes", 180)
+    assert race_model.live_race_length() == ("minutes", 180)
+    assert race_live_data.start_minutes_now() == 12 * 60  # race started at 12:00, not "now"

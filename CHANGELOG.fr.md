@@ -83,6 +83,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate et rFactor 2 : quand votre voiture quitte la liste de la session (retour au moniteur en ligne, déconnexion), la voiture qui prend sa place dans la liste n'est plus lue un instant comme la vôtre (tours, carburant et position pris pour les vôtres, faux retour au garage).
 - Le Mans Ultimate et rFactor 2 en ligne, après l'arrivée : une voiture arrivée qui prend dans la liste la place d'une voiture partie du serveur n'affiche plus les écarts de cette voiture jusqu'à la fin de la session (Classement, Ordre d'arrivée relatif, Tendance d'écart, graphismes de diffusion).
 - Le Mans Ultimate et rFactor 2 : reprendre le jeu après une pause (menu pause) ne perd plus les meilleurs secteurs de chaque voiture, les meilleurs secteurs de la catégorie (violets), les tours d'entrée et de sortie des stands ni les points de chronométrage des écarts en course (Classement, Secteurs, Carte du circuit, Navigation, Régie de course).
+- Calculateur de course, onglet `Direct` : le temps de course avance (il restait à 0:00, donc le temps de conduite des relais n'était pas compté pour les minimums des pilotes), la durée de la course en minutes est lue dans le jeu, la tendance de température des prévisions s'affiche et l'heure de départ de la course est juste.
 
 ## 0.28.1 (2026-11-01)
 

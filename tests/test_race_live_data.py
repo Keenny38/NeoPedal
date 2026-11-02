@@ -164,8 +164,8 @@ def test_live_race_items(page, monkeypatch):  # noqa: F811
     monkeypatch.setattr(read.state, "active", lambda: True)
     monkeypatch.setattr(read.session, "session_type", lambda: 4)
     monkeypatch.setattr(read.session, "in_race", lambda: True)
-    monkeypatch.setattr(read.session, "elapsed", lambda: 3700.0)
-    monkeypatch.setattr(read.session, "start", lambda: 100.0)
+    monkeypatch.setattr(read.session, "elapsed", lambda: 3600.0)
+    monkeypatch.setattr(read.session, "start", lambda: 43200.0)  # event start time of day (12:00), not elapsed
     monkeypatch.setattr(read.session, "remaining", lambda: 1800.0)
     monkeypatch.setattr(read.lap, "completed_laps", lambda *args: 30)
     monkeypatch.setattr(read.lap, "safety_car_active", lambda: True)

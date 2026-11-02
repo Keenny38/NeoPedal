@@ -482,7 +482,7 @@ class Session(_reader.Session, DataAdapter):
         return rmnan(self.shmm.lmuScorInfo.mCurrentET)
 
     def start(self) -> float:
-        """Session start time (seconds)"""
+        """Event start time of day (seconds since midnight), not an elapsed time"""
         return rmnan(self.shmm.lmuScorInfo.mStartET)
 
     def end(self) -> float:

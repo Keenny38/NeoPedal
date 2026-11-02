@@ -351,7 +351,7 @@ class LiveTab(RaceBase):
         session = read.session
         if session.session_type() != RACE_SESSION or not read.state.active() or not session.in_race():
             return []
-        elapsed = max(session.elapsed() - max(session.start(), 0.0), 0.0)
+        elapsed = max(session.elapsed(), 0.0)  # session.start(): time of day, not an elapsed time
         left = session.remaining()
         lap_race = session.finish_type() == 1
         laps_done = read.lap.completed_laps()

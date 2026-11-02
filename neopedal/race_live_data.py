@@ -369,7 +369,7 @@ def race_length() -> tuple[str, int] | None:
     if session.finish_type() == 1:  # laps only
         laps = api.read.lap.maximum()
         return ("laps", laps) if 0 < laps < 100000 else None
-    minutes = round((session.end() - max(session.start(), 0)) / 60)
+    minutes = round(session.end() / 60)  # session length (session.start(): time of day of event start)
     return ("minutes", minutes) if minutes > 0 else None
 
 
@@ -390,7 +390,7 @@ def start_minutes_now() -> int:
     track_time = session.track_time()
     if track_time < 0:
         return -1
-    elapsed = max(session.elapsed() - max(session.start(), 0.0), 0.0)
+    elapsed = max(session.elapsed(), 0.0)  # session.start(): time of day, not an elapsed time
     return round((track_time - elapsed * max(session.time_scale(), 1)) / 60) % (24 * 60)
 
 
@@ -559,7 +559,7 @@ def temperature_trend(nodes: Sequence[Any], session_seconds: float) -> tuple[flo
 def collect_temperature() -> LiveValue:
     """Air temperature trend of the forecast (°C per hour), for the lap time per °C of the plan"""
     session = api.read.session
-    trend = temperature_trend(session.weather_forecast(), session.end() - max(session.start(), 0.0))
+    trend = temperature_trend(session.weather_forecast(), session.end())  # session length (seconds)
     if trend is None:
         return LiveValue("input_temp_slope", "weather", "Temperature Trend", None, "-", "No forecast", True, "")
     first, last, slope = trend
