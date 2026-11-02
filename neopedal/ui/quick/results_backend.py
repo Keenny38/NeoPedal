@@ -939,6 +939,8 @@ class RaceResultsBackend(PageBackend):
             self._reload_timer.start()
         elif not unread:
             self._unread_retries = 0
+        if self._pictures_stale:  # logos & pictures fetched while hidden: rows built again below
+            self._rows = {}
         self._pictures_stale = False  # rows & session built again below
         self.folders = loaded.folders
         self.files = loaded.files

@@ -698,3 +698,17 @@ def test_b032_cars_without_status_not_classified(ui_env):
     assert not classified(result, gone) and entry_gap(result, gone, leader, False) == ("Not classified", "dim")
     nobody = result._replace(entries=tuple(entry._replace(status="None") for entry in result.entries))
     assert classified(nobody, gone)  # race left before anyone finished: cars still running
+
+
+# B-033: track logos fetched while the page was hidden never shown in the sessions list
+def test_b033_logos_fetched_while_hidden_shown(results_backend, monkeypatch):
+    from neopedal.ui.quick import game_pictures
+    from tests.test_race_results import wait_until
+
+    backend = results_backend
+    monkeypatch.setattr(type(backend.logos), "track", lambda self, *names: "file:///logo.png")  # made meanwhile
+    backend.page_hidden()
+    game_pictures.notifier().changed.emit()  # told while hidden
+    backend.page_shown()
+    assert wait_until(lambda: not backend.loading)
+    assert all(row["trackLogo"] == "file:///logo.png" for row in backend.sessionModel.rows)
