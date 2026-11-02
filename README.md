@@ -38,7 +38,7 @@ NeoPedal is a telemetry overlay and analysis app: a modern design, a clear inter
 >
 > Also in 0.28.2, fixes from a bug audit of the broadcast part: the Broadcast Director never moves the game camera by itself while you drive.
 >
-> Also in 0.28.2, fixes from a bug audit of the game data reading (Le Mans Ultimate and rFactor 2): overlays switch at once to the car you follow (Spectate, Broadcast Director), without values of the car followed before, and nothing of a car you follow is saved as yours (delta best, consumption, recorded laps, track info).
+> Also in 0.28.2, fixes from a bug audit of the game data reading (Le Mans Ultimate and rFactor 2): overlays switch at once to the car you follow (Spectate, Broadcast Director), without values of the car followed before, and nothing of a car you follow is saved as yours (delta best, consumption, recorded laps, track info). Plus the race time of the Race Calculator `Live` tab, best sectors kept when resuming from a pause, replays (incidents after a seek, data left back in the game), the Le Mans Ultimate gap to the car ahead, and more.
 >
 > **New in 0.28.1**: faster restart and startup, less memory used while you race (window hidden), race results read only once, a tidier Home page and a Patreon link in the `Help` menu.
 >
