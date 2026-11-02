@@ -32,6 +32,7 @@ from __future__ import annotations
 import logging
 import os
 import statistics
+import time
 from collections import OrderedDict
 from collections.abc import Iterable, Sequence
 from typing import Any, NamedTuple
@@ -98,6 +99,8 @@ REPLAY_TAB = TABS.index("replay")
 LAP_LEAD = 1.0  # seconds: lap watched in replay starts this long before lap start
 EVENT_FILTERS = ("", "contact", "penalty", "track_limits", "chat")
 RELOAD_DELAY_MS = 1500  # folder changed: read again once game has written whole file
+UNREAD_RECENT = 60.0  # s: file written this recently that could not be read (being written) read again...
+UNREAD_RETRIES = 20  # ...this many times at most (Windows tells no content change of a file of a watched folder)
 KEPT_RESULTS = 5  # full results of sessions picked lately, at most
 KEPT_BYTES = 24 << 20  # memory estimate of full results kept (a 24 h race: about 10 MB), last one always kept
 RELEASE_DELAY_MS = 60_000  # page hidden that long: full results released (read again when shown)
@@ -794,6 +797,7 @@ class RaceResultsBackend(PageBackend):
         self._reload_timer = QTimer(self)
         self._reload_timer.setSingleShot(True)
         self._reload_timer.setInterval(RELOAD_DELAY_MS)
+        self._unread_retries = 0  # reloads for a recent file still unreadable (see UNREAD_RECENT)
         self._reload_timer.timeout.connect(self.reload)
         self._release_timer = QTimer(self)
         self._release_timer.setSingleShot(True)
@@ -926,6 +930,12 @@ class RaceResultsBackend(PageBackend):
         newest_selected = bool(self.sessions) and self.selected_key == self.sessions[0].path
         self.loading = False
         self.loaded_once = True
+        unread = any(info is None and stamp.modified > time.time() - UNREAD_RECENT for stamp, info in loaded.files.values())
+        if unread and self._shown and self._unread_retries < UNREAD_RETRIES:  # file being written by the game
+            self._unread_retries += 1
+            self._reload_timer.start()
+        elif not unread:
+            self._unread_retries = 0
         self._pictures_stale = False  # rows & session built again below
         self.folders = loaded.folders
         self.files = loaded.files

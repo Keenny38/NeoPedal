@@ -3,6 +3,7 @@
 import os
 import re
 import sys
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -543,3 +544,27 @@ def test_b017_replay_file_in_folder_told_by_game(replays_page, tmp_path):  # noq
     assert backend.file_of(replay._replace(folder="")) == os.path.join(backend.replay_folder(), "C.Vcr")
     backend.replays = [*backend.replays, replay]
     assert backend.rename_replay("C", "C2") and (other / "C2.Vcr").exists()
+
+
+# B-020: results file read while the game still wrote it (Windows tells only its creation to the watched folder):
+# never read again, the session never showed
+def test_b020_file_read_while_written_read_again(results_backend, results_folder):  # noqa: F811
+    from tests.test_race_results import RACE_XML, wait_until
+
+    backend = results_backend
+    count = backend.sessionCount
+    path = results_folder / "2026_09_22_20_00_00-15R1.xml"
+    text = RACE_XML.replace("1790", "1791")
+    half = len(text) // 2
+    with open(path, "w", encoding="utf-8") as file:  # game writing it: first half
+        file.write(text[:half])
+        file.flush()
+        backend.reload()
+        assert wait_until(lambda: not backend.loading)
+        end = time.monotonic() + 3  # reload of the folder event of its creation over too
+        while time.monotonic() < end:
+            QCoreApplication.processEvents()
+            time.sleep(0.01)
+        assert backend.sessionCount == count  # unreadable yet
+        file.write(text[half:])  # written to the end, same file open: no folder event
+    assert wait_until(lambda: backend.sessionCount == count + 1)
