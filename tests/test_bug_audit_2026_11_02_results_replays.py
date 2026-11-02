@@ -780,3 +780,32 @@ def test_b037_rate_kept_across_a_jump(replays_page):  # noqa: F811
     backend.refresh_state()  # page not shown: state asked by the test once the jump is done
     wait_requests(backend.request_state)
     assert backend.replayTime > 1000 and backend.replayRate == 1.0  # not the jump over a second ("1500x")
+
+
+# B-038: one request of a state answer failing (timeout): incidents, standings, HUD & replay time shown empty for a
+# cycle, selections lost, track map asked again
+def test_b038_partial_state_answer_not_used(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui import game_rest
+
+    backend = answered(replays_page, GAME_ANSWERS)
+    incidents, standings, hud = backend.incidents, backend.standings, dict(backend.hud)
+    assert incidents and standings and hud
+    connect = replays_page.game.connection
+
+    def connection(*args, **kwargs):  # incidents request times out: the next ones of the job answer None
+        link = connect(*args, **kwargs)
+        get = link.get
+
+        def getting(resource, decode=None):
+            if link.failed or resource.startswith("/rest/watch/getIncidentsList"):
+                link.failed = True
+                return None
+            return get(resource, decode)
+
+        link.get = getting
+        return link
+
+    monkeypatch.setattr(game_rest, "GameConnection", connection)
+    backend.refresh_state()
+    wait_requests(backend.request_state)
+    assert backend.incidents == incidents and backend.standings == standings and backend.hud == hud

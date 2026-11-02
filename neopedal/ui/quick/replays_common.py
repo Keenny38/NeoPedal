@@ -325,6 +325,8 @@ def ask_state(connection: GameConnection, previous: tuple[Contact, ...], known_d
         state["looked_up"] = drivers
     if map_track is not None and state["track"] != map_track:
         state["map"] = parse_points(points) if isinstance(points := connection.get(TRACKMAP_RESOURCE), list) else None
+    if getattr(connection, "failed", False):  # a request failed after the game answered (the next ones of the job answer None): not used
+        return {"partial": True}
     return state
 
 

@@ -429,6 +429,9 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         if state.get("generation", self.state_generation) < self.state_generation:  # asked before a replay opened
             self.schedule_state()
             return
+        if state.get("partial"):  # a request of the answer failed: values of before kept, asked again
+            self.schedule_state()
+            return
         self.state_time = time.monotonic()
         active = state["active"]
         if active is None:  # session left: its incidents & standings kept until next one
