@@ -624,3 +624,12 @@ def test_b027_track_limits_repeated_around_penalty_listed_once():
     xml = RACE_XML.replace("<TrackLimits Driver=", limit + penalty + limit + "<TrackLimits Driver=", 1)
     result = rf.parse_results(xml.encode("utf-8"), RACE_NAME)
     assert [event.kind for event in result.events if event.time == 600.0] == ["track_limits", "penalty"]
+
+
+# B-028: race time a fraction of a millisecond below a whole minute shown as "59:60.000"
+def test_b028_race_time_never_shows_60_seconds():
+    from neopedal.process.results_text import race_time_text
+
+    assert race_time_text(3599.9996) == "1:00:00.000"
+    assert race_time_text(59.9996) == "1:00.000"
+    assert race_time_text(83.4561) == "1:23.456"

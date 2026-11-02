@@ -123,7 +123,7 @@ def race_time_text(seconds: float) -> str:
     """Race time h:mm:ss.sss (m:ss.sss under an hour), "" if none"""
     if seconds <= 0:
         return ""
-    minutes, rest = divmod(seconds, 60)
+    minutes, rest = divmod(round(seconds, 3), 60)  # rounded first: 59.9996 s is 1:00.000, never 0:60.000
     hours, minutes = divmod(int(minutes), 60)
     if hours:
         return f"{hours}:{minutes:02d}:{rest:06.3f}"
