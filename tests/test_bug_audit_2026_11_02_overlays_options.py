@@ -847,3 +847,14 @@ def test_b077_relative_name_colors_with_lap_difference(ui_env):
         assert dimmed("relative", key, False, show_lap_difference=True), key
         assert not dimmed("relative", key, False, show_lap_difference=False, show_position=True,
                           show_driver_name=True, show_vehicle_name=True), key
+
+
+# B-080: driver lists options active without what uses them
+def test_b080_driver_list_options(ui_env):
+    for name in ("relative", "standings", "rivals"):
+        if "show_pit_request" in shown_keys(name, False):
+            assert dimmed(name, "show_pit_request", False, show_pitstop_count=False), name
+        if "show_lap_difference" in shown_keys(name, True):
+            assert dimmed(name, "show_lap_difference", True, column_driver_name=False), name
+    assert dimmed("relative", "nearest_time_gap_threshold_front", True, show_highlighted_nearest_time_gap=False)
+    assert dimmed("relative", "font_color_fastest_last_laptime", False, show_highlighted_fastest_last_laptime=False)

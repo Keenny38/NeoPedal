@@ -193,6 +193,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Graphique de delta, Chrono de relais, Tours et position, Historique des temps au tour et Historique des relais : les couleurs des valeurs, les options d'alerte de relais et de temps des pilotes, la couleur de tour invalide et la légende d'énergie sont grisées quand ce qui les utilise est masqué ou désactivé.
 - `Options des overlays`, overlays des pneus et Cercle d'adhérence : les couleurs inutilisées à cause de `swap_style` ou des couleurs de gomme par type, `trend_duration` en mode par tour, le pas du fondu de trace sans fondu, la couleur de mise en avant sans valeurs et les légendes des sections masquées d'Usure des pneus sont grisées.
 - `Options des overlays`, Relatif (design classique) : les couleurs de position, de pilote et de voiture sont grisées quand `show_lap_difference` les colore selon l'écart de tours.
+- `Options des overlays`, Relatif, Classement et Rivaux : les options de demande d'arrêt (design classique), de mise en avant de l'écart le plus proche et du meilleur dernier tour, et `show_lap_difference` (design moderne) sont grisées quand ce qui les utilise est masqué.
 
 ## 0.28.1 (2026-11-01)
 

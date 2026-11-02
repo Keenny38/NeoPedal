@@ -281,6 +281,14 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "telemetry_compare": (OptionFix(CLASSIC, dependencies={
         "zero_line_color": "show_steering", "line_color_steering": "show_steering", "line_color_gear": "show_gear",
     }),),
+    # Relative: nearest gap highlight & fastest last lap colors follow their highlight switch
+    "relative": (OptionFix(dependencies=dict.fromkeys((
+        "nearest_time_gap_threshold_front", "nearest_time_gap_threshold_behind", "font_color_nearest_time_gap",
+        "background_color_nearest_time_gap"), "show_highlighted_nearest_time_gap")),
+                 OptionFix(CLASSIC, dependencies=dict.fromkeys((
+                     "font_color_fastest_last_laptime", "background_color_fastest_last_laptime",
+                     "font_color_player_fastest_last_laptime", "background_color_player_fastest_last_laptime"),
+                     "show_highlighted_fastest_last_laptime"))),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
@@ -299,6 +307,11 @@ OPTION_FIXES["friction_circle"] = (
 for _name in ("brake_pressure", "ride_height", "suspension_force", "suspension_position", "slip_angle",
               "slip_ratio", "tyre_load", "tyre_deflection"):
     OPTION_FIXES[_name] = (*OPTION_FIXES.get(_name, ()), OptionFix(CLASSIC, dependencies={"bar_gap": "show_caption"}))
+# Driver lists: pit request drawn in the pit stop count column (classic), lap difference in driver names (modern)
+for _name in ("relative", "standings", "rivals"):
+    OPTION_FIXES[_name] = (*OPTION_FIXES.get(_name, ()), OptionFix(CLASSIC, dependencies={
+        "show_pit_request": "show_pitstop_count"}), OptionFix(MODERN, dependencies={
+        "show_lap_difference": "column_driver_name"}))
 # Circle, map & elevation backgrounds (classic): drawn with or without the overlay background, own switch
 for _name, _switch, _color in (
         ("heading", "show_circle_background", "background_color_circle"),
