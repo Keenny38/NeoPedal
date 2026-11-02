@@ -201,6 +201,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Wind Direction: `wind_strength_threshold_calm` is no longer dimmed while `show_wind_strength_color` is off.
 - `Overlay Options`, Flag: the green flag and disqualify texts (modern look), the speed limiter off warning and `show_speed_limit_difference` are dimmed while their part is hidden.
 - `Overlay Options`, Track Map: options of the multi class styling and pit out prediction mode not in use (class position, car colors, fixed or automatic pit stop durations) and `show_pitstop_duration` without the prediction are dimmed.
+- `Overlay Options`, Radar: `enable_radar_fade` and the fade radii are dimmed while `enable_auto_hide` is off.
 
 ## 0.28.1 (2026-11-01)
 

@@ -911,3 +911,10 @@ def test_b087_track_map_mode_options(ui_env):
     assert dimmed("track_map", "fixed_pitstop_duration_3", True, enable_fixed_pitout_prediction=False)
     assert dimmed("track_map", "pitout_duration_minimum", True, enable_fixed_pitout_prediction=True)
     assert dimmed("track_map", "show_pitstop_duration", True, show_pitout_prediction=False)
+
+
+# B-088: Radar fade active without auto hide
+@DESIGNS
+def test_b088_radar_fade_follows_auto_hide(ui_env, modern):
+    for key in ("enable_radar_fade", "radar_fade_in_radius"):
+        assert dimmed("radar", key, modern, enable_auto_hide=False), key

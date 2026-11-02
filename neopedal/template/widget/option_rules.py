@@ -412,6 +412,9 @@ def _speed_ranges(values: Mapping) -> Inactive:
 
 def _radar(values: Mapping) -> Inactive:
     """Auto hide timer: not used while radar fades with distance"""
+    if not values.get("enable_auto_hide", True):  # always shown: no fade either
+        return dict.fromkeys(("enable_radar_fade", "radar_fade_in_radius", "radar_fade_out_radius"),
+                             ("on", "enable_auto_hide"))
     return {"auto_hide_time_threshold": ("off", "enable_radar_fade")} if values.get("enable_radar_fade") else {}
 
 

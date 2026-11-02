@@ -201,6 +201,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Direction du vent : `wind_strength_threshold_calm` n'est plus grisée quand `show_wind_strength_color` est désactivée.
 - `Options des overlays`, Drapeau : les textes du drapeau vert et de la disqualification (design moderne), l'alerte limiteur désactivé et `show_speed_limit_difference` sont grisés quand leur élément est masqué.
 - `Options des overlays`, Carte du circuit : les options du mode non utilisé de style multi-catégorie et de prévision de sortie des stands (position en catégorie, couleurs des voitures, durées d'arrêt fixes ou automatiques) et `show_pitstop_duration` sans prévision sont grisées.
+- `Options des overlays`, Radar : `enable_radar_fade` et les rayons de fondu sont grisés quand `enable_auto_hide` est désactivée.
 
 ## 0.28.1 (2026-11-01)
 
