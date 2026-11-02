@@ -34,7 +34,7 @@
 NeoPedal is a telemetry overlay and analysis app: a modern design, a clear interface, many tools and a lot of work on reliability.
 
 > [!NOTE]
-> **New in 0.28.2**: VR overlay fixes: the OpenXR layer copies only what changed in Direct3D 12 and Vulkan games and steps aside when the runtime keeps refusing the overlay, is no longer left registered after signing out of Windows, one app at a time uses it, and the SteamVR overlay survives a reload while SteamVR starts.
+> **New in 0.28.2**: VR overlay fixes: the OpenXR layer copies only what changed in Direct3D 12 and Vulkan games and steps aside when the runtime keeps refusing the overlay, is no longer left registered after signing out of Windows, one app at a time uses it, and the SteamVR overlay survives a reload while SteamVR starts. And fixes from a bug audit of **Driver Stats**, the Home session debrief and the Driver & Safety Ranks: the stats file is no longer replaced by one stint when another program holds it, stats are saved every 5 minutes while you drive, laps invalidated for track limits and a teammate's stint no longer count as yours, `Undo` and `Restore Backup` keep what you drove since, and the session history is backed up with the stats.
 >
 > Also in 0.28.2, fixes from a bug audit of the broadcast part: the Broadcast Director never moves the game camera by itself while you drive.
 >
