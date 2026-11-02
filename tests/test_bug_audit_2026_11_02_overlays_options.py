@@ -124,3 +124,18 @@ def test_b004_page_undo_of_move_never_undoes_later_move(page, monkeypatch):
     page.undo()
     assert widget.rect.topLeft() == QPoint(700, 300)
     edit_mode().history.clear()
+
+
+# B-005: friction circle (modern) drew one reference ring per G: a big Display Radius G froze the app
+def test_b005_friction_circle_modern_big_radius_drawn_at_once(ui_env, bundled_fonts):
+    import time
+
+    from neopedal.ui.widget_preview import render_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
+    values = dict(cfg.user.setting["friction_circle"], enable_classic_layout=False, show_reference_circle=True)
+    normal = render_widget(cfg, "friction_circle", values).toImage()
+    started = time.perf_counter()
+    huge = render_widget(cfg, "friction_circle", dict(values, display_radius_g=1e6)).toImage()
+    assert time.perf_counter() - started < 5  # was: about 50 s (one million rings & labels)
+    assert not huge.isNull() and huge.size() == normal.size()

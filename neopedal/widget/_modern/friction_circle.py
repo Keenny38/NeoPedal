@@ -26,6 +26,7 @@ Lateral & longitudinal G under it, with recent peak.
 
 from __future__ import annotations
 
+import math
 from collections import deque
 from typing import TYPE_CHECKING
 
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
 
 TRACE_PARTS = 6  # trace drawn in parts, older parts fainter
 DEFAULT_FADE_STEP = 0.2  # trace_fade_out_step template default: oldest part 1/TRACE_PARTS opaque
+MIN_RING_GAP = 0.01  # pixels between drawn reference rings: closer ones cover the same pixels
 
 
 class Realtime(StatsMixin, ModernOverlay):
@@ -156,7 +158,9 @@ class Realtime(StatsMixin, ModernOverlay):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             whole = int(self.radius_g)
             label_h = self.metrics["ring"].height()
-            for g in range(1, whole + 1):
+            # Rings drawn at most 100 per pixel: a huge radius drew one ring per G (frozen app, B-005), same picture
+            step = max(1, math.ceil(MIN_RING_GAP / self.scale))
+            for g in range(step, whole + 1, step):
                 radius = g * self.scale
                 if g < self.radius_g:
                     painter.drawEllipse(center, radius, radius)
