@@ -35,6 +35,7 @@ from PySide6.QtWidgets import QApplication
 from ... import calculation as calc
 from ...const_common import MAX_SECONDS, TEXT_NOLAPTIME
 from ...i18n import tr, trm
+from ...process import results_index as ri
 from ...setting import cfg
 from ...userfile.driver_history import SessionRecord, is_reset_best
 from ...userfile.driver_stats import DriverStats
@@ -333,7 +334,7 @@ class StatsTable(StatsHost):
                 record for record in records if latest and self.record_version(record) == latest)),
         }
         gains = []
-        linked = []
+        linked: list[ri.ResultSummary] = []
         for record in records:
             if record.session != 4:
                 continue
