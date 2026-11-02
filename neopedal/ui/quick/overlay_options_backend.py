@@ -289,6 +289,7 @@ class OverlayOptionsBackend(PageBackend):
         self._step_depth = 0
         self._step_before: tuple[dict, dict] | None = None
         self._preset = ""  # preset loaded when first edit was made, see apply
+        self._history_preset = cfg.filename.setting  # preset of undo & redo steps, see _forget_other_preset
         self._search = ""
         self._words: tuple[str, ...] = ()
         self._scope_all = False
@@ -1319,11 +1320,12 @@ class OverlayOptionsBackend(PageBackend):
             if self._step_depth == 0:
                 before, self._step_before = self._step_before, None
                 after = self._snapshot()
-                if before is not None and after != before and not merge:
-                    self._undo.append(before)
-                    del self._undo[:-100]
-                    self._redo.clear()
-                    if not self._preset:
+                if before is not None and after != before:
+                    if not merge:
+                        self._undo.append(before)
+                        del self._undo[:-100]
+                        self._redo.clear()
+                    if not self._preset:  # keys typed on in one field after a refresh too (B-002)
                         self._preset = cfg.filename.setting
                 self.changed(edited_ids(before, after) if before is not None else None)
 
@@ -1711,6 +1713,9 @@ class OverlayOptionsBackend(PageBackend):
 
     @Slot()
     def undo(self):
+        if self._forget_other_preset():
+            self.changed()
+            return
         if self._undo:
             self._redo.append(self._snapshot())
             self._pending, self._invalid = self._undo.pop()
@@ -1721,6 +1726,9 @@ class OverlayOptionsBackend(PageBackend):
 
     @Slot()
     def redo(self):
+        if self._forget_other_preset():
+            self.changed()
+            return
         if self._redo:
             self._undo.append(self._snapshot())
             self._pending, self._invalid = self._redo.pop()
@@ -1828,6 +1836,7 @@ class OverlayOptionsBackend(PageBackend):
         self._typed = {oid: text for oid, text in self._typed.items() if oid in self._pending or oid in self._invalid}
         if not self._pending and not self._invalid:
             self._preset = ""
+        self._forget_other_preset()
         self._layouts.clear()
         self._search_texts.clear()
         self._kinds.clear()  # choices read again (heatmaps added, renamed or removed)
@@ -1842,6 +1851,17 @@ class OverlayOptionsBackend(PageBackend):
         self._warm_queue = [name for name in self._names if name != self._overlay]
         if self._active:
             self._warm_timer.start()
+
+    def _forget_other_preset(self) -> bool:
+        """Undo & redo steps made before another preset was loaded dropped once nothing is pending (else an edit
+        made for that preset could be applied to this one without asking, B-002), True if any was dropped"""
+        if cfg.filename.setting == self._history_preset or self._pending or self._invalid:
+            return False
+        self._history_preset = cfg.filename.setting
+        dropped = bool(self._undo or self._redo)
+        self._undo.clear()
+        self._redo.clear()
+        return dropped
 
     # Dialogs
     @Slot(str)

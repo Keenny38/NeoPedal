@@ -202,3 +202,27 @@ def test_b001_position_reset_from_find_option_kept_at_next_load(ui_env, monkeypa
         assert cfg.user.setting["speedometer"]["position_x"] == default
     finally:
         finder.deleteLater()
+
+
+# B-002: undo & redo of Overlay Options kept across a preset load: edit made for preset A applied to B unasked
+def test_b002_redo_after_preset_load_never_applies_edit_of_other_preset(options, monkeypatch):
+    oid = f"{options.overlay}/update_interval"
+    monkeypatch.setattr(cfg.filename, "setting", "A.json")
+    options.setNumber(oid, 77)
+    options.undo()  # nothing pending
+    monkeypatch.setattr(cfg.filename, "setting", "B.json")
+    options.refresh()  # app refresh after the preset load
+    options.redo()
+    assert options.pendingCount == 0 and not options.canRedo and not options.canUndo
+
+
+def test_b002_edit_typed_on_after_preset_load_asks_before_apply(options, monkeypatch):
+    oid = f"{options.overlay}/update_interval"
+    monkeypatch.setattr(cfg.filename, "setting", "A.json")
+    options.typeText(oid, "7")
+    options._pending.clear()  # same value saved meanwhile (refresh): nothing pending, marker cleared
+    options.refresh()
+    monkeypatch.setattr(cfg.filename, "setting", "B.json")
+    options.typeText(oid, "77")  # keys typed on in the same field: merged step
+    assert options._preset == "B.json"  # was "": saved into B with no question had A been loaded meanwhile
+

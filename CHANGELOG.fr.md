@@ -145,6 +145,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Jauge de direction, design classique : une très grande valeur de `manual_steering_range` (faute de frappe) ne fige plus l'app pendant le dessin des graduations.
 - `Options des overlays` et `Trouver une option` : une position saisie, réinitialisée ou importée sans garder les positions ne revient plus à l'ancienne au démarrage suivant, au prochain chargement de preset ou au changement d'écran (positions par configuration d'écrans, `enable_layout_per_screen_setup`).
 - `Résultats et replays`, liste `Replays` : un replay désélectionné par `Ctrl` + clic n'est plus celui que la touche `Suppr` et les boutons `Supprimer` de la sélection mettent à la corbeille (ni celui qu'exporte ou protège le menu `Plus`) : ces actions portent sur les replays sélectionnés.
+- `Options des overlays` : `Annuler` et `Rétablir` ne ramènent plus, après le chargement d'un autre preset, une modification faite pour le preset précédent, que `Appliquer` enregistrait alors dans le nouveau preset sans demander.
 
 ## 0.28.1 (2026-11-01)
 
