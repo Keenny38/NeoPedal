@@ -1073,3 +1073,21 @@ def test_b033_loop_toggle_keeps_position(tmp_path):
     player.set_loop(True)
     assert player.position == pytest.approx(duration)  # not jumped inside the replay
     player.replay.close()
+
+
+# --- B-034: demo field lap relation as the game & modules give it (overlay previews)
+def test_b034_demo_field_lap_relation_as_in_game(ui_env):
+    from neopedal import calculation as calc
+    from neopedal import demo_data
+    from neopedal.setting import cfg
+
+    session = demo_data.DemoSession(cfg.user.setting["standings"])
+    cars = session.minfo.vehicles.dataSet[:session.minfo.vehicles.totalVehicles]
+    player = cars[demo_data.PLAYER]
+    leader = cars[0]
+    for data in cars:
+        assert data.isLapped == calc.lap_difference(data.totalLapProgress, player.totalLapProgress)
+        laps_behind = int(leader.totalLapProgress - data.totalLapProgress)
+        if laps_behind >= 1:  # a lap or more behind the leader: gap in whole laps
+            assert data.gapBehindLeader == laps_behind
+    assert any(data.isLapped > 0 for data in cars)  # cars laps ahead of the player shown as ahead

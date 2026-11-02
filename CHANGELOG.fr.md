@@ -133,6 +133,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate, overlay Moteur électrique : plus de courte pointe de déploiement (plus de 400 kW) pendant que le moteur régénère au freinage.
 - Replays de l'enregistreur de session : les valeurs du garage d'un fichier de replay abîmé ou d'une autre version (énergie, usure des freins, chat, contacts...) sont ignorées quand elles ont une autre forme, au lieu de casser les overlays qui les lisent pendant toute la lecture.
 - Replays de l'enregistreur de session : activer ou désactiver `Boucle` reprend à la position affichée, au lieu de sauter à la fin (pendant un deuxième passage) ou au milieu du replay (après sa fin).
+- Aperçus des overlays (course simulée) : les voitures qui ont des tours d'avance sur vous prennent les couleurs des voitures devant et les écarts au leader en tours entiers, comme en jeu (Relatif, Navigation, Classement).
 
 ## 0.28.1 (2026-11-01)
 

@@ -45,6 +45,7 @@ from PySide6.QtCore import QTimerEvent
 from pyLMUSharedMemory import lmu_data
 
 from . import api_connector
+from . import calculation as calc
 from .const_common import MAX_SECONDS, SECTOR_FLAG_ORDER
 from .demo_state import demo_drawing
 from .module_info import ConsumptionDataSet, ModuleInfo, StintDataSet, TrackMap, VehicleDataSet
@@ -444,6 +445,14 @@ def set_vehicles(minfo: ModuleInfo, standings: Mapping[str, Any], read):
         class_leader.setdefault(vclass, index)
         class_members.setdefault(vclass, []).append(index)
     plr_x, plr_y, _, plr_heading = track_position(LAP_DISTANCE)
+
+    def total_laps(index: int) -> float:  # laps done & lap progress of car: Hyper 2 laps & LMP2 1 lap ahead of GT3
+        vclass = FIELD[index][2]
+        return PLAYER_LAPS + (2 if vclass == "Hyper" else 1 if vclass == "LMP2" else 0) + (
+            car_distance(index) / TRACK_LENGTH)
+
+    player_total = total_laps(PLAYER)
+    leader_total = total_laps(0)
     for index, (driver, vehicle, vclass, best) in enumerate(FIELD):
         data = vehicles.dataSet[index]
         members = class_members[vclass]
@@ -470,11 +479,12 @@ def set_vehicles(minfo: ModuleInfo, standings: Mapping[str, Any], read):
         data.currentLapProgress = distance / TRACK_LENGTH
         data.totalLapProgress = laps + data.currentLapProgress
         data.gapBehindNext = 0.0 if index == 0 else 1.2 + (index * 7 % 11) * 0.35
-        data.gapBehindLeader = 0.0 if index == 0 else (1 if vclass == "GT3" else 0) or index * 4.9
+        laps_behind = int(leader_total - (laps + distance / TRACK_LENGTH))  # whole laps, as module race gaps
+        data.gapBehindLeader = 0.0 if index == 0 else laps_behind if laps_behind >= 1 else index * 4.9
         leader = class_leader[vclass]
         data.gapBehindNextInClass = 0.0 if index == leader else 1.4 + (index % 4) * 0.6
         data.gapBehindLeaderInClass = (index - leader) * 2.3
-        data.isLapped = 0 if vclass == "GT3" else (-1 if vclass == "Hyper" else 0)
+        data.isLapped = calc.lap_difference(data.totalLapProgress, player_total)  # positive: laps ahead (game)
         data.isValidLap = True
         data.inPit = 0
         data.isClassFastestLastLap = index in (0, 7, 12)
