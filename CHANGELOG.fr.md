@@ -166,6 +166,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlays Delta best et Delta best étendu : une valeur 0 de `delta_display_range` n'affiche plus chaque delta à `+0.000`, et une valeur négative ne l'affiche plus avec le mauvais signe.
 - Overlay Répartition de freinage, design moderne : les valeurs ne sont plus coupées par `…` avec plus de décimales que les valeurs par défaut.
 - Overlays Carburant et Énergie virtuelle, design classique : les repères de départ et de remplissage de la barre de niveau ne disparaissent plus à 100 % (relais commencé plein) ou quand il faut faire le plein.
+- Lecture des notes de pilotage : un volume (ou un intervalle de mise à jour) changé dans `Paramètres` est appliqué tout de suite, et plus seulement après la remise à zéro de la voiture.
 
 ## 0.28.1 (2026-11-01)
 

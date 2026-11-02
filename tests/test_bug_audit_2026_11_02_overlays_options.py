@@ -564,3 +564,25 @@ def test_b020_level_marks_kept_inside_bar(ui_env):
         assert bar.rect_start.left() == 60 and bar.rect_refuel.left() == 90
     finally:
         bar.deleteLater()
+
+
+# B-015: pace notes volume (and update interval) changed while playing: kept until the car is reset
+def test_b015_pace_notes_volume_change_applied(ui_env):
+    pytest.importorskip("PySide6.QtMultimedia")
+    from neopedal import realtime_state
+    from neopedal.ui.pace_notes_view import PaceNotesPlayback
+
+    mcfg = cfg.user.setting["pace_notes_playback"]
+    mcfg.update(enable=True, pace_notes_sound_volume=50)
+    playback = PaceNotesPlayback(None)
+    player = playback.player
+    try:
+        player.reset_playback(realtime_state.resets)
+        mcfg["pace_notes_sound_volume"] = 10  # saved in Settings page
+        playback.refresh(True)  # app refresh after saving
+        assert player.audio_device.volume() == pytest.approx(0.1)
+    finally:
+        player._update_timer.stop()
+        mcfg["enable"] = False
+        playback.refresh(True)
+        playback.deleteLater()

@@ -83,6 +83,13 @@ class PaceNotesPlayer(QMediaPlayer):
         self.setAudioOutput(audio_device)
         return audio_device
 
+    def apply_setting(self, config: dict):
+        """Options saved meanwhile (settings page, preset loaded): volume & update interval used at once"""
+        self.mcfg = config
+        self.set_volume(config["pace_notes_sound_volume"])
+        if self._update_timer.isActive():
+            self.__toggle_timer(False)  # started again at the new update interval
+
     def reset_playback(self, vehicle_resets=None):
         """Reset"""
         self._vehicle_resets = vehicle_resets

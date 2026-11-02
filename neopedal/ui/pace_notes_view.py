@@ -69,7 +69,7 @@ class PaceNotesPlayback(QObject):
 
                 self.player = PaceNotesPlayer(self, mcfg)
                 logger.info("ENABLED: pace notes sounds playback")
-            self.player.mcfg = mcfg
+            self.player.apply_setting(mcfg)  # volume & update interval used at once (B-015)
         elif self.player is not None:
             self.player.stop()
             self.player.deleteLater()

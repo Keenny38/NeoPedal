@@ -166,6 +166,7 @@ Fixes from an audit of the VR overlay.
 - Delta Best and Delta Best Extended overlays: a `delta_display_range` of 0 no longer shows every delta as `+0.000`, and a negative one no longer shows it with the wrong sign.
 - Brake Bias overlay, modern look: values are no longer cut with `…` when more decimal places than the defaults are set.
 - Fuel and Virtual Energy overlays, classic look: the start and refill marks of the level bar no longer disappear at 100 % (stint started full) or when a full tank is needed.
+- Pace notes playback: a sound volume (or update interval) changed in `Settings` is used at once, no longer only after the car is reset.
 
 ## 0.28.1 (2026-11-01)
 
