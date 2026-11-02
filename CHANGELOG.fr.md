@@ -196,6 +196,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Relatif, Classement et Rivaux : les options de demande d'arrêt (design classique), de mise en avant de l'écart le plus proche et du meilleur dernier tour, et `show_lap_difference` (design moderne) sont grisées quand ce qui les utilise est masqué.
 - `Options des overlays`, Cap : les options de la valeur d'angle de dérive ne sont plus grisées quand la valeur d'angle de lacet est masquée.
 - `Options des overlays`, Spotter (design classique) : les couleurs des barres ne sont plus grisées quand `show_bar_background` est désactivée.
+- `Options des overlays`, Chat (design classique) : les couleurs des messages ne sont plus grisées quand `show_message_time` est désactivée.
 
 ## 0.28.1 (2026-11-01)
 

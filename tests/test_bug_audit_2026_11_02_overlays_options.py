@@ -875,3 +875,9 @@ def test_b082_spotter_bar_colors(ui_env):
     for key in ("bar_color_nearby", "bar_color_critical", "bar_color_clear"):
         assert not dimmed("spotter", key, False, show_bar_background=False), key
     assert dimmed("spotter", "bar_background_color", False, show_bar_background=False)
+
+
+# B-083: Chat (classic) message colors dimmed without message time
+def test_b083_chat_message_colors(ui_env):
+    for key in ("font_color_message", "font_color_new_message", "background_color_message"):
+        assert not dimmed("chat", key, False, show_message_time=False), key

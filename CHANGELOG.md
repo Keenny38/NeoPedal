@@ -196,6 +196,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Relative, Standings and Rivals: the pit request (classic look), nearest time gap and fastest last lap highlight options, and `show_lap_difference` (modern look) are dimmed while what uses them is hidden.
 - `Overlay Options`, Heading: the slip angle reading options are no longer dimmed while the yaw angle reading is hidden.
 - `Overlay Options`, Spotter (classic look): the bar colors are no longer dimmed while `show_bar_background` is off.
+- `Overlay Options`, Chat (classic look): the message colors are no longer dimmed while `show_message_time` is off.
 
 ## 0.28.1 (2026-11-01)
 
