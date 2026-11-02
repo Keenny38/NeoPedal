@@ -950,7 +950,7 @@ class Timing(_reader.Timing, DataAdapter):
 
     def gap_car_ahead(self, index: int | None = None) -> float:
         """Time gap to car ahead on track, any class (seconds) from game, 0 if unavailable (rF2)"""
-        return rmnan(self.shmm.lmuTeleVeh(index).mTimeGapCarAhead)
+        return abs(rmnan(self.shmm.lmuTeleVeh(index).mTimeGapCarAhead))  # LMU writes it negative (recorded)
 
     def gap_car_behind(self, index: int | None = None) -> float:
         """Time gap to car behind on track, any class (seconds) from game, 0 if unavailable (rF2)"""

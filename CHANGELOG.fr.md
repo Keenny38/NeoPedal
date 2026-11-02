@@ -88,6 +88,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Calculateur de course, onglet `Direct` : le temps de course avance (il restait à 0:00, donc le temps de conduite des relais n'était pas compté pour les minimums des pilotes), la durée de la course en minutes est lue dans le jeu, la tendance de température des prévisions s'affiche et l'heure de départ de la course est juste.
 - Replays de l'enregistreur de session : en revenant au jeu (ou à un autre replay), les incidents, pénalités et points de limites de piste du replay sont oubliés (Classement, Drapeau), comme ses valeurs du garage (dégâts, ravitaillement, prévisions, entrée des stands, réglage, chat, contacts).
 - Le Mans Ultimate et rFactor 2, en spectateur sans voiture à vous suivie : les overlays qui montrent les voitures (Carte du circuit, Relatif, Radar...) se mettent de nouveau à jour au rythme de la télémétrie du jeu au lieu d'environ 10 fois par seconde.
+- Le Mans Ultimate : l'écart avec la voiture devant sur la piste s'affiche dans le HUD tableau de bord (il restait toujours à `-` : le jeu le donne en nombre négatif).
 
 ## 0.28.1 (2026-11-01)
 

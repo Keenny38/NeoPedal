@@ -546,3 +546,18 @@ def test_b012_modules_notified_on_new_telemetry_without_player(lmu_game, monkeyp
     run_loop(sync, Ticks(monkeypatch, steps))
     first, last = notified.index("mark"), len(notified) - 1
     assert last - first - 1 >= 8  # once per telemetry sample, whether a player is synced or not
+
+
+# --- B-013: LMU gap to car ahead positive like the gap to car behind (recorded session: game writes it negative)
+def test_b013_lmu_gap_to_car_ahead_positive(ui_env):
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession
+
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    try:
+        gaps = []
+        for _ in session.frames(step=20):
+            gaps.append(session.reader.timing.gap_car_ahead())
+    finally:
+        session.close()
+    assert min(gaps) >= 0 and max(gaps) > 1.0

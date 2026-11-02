@@ -88,6 +88,7 @@ Fixes from an audit of the VR overlay.
 - Race Calculator, `Live` tab: the race time runs (it stayed at 0:00, so stint driving time was not counted for driver minimums), the race length in minutes is read from the game, the temperature trend of the forecast shows, and the race start time of day is right.
 - Session recorder replays: back to the game (or another replay), the incidents, penalties and track limit points of the replay are forgotten (Standings, Flag), as are its garage values (damage, refill, forecast, pit entry, setup, chat, contacts).
 - Le Mans Ultimate and rFactor 2, spectating with no car of yours followed: overlays that show the cars (Track Map, Relative, Radar...) update again at the game telemetry rate instead of about 10 times a second.
+- Le Mans Ultimate: the gap to the car ahead on track shows in the Black Box (it was always `-`: the game gives it as a negative number).
 
 ## 0.28.1 (2026-11-01)
 
