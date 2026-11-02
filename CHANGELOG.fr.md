@@ -276,6 +276,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Classement : l'aide de `maximum_vehicles_combined_mode` indique qu'elle s'applique aussi en mode scindé quand la session n'a qu'une catégorie.
 - Overlay Notifications de course : `show_position_change` et `show_position_change_in_class` ont chacune leur aide.
 - `Options des overlays` : 291 options de 64 overlays sans texte d'aide en ont un (dispositions, tailles de barres, marges, écarts, légendes, épaisseurs de trait, icônes d'état du HUD tableau de bord, colonnes classiques du Relatif, barre de niveau d'Énergie virtuelle…), l'aide de Navigation et de Carte du circuit nomme `show_vehicle_class_standings` et celle de Carte du circuit `fixed_pitstop_duration_*` (anciens noms auparavant), et les textes de légende de Carburant et d'Énergie virtuelle n'affichent plus l'aide d'une valeur de carburant.
+- `Options des overlays`, overlay Classement (design moderne) : `column_class` n'est plus grisée sous les en-têtes de catégorie ; elle active toujours la bande de couleur de catégorie de chaque ligne.
 
 ## 0.28.1 (2026-11-01)
 

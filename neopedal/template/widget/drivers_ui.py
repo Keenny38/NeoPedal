@@ -139,7 +139,8 @@ def class_column_inactive(values: Mapping, class_headers: bool = False) -> dict[
     """Class column replaced by class headers (standings, unless kept with them), class style shown only in
     class column"""
     if class_headers and not values.get("show_class_column_with_class_header", False):
-        return {"column_class": ("off", "show_class_header"), "show_class_name": ("off", "show_class_header"),
+        # column_class still switches the class color stripe of rows (B-076)
+        return {"show_class_name": ("off", "show_class_header"),
                 "show_class_style_for_position_in_class": ("off", "show_class_header")}
     if not values.get("column_class", True):
         return {"show_class_style_for_position_in_class": ("on", "column_class")}

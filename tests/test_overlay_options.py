@@ -1051,7 +1051,7 @@ def test_standings_options_unused_in_class_mode_told(options):
     options.setBool("standings/show_class_header", True)
     columns = options._order_row("standings", options._order_section("standings"))["orders"]
     class_item = next(entry for entry in columns if entry["key"] == "display_order_class")
-    assert class_item["note"]  # class column replaced by class headers
+    assert not class_item["note"]  # column hidden by class headers, switch still sets class stripe (B-076)
     options.setBool("standings/enable_multi_class_split_mode", False)
     assert row(options, "standings/show_class_header")["dimmed"]
     columns = options._order_row("standings", options._order_section("standings"))["orders"]
@@ -1196,7 +1196,7 @@ def test_class_column_kept_with_class_headers_if_chosen(options):
     options.refresh()
     options.selectOverlay("standings")
     assert "class" not in driver_columns("standings")[0]
-    assert class_entry(options)["note"]  # why not shown
+    assert not class_entry(options)["note"]  # column hidden, switch still sets class stripe (B-076)
     options.setBool("standings/show_class_column_with_class_header", True)
     assert options.apply()
     assert "class" in driver_columns("standings")[0]

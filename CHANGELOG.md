@@ -276,6 +276,7 @@ Fixes from an audit of the VR overlay.
 - Standings overlay: the help of `maximum_vehicles_combined_mode` tells it also applies in split mode when the session has one class.
 - Race Notifications overlay: `show_position_change` and `show_position_change_in_class` each have their own help.
 - `Overlay Options`: 291 options of 64 overlays that had no help text have one (layouts, bar sizes, paddings, gaps, captions, line widths, Dashboard HUD status icons, Relative classic columns, Virtual Energy level bar...), Navigation and Track Map help names `show_vehicle_class_standings` and Track Map `fixed_pitstop_duration_*` (stale names before), and caption texts of Fuel and Virtual Energy no longer show the help of a fuel reading.
+- `Overlay Options`, Standings overlay (modern look): `column_class` is no longer dimmed under class headers; it still switches the class color stripe of each row.
 
 ## 0.28.1 (2026-11-01)
 

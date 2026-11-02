@@ -1676,3 +1676,14 @@ def test_b094_fuel_caption_help_is_a_caption_help(ui_env):
     for name in ("fuel", "virtual_energy"):
         assert "caption" in option_help_english(name, "caption_text_remaining")
     assert "show_vehicle_standings" not in str(option_help_english("track_map", "show_vehicle_class_standings"))
+
+
+# B-076: Standings (modern) column_class dimmed under class headers, while it switches the class stripe
+def test_b076_class_column_switch_active_under_class_headers(ui_env):
+    from neopedal.ui.quick.overlay_options_backend import OverlayOptionsBackend, build_layout
+
+    shown = dict(cfg.user.setting["standings"], enable_classic_layout=False, enable_multi_class_split_mode=True,
+                 show_class_header=True, column_class=True, show_class_column_with_class_header=False)
+    inactive = OverlayOptionsBackend._inactive(build_layout("standings", shown), shown)
+    assert "column_class" not in inactive
+    assert "show_class_name" in inactive  # class name of the hidden column: still nothing
