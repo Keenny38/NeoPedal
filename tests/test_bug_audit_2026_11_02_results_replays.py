@@ -772,7 +772,9 @@ def test_b036_empty_track_map_asked_again(replays_page):  # noqa: F811
 def test_b037_rate_kept_across_a_jump(replays_page):  # noqa: F811
     backend = answered(replays_page, GAME_ANSWERS)
     backend.replay_rate, backend.replay_time = 1.0, 10.0  # playing at 1x, far from the time answered next
-    backend._answered -= 1.0  # last answer a second ago
+    backend.time_received -= 1.0  # last answer a second ago (rate measured from either)
+    if hasattr(backend, "_answered"):
+        backend._answered -= 1.0
     backend.seek(1500.0)
     wait_commands(backend)
     backend.refresh_state()  # page not shown: state asked by the test once the jump is done
