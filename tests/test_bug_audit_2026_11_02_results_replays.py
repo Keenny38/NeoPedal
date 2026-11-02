@@ -5,7 +5,7 @@ import re
 from types import SimpleNamespace
 
 from tests.test_dialog_pages import window  # noqa: F401 (window: fixture)
-from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_requests  # noqa: F401 (fixtures)
+from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_commands, wait_requests  # noqa: F401 (fixtures)
 
 CTRL = 0x04000000  # Qt.KeyboardModifier.ControlModifier
 QML = os.path.join(os.path.dirname(__file__), "..", "neopedal", "ui", "qml", "analysis")
@@ -64,3 +64,58 @@ def test_b001_selection_actions_of_page_use_selection_key():
     for action in ("deleteReplays", "exportReplays", "toggleProtected"):
         assert not re.search(rf"{action}\(replays\.selectedReplay\)", source), action
     assert len(re.findall(r"(?:deleteReplays|exportReplays|toggleProtected)\(replays\.selectionKey\(\)\)", source)) == 5
+
+
+SHOW_HUD = [("POST", "/rest/hud/toggleAllComponents/true"), ("POST", "/rest/sessions/setHudOnWatchScreen", "true"),
+            ("POST", "/rest/watch/replay/setReplayUIVisible", "true")]
+
+
+# B-002: HUD hidden from the page stayed hidden once the replay was left (in the next race too)
+def test_b002_hud_hidden_in_replay_shown_again_once_replay_left(replays_page):  # noqa: F811
+    backend = answered(replays_page, GAME_ANSWERS)
+    assert backend.gameState == "replay"
+    backend.setHudShown(False)
+    wait_commands(backend)
+    assert ("POST", "/rest/hud/toggleAllComponents/false") in replays_page.sent
+    replays_page.sent.clear()
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False})  # back to the live session
+    wait_commands(backend)
+    assert backend.gameState == "session" and replays_page.sent == SHOW_HUD
+    replays_page.sent.clear()
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})  # shown once only
+    wait_commands(backend)
+    assert replays_page.sent == []
+
+
+def test_b002_hud_part_hidden_shown_again_and_live_session_asks_first(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui.quick import dialogs
+
+    backend = answered(replays_page, GAME_ANSWERS)
+    backend.toggleHudComponent("chat")  # shown in GAME_ANSWERS: hidden by the page
+    wait_commands(backend)
+    replays_page.sent.clear()
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False,
+                            "/rest/hud": {"chat": False, "mfd": True, "speedo": False}})
+    wait_commands(backend)
+    assert replays_page.sent == [("POST", "/rest/hud/toggle/chat")]  # speedo hidden in game: left as it is
+    # Live session: hidden only once confirmed
+    asked: list[str] = []
+    monkeypatch.setattr(dialogs, "confirm", lambda parent, title, text, action, on_result, **kwargs: asked.append(text))
+    replays_page.sent.clear()
+    backend.setHudShown(False)
+    wait_commands(backend)
+    assert asked and "session" in asked[0] and replays_page.sent == []
+
+
+def test_b002_hud_hidden_shown_again_when_page_closed(replays_page):  # noqa: F811
+    import time
+
+    backend = answered(replays_page, GAME_ANSWERS)
+    backend.setHudShown(False)
+    wait_commands(backend)
+    replays_page.sent.clear()
+    backend.release_resources()  # page closed while the replay is open
+    end = time.monotonic() + 5
+    while replays_page.sent != SHOW_HUD and time.monotonic() < end:
+        time.sleep(0.01)
+    assert replays_page.sent == SHOW_HUD

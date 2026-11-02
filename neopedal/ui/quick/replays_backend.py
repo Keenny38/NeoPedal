@@ -202,6 +202,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.camera = ("", "")  # camera group & name
         self.trackside_choice = ""  # trackside camera chosen from page (game tells group only for cycle)
         self.hud: dict[str, bool] = {}
+        self.hud_hidden: set[str] = set()  # HUD hidden by the page (whole HUD or parts), shown again once left
         self.session_end = -1.0
         self.track = ""
         self.session_name = ""  # PRACTICE1, QUALIFY1, RACE1...
@@ -319,6 +320,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.copy_cancel.set()
         self.page_file.flush()
         VertexStore.remove_prefix(self.prefix)
+        if commands := self.restore_hud():  # HUD hidden by the page shown again (background: page never waits)
+            threading.Thread(target=send_commands, args=(commands,), daemon=True, name="Replays HUD shown").start()
 
     def notify(self, text: str, error: bool = False):
         """Message shown for a few seconds at the bottom of page (toast of its TpDialogHost)"""
@@ -491,6 +494,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.rewatching = False
             self.playing = ""
         self.playbackChanged.emit()  # replay open (playingReplay) or not
+        if state != REPLAY and (commands := self.restore_hud()):  # replay or session left: HUD hidden by page shown
+            self.send(*commands)
         if previous in (SESSION, REPLAY) and state == MENU:  # session ended: game saved its replay
             QTimer.singleShot(SESSION_END_DELAY_MS, self, self.ask_replays)  # context: never after page freed
         self.update_live_timer()

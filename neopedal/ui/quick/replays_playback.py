@@ -28,7 +28,8 @@ import json
 from PySide6.QtCore import Property, Slot
 
 from ...i18n import tr
-from .game_camera import CAMERA_GROUPS, CAMERAS, camera_commands, camera_group, camera_key
+from . import dialogs
+from .game_camera import CAMERA_GROUPS, CAMERAS, Command, camera_commands, camera_group, camera_key
 from .replays_base import ReplaysBase
 from .replays_common import (
     HUD_LABELS,
@@ -41,6 +42,15 @@ from .replays_common import (
     SET_CAMERA_RESOURCE,
     leave_replay,
 )
+
+WHOLE_HUD = "*"  # HUD hidden by the page: whole HUD (else names of HUD parts)
+
+
+def hud_commands(shown: bool) -> tuple[Command, ...]:
+    """Whole HUD of game (replay controls included) shown or hidden"""
+    value = "true" if shown else "false"
+    return (("POST", f"/rest/hud/toggleAllComponents/{value}"), ("POST", "/rest/sessions/setHudOnWatchScreen", value),
+            ("POST", "/rest/watch/replay/setReplayUIVisible", value))
 
 
 class ReplaysPlayback(ReplaysBase):
@@ -202,21 +212,47 @@ class ReplaysPlayback(ReplaysBase):
 
     @Slot(bool)
     def setHudShown(self, shown: bool):
-        """Whole HUD of game (replay controls included) shown or hidden: clean pictures & videos"""
+        """Whole HUD of game (replay controls included) shown or hidden: clean pictures & videos. Hidden in a live
+        session after confirmation. HUD hidden by the page shown again once the replay or session is left, or the
+        page closed (the game keeps it hidden in the next sessions)."""
         if self.state not in (SESSION, REPLAY):
             return
-        value = "true" if shown else "false"
+        if shown or self.state == REPLAY:
+            self.show_hud(shown)
+            return
+
+        def confirmed(chosen: bool):
+            if chosen and self.state == SESSION:
+                self.show_hud(False)
+
+        dialogs.confirm(self._window, tr("Hide HUD"), tr(
+            "You are in a session: the game HUD stays hidden until the page shows it again, the session ends or the "
+            "page is closed.<br><br>Hide the game HUD?"), tr("Hide HUD"), confirmed)
+
+    def show_hud(self, shown: bool):
         self.hud = dict.fromkeys(self.hud, shown)
+        self.hud_hidden = set() if shown else {WHOLE_HUD}
         self.hudChanged.emit()
-        self.send(("POST", f"/rest/hud/toggleAllComponents/{value}"), ("POST", "/rest/sessions/setHudOnWatchScreen", value),
-                  ("POST", "/rest/watch/replay/setReplayUIVisible", value))
+        self.send(*hud_commands(shown))
 
     @Slot(str)
     def toggleHudComponent(self, key: str):
         if key in self.hud and self.state in (SESSION, REPLAY):
-            self.hud = {**self.hud, key: not self.hud[key]}
+            shown = not self.hud[key]
+            self.hud = {**self.hud, key: shown}
+            if shown:
+                self.hud_hidden.discard(key)
+            else:
+                self.hud_hidden.add(key)
             self.hudChanged.emit()
             self.send(("POST", f"/rest/hud/toggle/{key}"))
+
+    def restore_hud(self) -> tuple[Command, ...]:
+        """Commands showing again the HUD hidden by the page (empty if none), then forgotten"""
+        hidden, self.hud_hidden = self.hud_hidden, set()
+        if WHOLE_HUD in hidden:
+            return hud_commands(True)
+        return tuple(("POST", f"/rest/hud/toggle/{key}") for key in sorted(hidden) if self.hud.get(key) is False)
 
     @Slot()
     def backToLive(self):

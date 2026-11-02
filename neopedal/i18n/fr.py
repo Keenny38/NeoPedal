@@ -2063,6 +2063,8 @@ TRANSLATION = MappingProxyType({
     "Game HUD": "Interface du jeu",
     "Show HUD": "Afficher le HUD",
     "Hide HUD": "Masquer le HUD",
+    "You are in a session: the game HUD stays hidden until the page shows it again, the session ends or the page is closed.<br><br>Hide the game HUD?":
+        "Vous êtes en session : l'interface du jeu reste masquée jusqu'à ce que la page la réaffiche, que la session se termine ou que la page soit fermée.<br><br>Masquer l'interface du jeu ?",
     "Show / Hide Game UI (middle click)": "Afficher / masquer l'interface du jeu (clic molette)",
     "Game window not found: LMU must be running on this computer": "Fenêtre du jeu introuvable : LMU doit tourner sur cet ordinateur",
     "Chat": "Discussion",
