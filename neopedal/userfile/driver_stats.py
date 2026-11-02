@@ -280,10 +280,13 @@ def load_driver_stats(
 
 def save_driver_stats(
     key_list: tuple[str, str], stats_update: DriverStats, filepath: str, filename: str = StatsFile.DRIVER
-) -> None:
-    """Save driver stats"""
+) -> bool:
+    """Save driver stats, True if saved (or nothing to save: invalid key name)
+
+    File not accessible (held by antivirus or cloud sync): not saved, never reset (stats kept by caller).
+    """
     if not key_list or not all(key_list):  # ignore invalid key name
-        return
+        return True
     # Load stats with limited attempts, STATS_LOCK held from load to save (viewer edit not saved between)
     # but released while waiting to try again (viewer page never waits long)
     load_attempts = 10
@@ -295,8 +298,7 @@ def save_driver_stats(
                 show_log=False,
             )
             if stats_user is not None:
-                add_driver_stats(stats_user, key_list, stats_update, filepath, filename)
-                return
+                return add_driver_stats(stats_user, key_list, stats_update, filepath, filename)
         load_attempts -= 1
         logger.info("USERDATA: unable to load %s%s, %s attempt(s) left", filename, FileExt.STATS, load_attempts)
         sleep(0.05)
@@ -304,17 +306,40 @@ def save_driver_stats(
     with STATS_LOCK:
         stats_user = load_stats_json_file(filepath=filepath, filename=filename, show_log=False)
         if stats_user is None:  # still invalid (not saved by viewer meanwhile)
+            if not is_invalid_stats_file(filepath, filename):  # held by another program: never reset
+                logger.warning("USERDATA: %s%s not accessible, stats not saved", filename, FileExt.STATS)
+                return False
             logger.info("USERDATA: unable to load %s%s, creating backup", filename, FileExt.STATS)
             if not create_backup_file(f"{filename}{FileExt.STATS}", filepath, set_backup_timestamp(), show_log=True):
-                return  # abort saving if failed to create backup
+                return False  # abort saving if failed to create backup
             stats_user = {}  # reset stats
-        add_driver_stats(stats_user, key_list, stats_update, filepath, filename)
+        return add_driver_stats(stats_user, key_list, stats_update, filepath, filename)
+
+
+def is_invalid_stats_file(
+    filepath: str, filename: str = StatsFile.DRIVER, extension: str = FileExt.STATS
+) -> bool:
+    """File read but holds no stats (not a JSON object), False if missing or not accessible now (locked)"""
+    try:
+        with open(f"{filepath}{filename}{extension}", "rb") as file:
+            data = file.read()
+    except OSError:
+        return False
+    try:
+        stats_user = json.loads(data.decode("utf-8-sig"))
+    except (ValueError, RecursionError):  # UnicodeDecodeError is a ValueError
+        return True
+    return not isinstance(stats_user, dict)
 
 
 def add_driver_stats(
     stats_user: dict, key_list: tuple[str, str], stats_update: DriverStats, filepath: str, filename: str
-) -> None:
-    """Add stats to saved stats loaded (best lap times kept) & save, STATS_LOCK held, see save_driver_stats"""
+) -> bool:
+    """Add stats to saved stats loaded (best lap times kept) & save, STATS_LOCK held, see save_driver_stats
+
+    Returns:
+        True if saved & verified.
+    """
     # Get data from matching key
     loaded_dict = stats_user
     for key in key_list:
@@ -342,7 +367,7 @@ def add_driver_stats(
         # Update value (increment)
         loaded_dict[key] += value
     # Save new data
-    save_stats_json_file(
+    return save_stats_json_file(
         stats_user=stats_user,
         filepath=filepath,
         filename=filename,

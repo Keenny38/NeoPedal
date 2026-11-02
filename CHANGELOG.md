@@ -64,6 +64,7 @@ Fixes from an audit of the VR overlay.
 - Remote control server: a client disconnecting, or the server turned off, no longer prints a full error trace (debug log only).
 - Remote control WebSocket stream: options sent as text are read as in the address (`"changes": "false"` no longer turns changes only on, `"fields": "speed,gear"` selects those fields).
 - Stream overlays: going back to driving after spectating with a source on air no longer makes the overlays of the source blink (transparent, then fading in again).
+- Driver Stats: a `driver.stats` file held for a moment by another program (antivirus, OneDrive) at the end of a stint is no longer taken for a damaged file and replaced by the stats of that stint alone (every other track and car lost).
 
 ## 0.28.1 (2026-11-01)
 
