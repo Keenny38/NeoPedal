@@ -1017,3 +1017,16 @@ def test_b030_share_card_same_in_light_and_dark_theme(monkeypatch):
     data = stats_sharing.StatsSharing.card_data(page)
     assert data.level_color == LEVEL_COLORS[reference.level(132.5)]
     assert data.logo.endswith("dark.png")
+
+
+# B-031
+def test_b031_friend_stats_saved_again_with_bom_read(tmp_path):
+    """Exported stats saved again by Notepad or PowerShell (UTF-8 BOM): still read as a friend's stats"""
+    from neopedal.ui.quick import stint_analysis
+
+    record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="GT3", best=130.0, valid=3)
+    document = stint_analysis.history_document([record], {"Spa": {"GT3": {"pb": 130.0}}}, {}, "Friend")
+    path = os.path.join(tmp_path, "friend.json")
+    with open(path, "w", encoding="utf-8-sig") as file:
+        json.dump(document, file)
+    assert stint_analysis.load_friend(path)["name"] == "Friend"

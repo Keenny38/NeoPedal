@@ -351,7 +351,7 @@ def load_friend(filename: str) -> dict:
     """Friend's exported session history (JSON of history_document), see friend_from_document (name: file name
     if none), raises ValueError if not one"""
     try:
-        with open(filename, encoding="utf-8") as file:
+        with open(filename, encoding="utf-8-sig") as file:  # BOM of a file saved again by Notepad or PowerShell
             document = json.load(file)
     except (OSError, ValueError, RecursionError) as error:  # RecursionError: nested too deeply
         raise ValueError(str(error)) from error
