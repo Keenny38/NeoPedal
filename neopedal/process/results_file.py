@@ -315,6 +315,8 @@ def parse_events(stream: ET.Element | None) -> tuple[Event, ...]:
             events.append(Event(time, "contact", match.group("driver"), other, text,
                                 _float(match.group("strength"))))
         elif tag == "Penalty":
+            if not element.get("Driver"):  # notice without driver: "X served ... penalty", "finished before serving"
+                continue
             events.append(Event(time, "penalty", element.get("Driver", ""), element.get("Penalty", ""), text,
                                 _float(element.get("Time"))))
         elif tag == "TrackLimits":

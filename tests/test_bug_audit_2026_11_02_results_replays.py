@@ -582,3 +582,16 @@ def test_b024_unseen_laps_have_no_position_nor_compound():
     lap = next(entry for entry in result.entries if entry.laps and entry.laps[0].number == 1 and
                entry.laps[0].position != 2).laps[0]
     assert lap.position == 0 and lap.compound == ""
+
+
+# B-025: notices of penalties served (no Driver attribute) listed and counted as penalties ("" driver)
+def test_b025_served_penalty_notices_not_penalties():
+    from neopedal.process import results_file as rf
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    notice = '<Penalty ID="1" et="420.0">Bob Racer served 1st Stop/Go penalty</Penalty>\n'
+    xml = RACE_XML.replace("<Penalty Driver=", notice + "<Penalty Driver=", 1)
+    result = rf.parse_results(xml.encode("utf-8"), RACE_NAME)
+    penalties = [event for event in result.events if event.kind == "penalty"]
+    assert len(penalties) == 1 and penalties[0].driver == "Bob Racer"
+    assert rf.penalty_counts(result.events) == {"Bob Racer": 1}
