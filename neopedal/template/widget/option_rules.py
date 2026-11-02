@@ -223,6 +223,10 @@ OPTION_FIXES["trailing"] += (OptionFix(dependencies={
     # Colors & thresholds of traces and bars (see ANY_OF)
     **dict.fromkeys(_TRAILING_SHARED, ""),
 }), OptionFix(CLASSIC, dependencies={"font_color_pedal_bar_readings": "show_pedal_bar_readings"}))
+# Gauge overlays (classic): bar gap spaces the caption from the gauges only
+for _name in ("brake_pressure", "ride_height", "suspension_force", "suspension_position", "slip_angle",
+              "slip_ratio", "tyre_load", "tyre_deflection"):
+    OPTION_FIXES[_name] = (*OPTION_FIXES.get(_name, ()), OptionFix(CLASSIC, dependencies={"bar_gap": "show_caption"}))
 # Circle, map & elevation backgrounds (classic): drawn with or without the overlay background, own switch
 for _name, _switch, _color in (
         ("heading", "show_circle_background", "background_color_circle"),

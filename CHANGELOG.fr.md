@@ -176,6 +176,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Dégâts : la couleur de l'intégrité n'est plus grisée par défaut, et les options de l'intégrité sont grisées quand `show_integrity_reading` est désactivée.
 - `Options des overlays`, Statistiques de dégâts (design classique) : les préfixes d'intégrité sont grisés quand `show_integrity_prefix` est désactivée.
 - `Options des overlays`, Force (design classique) : `warning_color_liftforce` est grisée quand les lignes d'appui avant et arrière sont masquées.
+- `Options des overlays`, Pression de freinage, Hauteur de caisse, Force de suspension, Position de suspension, Angle de dérive, Taux de glissement, Charge des pneus et Déflexion des pneus (design classique) : `bar_gap` est grisée quand la légende est masquée, car elle n'espace que la légende.
 
 ## 0.28.1 (2026-11-01)
 

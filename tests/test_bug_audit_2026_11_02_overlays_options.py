@@ -690,3 +690,11 @@ def test_b042_damage_stats_prefixes_follow_prefix_switch(ui_env):
 def test_b043_force_lift_color_follows_downforce_rows(ui_env):
     assert dimmed("force", "warning_color_liftforce", False, show_front_downforce=False, show_rear_downforce=False)
     assert not dimmed("force", "warning_color_liftforce", False, show_front_downforce=False, show_rear_downforce=True)
+
+
+# B-044: gauge overlays (classic) bar gap active without the caption it spaces
+@pytest.mark.parametrize("name", ["brake_pressure", "ride_height", "suspension_force", "suspension_position",
+                                  "slip_angle", "slip_ratio", "tyre_load", "tyre_deflection"])
+def test_b044_bar_gap_follows_caption(ui_env, name):
+    assert dimmed(name, "bar_gap", False, show_caption=False)
+    assert not dimmed(name, "bar_gap", False, show_caption=True)

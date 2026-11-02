@@ -176,6 +176,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Damage: the integrity color is no longer dimmed by default, and the integrity options are dimmed while `show_integrity_reading` is off.
 - `Overlay Options`, Damage Stats (classic look): the integrity prefixes are dimmed while `show_integrity_prefix` is off.
 - `Overlay Options`, Force (classic look): `warning_color_liftforce` is dimmed while the front and rear downforce rows are hidden.
+- `Overlay Options`, Brake Pressure, Ride Height, Suspension Force, Suspension Position, Slip Angle, Slip Ratio, Tyre Load and Tyre Deflection (classic look): `bar_gap` is dimmed while the caption is hidden, as it only spaces the caption.
 
 ## 0.28.1 (2026-11-01)
 
