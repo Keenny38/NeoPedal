@@ -1302,14 +1302,18 @@ def test_b045_hidden_item_prefix_never_widens(ui_env, bundled_fonts, name, show,
 
 
 # B-046: Damage (classic) puncture drawn as an outline only, suspension damage color hidden
-def test_b046_damage_puncture_keeps_suspension_color(ui_env):
+def test_b046_damage_puncture_keeps_suspension_color(ui_env, monkeypatch):
     from types import SimpleNamespace
 
     from PySide6.QtCore import QRect
     from PySide6.QtGui import QColor, QImage, QPainter, QPen
 
+    from neopedal.widget._painter import OverlayStyle
     from neopedal.widget.damage import Realtime
 
+    # Flat fill: rounded corners & depth shading are shared style, left set by tests of other overlays
+    monkeypatch.setattr(OverlayStyle, "corner_scale", 0.0)
+    monkeypatch.setattr(OverlayStyle, "depth_effects", False)
     image = QImage(30, 40, QImage.Format.Format_ARGB32)
     image.fill(0)
     widget = SimpleNamespace(
