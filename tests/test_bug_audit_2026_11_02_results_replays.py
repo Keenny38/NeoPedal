@@ -516,3 +516,15 @@ def test_b015_rename_refuses_device_names_and_drops_typed_extension(tmp_path):
     assert replay_files.rename_replay(str(tmp_path), "A", "Best race.vcr") == ""
     assert sorted(path.name for path in tmp_path.iterdir()) == ["Best race.Vcr"]
     assert replay_files.rename_replay(str(tmp_path), "Best race", "Console") == ""  # only the device names
+
+
+# B-016: replay left half copied (app ended during a copy: <name>.Vcr.part) never cleaned, never even seen
+def test_b016_half_copied_replays_cleaned_with_temporary_files(tmp_path):
+    from neopedal.ui.quick import replay_files
+
+    (tmp_path / "Spa R1 1.Vcr.part").write_bytes(b"half")
+    (tmp_path / "_vcr12.tmp").write_bytes(b"tmp")
+    (tmp_path / "Spa R1 2.Vcr").write_bytes(b"replay")
+    found = replay_files.temp_files(str(tmp_path), now=4e9)
+    assert sorted(os.path.basename(path) for path in found) == ["Spa R1 1.Vcr.part", "_vcr12.tmp"]
+    assert replay_files.temp_files(str(tmp_path)) == []  # just written: maybe being copied or recorded

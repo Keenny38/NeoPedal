@@ -222,16 +222,18 @@ def rename_replay(folder: str, name: str, new_name: str) -> str:
 
 
 def temp_files(folder: str, now: float | None = None) -> list[str]:
-    """Temporary files left by the game in replay folder (older than TEMP_MIN_AGE)"""
+    """Temporary files left by the game in replay folder, and replays left half copied by the app (copy cut by a
+    crash: <name>.Vcr.part), older than TEMP_MIN_AGE"""
     now = time.time() if now is None else now
     try:
         entries = list(os.scandir(folder))
     except OSError:
         return []
     paths = []
+    part = f"{REPLAY_EXTENSION}{PART_EXTENSION}".lower()
     for entry in entries:
         name = entry.name.lower()
-        if not (name.startswith(TEMP_PATTERN[0]) and name.endswith(TEMP_PATTERN[1])):
+        if not (name.startswith(TEMP_PATTERN[0]) and name.endswith(TEMP_PATTERN[1])) and not name.endswith(part):
             continue
         # File deleted by the game meanwhile (recording): stat of path, entry stat is cached by scandir on Windows
         try:
