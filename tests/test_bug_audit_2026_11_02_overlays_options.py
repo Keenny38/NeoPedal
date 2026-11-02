@@ -328,3 +328,29 @@ def test_b026_track_clock_countdown_colors_follow_countdown(ui_env, modern):
 # B-027: main background color of Delta Best (classic) under show_game_deltabest_if_available
 def test_b027_deltabest_background_color_never_dimmed(ui_env):
     assert not dimmed("deltabest", "background_color_deltabest", False, show_game_deltabest_if_available=False)
+
+
+# B-028: circle & map backgrounds (classic) under show_background, though drawn without the overlay background
+OWN_BACKGROUNDS = (
+    ("heading", "show_circle_background", "background_color_circle"),
+    ("radar", "show_circle_background", "background_color_circle"),
+    ("wind_direction", "show_circle_background", "background_color_circle"),
+    ("friction_circle", "show_circle_background", "background_color_circle"),
+    ("steering_wheel", "show_circle_background", "background_color_circle"),
+    ("track_map", "show_map_background", "background_color_map"),
+    ("elevation", "show_elevation_background", "background_color_elevation"),
+)
+
+
+@pytest.mark.parametrize(("name", "switch", "color"), OWN_BACKGROUNDS)
+def test_b028_own_background_follows_its_switch_only(ui_env, name, switch, color):
+    assert not dimmed(name, switch, False, show_background=False)
+    assert not dimmed(name, color, False, show_background=False, **{switch: True})
+    assert dimmed(name, color, False, show_background=True, **{switch: False})
+
+
+def test_b028_friction_circle_fade_follows_circle_background(ui_env):
+    assert dimmed("friction_circle", "show_fade_out", False, show_circle_background=False)
+    assert dimmed("friction_circle", "fade_in_radius", False, show_circle_background=True, show_fade_out=False)
+    assert not dimmed("friction_circle", "fade_out_radius", False, show_background=False,
+                      show_circle_background=True, show_fade_out=True)

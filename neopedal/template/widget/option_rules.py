@@ -181,6 +181,18 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),),  # delta box, any source
 }
+# Circle, map & elevation backgrounds (classic): drawn with or without the overlay background, own switch
+for _name, _switch, _color in (
+        ("heading", "show_circle_background", "background_color_circle"),
+        ("radar", "show_circle_background", "background_color_circle"),
+        ("wind_direction", "show_circle_background", "background_color_circle"),
+        ("friction_circle", "show_circle_background", "background_color_circle"),
+        ("steering_wheel", "show_circle_background", "background_color_circle"),
+        ("track_map", "show_map_background", "background_color_map"),
+        ("elevation", "show_elevation_background", "background_color_elevation")):
+    OPTION_FIXES[_name] = (*OPTION_FIXES.get(_name, ()), OptionFix(CLASSIC, dependencies={_switch: "", _color: _switch}))
+OPTION_FIXES["friction_circle"] += (OptionFix(CLASSIC, dependencies={  # fade of the circle background
+    "show_fade_out": "show_circle_background", "fade_in_radius": "show_fade_out", "fade_out_radius": "show_fade_out"}),)
 
 
 def fixes_of(name: str, modern: bool) -> tuple[dict[str, str], dict[str, str]]:

@@ -152,6 +152,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Steering Wheel, Steering Meter and Steering Angle: `manual_steering_range` is no longer dimmed while the angle reading is hidden, as it still turns the wheel and the bar (and sets the steering ratio).
 - `Overlay Options`, Track Clock (classic look): the sunlight phase countdown colors are no longer dimmed by default (they followed `enable_time_scaled_countdown` instead of the countdown itself).
 - `Overlay Options`, Delta Best (classic look): `background_color_deltabest` is no longer dimmed by default.
+- `Overlay Options`, Heading, Radar, Wind Direction, Friction Circle, Steering Wheel, Track Map and Elevation (classic look): the circle, map and elevation backgrounds are no longer dimmed while `show_background` is off; each follows its own switch.
 
 ## 0.28.1 (2026-11-01)
 
