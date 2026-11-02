@@ -123,6 +123,7 @@ Fixes from an audit of the VR overlay.
 - Relative and Standings: an error of the vehicles data module (restarted on its own) no longer leaves their order frozen on the last cars data until the car count changes.
 - Class gaps and intervals (Standings, Rivals, Gap Trend): after a place change in a class, they are no longer measured for a moment to the car that was ahead before.
 - Telemetry recording: in, out and invalid laps are saved with their own lap number, no longer the number of the lap before (two laps with the same number in the Telemetry Viewer).
+- Fuel and energy estimates with the green flag median (`enable_green_flag_consumption` option): another car of the same class (yours or one you follow) starts its own laps instead of keeping those of the car before.
 
 ## 0.28.1 (2026-11-01)
 

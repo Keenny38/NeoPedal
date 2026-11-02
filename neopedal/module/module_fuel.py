@@ -293,7 +293,7 @@ def calc_consumption(
     use_median = green_flag_laps > 0
     median_min_laps = min(MEDIAN_MIN_LAPS, max(green_flag_laps, 1))
     green_laps: deque[float] = deque(maxlen=max(green_flag_laps, 1))  # kept over resets of same car & track
-    green_combo = ""
+    green_combo: tuple = ()
 
     def validated_lap(lap: PendingLap):
         """Lap validated by game: reference consumption (saved on reset)"""
@@ -341,8 +341,10 @@ def calc_consumption(
             telemetry_func = detect_consumption_type(is_energy)
             expected_func = expected_energy if is_energy else expected_fuel  # until a lap is recorded
             combo_name = api.read.session.combo_name()
-            if green_combo != combo_name:
-                green_combo = combo_name
+            # Green flag laps of the same car (combo is track & class: another car of the class, followed or not)
+            green_car = (combo_name, api.read.vehicle.vehicle_name(), followed_slot_id())
+            if green_combo != green_car:
+                green_combo = green_car
                 green_laps.clear()
 
             delta_array_last, used_last_valid, laptime_pace = load_fuel_delta_file(

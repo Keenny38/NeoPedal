@@ -123,6 +123,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Relatif et Classement : une erreur du module de données des voitures (relancé de lui-même) ne laisse plus leur ordre figé sur les dernières données des voitures jusqu'à ce que le nombre de voitures change.
 - Écarts et intervalles en catégorie (Classement, Rivaux, Tendance des écarts) : après un changement de place dans une catégorie, ils ne sont plus mesurés un instant par rapport à la voiture qui était devant avant.
 - Enregistrement de la télémétrie : les tours d'entrée, de sortie et invalides sont enregistrés avec leur propre numéro de tour, plus celui du tour d'avant (deux tours avec le même numéro dans le visualiseur de télémétrie).
+- Estimations de carburant et d'énergie avec la médiane sous drapeau vert (option `enable_green_flag_consumption`) : une autre voiture de la même catégorie (la vôtre ou une voiture suivie) repart de ses propres tours au lieu de garder ceux de la voiture d'avant.
 
 ## 0.28.1 (2026-11-01)
 

@@ -960,3 +960,34 @@ def test_b028_recorder_lap_number_of_laps_saved_without_validation(ui_env, monke
         session.close()
     # Laps 2 & 3 completed before the pit stop (scoring still at 2 when the in lap ended): in lap is lap 4
     assert {kind: number for number, kind in saved}.get("in") == 4
+
+
+# --- B-029: green flag median of fuel use never keeps laps of another car of the same track & class
+def test_b029_green_flag_median_of_the_car_only(ui_env, monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from neopedal.api_control import api
+    from neopedal.module import module_fuel
+    from neopedal.module_info import DeltaInfo, FuelInfo, VehiclesInfo, minfo
+    from tests.telemetry_sim import LapSim, fake_reader
+
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "spectating", False)
+    monkeypatch.setattr(api, "_api", SimpleNamespace(NAME="Le Mans Ultimate"))
+    monkeypatch.setattr(minfo, "delta", DeltaInfo())
+    monkeypatch.setattr(minfo, "vehicles", VehiclesInfo())
+    output = FuelInfo()
+    gen = module_fuel.calc_consumption(output, False, f"{tmp_path.as_posix()}/", ".fuel", 5, 0.75, green_flag_laps=5)
+
+    def drive(sim, reset, vehicle):
+        reader = fake_reader(sim)
+        reader.vehicle.vehicle_name = lambda index=None: vehicle
+        monkeypatch.setattr(api, "read", reader)
+        while not sim.finished or sim.elapsed < sim.lap_start + 3:
+            minfo.delta.lapDistance = sim.distance
+            gen.send(reset)
+            sim.tick()
+
+    drive(LapSim(lap_times=[90.0] * 5, fuel_per_lap=4.0), 0, "Car A #1")  # 4 L per lap
+    drive(LapSim(lap_times=[90.0] * 3, fuel_per_lap=2.0), 1, "Car B #2")  # other car of the class: 2 L per lap
+    assert output.estimatedConsumption == pytest.approx(2.0, abs=0.05)
