@@ -72,6 +72,16 @@ _EARLY_PITSTOPS = {
        for prefix in ("decimal_places", "font_color", "background_color")},
 }
 _LED_SIZE = ("number_of_led", "led_width", "led_height", "led_radius", "led_outline_color", "led_outline_width")  # LEDs of one side or both
+# Trailing: options of a trace & of its pedal bar or alert flash (see ANY_OF)
+_TRAILING_SHARED = {
+    "throttle_color": ("show_throttle", "show_throttle_bar"), "brake_color": ("show_brake", "show_brake_bar"),
+    "clutch_color": ("show_clutch", "show_clutch_bar"),
+    "ffb_color": ("show_ffb", "show_ffb_bar"),
+    "tc_activation_color": ("show_tc_activation", "show_tc_activation_flash"),
+    "abs_activation_color": ("show_abs_activation", "show_abs_activation_flash"),
+    **dict.fromkeys(("wheel_lock_color", "wheel_lock_threshold"), ("show_wheel_lock", "show_wheel_lock_flash")),
+    **dict.fromkeys(("wheel_slip_color", "wheel_slip_threshold"), ("show_wheel_slip", "show_wheel_slip_flash")),
+}
 _RPM_MULTIPLIERS = ("rpm_multiplier_low", "rpm_multiplier_safe", "rpm_multiplier_redline", "rpm_multiplier_critical",
                     "rpm_multiplier_over_rev")
 
@@ -189,6 +199,16 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),),  # delta box, any source
 }
+# Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
+OPTION_FIXES["trailing"] += (OptionFix(dependencies={
+    **dict.fromkeys(("show_throttle_bar", "show_brake_bar", "show_clutch_bar", "show_ffb_bar",
+                     "pedal_bar_width_unfiltered", "pedal_bar_width_filtered", "pedal_bar_gap",
+                     "show_pedal_bar_brake_pressure", "pedal_bar_maximum_indicator_height", "pedal_bar_inner_gap",
+                     "show_pedal_bar_readings", "show_tc_activation_flash", "show_abs_activation_flash",
+                     "show_wheel_lock_flash", "show_wheel_slip_flash", "alert_flash_interval"), "show_pedal_bars"),
+    # Colors & thresholds of traces and bars (see ANY_OF)
+    **dict.fromkeys(_TRAILING_SHARED, ""),
+}), OptionFix(CLASSIC, dependencies={"font_color_pedal_bar_readings": "show_pedal_bar_readings"}))
 # Circle, map & elevation backgrounds (classic): drawn with or without the overlay background, own switch
 for _name, _switch, _color in (
         ("heading", "show_circle_background", "background_color_circle"),
@@ -283,6 +303,7 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "trailing": _TRAILING_SHARED,
     "steering_angle": {"manual_steering_range": ("show_steering_angle", "show_steering_ratio")},
     "tyre_overview": {
         "show_layer_labels": ("show_carcass_temperature", "show_inner_layer_temperature"),

@@ -154,6 +154,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Delta best (design classique) : `background_color_deltabest` n'est plus grisée par défaut.
 - `Options des overlays`, Cap, Radar, Direction du vent, Cercle d'adhérence, Volant, Carte du circuit et Profil d'altitude (design classique) : les fonds de cercle, de carte et d'altitude ne sont plus grisés quand `show_background` est désactivée ; chacun suit sa propre option.
 - `Options des overlays`, Navigation : la taille, le décalage, les couleurs et les contours des voitures ne sont plus grisés avec la forme flèche (par défaut) ; les couleurs des numéros de place suivent `show_vehicle_class_standings`.
+- `Options des overlays`, Historique : les options des barres de pédales sont grisées quand `show_pedal_bars` est désactivée, et plus par `show_ffb_bar` ou la pression de freinage, chaque flash d'alerte a son propre interrupteur, et les couleurs et seuils partagés par les tracés et les barres restent actifs tant que l'un d'eux est affiché.
 
 ## 0.28.1 (2026-11-01)
 

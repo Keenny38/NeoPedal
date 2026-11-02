@@ -370,3 +370,22 @@ def test_b029_navigation_car_options_used_with_arrow_shape(ui_env, modern):
         assert not dimmed("navigation", key, modern, show_circle_vehicle_shape=False), key
     for key in (key for key in ("font_color", "font_color_player") if key in keys):
         assert dimmed("navigation", key, modern, show_vehicle_class_standings=False), key
+
+
+# B-025: Trailing pedal bars: options under show_ffb_bar or brake pressure, alerts under each other, shared colors
+@DESIGNS
+def test_b025_trailing_pedal_bar_options_follow_pedal_bars(ui_env, modern):
+    bars = {"show_pedal_bars": True}
+    assert dimmed("trailing", "pedal_bar_width_filtered", modern, show_pedal_bars=False)
+    assert not dimmed("trailing", "pedal_bar_width_filtered", modern, show_ffb_bar=False, **bars)
+    assert not dimmed("trailing", "pedal_bar_inner_gap", modern, show_pedal_bar_brake_pressure=False, **bars)
+    assert not dimmed("trailing", "show_abs_activation_flash", modern, show_tc_activation_flash=False, **bars)
+    assert not dimmed("trailing", "show_wheel_slip_flash", modern, show_wheel_lock_flash=False, **bars)
+    assert dimmed("trailing", "show_throttle_bar", modern, show_pedal_bars=False)
+
+
+def test_b025_trailing_classic_colors_of_trace_or_bar(ui_env):
+    assert not dimmed("trailing", "throttle_color", False, show_throttle=False, show_pedal_bars=True)
+    assert dimmed("trailing", "throttle_color", False, show_throttle=False, show_pedal_bars=False)
+    assert not dimmed("trailing", "tc_activation_color", False, show_tc_activation=False, show_pedal_bars=True,
+                      show_tc_activation_flash=True)
