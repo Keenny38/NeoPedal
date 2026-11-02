@@ -148,8 +148,7 @@ def test_b006_message_translated():
 # B-013
 def test_b013_stats_saved_at_checkpoints_while_driving(tele, tmp_path, clock, monkeypatch):  # noqa: F811
     """Stats recorded so far saved every checkpoint (kept after a crash), never counted twice, one history record"""
-    monkeypatch.setattr(module_stats, "monotonic", lambda: clock["now"], raising=False)
-    filepath = f"{tmp_path}/"
+    filepath = f"{tmp_path}/"  # clock fixture: _base.monotonic runs with game time
     tele.update(STINT_TELE)
     gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
     loop = ModuleLoop(gen, resets=1)

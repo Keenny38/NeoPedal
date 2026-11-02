@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import threading
 from dataclasses import replace
-from time import localtime, monotonic, strftime, time
+from time import localtime, strftime, time
 
 from .. import calculation as calc
 from .. import realtime_state
@@ -390,7 +390,7 @@ def record_driver_stats(
             # Load driver stats
             driver_stats = DriverStats()
             stint_saved = DriverStats()
-            next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
+            next_checkpoint = _base.monotonic() + _base.CHECKPOINT_INTERVAL
             own_names = player_profile_names()
             stint_driver = ""
             key_list = stats_keys(vehicle_classification)
@@ -543,8 +543,8 @@ def record_driver_stats(
         output.metersDriven = driver_stats.meters + stint_saved.meters + loaded_stats.meters
 
         # Checkpoint while driving
-        if monotonic() >= next_checkpoint:
-            next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
+        if _base.monotonic() >= next_checkpoint:
+            next_checkpoint = _base.monotonic() + _base.CHECKPOINT_INTERVAL
             checkpoint()
 
 
