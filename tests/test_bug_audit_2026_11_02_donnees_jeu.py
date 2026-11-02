@@ -933,3 +933,30 @@ def test_b027_class_gaps_follow_class_order_of_same_sample(ui_env, monkeypatch):
     finally:
         session.close()
     assert not wrong
+
+
+# --- B-028: recorder lap number of laps saved without validation (in, out, invalid) counts the lap just ended
+def test_b028_recorder_lap_number_of_laps_saved_without_validation(ui_env, monkeypatch):
+    from neopedal.api_control import api
+    from neopedal.module import module_recorder
+    from neopedal.module._base import MODULE_STOP
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession
+
+    for name in ("active", "paused", "resets", "shown", "session_type", "in_pits"):
+        monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    monkeypatch.setattr(api, "_api", session.connector)
+    monkeypatch.setattr(api, "read", session.reader)
+    saved = []
+    gen = module_recorder.record_telemetry(
+        "unused", 0.5, 50, save_out_in=True,
+        saver=lambda pending, options, valid: saved.append((pending.lap_number, pending.info.get("kind"))))
+    try:
+        for _ in session.frames():
+            gen.send(realtime_state.resets if realtime_state.active else None)
+        gen.send(MODULE_STOP)
+    finally:
+        session.close()
+    # Laps 2 & 3 completed before the pit stop (scoring still at 2 when the in lap ended): in lap is lap 4
+    assert {kind: number for number, kind in saved}.get("in") == 4

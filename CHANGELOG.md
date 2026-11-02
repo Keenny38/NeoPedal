@@ -121,6 +121,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate: while the game is slow to answer (loading a session or track), pages and overlays no longer get an answer kept from tens of seconds before (standings or energy use of the previous session) as a new one.
 - Relative and Standings: an error of the vehicles data module (restarted on its own) no longer leaves their order frozen on the last cars data until the car count changes.
 - Class gaps and intervals (Standings, Rivals, Gap Trend): after a place change in a class, they are no longer measured for a moment to the car that was ahead before.
+- Telemetry recording: in, out and invalid laps are saved with their own lap number, no longer the number of the lap before (two laps with the same number in the Telemetry Viewer).
 
 ## 0.28.1 (2026-11-01)
 

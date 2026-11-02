@@ -554,7 +554,7 @@ def record_telemetry(
                     pending_deadline = 0.0
                 pending = PendingLap(
                     combo_name=api.read.session.combo_name(),
-                    lap_number=api.read.lap.completed_laps(),  # may lag, updated if lap validated
+                    lap_number=lap_number_at_line(lap_start),  # updated from scoring if lap validated
                     lap_time=lap_start - last_lap_start,
                     finish_time=lap_start,
                     rows=rows,
@@ -593,6 +593,18 @@ def confirmed_lap(pending: PendingLap) -> bool:
     except (AttributeError, TypeError):
         return False
     return last_laptime > 0 and abs(last_laptime - pending.lap_time) < 0.001
+
+
+def lap_number_at_line(lap_start: float) -> int:
+    """Completed laps once the lap started at lap_start (telemetry) ended: scoring (completed laps) updates
+    slower than telemetry, a scoring lap start still older than lap_start has not counted it yet"""
+    laps = api.read.lap.completed_laps()
+    try:
+        if api.read.timing.scoring_start() < lap_start - 0.001:
+            return laps + 1
+    except (AttributeError, TypeError):
+        pass
+    return laps
 
 
 def save_pending(pending: PendingLap, options: SaveOptions, saver, valid: bool):
