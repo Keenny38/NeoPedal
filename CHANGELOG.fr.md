@@ -130,6 +130,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Estimations de carburant et d'énergie avec la médiane sous drapeau vert (option `enable_green_flag_consumption`) : une autre voiture de la même catégorie (la vôtre ou une voiture suivie) repart de ses propres tours au lieu de garder ceux de la voiture d'avant.
 - Le Mans Ultimate et rFactor 2 : une voiture sans télémétrie (et la vôtre un instant à son arrivée) n'affiche plus quatre pneus crevés (Dégâts, Pneus (vue d'ensemble), HUD tableau de bord), un badge de gomme `Soft` (Classement, Relatif, Régie de course) ni des températures de -273 °C (garage, tableau de bord web).
 - Le Mans Ultimate, overlay Moteur électrique : plus de courte pointe de déploiement (plus de 400 kW) pendant que le moteur régénère au freinage.
+- Replays de l'enregistreur de session : les valeurs du garage d'un fichier de replay abîmé ou d'une autre version (énergie, usure des freins, chat, contacts...) sont ignorées quand elles ont une autre forme, au lieu de casser les overlays qui les lisent pendant toute la lecture.
 
 ## 0.28.1 (2026-11-01)
 

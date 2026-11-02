@@ -154,6 +154,39 @@ def rest_snapshot(dataset: Any) -> dict:
 
 
 _SNAPSHOT_WARNED: set[str] = set()  # fields of invalid snapshot values already logged (once per field)
+# Item of Rest API values of variable length (default value empty: no item to check against), see apply_rest_snapshot
+SNAPSHOT_ITEMS: dict[str, Any] = {"lastCarSetup": str, "chatMessages": (float, str), "contacts": (float, str, str)}
+SNAPSHOT_WHEELS = frozenset(("brakeWear", "suspensionDamage"))  # Rest API values of the 4 wheels
+
+
+_DEFAULT_DATASETS: dict[type, Any] = {}  # Rest API data set of default values, per data set type
+
+
+def default_dataset(dataset: Any) -> Any:
+    """Rest API data set of default values of the type of dataset (made once per type)"""
+    data_type = type(dataset)
+    default = _DEFAULT_DATASETS.get(data_type)
+    if default is None:
+        default = _DEFAULT_DATASETS[data_type] = data_type()
+    return default
+
+
+def snapshot_item(item: Any, shape: Any) -> Any:
+    """Item of variable length value in its shape (tuple of fields), None if invalid"""
+    if isinstance(shape, tuple):
+        if not isinstance(item, (list, tuple)) or len(item) != len(shape):
+            return None
+        fields = []
+        for field, field_type in zip(item, shape):
+            if field_type is float:
+                if isinstance(field, bool) or not isinstance(field, (int, float)) or not math.isfinite(field):
+                    return None
+                field = float(field)
+            elif not isinstance(field, field_type):
+                return None
+            fields.append(field)
+        return tuple(fields)
+    return item if isinstance(item, shape) else None
 
 
 def apply_rest_snapshot(dataset: Any, data: dict) -> None:
@@ -170,8 +203,9 @@ def apply_rest_snapshot(dataset: Any, data: dict) -> None:
             if not isinstance(value, list):
                 _warn_snapshot(name, value)
                 continue
-            if current and isinstance(current[0], tuple) and hasattr(current[0], "_fields"):
-                node_type = type(current[0])
+            template = current or getattr(default_dataset(dataset), name)  # emptied by a snapshot: default nodes
+            if template and isinstance(template[0], tuple) and hasattr(template[0], "_fields"):
+                node_type = type(template[0])
                 fields = len(node_type._fields)
                 if not all(isinstance(item, (list, tuple)) and len(item) == fields for item in value):
                     _warn_snapshot(name, value)
@@ -181,9 +215,41 @@ def apply_rest_snapshot(dataset: Any, data: dict) -> None:
                 except (TypeError, ValueError):
                     _warn_snapshot(name, value)
                     continue
-            else:
-                value = tuple(value)
+            elif name in SNAPSHOT_ITEMS:  # variable length: every item of its shape
+                items = [snapshot_item(item, SNAPSHOT_ITEMS[name]) for item in value]
+                if any(item is None for item in items):
+                    _warn_snapshot(name, value)
+                    continue
+                value = tuple(items)
+            else:  # numbers, wheels values keep their length
+                numbers = [valid_number(item, current[0] if current else 0.0) for item in value]
+                if any(number is None for number in numbers) or (
+                        name in SNAPSHOT_WHEELS and len(numbers) != len(current)):
+                    _warn_snapshot(name, value)
+                    continue
+                value = tuple(numbers)
+        else:
+            checked = valid_number(value, current) if isinstance(current, (int, float)) else (
+                value if isinstance(value, type(current)) else None)
+            if checked is None:
+                _warn_snapshot(name, value)
+                continue
+            value = checked
         setattr(dataset, name, value)
+
+
+def valid_number(value: Any, default: int | float) -> int | float | bool | None:
+    """Number of the type of default (bool for bool, int accepted for float, integral float for int), None if
+    invalid (wrong type, inf, nan)"""
+    if isinstance(default, bool):
+        return value if isinstance(value, bool) else None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if isinstance(default, float):
+        return float(value) if math.isfinite(value) else None
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else None
+    return value
 
 
 def _warn_snapshot(name: str, value: Any) -> None:

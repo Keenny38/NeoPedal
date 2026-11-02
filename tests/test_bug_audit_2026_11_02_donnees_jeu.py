@@ -1027,3 +1027,29 @@ def test_b031_power_follows_motor_state():
     assert emotor.regeneration_level() == 0.0
     motor.mRegen = -150.0
     assert emotor.power() == 150.0
+
+
+# --- B-032: Rest API snapshot of a replay file: every field checked (BUG-011 checked named tuples only)
+def test_b032_replay_snapshot_fields_of_another_shape_ignored():
+    from neopedal.adapter.lmu_restapi import RestAPIData
+    from neopedal.replay import apply_rest_snapshot
+
+    dataset = RestAPIData()
+    apply_rest_snapshot(dataset, {
+        "maxVirtualEnergy": "900", "aeroDamage": None, "timeScale": [1], "setupName": 5,  # wrong types
+        "brakeWear": [0.1, 0.2],  # 4 wheels expected
+        "chatMessages": ["hello", "world"], "contacts": [[1.0, "A"]],  # items of another shape
+    })
+    default = RestAPIData()
+    for name in ("maxVirtualEnergy", "aeroDamage", "timeScale", "setupName", "brakeWear", "chatMessages",
+                 "contacts"):
+        assert getattr(dataset, name) == getattr(default, name), name
+    apply_rest_snapshot(dataset, {
+        "maxVirtualEnergy": 9e8, "timeScale": 2.0, "brakeWear": [0.1, 0.2, 0.3, 0.4],
+        "chatMessages": [[12, "Driver: hello"]], "contacts": [[1.0, "A", "B"]], "forecastRace": [],
+    })
+    assert dataset.maxVirtualEnergy == 9e8 and dataset.timeScale == 2 and dataset.brakeWear == (0.1, 0.2, 0.3, 0.4)
+    assert dataset.chatMessages == ((12.0, "Driver: hello"),) and dataset.contacts == ((1.0, "A", "B"),)
+    node = default.forecastRace[0]
+    apply_rest_snapshot(dataset, {"forecastRace": [list(node)]})  # emptied forecast filled again
+    assert dataset.forecastRace == (node,)

@@ -130,6 +130,7 @@ Fixes from an audit of the VR overlay.
 - Fuel and energy estimates with the green flag median (`enable_green_flag_consumption` option): another car of the same class (yours or one you follow) starts its own laps instead of keeping those of the car before.
 - Le Mans Ultimate and rFactor 2: a car without telemetry (and your car for a moment when it joins) no longer shows four punctured tyres (Damage, Tyre Overview, Black Box), a `Soft` compound badge (Standings, Relative, Broadcast Director) nor temperatures of -273 °C (garage, web dashboard).
 - Le Mans Ultimate, Electric Motor overlay: no more short deploy spike (over 400 kW) while the motor regenerates under braking.
+- Session recorder replays: garage values of a damaged replay file or of another version (energy, brake wear, chat, contacts...) are ignored when they have another shape, instead of breaking the overlays that read them during the whole playback.
 
 ## 0.28.1 (2026-11-01)
 
