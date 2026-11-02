@@ -358,6 +358,15 @@ def _standings(values: Mapping) -> Inactive:
     return inactive
 
 
+def _relative(values: Mapping) -> Inactive:
+    """Classic relative: names colored by lap difference (own colors unused), mixed compound"""
+    inactive = _mixed_compound(values)
+    if values.get("show_lap_difference", False):
+        for key in ("font_color_position", "font_color_driver_name", "font_color_vehicle_name"):
+            inactive[key] = ("off", "show_lap_difference")
+    return inactive
+
+
 def _predictions(values: Mapping) -> Inactive:
     count = values.get("number_of_prediction", 0)
     return {key: ("count", "number_of_prediction") for key in values
@@ -448,7 +457,7 @@ def _black_box(values: Mapping) -> Inactive:
 
 
 INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
-    "relative": _mixed_compound,
+    "relative": _relative,
     "standings": _standings,
     "rivals": _mixed_compound,
     "relative_finish_order": _predictions,

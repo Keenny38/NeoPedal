@@ -192,6 +192,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Steering Angle, Steering Meter and Telemetry Compare: track width, wheelbase, angle text padding and font, zero line, steering and gear colors are dimmed while the readings or plots using them are hidden.
 - `Overlay Options`, Delta Graph, Stint Timer, Laps and Position, Lap Time History and Stint History: reading colors, stint warning and driver time options, the invalid lap color and the energy caption are dimmed while what uses them is hidden or off.
 - `Overlay Options`, tyre overlays and Friction Circle: colors unused by `swap_style` or by compound colors by type, `trend_duration` in per lap mode, the trace fade step without fade, the highlight color without readings and the captions of hidden Tyre Wear sections are dimmed.
+- `Overlay Options`, Relative (classic look): the position, driver and vehicle name colors are dimmed while `show_lap_difference` colors them by lap difference.
 
 ## 0.28.1 (2026-11-01)
 

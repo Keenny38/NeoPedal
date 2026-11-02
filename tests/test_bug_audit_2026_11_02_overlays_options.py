@@ -839,3 +839,11 @@ def test_b074_tyre_overlays_unused_options(ui_env):
     assert dimmed("friction_circle", "font_color_highlight", False, show_readings=False)
     assert dimmed("tyre_wear", "caption_text_flat_spot", False, show_caption=True, show_flat_spot=False)
     assert not dimmed("tyre_wear", "caption_text_remaining", False, show_caption=True, show_remaining=True)
+
+
+# B-077: Relative (classic) name colors active while lap difference colors the names
+def test_b077_relative_name_colors_with_lap_difference(ui_env):
+    for key in ("font_color_position", "font_color_driver_name", "font_color_vehicle_name"):
+        assert dimmed("relative", key, False, show_lap_difference=True), key
+        assert not dimmed("relative", key, False, show_lap_difference=False, show_position=True,
+                          show_driver_name=True, show_vehicle_name=True), key
