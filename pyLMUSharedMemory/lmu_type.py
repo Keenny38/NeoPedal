@@ -327,6 +327,10 @@ class LMUEvent(_NOINIT):
     SME_SET_ENVIRONMENT: int
     SME_FFB: int
 
+    def queued(self, event: int) -> bool:
+        """Whether event (SharedMemoryEvent value) is in the queue, see lmu_data.LMUEvent"""
+        raise NotImplementedError
+
 
 class LMUGeneric(_NOINIT):
     events: LMUEvent
