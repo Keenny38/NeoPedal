@@ -2646,7 +2646,6 @@ class RivalsConfig(WidgetConfig):
     column_speed_trap: bool
     column_lift_and_coast_time: bool
     column_time_interval: bool
-    show_player_highlighted: bool
     show_lap_difference: bool
     show_highlighted_fastest_last_laptime: bool
     column_track_limits: bool

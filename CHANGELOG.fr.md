@@ -222,6 +222,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Options d'overlay : les limites des nombres correspondent à ce que les overlays affichent : `number_of_laps` d'Évolution de l'écart de 2 à 50, `number_of_drivers` du Chrono de relais de 0 à 6, `number_of_lines` du Chat de 1 à 20, Notifications de course de 1 à 8, Prévisions météo de 1 à 4, `number_of_prediction` de la Carte du circuit de 1 à 20, `number_of_extra_laps` au moins 1, `decimal_places` de Graphique du delta, Évolution de l'écart et Comparaison de télémétrie de 0 à 3, de Cap, Volant et Direction du vent de 0 à 2 (les deux designs affichent désormais les mêmes décimales), `decimal_places_energy_remaining` de 0 à 2, `*_radius_g` jusqu'à 20, `manual_steering_range` jusqu'à 3600 et `dot_size` de 1 à 1000 (les valeurs plus grandes étaient acceptées puis coupées sans le dire).
 - Overlays Estimation d'arrêt au stand et Secteurs : `bar_width` d'Estimation d'arrêt au stand (en caractères) est limité de 3 à 20 et `extra_digits` de Secteurs de 0 à 6 (des valeurs énormes faisaient des overlays de dizaines de milliers de pixels, coupés avec une erreur).
 - Options d'overlay, overlay Classement (design classique) : son aperçu suit l'ordre des catégories, le nombre maximal de voitures, les premières voitures et les modes modifiés avant de les appliquer.
+- Overlay Rivaux (design moderne) : `show_player_highlighted` est retirée ; Rivaux n'affiche jamais le joueur, l'option ne faisait rien (Relatif et Classement la gardent).
 
 ## 0.28.1 (2026-11-01)
 

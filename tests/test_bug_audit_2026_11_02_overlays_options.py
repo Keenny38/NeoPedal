@@ -1251,3 +1251,17 @@ def test_b075_preview_race_from_edited_standings(ui_env, bundled_fonts, monkeypa
     assert seen[-1]["minimum_top_vehicles"] == saved + 2
     LivePreview(cfg, "standings", edited).close()
     assert seen[-1]["minimum_top_vehicles"] == saved + 2
+
+
+# B-078: Rivals (modern) show_player_highlighted did nothing (rivals never lists the player)
+def test_b078_rivals_dead_option_removed(ui_env):
+    from neopedal.setting_preupdate import preupdate_user_setting
+    from neopedal.template.setting_widget import WIDGET_DEFAULT
+
+    assert "show_player_highlighted" not in WIDGET_DEFAULT["rivals"]
+    assert "show_player_highlighted" not in shown_keys("rivals", True)
+    assert "show_player_highlighted" in WIDGET_DEFAULT["standings"]
+    preset = {"rivals": {"show_player_highlighted": False, "column_time_interval": True},
+              "standings": {"show_player_highlighted": False}}
+    preupdate_user_setting((2, 51, 8), preset)
+    assert preset == {"rivals": {"column_time_interval": True}, "standings": {"show_player_highlighted": False}}

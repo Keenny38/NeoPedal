@@ -191,6 +191,6 @@ STANDINGS_UI = STANDINGS_UI._replace(inactive=standings_inactive, dependencies={
     "maximum_vehicles_exclusive_mode": "enable_single_class_exclusive_mode",
 })
 RIVALS_UI = driver_list_ui(RIVALS_COLUMNS, (
-    ("Rows", ROW_OPTIONS),
+    ("Rows", tuple(key for key in ROW_OPTIONS if key != "show_player_highlighted")),  # player never listed
 ))._replace(inactive=class_column_inactive)
 RELATIVE_UI = RELATIVE_UI._replace(inactive=class_column_inactive)

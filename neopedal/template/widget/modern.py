@@ -157,7 +157,6 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "column_speed_trap": False,
         "column_lift_and_coast_time": False,
         "column_time_interval": True,
-        "show_player_highlighted": True,
         "show_lap_difference": True,
         "show_highlighted_fastest_last_laptime": True,
         "column_track_limits": False,

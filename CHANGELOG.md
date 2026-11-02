@@ -222,6 +222,7 @@ Fixes from an audit of the VR overlay.
 - Overlay Options: number limits match what overlays show: Gap Trend `number_of_laps` 2 - 50, Stint Timer `number_of_drivers` 0 - 6, Chat `number_of_lines` 1 - 20, Race Notifications 1 - 8, Weather Forecast 1 - 4, Track Map `number_of_prediction` 1 - 20, `number_of_extra_laps` at least 1, Delta Graph, Gap Trend and Telemetry Compare `decimal_places` 0 - 3, Heading, Steering Wheel and Wind Direction 0 - 2 (both looks now show the same decimals), `decimal_places_energy_remaining` 0 - 2, `*_radius_g` up to 20, `manual_steering_range` up to 3600 and `dot_size` 1 - 1000 (larger values were accepted and cut without telling).
 - Pit Stop Estimate and Sectors overlays: `bar_width` of Pit Stop Estimate (characters) is limited to 3 - 20 and `extra_digits` of Sectors to 0 - 6 (huge values made overlays tens of thousands of pixels wide, cut with an error).
 - Overlay Options, Standings overlay (classic look): its picture follows edited class order, maximum vehicles, top vehicles and modes before they are applied.
+- Rivals overlay (modern look): `show_player_highlighted` is removed; rivals never lists the player, the option did nothing (Relative and Standings keep it).
 
 ## 0.28.1 (2026-11-01)
 

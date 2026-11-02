@@ -56,6 +56,7 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 9), _user_prior_2_51_9),  # 2026-11-02
         ((2, 51, 5), _user_prior_2_51_5),  # 2026-10-29
         ((2, 51, 4), _user_prior_2_51_4),  # 2026-10-29
         ((2, 51, 3), _user_prior_2_51_3),  # 2026-10-18
@@ -150,6 +151,13 @@ def _global_prior_2_43_0(dict_user: dict):
 
 
 # User setting update function
+def _user_prior_2_51_9(dict_user: dict):
+    # Rivals: show_player_highlighted removed (rivals never lists the player: the option did nothing)
+    rivals = dict_user.get("rivals")
+    if isinstance(rivals, dict):
+        rivals.pop("show_player_highlighted", None)
+
+
 def _user_prior_2_51_5(dict_user: dict):
     # Engine & engine temperature: game overheating warning got one option for both designs (on by default),
     # formerly show_game_overheating_highlight for classic layout (off by default); explicit choices kept:
