@@ -205,6 +205,10 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                          "minimum_top_vehicles", "split_gap"), ""),
         "maximum_vehicles_exclusive_mode": "enable_single_class_exclusive_mode",
     }),),
+    # Integrity reading options (word "integrity" put the color under the inverted switch)
+    "damage": (OptionFix(dependencies=dict.fromkeys(
+        ("font_color_integrity", "show_inverted_integrity", "show_aero_integrity_if_available"),
+        "show_integrity_reading")),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

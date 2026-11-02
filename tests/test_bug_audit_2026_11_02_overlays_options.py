@@ -669,3 +669,13 @@ def test_b040_brake_temperature_unused_options_dimmed(ui_env):
     assert not dimmed("brake_temperature", "font_color_temperature", False, swap_style=False)
     assert dimmed("brake_temperature", "font_color_temperature", False, swap_style=True)
     assert not dimmed("brake_temperature", "background_color_temperature", False, swap_style=True)
+
+
+# B-041: Damage integrity color dimmed by show_inverted_integrity, integrity options active without the reading
+@DESIGNS
+def test_b041_damage_integrity_options_follow_reading(ui_env, modern):
+    keys = shown_keys("damage", modern)
+    if "font_color_integrity" in keys:
+        assert not dimmed("damage", "font_color_integrity", modern, show_inverted_integrity=False)
+    for key in ("show_inverted_integrity", "show_aero_integrity_if_available"):
+        assert dimmed("damage", key, modern, show_integrity_reading=False), key
