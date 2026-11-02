@@ -170,6 +170,7 @@ Fixes from an audit of the VR overlay.
 - Radar overlay: a big `radar_radius` with a big `global_scale` no longer makes drawing pictures of several GB (app memory); the radar is at most 4096 pixels wide.
 - Line width options (`*_line_width`: Trailing, Track Map, Elevation, Heading...) are limited to 50 pixels: a huge Trailing line width slowed every overlay.
 - `Overlay Options`, Black Box: options shared by several parts (status icon size, warning outline, overheat threshold, pedal and ABS / TC colors of the incident recorder, suspension damage colors, refill mark color) are no longer dimmed while a part using them is shown.
+- `Overlay Options`, Black Box: `event_log_line_scale`, `damage_event_threshold` and `incident_color` are dimmed while the event log and the incident recorder they serve are off.
 
 ## 0.28.1 (2026-11-01)
 

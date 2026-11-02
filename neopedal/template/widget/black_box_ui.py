@@ -389,7 +389,7 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
         "text_impact", "enable_incident_replay", "show_previous_incident_trace",
     ),
     "show_event_log": (
-        "number_of_event_log_lines", "font_color_event_log", "text_damage",
+        "number_of_event_log_lines", "event_log_line_scale", "font_color_event_log", "text_damage",
         "show_flag_events", "show_pit_events", "show_penalty_events", "show_engine_overheat_events",
         "show_contact_events",
     ),

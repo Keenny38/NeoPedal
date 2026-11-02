@@ -644,3 +644,13 @@ def test_b034_black_box_shared_options_active_while_used(ui_env, key, values):
 def test_b034_black_box_shared_options_dimmed_when_unused(ui_env):
     assert dimmed("black_box", "status_icon_scale", False, display_profile="Custom", show_headlights_indicator=False,
                   show_wipers_indicator=False, show_engine_status=False)
+
+
+# B-035: Black Box options of the event log & incident recorder active while both are off
+def test_b035_black_box_log_and_recorder_options_follow_them(ui_env):
+    off = {"display_profile": "Custom", "show_event_log": False, "show_incident_recorder": False}
+    for key in ("event_log_line_scale", "damage_event_threshold", "incident_color"):
+        assert dimmed("black_box", key, False, **off), key
+    assert not dimmed("black_box", "damage_event_threshold", False, **dict(off, show_incident_recorder=True))
+    assert not dimmed("black_box", "event_log_line_scale", False, **dict(off, show_event_log=True))
+

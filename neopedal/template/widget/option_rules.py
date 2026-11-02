@@ -358,6 +358,8 @@ ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
                         ("show_pedal_bars", "show_incident_recorder")),
         "abs_active_color": ("show_abs_indicator", "show_incident_recorder"),
         "tc_active_color": ("show_tc_indicator", "show_incident_recorder"),
+        # Damage events & incident marks: of the incident recorder & event log
+        **dict.fromkeys(("damage_event_threshold", "incident_color"), ("show_incident_recorder", "show_event_log")),
         # Suspension damage of damage panel & coilover damage of suspension view
         **dict.fromkeys((
             "damage_panel_suspension_color_light", "damage_panel_suspension_color_medium",
