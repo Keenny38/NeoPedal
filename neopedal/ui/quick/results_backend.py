@@ -952,7 +952,8 @@ class RaceResultsBackend(PageBackend):
         shown = self.shown_sessions()
         keys = {info.path for info in shown}
         if newest_selected and shown:  # new session ended while newest one was shown: show new one
-            self.select(shown[0].path)
+            # Same newest one: read again too (file rewritten, replay saved by the game after it: its link)
+            self.select(shown[0].path, force=shown[0].path == self.selected_key)
         elif self.selected_key in keys:
             self.select(self.selected_key, force=True)  # file may have changed
         elif shown:

@@ -409,3 +409,34 @@ def results_backend(results_folder):  # noqa: F811
     backend.release()
     backend.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+# B-019: with the newest session shown, a reload kept the session object shown: the replay the game saves after the
+# results file never got its Watch Replay button & tab, a rewritten file was shown stale
+def test_b019_newest_session_read_again_with_its_new_replay(tmp_path, ui_env, monkeypatch):
+    from PySide6.QtCore import QEvent
+
+    from neopedal.process import results_file
+    from neopedal.ui.quick.results_backend import RaceResultsBackend
+    from tests.test_race_results import PRACTICE_XML, RACE_NAME, RACE_XML, wait_until, write_results
+
+    root = tmp_path / "Le Mans Ultimate"
+    folder = root / "UserData" / "Log" / "Results"
+    write_results(folder, {RACE_NAME: RACE_XML, "2026_09_21_18_00_00-10P1.xml": PRACTICE_XML.format(laps=5)})
+    (root / "UserData" / "Replays").mkdir(parents=True)
+    monkeypatch.setattr(results_file, "find_results_folders", lambda libraries=None: {"LMU": str(folder)})
+    page = RaceResultsBackend()
+    try:
+        page.page_shown()
+        assert wait_until(lambda: page.loaded_once)
+        assert page.selectedKey.endswith(RACE_NAME) and page.sessionHeader["replay"] == ""  # newest, no replay yet
+        replay = root / "UserData" / "Replays" / "24 Heures du Mans R1 1.Vcr"  # saved by the game once session left
+        replay.write_bytes(b"vcr")
+        written = os.path.getmtime(folder / RACE_NAME)
+        os.utime(replay, (written + 60, written + 60))
+        page.reload()  # F5 (replay folder not watched)
+        assert wait_until(lambda: page.sessionHeader.get("replay") == "24 Heures du Mans R1 1")
+    finally:
+        page.release()
+        page.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
