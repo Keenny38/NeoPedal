@@ -42,7 +42,16 @@ from ..validator import (
     valid_delta_raw,
     vehicle_position_sync,
 )
-from ._base import PENDING_CHECK, WAIT_STATE_CHANGE, DataModule, PendingLap, data_stamp, derived_updates, round6
+from ._base import (
+    PENDING_CHECK,
+    WAIT_STATE_CHANGE,
+    DataModule,
+    PendingLap,
+    data_stamp,
+    derived_updates,
+    followed_slot_id,
+    round6,
+)
 from ._lap_state import LOAD, SKIP, LapState
 
 
@@ -201,6 +210,7 @@ def calc_delta_time(
 
     last_combo_name = ""
     last_session_id: tuple[float, ...] = ()  # session token
+    last_slot_id: int | None = None  # slot id of car whose session & stint bests are kept
     delta_array_session: tuple[tuple[float, float], ...] = DELTA_DEFAULT
     delta_array_stint: tuple[tuple[float, float], ...] = DELTA_DEFAULT
     laptime_session_best = MAX_SECONDS
@@ -319,18 +329,26 @@ def calc_delta_time(
             combo_name = api.read.session.combo_name()
             session_id = session_token(api.read.session.identifier())
 
-            # New session, car, track combo, or module (re)started: session & stint best laps of
-            # same session saved before (app restarted, preset reloaded...), else none
-            if combo_name != last_combo_name or not is_same_session(last_session_id, session_id):
-                (delta_array_session, laptime_session_best,
-                 delta_array_stint, laptime_stint_best), session_readable = read_delta_session_file(
-                    filepath=filepath,
-                    filename=combo_name,
-                    session_id=session_id,
-                    pitstops=api.read.vehicle.number_pitstops(),
-                )
+            # New session, car, track combo, other car followed, or module (re)started: session & stint best
+            # laps of same session saved before (app restarted, preset reloaded...), else none; a car followed
+            # (spectate) starts from none, the session file holds the player's own laps
+            slot_id = followed_slot_id()
+            if (combo_name != last_combo_name or not is_same_session(last_session_id, session_id)
+                    or slot_id != last_slot_id):
+                if lap_state.own_car:
+                    (delta_array_session, laptime_session_best,
+                     delta_array_stint, laptime_stint_best), session_readable = read_delta_session_file(
+                        filepath=filepath,
+                        filename=combo_name,
+                        session_id=session_id,
+                        pitstops=api.read.vehicle.number_pitstops(),
+                    )
+                else:
+                    delta_array_session = delta_array_stint = DELTA_DEFAULT
+                    laptime_session_best = laptime_stint_best = MAX_SECONDS
             last_combo_name = combo_name
             last_session_id = session_id
+            last_slot_id = slot_id
 
             (delta_array_best, laptime_best), best_readable = read_delta_best_file(
                 filepath=filepath,

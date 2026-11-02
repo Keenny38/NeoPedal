@@ -179,8 +179,9 @@ class Follow:
         self.sims = sims
         self.car = 0
         self.readers = [fake_reader(sim) for sim in sims]
-        for sim, reader in zip(sims, self.readers):
+        for slot_id, (sim, reader) in enumerate(zip(sims, self.readers), 10):
             reader.session.identifier = lambda sim=sim: (1, int(sim.elapsed), sim.lap_index)
+            reader.vehicle.slot_id = lambda index=None, slot_id=slot_id: slot_id
 
     def __getattr__(self, name):
         return getattr(self.readers[self.car], name)
@@ -313,3 +314,13 @@ def test_b003_recorder_saves_laps_of_own_car_only(monkeypatch, spectating):
         gen.send(0)
         sim.tick()
     assert saved == ([] if spectating else [90.0])
+
+
+# --- B-007: session & stint bests of the car followed before never kept for the new one
+def test_b007_followed_car_starts_without_former_car_bests(monkeypatch, tmp_path):
+    from neopedal.const_common import MAX_SECONDS
+
+    _, after = run_delta(monkeypatch, tmp_path, switch_at=130.0, spectate=True, seconds=135.0)  # A: 2 laps of 60 s
+    seconds, session_best, stint_best = after[-1]
+    assert seconds > 4.0
+    assert session_best == stint_best == MAX_SECONDS  # car B: no lap completed since followed
