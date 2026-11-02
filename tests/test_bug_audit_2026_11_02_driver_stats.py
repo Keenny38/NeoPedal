@@ -942,3 +942,32 @@ def test_b020_clean_rate_counts_each_race_once():
 
     cell = Table().history_cells("Spa", "GT3", 0.0)["clean_rate"]
     assert cell.value == 50.0 and cell.tip.startswith("1 of 2 races")
+
+
+# B-028
+def test_b028_year_activity_summary_counts_days_of_that_year_only():
+    """2 h on Monday 2024-12-30 (week holding 2025-01-01, drawn empty) and 1 h in 2025: summary of 2025 is 1 h"""
+    from datetime import datetime
+
+    from neopedal.ui.quick.stats_overview import StatsOverview
+
+    def record(year, month, day, seconds):
+        return driver_history.SessionRecord(time=datetime(year, month, day, 12).timestamp(), track="Spa",
+                                            vehicle="GT3", seconds=seconds, best=130.0)
+
+    class Overview(StatsOverview):
+        def __init__(self, history):
+            self.history = history
+            self._history_stamp = (1, 1)
+            self._activity_key = ()
+            self._activity = {}
+            self.logos = type("Logos", (), {"track": lambda self, name: ""})()
+
+        def viewer_config(self):
+            return {"activity_year": 2025}
+
+        def class_of(self, vehicle):
+            return vehicle
+
+    data = Overview([record(2024, 12, 30, 7200), record(2025, 6, 1, 3600)]).activity_data()
+    assert data["summary"].startswith("1 day driven · 1 h")

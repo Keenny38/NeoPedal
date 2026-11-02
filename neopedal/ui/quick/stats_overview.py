@@ -206,8 +206,8 @@ class StatsOverview(StatsHost):
                 continue
             if day < start:
                 break
-            if day > end:
-                continue
+            if day > end or day > today or (year and not first_day <= day <= last_day):
+                continue  # days of other years or to come (shown empty) never in the summary
             seconds[day] = seconds.get(day, 0.0) + record.seconds
             sessions[day] = sessions.get(day, 0) + 1
         days = []
