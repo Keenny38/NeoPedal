@@ -274,6 +274,7 @@ Fixes from an audit of the VR overlay.
 - Overlay Options: `visibility_context` (when an overlay is shown) has a help text.
 - Overlay Options: help texts of Laps and Position `warning_color_invalid_lap`, Pace Notes and Track Notes `show_debugging` and Tyre Wear `warning_threshold_wear` describe what these options do (they described another option or other values).
 - Standings overlay: the help of `maximum_vehicles_combined_mode` tells it also applies in split mode when the session has one class.
+- Race Notifications overlay: `show_position_change` and `show_position_change_in_class` each have their own help.
 
 ## 0.28.1 (2026-11-01)
 

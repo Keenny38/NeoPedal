@@ -1184,8 +1184,8 @@
             "show_full_course_yellow": "Show message when full course yellow starts and ends, and when race is halted (red flag).",
             "show_lap_invalidated": "Show message when game invalidates current lap.",
             "show_penalty": "Show message when a new penalty is given.",
-            "show_position_change": "Show message when overall position, or position in class, is gained or lost.",
-            "show_position_change_in_class": "Show message when overall position, or position in class, is gained or lost."
+            "show_position_change": "Show message in races when overall position is gained or lost.",
+            "show_position_change_in_class": "Show message in races when position in class is gained or lost, whether show_position_change is enabled or not."
         },
         "race_plan": {
             "enable_live_consumption": "With enable_live_replan: rest of the race planned with the lap time, fuel & energy per lap of the latest 5 valid laps at race pace of the race (at least 3, laps of practice & qualifying sessions left out), as the Game Session source of the race calculator, even with the race calculator closed. Disabled: values of the race calculator.",

@@ -1404,3 +1404,12 @@ def test_b013_combined_count_help_tells_single_class(ui_env):
     from neopedal.i18n.options import option_help_english
 
     assert "one class" in option_help_english("standings", "maximum_vehicles_combined_mode")
+
+
+# B-084: Race Notifications overall & class position change sharing one help
+def test_b084_position_change_helps_distinct(ui_env):
+    from neopedal.i18n.options import option_help_english
+
+    overall = option_help_english("race_notifications", "show_position_change")
+    in_class = option_help_english("race_notifications", "show_position_change_in_class")
+    assert overall and in_class and overall != in_class

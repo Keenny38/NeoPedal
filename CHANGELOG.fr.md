@@ -274,6 +274,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Options d'overlay : `visibility_context` (quand un overlay est affiché) a un texte d'aide.
 - Options d'overlay : les textes d'aide de `warning_color_invalid_lap` (Tours et position), `show_debugging` (Notes de pilotage, Notes de piste) et `warning_threshold_wear` (Usure des pneus) décrivent ce que font ces options (ils décrivaient une autre option ou d'autres valeurs).
 - Overlay Classement : l'aide de `maximum_vehicles_combined_mode` indique qu'elle s'applique aussi en mode scindé quand la session n'a qu'une catégorie.
+- Overlay Notifications de course : `show_position_change` et `show_position_change_in_class` ont chacune leur aide.
 
 ## 0.28.1 (2026-11-01)
 

@@ -4028,8 +4028,11 @@ Set how long each message is shown in seconds, fading out at the end. Value rang
     number_of_notifications
 Set maximum number of messages shown at the same time, oldest message is removed first. Value range in `1` to `8`. Default is `3`.
 
-    show_position_change, show_position_change_in_class
-Show message when overall position, or position in class, is gained or lost.
+    show_position_change
+Show message in races when overall position is gained or lost.
+
+    show_position_change_in_class
+Show message in races when position in class is gained or lost, whether `show_position_change` is enabled or not.
 
     show_penalty
 Show message when a new penalty is given.
