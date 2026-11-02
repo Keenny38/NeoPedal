@@ -34,8 +34,7 @@ CLASSIC_OPTIONS = {
     "deltabest": ("show_invalid_lap_highlight",),
     "laps_and_position": ("show_invalid_lap_highlight", "warning_color_invalid_lap"),
     "weather": ("show_wind_speed", "prefix_wind", "font_color_wind", "background_color_wind"),
-    "gear": ("show_speed_limiter_pit_reminder",),
-}
+}  # gear show_speed_limiter_pit_reminder: one option of both designs, on by default (B-069)
 
 
 def style(**options) -> dict:
@@ -231,10 +230,10 @@ def pit_lane_without_limiter(monkeypatch):
 
 def test_classic_gear_limiter_reminder(widgets, monkeypatch):  # noqa: F811
     pit_lane_without_limiter(monkeypatch)
-    default = widgets("gear", modern=False)
-    default.timerEvent(None)
-    assert default.bar_limiter.isHidden()
-    widget = widgets("gear", modern=False, show_speed_limiter_pit_reminder=True)
+    off = widgets("gear", modern=False, show_speed_limiter_pit_reminder=False)
+    off.timerEvent(None)
+    assert off.bar_limiter.isHidden()
+    widget = widgets("gear", modern=False, show_speed_limiter_pit_reminder=True)  # default (B-069)
     widget.timerEvent(None)
     assert not widget.bar_limiter.isHidden()
     wcfg = widget.wcfg
