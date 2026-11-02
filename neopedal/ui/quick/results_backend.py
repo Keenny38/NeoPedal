@@ -643,6 +643,8 @@ def merged_contacts(events: Iterable[Event]) -> list[Event]:
     merged: list[Event] = []
     last: dict[tuple[str, str], int] = {}  # pair: index in merged
     for event in events:
+        if event.kind == rf.POINTS_ONLY:  # track limits points only (no further action): never listed
+            continue
         if event.kind != "contact":
             merged.append(event)
             continue

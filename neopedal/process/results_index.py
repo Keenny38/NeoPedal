@@ -427,7 +427,7 @@ def read_summaries(folders: Sequence[str], cache_folder: str = "") -> list[Resul
 # Summaries cache: player session of each results file, by path & file stamp (Home driver card, driver stats).
 # A few hundred files take a second or more to parse (GIL held: UI slowed), the cache a few ms to read.
 SUMMARY_CACHE_NAME = "results_summaries.cache"
-SUMMARY_CACHE_VERSION = 3  # ResultSummary fields or summarize() changed: bump, cache read again from files
+SUMMARY_CACHE_VERSION = 4  # ResultSummary fields or summarize() changed: bump, cache read again from files
 SUMMARY_CACHE_MAX_SIZE = 32 * 1024 * 1024
 _summary_lock = threading.Lock()  # one cached read at a time (second reader then finds every file cached)
 # Cache file path: path: (stamp, player names, summary or None: not a results file or player not in it)

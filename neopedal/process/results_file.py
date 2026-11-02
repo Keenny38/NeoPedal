@@ -72,6 +72,7 @@ SESSION_KINDS = (  # session element tag prefix, kind
 )
 FINISHED = "Finished Normally"
 IMMOVABLE = "Immovable"  # contact with track objects (walls, barriers)
+POINTS_ONLY = "track_limits_points"  # event kind: track limits points of a "no further action" (never listed)
 GAME_FOLDERS = {  # game: Steam folder name
     "LMU": "Le Mans Ultimate",
     "rFactor 2": "rFactor 2",
@@ -320,9 +321,11 @@ def parse_events(stream: ET.Element | None) -> tuple[Event, ...]:
             events.append(Event(time, "penalty", element.get("Driver", ""), element.get("Penalty", ""), text,
                                 _float(element.get("Time"))))
         elif tag == "TrackLimits":
-            if element.get("Resolution") == "7":  # no further action
+            # No further action: not listed, its points counted (they grow with these warnings too)
+            kind = POINTS_ONLY if element.get("Resolution") == "7" else "track_limits"
+            if kind == POINTS_ONLY and _float(element.get("CurrentPoints")) <= 0:  # nothing to count
                 continue
-            events.append(Event(time, "track_limits", element.get("Driver", ""), text, text,
+            events.append(Event(time, kind, element.get("Driver", ""), text, text,
                                 _float(element.get("CurrentPoints"))))
         elif tag == "ChatMessage":
             sender, _, _ = text.partition(": ")
@@ -923,7 +926,7 @@ def track_limit_points(events: Iterable[Event]) -> dict[str, float]:
     """Track limits points of each driver at end of session (highest reached)"""
     points: dict[str, float] = {}
     for event in events:
-        if event.kind == "track_limits":
+        if event.kind in ("track_limits", POINTS_ONLY):
             points[event.driver] = max(points.get(event.driver, 0.0), event.value)
     return points
 

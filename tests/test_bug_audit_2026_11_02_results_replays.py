@@ -595,3 +595,18 @@ def test_b025_served_penalty_notices_not_penalties():
     penalties = [event for event in result.events if event.kind == "penalty"]
     assert len(penalties) == 1 and penalties[0].driver == "Bob Racer"
     assert rf.penalty_counts(result.events) == {"Bob Racer": 1}
+
+
+# B-026: track limits points of "no further action" warnings left out (points of a driver 0 instead of 2.5)
+def test_b026_track_limits_points_count_no_further_action():
+    from neopedal.process import results_file as rf
+    from neopedal.ui.quick import results_backend as rb
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    warning = ('<TrackLimits Driver="Alice Driver" ID="0" Lap="3" WarningPoints="2.5" CurrentPoints="2.5" '
+               'Resolution="7" et="500.0">Over Limit</TrackLimits>\n')
+    xml = RACE_XML.replace("<TrackLimits Driver=", warning + "<TrackLimits Driver=", 1)
+    result = rf.parse_results(xml.encode("utf-8"), RACE_NAME)
+    assert rf.track_limit_points(result.events)["Alice Driver"] == 2.5
+    listed = rb.merged_contacts(result.events)
+    assert not [event for event in listed if event.driver == "Alice Driver" and "Over Limit" in event.text]
