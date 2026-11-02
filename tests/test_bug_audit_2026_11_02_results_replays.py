@@ -849,3 +849,13 @@ def test_b041_timeline_double_click_never_seeks():
     assert "jumpTo" not in clicked and "seek(" not in clicked and "clickTimer.restart()" in clicked
     assert "clickTimer.stop()" in area[area.index("onDoubleClicked:"):]
     assert "mouseDoubleClickInterval" in area
+
+
+# B-042: replay opened or played from the game (no command sent by the page): play / pause sent PLAY to a replay playing
+def test_b042_toggle_play_pauses_replay_playing_from_game(replays_page):  # noqa: F811
+    backend = answered(replays_page, GAME_ANSWERS)
+    backend.last_command, backend.replay_rate = "", 1.0  # playing, started in the game
+    replays_page.sent.clear()
+    backend.togglePlay()
+    wait_commands(backend)
+    assert replays_page.sent == [("PUT", "/rest/watch/replayCommand/VCRCOMMAND_STOP")]

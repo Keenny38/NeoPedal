@@ -193,8 +193,10 @@ class ReplaysPlayback(ReplaysBase):
 
     @Slot()
     def togglePlay(self):
-        """Pause replay if moving (last command), else play"""
-        self.playback(PAUSE if self.last_command not in ("", PAUSE) else PLAY)
+        """Pause replay if moving (last command; none sent: measured rate, replay opened or played from the game),
+        else play"""
+        moving = abs(self.replay_rate) > 0.05 if self.last_command == "" else self.last_command != PAUSE
+        self.playback(PAUSE if moving else PLAY)
 
     @Slot(int)
     def focusCar(self, step: int):
