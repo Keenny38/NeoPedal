@@ -418,6 +418,8 @@ TRANSLATION = MappingProxyType({
     "Top level reached": "Niveau maximal atteint",
     "Tracks with stats": "Circuits avec statistiques",
     "Unable to read stats file.": "Impossible de lire le fichier de statistiques.",
+    "Lap time changed since shown (a faster lap was saved): not reset.":
+        "Le temps a changé depuis son affichage (un tour plus rapide a été enregistré) : il n'est pas réinitialisé.",
     "Unable to save stats file.": "Impossible d'enregistrer le fichier de statistiques.",
     "Unable to save stats file. Session history was changed anyway, use Undo to revert it.": (
         "Impossible d'enregistrer le fichier de statistiques. L'historique des sessions a quand même été modifié, "

@@ -157,6 +157,10 @@ class StatsEdits(StatsHost):
     def stats_unsaved(self):
         self.warning(tr("Unable to save stats file."))
 
+    def stats_changed(self):
+        self.warning(tr("Lap time changed since shown (a faster lap was saved): not reset."))
+        self.reload_stats()
+
     def stats_unsaved_history_changed(self):
         self.warning(tr("Unable to save stats file. Session history was changed anyway, use Undo to revert it."))
 
@@ -194,7 +198,7 @@ class StatsEdits(StatsHost):
 
     def edit_stats(self, path: tuple[str, ...], value: Any,
                    history_change: Callable[[list[SessionRecord]], tuple[list, list]] | None = None,
-                   done_text: str = "") -> bool:
+                   done_text: str = "", expected: float = 0.0) -> bool:
         """Set stats at path (None removes it, empty path: whole file), history changed, undo recorded
 
         Saved on worker thread after edits asked before (see run_locked), page updated once saved.
@@ -202,26 +206,30 @@ class StatsEdits(StatsHost):
         Args:
             history_change: history records -> (records removed, records added), run on worker thread.
             done_text: toast once saved, with Undo (translated, names escaped).
+            expected: lap time shown at path (lap time reset), not changed if file holds another one now.
 
         Returns:
             True if done now (never: saved in background).
         """
-        return self.run_locked(StatsJob("edit", self.write_edit, (path, value, history_change), self.edit_written,
-                                        (done_text,)))
+        return self.run_locked(StatsJob("edit", self.write_edit, (path, value, history_change, expected),
+                                        self.edit_written, (done_text,)))
 
     @classmethod
     def write_edit(cls, path: tuple[str, ...], value: Any,
                    history_change: Callable[[list[SessionRecord]], tuple[list, list]] | None,
-                   ) -> tuple[str, StatsEdit | None]:
+                   expected: float = 0.0) -> tuple[str, StatsEdit | None]:
         """Edit applied to stats file read again (STATS_LOCK held, worker thread), see edit_stats
 
         Returns:
-            Outcome ("saved", "history" changed only, "unsaved", "unreadable"), edit to undo.
+            Outcome ("saved", "history" changed only, "unsaved", "unreadable", "changed": lap time saved since
+            shown), edit to undo.
         """
         with STATS_LOCK:  # held already (run_locked), reentrant
             stats_user = cls.load_fresh_stats()
             if stats_user is None:
                 return "unreadable", None
+            if expected and abs(valid_laptime(stats_entry(stats_user, path) or 0) - expected) > 0.0005:
+                return "changed", None  # stats module saved a new lap time since shown: never reset unseen
             backup_stats_file(cfg.path.config)
             before = stats_entry(stats_user, path) if path else copy.deepcopy(stats_user)
             if path:
@@ -253,6 +261,8 @@ class StatsEdits(StatsHost):
             self.stats_unreadable()
         elif outcome == "unsaved":
             self.stats_unsaved()
+        elif outcome == "changed":
+            self.stats_changed()
         elif edit is not None:
             self.edit_done(edit)
             if outcome == "history":
@@ -405,7 +415,7 @@ class StatsEdits(StatsHost):
 
         done_text = (tr("Lap time %1 reset for %2").replace("%1", f"<b>{calc.sec2laptime_full(laptime)}</b>")
                      .replace("%2", f"<b>{html.escape(vehicle)}</b>"))
-        self.edit_stats((track, vehicle, column), DriverStats.__dict__[column], reset_history, done_text)
+        self.edit_stats((track, vehicle, column), DriverStats.__dict__[column], reset_history, done_text, laptime)
 
     # Backups
     @Property(list, notify=StatsCore.editsChanged)

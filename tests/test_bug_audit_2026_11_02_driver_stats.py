@@ -408,3 +408,17 @@ def test_b003_redo_vehicle_removal_without_new_stint_removes_it(stats_folder):
     StatsEdits.apply_edit(edit, True)
     StatsEdits.apply_edit(edit, False)
     assert read_stats(stats_folder)["Spa"] == {"GT3": {"valid": 2}}
+
+
+# B-007
+def test_b007_lap_time_reset_only_if_still_the_one_shown(stats_folder):
+    """Page shows 130.0 while the Stats module saved 125.0: Reset Lap Time leaves the newer best lap"""
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    write_stats(stats_folder, {"Spa": {"Hyper - Toyota": {"pb": 125.0, "valid": 10}}})
+    path = ("Spa", "Hyper - Toyota", "pb")
+    assert StatsEdits.write_edit(path, driver_stats.MAX_SECONDS, None, 130.0) == ("changed", None)
+    assert read_stats(stats_folder)["Spa"]["Hyper - Toyota"]["pb"] == 125.0
+    outcome, _ = StatsEdits.write_edit(path, driver_stats.MAX_SECONDS, None, 125.0)
+    assert outcome == "saved"
+    assert read_stats(stats_folder)["Spa"]["Hyper - Toyota"]["pb"] == driver_stats.MAX_SECONDS
