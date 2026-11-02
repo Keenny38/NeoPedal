@@ -766,3 +766,22 @@ def test_b022_debrief_finds_laps_of_class_with_invalid_file_characters(tmp_path)
     record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="Car A", best=120.0, valid=1,
                                           seconds=130, vehicle_class="GT3/GT4")
     assert len(session_debrief.build_debrief(record, [record], str(tmp_path)).laps) == 1
+
+
+# B-023
+def test_b023_debrief_keeps_first_laps_of_stint_with_a_pause(tmp_path):
+    """10 min pause offline (game clock frozen): driving time shorter than the stint, first laps still found"""
+    from neopedal.userfile import session_debrief
+    from neopedal.userfile.telemetry_lap import lap_folder_name
+
+    folder = os.path.join(tmp_path, lap_folder_name("Spa - GT3"))
+    session_start = DEBRIEF_T - 60
+    ends = [DEBRIEF_T + 125, DEBRIEF_T + 250, DEBRIEF_T + 975, DEBRIEF_T + 1100]
+    for number, end in enumerate(ends, 1):
+        write_debrief_lap(folder, number, 120.0 + number * 0.1, end, session_start=session_start)
+    write_debrief_lap(folder, 9, 118.0, session_start - 500, session_start=session_start - 4000)  # other session
+    record = driver_history.SessionRecord(time=ends[-1] + 20, track="Spa", vehicle="Car A", best=120.1, valid=4,
+                                          seconds=520, vehicle_class="GT3")
+    debrief = session_debrief.build_debrief(record, [record], str(tmp_path))
+    assert [lap.number for lap in debrief.laps] == [1, 2, 3, 4]
+    assert "lap001" in debrief.best_path

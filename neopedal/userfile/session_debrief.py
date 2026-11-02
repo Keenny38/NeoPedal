@@ -142,9 +142,15 @@ def stint_laps(folder: str, record: SessionRecord, files: Sequence[LapFile] | No
     if not folder:
         return []
     start, end = stint_window(record)
-    start = max(start, previous + 0.5)  # lap file times are whole seconds (name): a lap of previous stint never
-    found = [lap for lap in (lap_files(folder) if files is None else files)
-             if start <= lap_timestamp_of(lap.filename) <= end and lap.lap_time > 0]
+    first = previous + 0.5  # lap file times are whole seconds (name): a lap of previous stint never
+    candidates = [lap for lap in (lap_files(folder) if files is None else files)
+                  if first <= lap_timestamp_of(lap.filename) <= end and lap.lap_time > 0]
+    found = [lap for lap in candidates if lap_timestamp_of(lap.filename) >= start]
+    if found:  # pauses, pit stops: stint started before its driving time says, never before its session
+        newest = max(found, key=lambda lap: lap_timestamp_of(lap.filename))
+        session_start = finite(read_lap_info(newest.path).get("session_start"))
+        if 0 < session_start < start:
+            found = [lap for lap in candidates if lap_timestamp_of(lap.filename) >= session_start]
     found.sort(key=lambda lap: (lap_timestamp_of(lap.filename), lap_number_of(lap.filename)))
     return [debrief_lap(lap, read_lap_info(lap.path)) for lap in found]
 
