@@ -541,10 +541,11 @@ class HomeBackend(PageBackend):
 
         def progress() -> list[dict]:
             """Personal bests of the stats file as the driver stats page takes them (lap times completed from
-            results files): same goals near or reached on both pages"""
-            from ...userfile.driver_stats import load_stats_json_file
+            results files): same goals near or reached on both pages; file only read (never created here)"""
+            from ...const_file import FileExt, StatsFile
+            from ...userfile import read_json
 
-            stats_user = load_stats_json_file(filepath=cfg.path.config, show_log=False)
+            stats_user = read_json(f"{cfg.path.config}{StatsFile.DRIVER}{FileExt.STATS}", strict=False, dict_only=True)
             bests = personal_bests(stats_user) if stats_user is not None else None
             return weekly_progress(records, goals, now, bests=bests)
 
