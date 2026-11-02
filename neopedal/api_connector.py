@@ -25,6 +25,7 @@ from __future__ import annotations
 import ctypes
 import logging
 import os
+import weakref
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from time import monotonic
@@ -163,6 +164,23 @@ class Connector(ABC):
                 setattr(self, name, None)
 
 
+def same_source(source: weakref.ref | None, player: ReplayPlayer | None) -> bool:
+    """Whether data source of a start (replay player, None: game) is the one of last start (source: weak
+    reference to its player, never keeping a replay file open, None: game)"""
+    if source is None:
+        return player is None
+    return player is not None and source() is player
+
+
+def forget_source_data(rest_dataset: Any, results: Any = None) -> None:
+    """Data of the former source (live game, or another replay) forgotten before reading a new one: Rest API values
+    (kept until each task fetches again, never while its option is off) & results stream (incidents, penalties)"""
+    type(rest_dataset).__init__(rest_dataset)  # reset in place: readers hold this object
+    if results is not None:
+        results.clear()
+        results.timestamp = 0
+
+
 class SimLMU(Connector):
     """Le Mans Ultimate - LMU Native Sharedmemory API"""
 
@@ -170,6 +188,7 @@ class SimLMU(Connector):
         # Primary API
         "_shmmapi",
         "_replaying",
+        "_source",
         # Secondary API
         "_restapi",
         "_restapi_dataset",
@@ -181,12 +200,16 @@ class SimLMU(Connector):
         super().__init__()
         self._shmmapi = lmu_connector.LMUInfo()
         self._replaying = False
+        self._source: weakref.ref | None = None  # replay played by last start (see same_source), None: game
         self._restapi_dataset = lmu_restapi.RestAPIData()
         self._restapi = restapi_connector.RestAPIConnector(lmu_restapi.lmu_restapi_tasks(), self._restapi_dataset)
 
     def start(self):
         player = self.replay_player()
         self._replaying = player is not None
+        if not same_source(self._source, player):  # back to game from a replay, or another replay
+            self._source = None if player is None else weakref.ref(player)
+            forget_source_data(self._restapi_dataset, self._shmmapi._sync.results)
         # Recorded frames & Rest API data instead of game
         self._shmmapi.setReplay(player, self._restapi_dataset)
         self._shmmapi.start()  # 1 load first
@@ -260,6 +283,7 @@ class SimRF2(Connector):
         # Primary API
         "_shmmapi",
         "_replaying",
+        "_source",
         # Secondary API
         "_restapi",
         "_restapi_dataset",
@@ -271,6 +295,7 @@ class SimRF2(Connector):
         super().__init__()
         self._shmmapi = rf2_connector.RF2Info()
         self._replaying = False
+        self._source: weakref.ref | None = None  # replay played by last start (see same_source), None: game
         self._restapi_dataset = rf2_restapi.RestAPIData()
         self._restapi = restapi_connector.RestAPIConnector(
             self.restapi_tasks(), self._restapi_dataset, on_start=reset_rf2_setup_parts)
@@ -283,6 +308,9 @@ class SimRF2(Connector):
     def start(self):
         player = self.replay_player()
         self._replaying = player is not None
+        if not same_source(self._source, player):  # back to game from a replay, or another replay
+            self._source = None if player is None else weakref.ref(player)
+            forget_source_data(self._restapi_dataset)
         # Recorded frames & Rest API data instead of game
         self._shmmapi.setReplay(player, self._restapi_dataset)
         self._shmmapi.start()  # 1 load first

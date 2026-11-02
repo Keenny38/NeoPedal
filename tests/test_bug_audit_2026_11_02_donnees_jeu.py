@@ -472,3 +472,50 @@ def test_b008_race_length_and_start_time_of_live_race(race_session):
     assert race_live_data.race_length() == ("minutes", 180)
     assert race_model.live_race_length() == ("minutes", 180)
     assert race_live_data.start_minutes_now() == 12 * 60  # race started at 12:00, not "now"
+
+
+# --- B-010 & B-011: back to game from a replay (or another replay): replay results & Rest API values forgotten
+@pytest.mark.parametrize("api_name", ["SimLMU", "SimRF2"])
+def test_b010_b011_replay_data_forgotten_on_source_change(monkeypatch, api_name):
+    from neopedal import api_connector
+    from neopedal.adapter import lmu_connector, restapi_connector, rf2_connector
+
+    class Player:  # replay player stand-in (weak references allowed, as ReplayPlayer)
+        pass
+
+    source = {"player": None}
+    cls = getattr(api_connector, api_name)
+    monkeypatch.setattr(cls, "replay_player", lambda self: source["player"])
+    for info in (lmu_connector.LMUInfo, rf2_connector.RF2Info):
+        for name in ("setReplay", "start"):
+            monkeypatch.setattr(info, name, lambda self, *args: None)
+    monkeypatch.setattr(restapi_connector.RestAPIConnector, "start", lambda self: None)
+    sim = cls()
+    rest = sim._restapi_dataset
+    results = getattr(sim._shmmapi._sync, "results", None)
+
+    def play_replay():  # values applied from the replay file
+        rest.setupName = "Replay setup"
+        rest.aeroDamage = 0.3
+        if results is not None:
+            results.data[b"Test Driver"] = {"contact_vehicle": 6}
+            results.timestamp = 100.0
+
+    source["player"] = replay_a = Player()
+    sim.start()
+    play_replay()
+    sim.start()  # same replay restarted (preset reload): kept
+    assert rest.setupName == "Replay setup"
+    source["player"] = None  # back to game
+    sim.start()
+    assert rest.setupName == "" and rest.aeroDamage == type(rest)().aeroDamage
+    if results is not None:
+        assert not results.data and results.timestamp == 0
+    rest.setupName = "Game setup"
+    sim.start()  # game restarted: kept
+    assert rest.setupName == "Game setup"
+    source["player"] = Player()  # another replay
+    play_replay()
+    del replay_a
+    sim.start()
+    assert rest.setupName == ""
