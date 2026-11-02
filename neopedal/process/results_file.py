@@ -335,12 +335,17 @@ def parse_events(stream: ET.Element | None) -> tuple[Event, ...]:
 
 
 def _drop_repeats(events: Iterable[Event]) -> Iterable[Event]:
-    """Track limits are written twice in a row by the game"""
-    last: Event | None = None
+    """Track limits are written twice by the game, in a row or around the penalty they gave (same time): events
+    sorted by time"""
+    seen: set[Event] = set()
+    at = None
     for event in events:
-        if event != last:
+        if event.time != at:
+            seen.clear()
+            at = event.time
+        if event not in seen:
+            seen.add(event)
             yield event
-        last = event
 
 
 def mark_player(entries: list[Entry], player_names: Iterable[str]) -> list[Entry]:

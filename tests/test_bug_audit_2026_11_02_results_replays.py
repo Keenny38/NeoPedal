@@ -610,3 +610,17 @@ def test_b026_track_limits_points_count_no_further_action():
     assert rf.track_limit_points(result.events)["Alice Driver"] == 2.5
     listed = rb.merged_contacts(result.events)
     assert not [event for event in listed if event.driver == "Alice Driver" and "Over Limit" in event.text]
+
+
+# B-027: track limits written again after the penalty they gave (same time, not in a row) listed twice
+def test_b027_track_limits_repeated_around_penalty_listed_once():
+    from neopedal.process import results_file as rf
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    limit = ('<TrackLimits Driver="Carl Slow" ID="2" Lap="3" WarningPoints="1" CurrentPoints="3" Resolution="1" '
+             'et="600.0">Penalty given</TrackLimits>\n')
+    penalty = ('<Penalty Driver="Carl Slow" ID="2" Penalty="Drive Thru" Time="0" Laps="3" Reason="Track Limits" '
+               'et="600.0">Carl Slow received Drive Thru penalty for Track Limits</Penalty>\n')
+    xml = RACE_XML.replace("<TrackLimits Driver=", limit + penalty + limit + "<TrackLimits Driver=", 1)
+    result = rf.parse_results(xml.encode("utf-8"), RACE_NAME)
+    assert [event.kind for event in result.events if event.time == 600.0] == ["track_limits", "penalty"]
