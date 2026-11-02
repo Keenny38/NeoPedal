@@ -716,11 +716,16 @@ class FuelLevelBar(QWidget):
         self.show_refill_mark = show_refill_mark
         self.setFixedSize(width, height)
 
+    def mark_left(self, value: float, mark_width: float) -> float:
+        """Left of a level mark: value x bar width, kept inside the bar"""
+        return min(max(value, 0.0) * self.bar_width, max(self.bar_width - mark_width, 0.0))
+
     def update_input(self, input_value: float, start_value: float, refill_value: float):
         """Update input"""
         self.rect_input.setRight(input_value * self.bar_width)
-        self.rect_start.moveLeft(start_value * self.bar_width)
-        self.rect_refuel.moveLeft(refill_value * self.bar_width)
+        # Marks kept inside the bar: full (1.0) or over (refill of a full tank) drawn out of it (B-020)
+        self.rect_start.moveLeft(self.mark_left(start_value, self.rect_start.width()))
+        self.rect_refuel.moveLeft(self.mark_left(refill_value, self.rect_refuel.width()))
         self.update()
 
     def paintEvent(self, event):

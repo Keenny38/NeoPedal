@@ -548,3 +548,19 @@ def picture_width(name: str, modern: bool, **values) -> int:
 def test_b019_brake_bias_modern_boxes_fit_decimal_places(ui_env, bundled_fonts, key):
     default = cfg.user.setting["brake_bias"][key]
     assert picture_width("brake_bias", True, **{key: default + 2}) > picture_width("brake_bias", True)
+
+
+# B-020: Fuel & Virtual Energy (classic): start & refill marks drawn out of the bar at 100 % (full tank)
+def test_b020_level_marks_kept_inside_bar(ui_env):
+    from neopedal.widget._painter import FuelLevelBar
+
+    bar = FuelLevelBar(None, width=150, height=10, start_mark_width=3, refill_mark_width=3, input_color="#FFFFFF",
+                       bg_color="#000000", start_mark_color="#FF0000", refill_mark_color="#00FF00",
+                       show_start_mark=True, show_refill_mark=True)
+    try:
+        bar.update_input(0.5, 1.0, 1.2)  # started full, refill above the tank (full tank needed)
+        assert bar.rect_start.right() <= 150 and bar.rect_refuel.right() <= 150
+        bar.update_input(0.5, 0.4, 0.6)  # inside: drawn where they were
+        assert bar.rect_start.left() == 60 and bar.rect_refuel.left() == 90
+    finally:
+        bar.deleteLater()

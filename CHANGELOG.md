@@ -165,6 +165,7 @@ Fixes from an audit of the VR overlay.
 - An overlay switched on while a preset loads (Overlays page, hotkey, tray menu) no longer keeps running with the options of the previous preset: it is started again from the loaded preset, or closed if it is off there.
 - Delta Best and Delta Best Extended overlays: a `delta_display_range` of 0 no longer shows every delta as `+0.000`, and a negative one no longer shows it with the wrong sign.
 - Brake Bias overlay, modern look: values are no longer cut with `…` when more decimal places than the defaults are set.
+- Fuel and Virtual Energy overlays, classic look: the start and refill marks of the level bar no longer disappear at 100 % (stint started full) or when a full tank is needed.
 
 ## 0.28.1 (2026-11-01)
 
