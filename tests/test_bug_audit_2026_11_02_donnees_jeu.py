@@ -410,3 +410,41 @@ def test_b006_finished_car_never_keeps_gaps_of_car_that_left(field, monkeypatch)
     moved = field.dataSet[2]
     assert moved.gapsFrozen  # its own gaps, frozen now
     assert (moved.gapBehindLeader, moved.gapBehindNext) != kept
+
+
+# --- B-009: resume after a game pause keeps session timing of every car (recorded session)
+def play_vehicles(monkeypatch, frames: int, pause_at: int | None) -> list:
+    """Vehicles module on recorded session frames, game paused (connector frozen) on frame pause_at"""
+    from neopedal.api_control import api
+    from neopedal.module import module_vehicles
+    from neopedal.module_info import VehiclesInfo, minfo
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession, lockstep_modules
+
+    monkeypatch.setattr(minfo, "vehicles", VehiclesInfo())
+    monkeypatch.setattr(module_vehicles, "_index_slot_ids", {})
+    monkeypatch.setattr(module_vehicles, "_point_times", {})
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    monkeypatch.setattr(api, "_api", session.connector)
+    monkeypatch.setattr(api, "read", session.reader)
+    try:
+        with lockstep_modules(monkeypatch, ["module_vehicles"], cfg) as lockstep:
+            for index in range(frames):
+                def load(index=index):
+                    session.load(index)
+                    if index == pause_at:
+                        realtime_state.paused = True  # connector frozen (game paused), resumes next frame
+                lockstep.step(load)
+            lockstep.finish()
+            output = minfo.vehicles
+            return [(tuple(data.sectors.best), data.classBestSectors, data.sectors.last_kind)
+                    for data in output.dataSet[:output.totalVehicles]]
+    finally:
+        session.close()
+
+
+def test_b009_resume_after_pause_keeps_sector_bests(ui_env, monkeypatch):
+    for name in ("active", "paused", "resets", "shown", "session_type", "in_pits"):
+        monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
+    realtime_state.active = realtime_state.paused = realtime_state.shown = False
+    assert play_vehicles(monkeypatch, 436, 430) == play_vehicles(monkeypatch, 436, None)

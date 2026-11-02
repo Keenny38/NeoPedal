@@ -87,6 +87,9 @@ class Realtime(DataModule):
         max_finish_time_diff = max(self.mcfg["finish_time_difference_threshold"], 0)
         last_version_update = None
         near_range = NEAR_RANGE
+        last_session_key: tuple | None = None  # session of last (re)start or resume
+        last_session_elapsed = -1.0
+        last_in_race = -1
 
         while not _event_wait(update_interval):
             if not realtime_state.paused:
@@ -96,11 +99,17 @@ class Realtime(DataModule):
                     output.dataSetVersion = -1
                     output.scoringSnapshot = None
                     reset_leader(output)  # until place 1 found in scoring (stale index of other session)
-                    _index_slot_ids.clear()  # new session or reload: slot ids from scratch
-                    reset_session_timing(output)
+                    # Module (re)started or other session: slot ids & session timing from scratch; kept on resume
+                    # of same session (game paused): best sectors, lap kinds & timed points of every car
+                    session = api.read.session
+                    session_key = (session.track_name(), session.session_type(), session.start())
+                    if last_session_key != session_key:
+                        last_session_key = session_key
+                        _index_slot_ids.clear()
+                        reset_session_timing(output)
+                        last_session_elapsed = -1.0
+                        last_in_race = -1
                     last_veh_total = -1
-                    last_session_elapsed = -1.0
-                    last_in_race = -1
                     last_scoring_time = -1.0
                     last_tick_veh_total = -1
                     last_low_priority = 0.0  # clock time of last low priority pass
