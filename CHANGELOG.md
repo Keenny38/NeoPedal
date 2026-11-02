@@ -183,6 +183,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Timing (classic look): `font_color_invalid_last` is no longer dimmed with the last lap hidden, as it also colors an invalid current lap.
 - `Overlay Options`, Fuel and Virtual Energy (classic look): the low fuel and low energy colors are no longer dimmed with the warning flash off.
 - `Overlay Options`, Instrument: the engine off and stalling colors and `stalling_rpm_threshold` are dimmed while `show_ignition` is off.
+- `Overlay Options`, Gear: the speed limiter options are no longer dimmed while the speed is hidden, as the limiter still shows; they follow `show_speed_limiter`.
 
 ## 0.28.1 (2026-11-01)
 

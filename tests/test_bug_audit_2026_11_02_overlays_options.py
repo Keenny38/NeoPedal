@@ -746,3 +746,11 @@ def test_b065_instrument_ignition_options(ui_env, modern):
     for key in ("warning_color_engine_off", "warning_color_stalling", "stalling_rpm_threshold"):
         if key in shown_keys("instrument", modern):
             assert dimmed("instrument", key, modern, show_ignition=False), key
+
+
+# B-061: Gear speed limiter options under the speed switch, though the limiter shows without the speed
+@DESIGNS
+def test_b061_gear_limiter_options_follow_limiter(ui_env, modern):
+    assert not dimmed("gear", "show_speed_limiter", modern, show_speed=False)
+    assert not dimmed("gear", "speed_limiter_text", modern, show_speed=False, show_speed_limiter=True)
+    assert dimmed("gear", "speed_limiter_text", modern, show_speed_limiter=False)
