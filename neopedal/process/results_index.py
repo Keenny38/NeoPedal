@@ -442,10 +442,13 @@ def cached_summaries(folders: Sequence[str], cache_folder: str) -> list[ResultSu
         if cache_path != path:
             entries = load_summary_cache(path)
         names = player_names(folders)
+        # Names of game profile files were read with before: player still found in races driven under a former
+        # name (online files have several humans, the player is found by name only)
+        former = sorted({name for _, cached_names, _ in entries.values() for name in cached_names})
         found: dict[str, tuple[FileStamp, tuple[str, ...], ResultSummary | None]] = {}
         changed = False
         for folder in folders:
-            folder_names = names[folder]
+            folder_names = (*names[folder], *(name for name in former if name not in names[folder]))
             for file in rf.results_files(folder):
                 stamp = file_stamp(file)
                 if stamp is None:

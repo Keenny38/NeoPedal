@@ -971,3 +971,27 @@ def test_b028_year_activity_summary_counts_days_of_that_year_only():
 
     data = Overview([record(2024, 12, 30, 7200), record(2025, 6, 1, 3600)]).activity_data()
     assert data["summary"].startswith("1 day driven · 1 h")
+
+
+# B-029
+def test_b029_online_races_kept_after_player_name_changed(tmp_path, monkeypatch):
+    """Online race (several humans: player found by name only) read under a former profile name, name changed
+    since: race still the player's (driver card, rivals, places gained)"""
+    from neopedal.process import results_index as ri
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    folder = tmp_path / "results"
+    folder.mkdir()
+    (folder / RACE_NAME).write_text(RACE_XML, encoding="utf-8")
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    profile = {"names": ("Alice Driver",)}
+    monkeypatch.setattr(ri, "player_names", lambda folders: {name: profile["names"] for name in folders})
+    ri.forget_summary_cache()
+    try:
+        assert len(ri.cached_summaries([str(folder)], str(cache))) == 1
+        profile["names"] = ("Alice Renamed",)  # name changed in the game profile
+        ri.forget_summary_cache()  # app started again: cache file read
+        assert len(ri.cached_summaries([str(folder)], str(cache))) == 1
+    finally:
+        ri.forget_summary_cache()
