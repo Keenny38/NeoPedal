@@ -1238,7 +1238,7 @@ class OverlayBackend(PageBackend):
 
     @Property(bool, notify=undoChanged)
     def canUndo(self) -> bool:
-        return any(item[3] == cfg.filename.setting for item in self._undo)
+        return bool(self._undo)  # changes of another preset dropped once it is loaded (_forget_other_presets)
 
     @Slot()
     def undo(self):
