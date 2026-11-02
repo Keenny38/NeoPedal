@@ -322,6 +322,10 @@ class FinderBackend(QObject):
                 cfg.save(0, config_type=ConfigType.CONFIG)
             else:
                 cfg.save(0)
+            if entry.config_type == ConfigType.WIDGET and entry.key in ("position_x", "position_y"):
+                from ...widget._base import store_screen_layout
+
+                store_screen_layout(cfg)  # else the screen setup profile puts the old position back (B-001)
             run_after_saving(reload_function(entry))
         self.update_results()
         return True

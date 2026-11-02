@@ -143,6 +143,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Page `Overlays`, vue `Écran` : `Ctrl+Z` après le déplacement d'un overlay annule ce déplacement, et non plus la dernière modification faite en jeu depuis (qui pouvait être l'opacité, la taille ou la place d'un autre overlay).
 - Overlay Cercle d'adhérence, design moderne : une très grande valeur de `display_radius_g` (faute de frappe) ne fige plus l'app pendant le dessin des cercles de référence.
 - Overlay Jauge de direction, design classique : une très grande valeur de `manual_steering_range` (faute de frappe) ne fige plus l'app pendant le dessin des graduations.
+- `Options des overlays` et `Trouver une option` : une position saisie, réinitialisée ou importée sans garder les positions ne revient plus à l'ancienne au démarrage suivant, au prochain chargement de preset ou au changement d'écran (positions par configuration d'écrans, `enable_layout_per_screen_setup`).
 
 ## 0.28.1 (2026-11-01)
 

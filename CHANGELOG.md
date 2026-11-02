@@ -143,6 +143,7 @@ Fixes from an audit of the VR overlay.
 - `Overlays` page, `Screen` view: `Ctrl+Z` after moving an overlay undoes that move, no longer the last change made in game since (which could be the opacity, size or place of another overlay).
 - Friction Circle overlay, modern look: a very big `display_radius_g` (typing mistake) no longer freezes the app while drawing its reference rings.
 - Steering Meter overlay, classic look: a very big `manual_steering_range` (typing mistake) no longer freezes the app while drawing its scale marks.
+- `Overlay Options` and `Find Option`: a position typed, reset or imported without keeping positions is no longer put back to the old one at the next start, preset load or screen change (positions per screen setup, `enable_layout_per_screen_setup`).
 
 ## 0.28.1 (2026-11-01)
 

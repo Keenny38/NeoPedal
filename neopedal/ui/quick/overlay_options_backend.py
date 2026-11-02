@@ -1781,6 +1781,8 @@ class OverlayOptionsBackend(PageBackend):
                 cfg.user.setting[name][key] = value
                 if name not in names:
                     names.append(name)
+        # Positions applied: kept for the screen setup too, else its profile puts the old ones back (B-001)
+        moved = any(split_id(oid)[1] in ("position_x", "position_y") for oid in self._pending)
         self._pending.clear()
         self._typed.clear()
         self._typing = ("", 0.0)
@@ -1789,6 +1791,10 @@ class OverlayOptionsBackend(PageBackend):
         self._preset = ""
         self._layouts.clear()
         cfg.save(0)
+        if moved:
+            from ...widget._base import store_screen_layout
+
+            store_screen_layout(cfg)
         self.changed()
         self._host.applied(names)
         return True

@@ -154,3 +154,51 @@ def test_b006_steering_meter_classic_huge_range_drawn_at_once(ui_env, bundled_fo
     huge = render_widget(cfg, "steering_meter", dict(values, manual_steering_range=10**9)).toImage()
     assert time.perf_counter() - started < 5  # was: about 7 s (50 million marks)
     assert not huge.isNull() and huge.size() == normal.size()
+
+
+# B-001: position applied from Overlay Options or Find Option lost at next load (screen layout profile not stored)
+@pytest.fixture
+def options(ui_env):
+    from neopedal.ui.quick.overlay_options_backend import OverlayOptionsBackend
+    from tests.test_overlay_options import Control, Host
+
+    backend = OverlayOptionsBackend(None, Host(), Control())
+    yield backend
+    backend.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    QCoreApplication.processEvents()
+
+
+def test_b001_position_applied_from_options_page_kept_at_next_load(options, monkeypatch):
+    from neopedal import loader
+
+    cfg.application["enable_layout_per_screen_setup"] = True
+    monkeypatch.setattr(cfg.filename, "setting", "default.json")
+    loader.sync_screen_layout()  # start: profile of this screen setup written
+    before = cfg.user.setting["speedometer"]["position_x"]
+    options.selectOverlay("speedometer")
+    options.setNumber("speedometer/position_x", before + 300)
+    assert options.apply()
+    loader.sync_screen_layout()  # next start, preset reload or screen change
+    assert cfg.user.setting["speedometer"]["position_x"] == before + 300
+
+
+def test_b001_position_reset_from_find_option_kept_at_next_load(ui_env, monkeypatch):
+    from neopedal import loader
+    from neopedal.ui.quick import finder_backend
+
+    cfg.application["enable_layout_per_screen_setup"] = True
+    monkeypatch.setattr(cfg.filename, "setting", "default.json")
+    monkeypatch.setattr(finder_backend, "run_after_saving", lambda callback: None)
+    default = cfg.default.setting["speedometer"]["position_x"]
+    cfg.user.setting["speedometer"]["position_x"] = default + 300
+    loader.sync_screen_layout()
+    finder = finder_backend.FinderBackend(None, lambda entry: None)
+    try:
+        key = next(key for key, entry in finder._by_key.items()
+                   if entry.section == "speedometer" and entry.key == "position_x")
+        finder.resetOption(key)
+        loader.sync_screen_layout()
+        assert cfg.user.setting["speedometer"]["position_x"] == default
+    finally:
+        finder.deleteLater()
