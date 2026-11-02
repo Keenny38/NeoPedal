@@ -188,6 +188,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Température moteur : les préfixes ne suivent plus la température d'eau, l'intervalle et le lissage du taux de variation suivent `show_rate_of_change` au lieu de la variation nette, et les couleurs du taux restent actives tant que l'une des deux valeurs est affichée.
 - `Options des overlays`, Rapport : les options de la barre de consommation sont grisées quand la barre est masquée (par défaut), et les polices de la vitesse et des valeurs (design classique) quand ce qu'elles dimensionnent est masqué.
 - `Options des overlays`, Volant : les options de la valeur d'angle (décimales, signe degré, décalages, couleur, police) sont grisées quand `show_steering_angle` est désactivée.
+- `Options des overlays`, Pédale : les options de police (design classique) sont grisées quand les valeurs sont masquées, et `show_brake_pressure` quand le frein filtré est masqué.
 
 ## 0.28.1 (2026-11-01)
 

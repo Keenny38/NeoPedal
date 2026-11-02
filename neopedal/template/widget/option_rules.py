@@ -120,7 +120,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         **dict.fromkeys(("rpm_color_off", "rpm_color_low", "rpm_color_safe", "rpm_color_redline",
                          "rpm_color_critical", "rpm_color_over_rev"), "")}),),
     "lift_and_coast_led": (OptionFix(dependencies={**dict.fromkeys(_LED_SIZE, ""), "lift_and_coast_color_off": ""}),),
-    "pedal": (OptionFix(dependencies=_PEDAL_ALERTS),),
+    "pedal": (OptionFix(dependencies={**_PEDAL_ALERTS, "show_brake_pressure": "show_brake_filtered"}),
+              OptionFix(CLASSIC, dependencies=dict.fromkeys(  # font of readings only
+                  ("font_name", "font_size", "font_weight", "enable_auto_font_offset"), "show_readings"))),
     "elevation": (OptionFix(dependencies={
         "show_zero_elevation_line": "",  # drawn without elevation line
         "zero_elevation_line_color": "show_zero_elevation_line",

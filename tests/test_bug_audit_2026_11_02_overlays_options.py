@@ -795,3 +795,11 @@ def test_b070_steering_wheel_reading_options(ui_env, modern):
     for key in ("decimal_places", "show_degree_sign", "font_color_steering_angle", "font_name"):
         if key in keys:
             assert dimmed("steering_wheel", key, modern, show_steering_angle=False), key
+
+
+# B-071: Pedal font (classic) & brake pressure options active while unused
+@DESIGNS
+def test_b071_pedal_unused_options(ui_env, modern):
+    assert dimmed("pedal", "show_brake_pressure", modern, show_brake_filtered=False)
+    if not modern:
+        assert dimmed("pedal", "font_size", modern, show_readings=False)
