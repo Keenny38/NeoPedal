@@ -29,7 +29,8 @@
             "show_caption": "Show short caption description on widget. Modern design: turned off, hides the labels above tiles and values (overlays whose classic caption is off by default keep their modern labels).",
             "stream_visibility": "Where the widget is shown when Stream Overlay is enabled: Screen & Stream (default), Stream Only (window fully transparent on screen while widgets are locked, still sent to streaming software; visible while unlocked, to move it), or Screen Only (never sent to streaming software). Can also be set for every widget from Stream Overlays page.",
             "text_alignment": "Set text alignment. Acceptable value: Left, Center, Right.",
-            "update_interval": "Set refresh rate for widget or module in milliseconds. A value of 20 means refreshing every 20ms, which equals 50fps. Since most data from sharedmemory plugin is capped at 50fps, and most operation system has a roughly 15ms minimum sleep time, setting value less than 10 has no benefit, and extreme low value may result significant increase of CPU usage."
+            "update_interval": "Set refresh rate for widget or module in milliseconds. A value of 20 means refreshing every 20ms, which equals 50fps. Since most data from sharedmemory plugin is capped at 50fps, and most operation system has a roughly 15ms minimum sleep time, setting value less than 10 has no benefit, and extreme low value may result significant increase of CPU usage.",
+            "visibility_context": "Set when the widget is shown: Always (default), Race, Qualifying & Race, Practice & Qualifying, On Track (hidden in pit lane) or In Pits (shown in pit lane only). Outside sessions the widget is always shown. Can also be set from the widget menu while editing overlays in game."
         },
         "acceleration": {
             "layout": "Set column horizontal display order. Set 0 to show from left to right. Set 1 to show from right to left instead.",

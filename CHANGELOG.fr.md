@@ -271,6 +271,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Résultats et replays`, vue du replay : `Lecture / Pause` (et `Espace`) met en pause dès le premier appui un replay lancé depuis le jeu.
 - `Résultats et replays` : les commandes de replay encore en attente (recherche d'un tour, sauts) ne sont plus envoyées au jeu une fois la page fermée.
 - Overlays Relatif, Classement et Rivaux, design moderne : la colonne Tendance est assez large pour sa valeur (elle touchait la colonne DR/SR) et sa flèche et sa valeur sont centrées.
+- Options d'overlay : `visibility_context` (quand un overlay est affiché) a un texte d'aide.
 
 ## 0.28.1 (2026-11-01)
 

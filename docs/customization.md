@@ -635,6 +635,9 @@ Every widget has a modern design, used with `Modern Dark` and `Modern Light` ove
     opacity
 Set opacity for entire widget. By default, all widgets have a 90% opacity setting, which equals value `0.9`. Lower value adds more transparency to widget. Acceptable value range in `0.0` to `1.0`. Note, opacity can also be set by adjusting alpha value in `color` options for individual elements.
 
+    visibility_context
+Set when the widget is shown: `Always` (default), `Race`, `Qualifying & Race`, `Practice & Qualifying`, `On Track` (hidden in pit lane) or `In Pits` (shown in pit lane only). Outside sessions the widget is always shown. Can also be set from the widget menu while editing overlays in game.
+
     stream_visibility
 Where the widget is shown when [Stream Overlay](#stream-overlay) is enabled: `Screen & Stream` (default), `Stream Only` (window fully transparent on screen while widgets are locked, still sent to streaming software; visible while unlocked, to move it), or `Screen Only` (never sent to streaming software). Can also be set for every widget from `Stream Overlays` page.
 

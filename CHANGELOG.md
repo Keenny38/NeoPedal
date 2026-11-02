@@ -271,6 +271,7 @@ Fixes from an audit of the VR overlay.
 - `Results & Replays`, replay view: `Play / Pause` (and `Space`) pauses a replay played from the game at the first press.
 - `Results & Replays`: replay commands still waiting (lap search, jumps) are no longer sent to the game once the page is closed.
 - Relative, Standings and Rivals overlays, modern look: the Trend column is wide enough for its rate (it touched the DR/SR column) and its arrow and rate are centered.
+- Overlay Options: `visibility_context` (when an overlay is shown) has a help text.
 
 ## 0.28.1 (2026-11-01)
 

@@ -1378,3 +1378,12 @@ def test_b079_gap_trend_column_fits_and_centers(ui_env, bundled_fonts, monkeypat
         assert arrows[-1].left() > 100  # centered, was: at the left edge
 
     _with_preview_widget(cfg, name, values, 1.0, check)
+
+
+# B-092: visibility_context (every overlay) without help
+def test_b092_visibility_context_help(ui_env):
+    from neopedal.i18n.options import option_help_english, option_help_specific
+
+    for name in ("fuel", "standings", "radar"):
+        assert "In Pits" in option_help_english(name, "visibility_context")
+        assert option_help_specific(name, "visibility_context")
