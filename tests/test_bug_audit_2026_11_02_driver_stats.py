@@ -219,3 +219,32 @@ def test_b005_lap_invalidated_just_before_leaving_track(tele, tmp_path, clock): 
     gen.send(MODULE_STOP)
     stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
     assert stats.pb > 85.0 and stats.invalid == 1
+
+
+# B-004
+def race_ticks(values: dict, loop: ModuleLoop, start: int, end: int):
+    for elapsed in range(start, end, 5):
+        values["timing.elapsed"] = float(elapsed)
+        values["vehicle.position_xyz"] = (elapsed * 50.0, 0.0, 0.0)
+        loop.update()
+
+
+def test_b004_module_restart_during_race_counts_one_start(tele, tmp_path, clock):  # noqa: F811
+    """Modules reloaded during a race (option applied, preset loaded): no second start, no mid race start place"""
+    tele.update(STINT_TELE)
+    tele.update({"session.session_type": 4, "session.pre_race": True, "vehicle.place": 5,
+                 "vehicle.total_vehicles": 1})
+    filepath = f"{tmp_path}/"
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    race_ticks(tele, loop, 0, 30)  # formation
+    tele["session.pre_race"] = False  # green flag
+    race_ticks(tele, loop, 30, 100)
+    gen.send(MODULE_STOP)  # loader.reload: modules stopped, data saved
+    tele["vehicle.place"] = 2
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)  # same game stint
+    race_ticks(tele, loop, 100, 200)
+    gen.send(MODULE_STOP)
+    assert driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath).starts == 1
+    assert [record.start_position for record in driver_history.read_records(filepath)] == [5, 0]

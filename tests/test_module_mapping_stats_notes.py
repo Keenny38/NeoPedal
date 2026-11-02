@@ -331,8 +331,10 @@ def test_driver_stats_starts_finish_position_and_history(stats_env, monkeypatch)
     stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
     assert (stats.starts, stats.races, stats.dnf, stats.positions, stats.placed) == (1, 1, 0, 3, 1)
     assert (stats.wins, stats.podiums) == (0, 1)
-    # Second race: retired
-    tele.update({"vehicle.finish_state": 0, "session.pre_race": False})
+    # Second race: retired (start counted at green flag seen in stint)
+    tele.update({"vehicle.finish_state": 0, "session.pre_race": True})
+    gen.send(2)
+    tele["session.pre_race"] = False
     gen.send(2)
     tele["vehicle.finish_state"] = 2
     gen.send(2)

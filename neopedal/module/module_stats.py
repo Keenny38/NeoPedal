@@ -379,6 +379,7 @@ def record_driver_stats(
             last_finish_state = 99999
             gps_last = (FLOAT_INF, FLOAT_INF, FLOAT_INF)
             race_started = False
+            race_waiting = False  # race not started yet seen in stint (grid, formation)
             finish_place = 0
             finish_state = 0
             start_place = 0
@@ -457,8 +458,10 @@ def record_driver_stats(
 
         # Race session stats
         if session_type == 4:
-            # Race start: once per stint, after green flag
-            if not race_started and not api.read.session.pre_race():
+            # Race start: green flag seen in stint (stint started during race, module restarted by a reload: none)
+            if api.read.session.pre_race():
+                race_waiting = True
+            elif race_waiting and not race_started:
                 race_started = True
                 driver_stats.starts += 1
                 start_place = finish_position(podium_by_class)  # grid position (class or overall, as finish)

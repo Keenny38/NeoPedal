@@ -68,6 +68,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Statistiques pilote : les stats d'un relais qui n'ont pas pu être enregistrées (fichier tenu par un autre programme, erreur de disque) sont gardées et enregistrées avec le relais suivant, au lieu d'être perdues sans rien dire ; si elles ne peuvent toujours pas l'être à la fermeture de l'app, un message le signale.
 - Statistiques pilote : le module Stats enregistre aussi tes stats toutes les 5 minutes pendant que tu roules, donc un plantage de l'app ou une coupure de courant ne fait plus perdre tout le relais (tours, distance, record) ; l'historique des sessions garde une ligne par relais.
 - Statistiques pilote (Le Mans Ultimate) : un tour invalidé par le jeu pour limites de piste ne compte plus comme tour valide et ne devient plus ton record personnel, de qualif ou de course (stats et historique des sessions), comme c'était déjà le cas pour le meilleur delta et les meilleurs secteurs.
+- Statistiques pilote : appliquer une option ou charger un preset pendant une course (overlays et modules rechargés) ne compte plus un second départ et n'enregistre plus ta position du moment comme position de départ (places gagnées). Un départ est compté quand tu roules au drapeau vert.
 
 ## 0.28.1 (2026-11-01)
 

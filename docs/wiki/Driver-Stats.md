@@ -44,7 +44,7 @@ The vehicle table lists each car or class with, among others:
 - personal best, gap to the community reference (`% Ref.`) and **level**;
 - **theoretical best** (sum of your best sectors) and **potential** (personal best minus theoretical best);
 - qualifying and race bests, distance, driving time, fuel used, valid and invalid laps;
-- race starts, finishes, wins, podiums, DNF, win and podium rates, average finish position, penalties;
+- race starts (counted when you drive at the green flag), finishes, wins, podiums, DNF, win and podium rates, average finish position, penalties;
 - average speed, fuel consumption per 100 km, last driven date;
 - **Wet PB** (best lap on a damp or wet road), **PB of the latest game version** of your history (`PB v1.42`), average **places gained** in races and **% clean** races (no contact, no penalty, from the game results files).
 
