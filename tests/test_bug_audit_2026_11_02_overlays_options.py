@@ -354,3 +354,19 @@ def test_b028_friction_circle_fade_follows_circle_background(ui_env):
     assert dimmed("friction_circle", "fade_in_radius", False, show_circle_background=True, show_fade_out=False)
     assert not dimmed("friction_circle", "fade_out_radius", False, show_background=False,
                       show_circle_background=True, show_fade_out=True)
+
+
+# B-029: Navigation car options under show_circle_vehicle_shape (arrow by default), text colors under no switch
+NAV_CARS = ("vehicle_size", "vehicle_offset", "vehicle_color_player", "vehicle_outline_width_player",
+            "vehicle_outline_color_player", "vehicle_color_leader", "vehicle_color_same_lap", "vehicle_color_laps_ahead",
+            "vehicle_color_laps_behind", "vehicle_color_in_pit", "vehicle_color_yellow", "vehicle_outline_color",
+            "vehicle_outline_width")
+
+
+@DESIGNS
+def test_b029_navigation_car_options_used_with_arrow_shape(ui_env, modern):
+    keys = shown_keys("navigation", modern)
+    for key in (key for key in NAV_CARS if key in keys):
+        assert not dimmed("navigation", key, modern, show_circle_vehicle_shape=False), key
+    for key in (key for key in ("font_color", "font_color_player") if key in keys):
+        assert dimmed("navigation", key, modern, show_vehicle_class_standings=False), key

@@ -153,6 +153,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Track Clock (classic look): the sunlight phase countdown colors are no longer dimmed by default (they followed `enable_time_scaled_countdown` instead of the countdown itself).
 - `Overlay Options`, Delta Best (classic look): `background_color_deltabest` is no longer dimmed by default.
 - `Overlay Options`, Heading, Radar, Wind Direction, Friction Circle, Steering Wheel, Track Map and Elevation (classic look): the circle, map and elevation backgrounds are no longer dimmed while `show_background` is off; each follows its own switch.
+- `Overlay Options`, Navigation: the car size, offset, colors and outlines are no longer dimmed with the arrow shape (default); the place number colors follow `show_vehicle_class_standings`.
 
 ## 0.28.1 (2026-11-01)
 

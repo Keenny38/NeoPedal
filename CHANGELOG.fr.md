@@ -153,6 +153,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Horloge de piste (design classique) : les couleurs du compte à rebours de la phase de lumière ne sont plus grisées par défaut (elles suivaient `enable_time_scaled_countdown` au lieu du compte à rebours lui-même).
 - `Options des overlays`, Delta best (design classique) : `background_color_deltabest` n'est plus grisée par défaut.
 - `Options des overlays`, Cap, Radar, Direction du vent, Cercle d'adhérence, Volant, Carte du circuit et Profil d'altitude (design classique) : les fonds de cercle, de carte et d'altitude ne sont plus grisés quand `show_background` est désactivée ; chacun suit sa propre option.
+- `Options des overlays`, Navigation : la taille, le décalage, les couleurs et les contours des voitures ne sont plus grisés avec la forme flèche (par défaut) ; les couleurs des numéros de place suivent `show_vehicle_class_standings`.
 
 ## 0.28.1 (2026-11-01)
 

@@ -120,7 +120,15 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         "background_color_circle": "show_circle_background",
         "circle_outline_width": "show_circle_background",
         "circle_outline_color": "show_circle_background",
-    }),),
+    }), OptionFix(dependencies={
+        # Cars drawn as arrows or circles: every car option used by both shapes
+        **dict.fromkeys(("show_circle_vehicle_shape", "vehicle_size", "vehicle_offset", "vehicle_color_player",
+                         "vehicle_outline_width_player", "vehicle_outline_color_player", "vehicle_color_leader",
+                         "vehicle_color_same_lap", "vehicle_color_laps_ahead", "vehicle_color_laps_behind",
+                         "vehicle_color_in_pit", "vehicle_color_yellow", "vehicle_outline_color",
+                         "vehicle_outline_width"), ""),
+        **dict.fromkeys(("font_color", "font_color_player"), "show_vehicle_class_standings"),  # place numbers
+    })),
     "trailing": (OptionFix(CLASSIC, dependencies={
         "show_pedal_bar_readings": "show_pedal_bars",
         # Font of pedal bar readings only
