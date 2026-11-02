@@ -351,3 +351,33 @@ def test_b005_rest_values_of_own_car_only(game, own_car):
         assert values == (0.0, 0.0, 0.0, (), "", False, 0.0, 0.0, 0.0)
     if game == "lmu":
         assert engine.max_virtual_energy() == (9e8 if own_car else 0.0)
+
+
+# --- B-004: player row gone (array compacted): the car moved to its index never served as the player
+def test_b004_car_moved_to_player_index_never_served_as_player(lmu_game, monkeypatch):
+    sync, data = lmu_game
+    seen = []
+
+    def next_sample():
+        data.scoring.scoringInfo.mCurrentET += 0.2
+
+    def player_leaves():  # player (slot 3, index 0) leaves: cars 5 & 7 move up one index
+        scoring, telemetry = data.scoring.vehScoringInfo, data.telemetry.telemInfo
+        for index, slot_id in enumerate((5, 7)):
+            scoring[index].mID = telemetry[index].mID = slot_id
+            scoring[index].mDriverName = b"Driver %d" % slot_id
+            scoring[index].mIsPlayer = False
+            telemetry[index].mFuel = float(slot_id)
+        data.scoring.scoringInfo.mNumVehicles = data.telemetry.activeVehicles = 2
+        next_sample()
+
+    def record():
+        seen.append((sync.synced, sync.player_scor.mDriverName, sync.player_tele.mFuel, sync.resets))
+
+    steps = [next_sample, next_sample, lambda: None, record, player_leaves, record, next_sample, record]
+    run_loop(sync, Ticks(monkeypatch, steps))
+    before, *after = seen
+    assert before[:3] == (True, b"Driver 3", 3.0)
+    for synced, name, fuel, resets in after:
+        assert name != b"Driver 5" and fuel != 5.0  # never the car now at the player's index
+        assert not synced and resets == before[3]  # no false reset counted either

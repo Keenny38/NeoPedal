@@ -353,6 +353,8 @@ class SyncData:
                     self.synced = True
                 elif reset_counter < 6:
                     reset_counter += 1
+                    if self.synced and self.player_scor.mID != last_slot_id:
+                        reset_counter = 5  # row of player now holds another car (array compacted): never served
                     if reset_counter == 5:
                         self.player_scor_index = INVALID_INDEX
                         self.__sync_player_scor()

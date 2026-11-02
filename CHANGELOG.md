@@ -79,6 +79,7 @@ Fixes from an audit of the VR overlay.
 - Spectate and Broadcast Director: laps and data of the car you follow are no longer saved as yours (delta best, best sectors, consumption history, fuel and energy references, recorded laps, pit lane measures and track map), as the docs say; they are still shown.
 - Spectate and Broadcast Director: the car you follow no longer gets the session best and stint best laps of the car followed before (Timing, Deltabest with session or stint source).
 - Spectate and Broadcast Director, Le Mans Ultimate and rFactor 2: the car you follow no longer shows the pit stop time, refill, scheduled repairs, expected consumption, energy, steering range and setup of your own car (Pit Stop Estimate, Pit Lane Helper, Flag, Track Map, Engine, Race Plan, recorded laps).
+- Le Mans Ultimate and rFactor 2: when your car leaves the session list (back to the monitor online, disconnect), the car taking its place in the list is no longer read as yours for a moment (laps, fuel and position taken for yours, false car reset).
 
 ## 0.28.1 (2026-11-01)
 
