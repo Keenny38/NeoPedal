@@ -159,6 +159,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, HUD tableau de bord : `Rétablir l'overlay par défaut` n'efface plus les profils utilisateur enregistrés avec `Enregistrer comme profil`.
 - `Options des overlays`, HUD tableau de bord : `Enregistrer les éléments affichés comme` n'enregistre plus comme masqués dans le profil utilisateur les éléments cachés par le mode compact automatique (overlay réduit).
 - `Options des overlays`, Classement : `maximum_vehicles_combined_mode` n'est plus grisée en mode scindé, car elle fixe le nombre de voitures des sessions à une seule catégorie.
+- `Options des overlays`, HUD tableau de bord : les thèmes de couleurs ne sont proposés qu'en design classique ; en design moderne, ils écrivaient des couleurs masquées, qui ne suivaient alors plus le thème des overlays (Modern Light, couleurs pour daltoniens).
 
 ## 0.28.1 (2026-11-01)
 

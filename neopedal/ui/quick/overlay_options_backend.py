@@ -966,7 +966,9 @@ class OverlayOptionsBackend(PageBackend):
             "optionCount": len(layout.keys),
             "customized": sum(self.is_customized(name, key) for key in layout.keys),
             "simpleMode": ui is not None and ui.simple_mode,
-            "themes": [{"name": theme, "label": tr(theme)} for theme in ui.color_themes] if ui is not None else [],
+            # Color themes of the classic design: the modern one draws its colors with the overlay theme (B-012)
+            "themes": [{"name": theme, "label": tr(theme)} for theme in ui.color_themes]
+            if ui is not None and not self._uses_modern(name) else [],
             "preset": cfg.filename.setting.removesuffix(".json"),
             "profile": profile,
             "profileOption": profile_option,
@@ -1627,12 +1629,22 @@ class OverlayOptionsBackend(PageBackend):
             self._set(option_id(name, ui.override_source), profile_name)
         self._host.notify(trm(f"Display saved as {tr(profile_name)}, saved with Apply"))
 
+    def _uses_modern(self, name: str) -> bool:
+        """Overlay drawn with its modern design (values shown, unsaved design switch included)"""
+        from ...widget._modern import uses_modern_design
+
+        design_config = SimpleNamespace(user=SimpleNamespace(config=cfg.user.config, setting={name: self.values(name)}))
+        try:
+            return uses_modern_design(design_config, name)
+        except Exception:  # broken modern module (see build_layout)
+            return False
+
     @Slot(str)
     def applyColorTheme(self, theme_name: str):
         """Every color of selected overlay set to theme colors (from each option default color)"""
         name = self._overlay
         ui = self.layout(name).option_ui if name else None
-        if ui is None or theme_name not in ui.color_themes:
+        if ui is None or theme_name not in ui.color_themes or self._uses_modern(name):
             return
         theme = ui.color_themes[theme_name]
         with self._step():

@@ -560,6 +560,7 @@ def test_options_menus_filters_and_find_key(options_page):
     assert item.property("checked") is True
     backend.setModifiedOnly(False)
     backend.setUsedOnly(False)
+    cfg.user.setting["black_box"]["enable_classic_layout"] = True  # color themes of classic design (B-012)
     backend.selectOverlay("black_box")  # display profiles & color themes
     QCoreApplication.processEvents()
     info = backend.overlayInfo

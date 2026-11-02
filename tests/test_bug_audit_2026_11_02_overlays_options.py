@@ -430,3 +430,15 @@ def test_b013_combined_car_count_active_in_split_mode(ui_env):
     assert not dimmed("standings", "maximum_vehicles_combined_mode", True, enable_multi_class_split_mode=True,
                       enable_single_class_exclusive_mode=False)
     assert dimmed("standings", "maximum_vehicles_combined_mode", True, enable_single_class_exclusive_mode=True)
+
+
+# B-012: Color theme of the modern Black Box wrote colors the modern design hides (frozen, theme of design lost)
+def test_b012_color_themes_of_classic_black_box_only(options):
+    cfg.user.setting["black_box"]["enable_classic_layout"] = False
+    options.selectOverlay("black_box")
+    assert options.overlayInfo["themes"] == []
+    options.applyColorTheme("Colorblind Safe")
+    assert not options._pending
+    cfg.user.setting["black_box"]["enable_classic_layout"] = True
+    options.refresh()
+    assert options.overlayInfo["themes"]

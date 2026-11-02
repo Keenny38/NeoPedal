@@ -347,6 +347,7 @@ def test_focus_option_expands_section_and_flashes(options):
 
 
 def test_black_box_tools(options):
+    set_classic("black_box")  # color themes of the classic design (B-012)
     options.selectOverlay("black_box")
     info = options.overlayInfo
     assert info["simpleMode"] and next(theme["name"] for theme in info["themes"]) == "Default"
