@@ -180,8 +180,17 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         **dict.fromkeys(("font_color_sunlight_phase_countdown", "background_color_sunlight_phase_countdown",
                          "font_color_phase_day", "font_color_phase_night"), "show_sunlight_phase_countdown"),
     }),),
-    "lap_time_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
-    "stint_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
+    # Energy caption: drawn with the caption, energy shown (see INACTIVE_RULES)
+    "lap_time_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_caption"}),),
+    "stint_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_caption"}),),
+    "delta_graph": (OptionFix(CLASSIC, dependencies={
+        "font_color_reading": "show_delta_reading", "line_color_previous_lap": "show_previous_lap",
+        "position_mark_color": "show_position_mark"}),),
+    "stint_timer": (OptionFix(dependencies={
+        **dict.fromkeys(("stint_warning_minutes", "font_color_warning"), "show_stint_countdown"),
+        **dict.fromkeys(("minimum_driving_minutes", "font_color_current_driver", "font_color_target_met",
+                         "driving_time_bar_color"), "show_driver_times")}),),
+    "laps_and_position": (OptionFix(CLASSIC, dependencies={"warning_color_invalid_lap": "show_invalid_lap_highlight"}),),
     "steering_meter": (OptionFix(MODERN, dependencies={"scale_mark_degree": "show_scale_mark"}),
                        OptionFix(CLASSIC, dependencies=dict.fromkeys((  # angle text only
                            "bar_padding_horizontal", "bar_padding_vertical", "font_name", "font_size", "font_weight",
@@ -396,6 +405,20 @@ def _track_clock(values: Mapping) -> Inactive:
     return {}
 
 
+def _energy_caption(values: Mapping) -> Inactive:
+    """Energy caption of history overlays: not drawn while energy is not shown"""
+    if not values.get("show_virtual_energy_if_available", True):
+        return {"caption_text_virtual_energy": ("on", "show_virtual_energy_if_available")}
+    return {}
+
+
+def _stint_warning(values: Mapping) -> Inactive:
+    """Stint warning: used only with a maximum stint time"""
+    if values.get("maximum_stint_minutes", 0):
+        return {}
+    return dict.fromkeys(("stint_warning_minutes", "font_color_warning"), ("set", "maximum_stint_minutes"))
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -411,6 +434,9 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
+    "lap_time_history": _energy_caption,
+    "stint_history": _energy_caption,
+    "stint_timer": _stint_warning,
     "track_clock": _track_clock,
     "brake_temperature": _rules(_heatmap, _swap_colors("font_color_temperature", "background_color_temperature")),
     "tyre_temperature": _heatmap,

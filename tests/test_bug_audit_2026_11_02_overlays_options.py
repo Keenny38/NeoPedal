@@ -814,3 +814,16 @@ def test_b072_steering_and_telemetry_unused_options(ui_env):
     assert dimmed("steering_angle", "wheel_track_front", True, show_ackermann_percentage=False)
     assert dimmed("steering_meter", "font_size", False, show_steering_angle=False)
     assert dimmed("telemetry_compare", "line_color_gear", False, show_gear=False)
+
+
+# B-058: timing overlays options active without what uses them
+def test_b058_timing_overlays_unused_options(ui_env):
+    assert dimmed("delta_graph", "position_mark_color", False, show_position_mark=False)
+    assert dimmed("stint_timer", "stint_warning_minutes", True, maximum_stint_minutes=0)
+    assert not dimmed("stint_timer", "stint_warning_minutes", True, maximum_stint_minutes=60)
+    assert dimmed("stint_timer", "minimum_driving_minutes", True, show_driver_times=False)
+    assert dimmed("laps_and_position", "warning_color_invalid_lap", False, show_invalid_lap_highlight=False)
+    for name in ("lap_time_history", "stint_history"):
+        assert dimmed(name, "caption_text_virtual_energy", False, show_caption=False)
+        assert dimmed(name, "caption_text_virtual_energy", False, show_caption=True,
+                      show_virtual_energy_if_available=False)

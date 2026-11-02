@@ -190,6 +190,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Steering Wheel: the angle reading options (decimal places, degree sign, offsets, color, font) are dimmed while `show_steering_angle` is off.
 - `Overlay Options`, Pedal: the font options (classic look) are dimmed while the readings are hidden, and `show_brake_pressure` while the filtered brake is hidden.
 - `Overlay Options`, Steering Angle, Steering Meter and Telemetry Compare: track width, wheelbase, angle text padding and font, zero line, steering and gear colors are dimmed while the readings or plots using them are hidden.
+- `Overlay Options`, Delta Graph, Stint Timer, Laps and Position, Lap Time History and Stint History: reading colors, stint warning and driver time options, the invalid lap color and the energy caption are dimmed while what uses them is hidden or off.
 
 ## 0.28.1 (2026-11-01)
 

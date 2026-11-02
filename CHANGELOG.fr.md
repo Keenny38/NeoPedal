@@ -190,6 +190,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Volant : les options de la valeur d'angle (décimales, signe degré, décalages, couleur, police) sont grisées quand `show_steering_angle` est désactivée.
 - `Options des overlays`, Pédale : les options de police (design classique) sont grisées quand les valeurs sont masquées, et `show_brake_pressure` quand le frein filtré est masqué.
 - `Options des overlays`, Angle de braquage, Jauge de direction et Comparaison de télémétrie : la voie, l'empattement, les marges et la police du texte d'angle, la ligne zéro et les couleurs de direction et de rapport sont grisées quand les valeurs ou tracés qui les utilisent sont masqués.
+- `Options des overlays`, Graphique de delta, Chrono de relais, Tours et position, Historique des temps au tour et Historique des relais : les couleurs des valeurs, les options d'alerte de relais et de temps des pilotes, la couleur de tour invalide et la légende d'énergie sont grisées quand ce qui les utilise est masqué ou désactivé.
 
 ## 0.28.1 (2026-11-01)
 
