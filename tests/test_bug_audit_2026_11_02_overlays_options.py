@@ -902,3 +902,12 @@ def test_b086_flag_options_follow_their_part(ui_env, modern):
     assert dimmed("flag", "disqualify_text", modern, show_finish_state=False)
     assert dimmed("flag", "show_speed_limiter_off_warning", modern, show_speed_limiter=False)
     assert dimmed("flag", "show_speed_limit_difference", modern, show_current_speed_while_limiter_on=False)
+
+
+# B-087: Track Map options of the mode not in use active
+def test_b087_track_map_mode_options(ui_env):
+    assert dimmed("track_map", "show_position_in_class", True, enable_multi_class_styling=False)
+    assert dimmed("track_map", "vehicle_color_leader", False, enable_multi_class_styling=True)
+    assert dimmed("track_map", "fixed_pitstop_duration_3", True, enable_fixed_pitout_prediction=False)
+    assert dimmed("track_map", "pitout_duration_minimum", True, enable_fixed_pitout_prediction=True)
+    assert dimmed("track_map", "show_pitstop_duration", True, show_pitout_prediction=False)

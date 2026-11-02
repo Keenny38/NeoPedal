@@ -215,7 +215,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         "warning_threshold_remaining": "",  # of tread left & tread gauge (see ANY_OF)
     })),
     "track_map": (OptionFix(dependencies={
-        "auto_prediction_additional_pitstop_time": "enable_auto_pitout_prediction"}),),
+        "auto_prediction_additional_pitstop_time": "enable_auto_pitout_prediction",
+        "show_pitstop_duration": "show_pitout_prediction"}),),
     "corner_coach": (OptionFix(dependencies={"braking_point_tolerance": "show_braking_point"}),),
     # Heatmap picked by compound or brake while automatic: own option used only with it off (see INACTIVE_RULES)
     "brake_temperature": (OptionFix(dependencies={"heatmap_name": ""}),
@@ -480,6 +481,26 @@ def _tyre_wear_captions(values: Mapping) -> Inactive:
             if not values.get(f"show_{section}", True)}
 
 
+def _track_map(values: Mapping) -> Inactive:
+    """Multi class styling & pit out prediction modes: options of the other mode unused"""
+    inactive: Inactive = {}
+    if values.get("enable_multi_class_styling", False):  # cars colored by class
+        for key in ("vehicle_color_leader", "vehicle_color_same_lap", "vehicle_color_laps_ahead",
+                    "vehicle_color_laps_behind"):
+            inactive[key] = ("off", "enable_multi_class_styling")
+        if not values.get("show_custom_player_color_in_multi_class", False):
+            inactive["vehicle_color_player"] = ("off", "enable_multi_class_styling")
+    else:
+        inactive["show_position_in_class"] = ("on", "enable_multi_class_styling")
+    if values.get("enable_fixed_pitout_prediction", False):
+        for key in ("pitout_duration_minimum", "pitout_duration_increment"):
+            inactive[key] = ("off", "enable_fixed_pitout_prediction")
+    else:
+        for index in range(1, 11):
+            inactive[f"fixed_pitstop_duration_{index}"] = ("on", "enable_fixed_pitout_prediction")
+    return inactive
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -495,6 +516,7 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
+    "track_map": _track_map,
     "lap_time_history": _energy_caption,
     "stint_history": _energy_caption,
     "stint_timer": _stint_warning,
