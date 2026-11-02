@@ -127,6 +127,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Enregistrement de la télémétrie : les tours d'entrée, de sortie et invalides sont enregistrés avec leur propre numéro de tour, plus celui du tour d'avant (deux tours avec le même numéro dans le visualiseur de télémétrie).
 - Estimations de carburant et d'énergie avec la médiane sous drapeau vert (option `enable_green_flag_consumption`) : une autre voiture de la même catégorie (la vôtre ou une voiture suivie) repart de ses propres tours au lieu de garder ceux de la voiture d'avant.
 - Le Mans Ultimate et rFactor 2 : une voiture sans télémétrie (et la vôtre un instant à son arrivée) n'affiche plus quatre pneus crevés (Dégâts, Pneus (vue d'ensemble), HUD tableau de bord), un badge de gomme `Soft` (Classement, Relatif, Régie de course) ni des températures de -273 °C (garage, tableau de bord web).
+- Le Mans Ultimate, overlay Moteur électrique : plus de courte pointe de déploiement (plus de 400 kW) pendant que le moteur régénère au freinage.
 
 ## 0.28.1 (2026-11-01)
 

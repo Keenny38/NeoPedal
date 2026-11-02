@@ -1012,3 +1012,18 @@ def test_b030_zeroed_telemetry_read_as_no_value(game):
     if game == "lmu":
         assert tyre.compound_name() == ("", "", "", "")
         assert tyre.compound_class() == ("Hyper - ",) * 4
+
+
+# --- B-031: LMU electric motor regenerating (state 3): a power sample of the other sign is never a deploy
+def test_b031_power_follows_motor_state():
+    from types import SimpleNamespace
+
+    from neopedal.adapter import lmu_reader
+
+    motor = SimpleNamespace(mElectricBoostMotorState=3, mRegen=-438.2)  # recorded frame 37: braking, regen
+    emotor = lmu_reader.ElectricMotor(SimpleNamespace(lmuTeleVeh=lambda index=None: motor), None)
+    assert emotor.power() == 0.0  # never 438 kW deployed (above the 200 kW limit)
+    motor.mElectricBoostMotorState, motor.mRegen = 2, 193.0  # deploying: never read as regeneration
+    assert emotor.regeneration_level() == 0.0
+    motor.mRegen = -150.0
+    assert emotor.power() == 150.0

@@ -235,12 +235,19 @@ class ElectricMotor(_reader.ElectricMotor, DataAdapter):
         """Motor power deployed (kW), 0 while regenerating
 
         Game electric power (mRegen, negative while deploying): torque x RPM is several times too high.
+        Motor state regenerating (3): 0, a sample of power of opposite sign is never a deploy (recorded).
         """
-        return max(0.0, -rmnan(self.shmm.lmuTeleVeh(index).mRegen))
+        telemetry = self.shmm.lmuTeleVeh(index)
+        if telemetry.mElectricBoostMotorState == 3:
+            return 0.0
+        return max(0.0, -rmnan(telemetry.mRegen))
 
     def regeneration_level(self, index: int | None = None) -> float:
-        """Regeneration power (kW), 0 while deploying"""
-        return max(0.0, rmnan(self.shmm.lmuTeleVeh(index).mRegen))
+        """Regeneration power (kW), 0 while deploying (motor state 2)"""
+        telemetry = self.shmm.lmuTeleVeh(index)
+        if telemetry.mElectricBoostMotorState == 2:
+            return 0.0
+        return max(0.0, rmnan(telemetry.mRegen))
 
     def state_of_charge(self, index: int | None = None) -> float:
         """Battery state of charge as shown by game (percent, 0-100)
