@@ -38,6 +38,7 @@ import re
 from typing import Any, NamedTuple
 
 from ..const_common import SECTOR_FLAG_ORDER
+from ..validator import cut_name_prefix
 
 CHAT_TIME_SCALE = 1e-7  # chat timestamp unit: 100 ns
 IMMOVABLE = "Immovable"  # contact with track objects (walls, barriers)
@@ -494,12 +495,14 @@ def parse_session_time(info: Any) -> float:
 
 
 def player_contacts(contacts: tuple, player: str) -> list[tuple[float, str]]:
-    """Contacts of player: (session time, other driver or IMMOVABLE), oldest first"""
+    """Contacts of player: (session time, other driver or IMMOVABLE), oldest first; player name cut by the
+    game name field (shared memory) matched by start of full name"""
+    prefix = cut_name_prefix(player)
     result = []
     for contact in contacts:
         time, driver, other = contact[0], contact[1], contact[2]
-        if driver == player:
+        if driver == player or (prefix and driver.startswith(prefix)):
             result.append((time, other))
-        elif other == player:
+        elif other == player or (prefix and other.startswith(prefix)):
             result.append((time, driver))
     return result

@@ -72,6 +72,16 @@ def bytes_to_str(bytestring: bytes | Any, char_encoding: str = "utf-8") -> str:
     return ""
 
 
+NAME_CUT_BYTES = 28  # game driver name field holds 31 bytes, a multibyte character cut there is dropped
+
+
+def cut_name_prefix(name: str) -> str:
+    """Start of a longer full name (Rest API, results) if name may be cut by the game name field
+    (31 bytes, shared memory), else empty"""
+    name = name.rstrip("�")  # character cut in half
+    return name if len(name.encode("utf-8")) >= NAME_CUT_BYTES else ""
+
+
 DECODE_CACHE_SIZE = 1024  # decoded game texts kept per decoder (names of every car: driver, vehicle, class)
 
 

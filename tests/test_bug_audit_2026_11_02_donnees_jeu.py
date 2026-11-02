@@ -617,3 +617,32 @@ def test_b015_queued_history_save_never_writes_other_combo(ui_env, monkeypatch, 
     assert wait_data_saver(5)
     file_a, _ = read_consumption_history_file(path, "Track - A")
     assert {1, 2, 3, 4} <= {data.lapNumber for data in file_a}  # lap 4 added, laps of A kept
+
+
+# --- B-016: driver name cut by the game name field (31 bytes) found in Rest API data keyed by full name
+FULL_NAME = "José-María Fernández-Castañeda"  # 34 bytes in UTF-8
+
+
+def shared_memory_name(full_name: str) -> str:
+    """Name as read from shared memory: 31 bytes, decoded with errors replaced (see validator.bytes_to_str)"""
+    from neopedal.validator import bytes_to_str
+
+    return bytes_to_str(full_name.encode("utf-8")[:31])
+
+
+def test_b016_energy_usage_of_driver_with_name_cut():
+    from neopedal.energy_usage import EnergyUsage, LapUsage, driver_key
+
+    usage = EnergyUsage(fetch=lambda *args: None)
+    usage.value = {driver_key(FULL_NAME): LapUsage(3.1, 3.0), driver_key("Other Driver"): LapUsage(2.0, 2.0)}
+    assert usage.usage(shared_memory_name(FULL_NAME)) == LapUsage(3.1, 3.0)
+    assert usage.usage("José") is None  # short name never matched by its start
+    usage.value[driver_key(FULL_NAME + " Jr")] = LapUsage(9.0, 9.0)
+    assert usage.usage(shared_memory_name(FULL_NAME)) is None  # ambiguous: never another driver's value
+
+
+def test_b016_contacts_of_player_with_name_cut():
+    from neopedal.process.game_info import player_contacts
+
+    contacts = ((10.0, FULL_NAME, "Other Driver"), (20.0, "Third Driver", FULL_NAME), (30.0, "A", "B"))
+    assert player_contacts(contacts, shared_memory_name(FULL_NAME)) == [(10.0, "Other Driver"), (20.0, "Third Driver")]

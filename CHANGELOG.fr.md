@@ -95,6 +95,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate : l'écart avec la voiture devant sur la piste s'affiche dans le HUD tableau de bord (il restait toujours à `-` : le jeu le donne en nombre négatif).
 - Le Mans Ultimate, Spectateur et Régie de course : suivre une voiture sans énergie virtuelle (LMP2, GT3) après une Hypercar n'affiche plus son énergie virtuelle à 0 % et 0 tour (Énergie virtuelle, alerte d'énergie basse du Drapeau, Économiseur carburant/énergie) ; elle est masquée comme pour votre propre voiture.
 - Historique de consommation (Calculateur de course) : passer à un autre circuit et une autre catégorie (ou suivre une voiture d'une autre catégorie) pendant qu'une sauvegarde attendait ne remplace plus le fichier d'historique de l'ancien par les tours du nouveau, et les derniers tours ne sont plus perdus au rechargement.
+- Le Mans Ultimate : les pilotes au nom long (plus de 31 octets, les accents comptent double) ont leur colonne d'énergie par tour (Classement, Relatif) et leurs contacts dans le HUD tableau de bord ; le jeu coupe les noms dans sa mémoire partagée.
 
 ## 0.28.1 (2026-11-01)
 

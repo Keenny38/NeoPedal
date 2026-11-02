@@ -31,6 +31,7 @@ from functools import lru_cache
 from typing import Any, NamedTuple
 
 from .game_rest_poll import RoutePoller
+from .validator import cut_name_prefix
 
 ROUTE = "/rest/strategy/usage"
 CHECK_SECONDS = 10.0
@@ -96,8 +97,18 @@ class EnergyUsage(RoutePoller[dict[str, LapUsage]]):
         super().__init__(ROUTE, parse_usage, {}, CHECK_SECONDS, fetch, clock, CHECK_BYTES_PER_SECOND)
 
     def usage(self, name: str) -> LapUsage | None:
-        """Energy usage of driver by name, None if unknown"""
-        return self.value.get(driver_key(name))
+        """Energy usage of driver by name, None if unknown; name cut by the game name field (shared memory)
+        matched by start of full name, unless several drivers share it"""
+        values = self.value
+        key = driver_key(name)
+        found = values.get(key)
+        if found is None:
+            prefix = cut_name_prefix(key)
+            if prefix:
+                matches = [usage for full_name, usage in values.items() if full_name.startswith(prefix)]
+                if len(matches) == 1:
+                    return matches[0]
+        return found
 
 
 energy_usage = EnergyUsage()
