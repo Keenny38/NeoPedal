@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import threading
 from dataclasses import replace
-from time import localtime, strftime, time
+from time import localtime, monotonic, strftime, time
 
 from .. import calculation as calc
 from .. import realtime_state
@@ -46,6 +46,7 @@ from ..userfile.driver_history import append_record, session_record, worth_recor
 from ..userfile.driver_stats import DriverStats, combined_stats, load_driver_stats, save_driver_stats
 from ..userfile.json_setting import notify_stats_not_saved
 from ..validator import generator_init
+from . import _base
 from ._base import MODULE_STOP, PENDING_CHECK, WAIT_STATE_CHANGE, DataModule, PendingLap
 from ._lap_state import LOAD, SKIP, LapState
 
@@ -218,7 +219,8 @@ def record_driver_stats(
     Lap is counted 2s after the line (valid if game has a last lap time), best lap times once game last
     lap time matches lap time from lap start times. Lap completed just before leaving track (reset,
     inactive: PENDING_CHECK sent) keeps being validated for up to PENDING_WAIT seconds before stats are
-    saved & reset (MODULE_STOP: last check). Yields whether a lap is waiting for validation.
+    saved & reset (MODULE_STOP: last check). Stats recorded so far also saved every CHECKPOINT_INTERVAL while
+    driving (history record written once, at stint end). Yields whether a lap is waiting for validation.
     """
 
     default_stats = DriverStats()
@@ -241,6 +243,8 @@ def record_driver_stats(
     last_raw_laptime = FLOAT_INF
     unsaved: dict[tuple[str, str], DriverStats] = {}  # stats of stints not saved yet (see save_data)
     stopping = False  # module stopping: last save
+    stint_saved = DriverStats()  # stats of stint saved at checkpoints (driver_stats: since last checkpoint)
+    next_checkpoint = FLOAT_INF
 
     def best_laptime(laptime_valid: float, lap_session_type: int):
         """Personal, qualifying & race best lap times"""
@@ -288,24 +292,37 @@ def record_driver_stats(
         Stats not saved (file held by another program, disk error) kept and saved with the next stint, user
         told if still not saved once module stops.
         """
-        if all(key_list):
-            stint = unsaved.get(key_list)
-            unsaved[key_list] = replace(driver_stats) if stint is None else combined_stats(stint, driver_stats)
-        save_unsaved()
-        if all(key_list) and worth_recording(driver_stats.valid, driver_stats.invalid, driver_stats.seconds):
+        save_part()
+        stint = combined_stats(stint_saved, driver_stats)  # whole stint, checkpoints included
+        if all(key_list) and worth_recording(stint.valid, stint.invalid, stint.seconds):
             if best_conditions[0] >= 0:
                 wetness, temperature, compound = best_conditions
             else:  # no best lap: wettest road of stint
                 wetness, temperature, compound = stint_wetness, track_temp, ""
             append_record(filepath, session_record(
                 track=key_list[0], vehicle=key_list[1], session=session_type,
-                best=driver_stats.pb, valid=driver_stats.valid, invalid=driver_stats.invalid,
-                meters=driver_stats.meters, seconds=driver_stats.seconds,
+                best=stint.pb, valid=stint.valid, invalid=stint.invalid,
+                meters=stint.meters, seconds=stint.seconds,
                 position=finish_place, finish=finish_state, time=time(), vehicle_class=vehicle_class,
                 game_version=game_version, wetness=wetness, track_temp=temperature, compound=compound,
                 start_position=start_place, online=online.result,
             ))
         lap_state.delayed_save = False
+
+    def save_part():
+        """Stats recorded since last checkpoint saved (kept if not saved, see save_unsaved)"""
+        if all(key_list):
+            stint = unsaved.get(key_list)
+            unsaved[key_list] = replace(driver_stats) if stint is None else combined_stats(stint, driver_stats)
+        save_unsaved()
+
+    def checkpoint():
+        """Stats recorded since last checkpoint saved while driving (NeoPedal crash, power loss): stint best lap
+        times kept, counters started again"""
+        nonlocal driver_stats, stint_saved
+        save_part()
+        stint_saved = combined_stats(stint_saved, driver_stats)
+        driver_stats = DriverStats(pb=driver_stats.pb, qb=driver_stats.qb, rb=driver_stats.rb)
 
     def save_unsaved():
         """Stats of stints not saved yet saved, user told if still not saved once module stops (lost)"""
@@ -332,6 +349,8 @@ def record_driver_stats(
         if step == LOAD:
             # Load driver stats
             driver_stats = DriverStats()
+            stint_saved = DriverStats()
+            next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
             key_list = stats_keys(vehicle_classification)
             vehicle_class = api.read.vehicle.class_name()
             game_version = live_game_version()
@@ -455,7 +474,12 @@ def record_driver_stats(
                     driver_stats.dnf += 1
 
         # Output stats data
-        output.metersDriven = driver_stats.meters + loaded_stats.meters
+        output.metersDriven = driver_stats.meters + stint_saved.meters + loaded_stats.meters
+
+        # Checkpoint while driving
+        if monotonic() >= next_checkpoint:
+            next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
+            checkpoint()
 
 
 @generator_init

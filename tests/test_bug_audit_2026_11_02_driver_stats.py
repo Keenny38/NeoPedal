@@ -9,10 +9,12 @@ import builtins
 import json
 import os
 
+import pytest
+
 from neopedal.module import module_stats
 from neopedal.module._base import MODULE_STOP
 from neopedal.module_info import StatsInfo
-from neopedal.userfile import driver_stats
+from neopedal.userfile import driver_history, driver_stats
 from neopedal.userfile.driver_stats import DriverStats
 from tests.test_audit_pending_lap_files import (  # noqa: F401  fixtures: scripted game & clocks
     ModuleLoop,
@@ -140,3 +142,34 @@ def test_b006_message_translated():
     finally:
         i18n.set_language("English")
     assert text.startswith("Les statistiques pilote du dernier relais n'ont pas pu être enregistrées")
+
+
+# B-013
+def test_b013_stats_saved_at_checkpoints_while_driving(tele, tmp_path, clock, monkeypatch):  # noqa: F811
+    """Stats recorded so far saved every checkpoint (kept after a crash), never counted twice, one history record"""
+    monkeypatch.setattr(module_stats, "monotonic", lambda: clock["now"], raising=False)
+    filepath = f"{tmp_path}/"
+    tele.update(STINT_TELE)
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    loop.update()
+    drive_stats_lap(tele, loop, 0.0, 90.0)
+    tele["timing.elapsed"] = 93.0
+    loop.update()
+    loop.update()
+    assert driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath).valid == 0
+    clock["now"] += 301.0
+    loop.update()  # checkpoint
+    saved = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
+    assert (saved.valid, saved.pb) == (1, 90.0)  # kept if the app crashes now
+    drive_stats_lap(tele, loop, 90.0, 89.0)
+    tele["timing.elapsed"] = 182.0
+    loop.update()
+    loop.update()
+    gen.send(MODULE_STOP)
+    stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
+    assert (stats.valid, stats.pb) == (2, 89.0)
+    assert stats.seconds == pytest.approx(182.0)
+    records = driver_history.read_records(filepath)
+    assert len(records) == 1 and (records[0].valid, records[0].best) == (2, 89.0)
+    assert records[0].seconds == pytest.approx(182.0)

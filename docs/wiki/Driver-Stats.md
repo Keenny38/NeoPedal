@@ -22,7 +22,7 @@ Under the key figures, three tabs choose what shows next to the table (the table
 
 ## How stats are recorded
 
-The **Stats** module (`Module` page) records your stats and saves them when you return to the garage. Each driving stint is also added to the session history. Stats are stored in the global config folder (`.stats` files and `driver.history`).
+The **Stats** module (`Module` page) records your stats and saves them when you return to the garage, and every 5 minutes while you drive (kept if the app or the computer stops). Each driving stint is also added to the session history. Stats are stored in the global config folder (`.stats` files and `driver.history`).
 
 Stats are **not** recorded while:
 
