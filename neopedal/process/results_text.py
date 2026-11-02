@@ -64,7 +64,7 @@ GAME_LABELS = {
     "Speeding": "Speeding",
     "Exceeded energy allowance limit.": "Energy allowance exceeded",
     "Driving Too Slow": "Driving too slow",
-    "Track Limits": "Track limits",
+    "Track Limits": "Track Limits",
     "Jumped the start": "Jump start",
     "Out of position": "Out of position",
     "Erratic driving": "Erratic driving",

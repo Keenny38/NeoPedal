@@ -2240,7 +2240,6 @@ TRANSLATION = MappingProxyType({
     "Speeding": "Excès de vitesse",
     "Energy allowance exceeded": "Dépassement de l'énergie allouée",
     "Driving too slow": "Conduite trop lente",
-    "Track limits": "Limites de piste",
     "Jump start": "Départ anticipé",
     "Out of position": "Mauvaise position",
     "Erratic driving": "Conduite erratique",
