@@ -125,7 +125,7 @@ def _with_preview_widget(config: Setting, widget_name: str, widget_setting: dict
         module = modern_module(widget_name)  # classic widget code not loaded
     else:
         module = import_module(f"neopedal.widget.{widget_name}")
-    session = demo_session(config.user.setting["standings"], scenario)
+    session = demo_session(preview_config.user.setting["standings"], scenario)  # edited (B-075)
     with demo_globals(session) as patch_loaded:
         widget = module.Realtime(preview_config, widget_name)
         try:
@@ -395,7 +395,7 @@ class LivePreview:
             module = modern_module(widget_name)
         else:
             module = import_module(f"neopedal.widget.{widget_name}")
-        self.session = DemoSession(config.user.setting["standings"], scenario)
+        self.session = DemoSession(preview_config.user.setting["standings"], scenario)  # edited (B-075)
         with _shared_style(), demo_globals(self.session) as patch_loaded:
             widget = module.Realtime(preview_config, widget_name)
             try:

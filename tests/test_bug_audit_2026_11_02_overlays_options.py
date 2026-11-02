@@ -1231,3 +1231,23 @@ def test_b057_huge_character_widths_limited(ui_env, bundled_fonts, name, key, va
 
     assert number_range(key, name)[1] <= 20
     assert picture_width(name, modern, **{key: value}) < 2000
+
+
+# B-075: Standings (classic) picture drawn on a race made from saved options, not edited ones
+def test_b075_preview_race_from_edited_standings(ui_env, bundled_fonts, monkeypatch):
+    from neopedal import demo_data
+    from neopedal.ui.widget_preview import LivePreview, render_widget
+
+    seen = []
+    real_session, real_class = demo_data.demo_session, demo_data.DemoSession
+    monkeypatch.setattr(demo_data, "demo_session",
+                        lambda standings, scenario="": seen.append(dict(standings)) or real_session(standings, scenario))
+    monkeypatch.setattr(demo_data, "DemoSession",
+                        lambda standings, scenario="": seen.append(dict(standings)) or real_class(standings, scenario))
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    saved = cfg.user.setting["standings"]["minimum_top_vehicles"]
+    edited = dict(cfg.user.setting["standings"], enable_classic_layout=True, minimum_top_vehicles=saved + 2)
+    render_widget(cfg, "standings", edited)
+    assert seen[-1]["minimum_top_vehicles"] == saved + 2
+    LivePreview(cfg, "standings", edited).close()
+    assert seen[-1]["minimum_top_vehicles"] == saved + 2
