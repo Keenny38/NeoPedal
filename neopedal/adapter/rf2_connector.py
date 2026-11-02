@@ -280,6 +280,10 @@ class SyncData(_sync.SyncData):
         return self._tele_indexes.get(
             self.scoring_rows(self.dataset.scor.data)[scor_idx].mID, INVALID_INDEX)
 
+    def _first_tele_row(self) -> Any:
+        """Telemetry of first row (cached wrapper), see _sync.SyncData._first_tele_row"""
+        return self.telemetry_rows(self.dataset.tele.data)[0]
+
     def scoring_rows(self, data: Any) -> tuple:
         """Scoring vehicle wrappers of scoring data structure, created once per structure
 

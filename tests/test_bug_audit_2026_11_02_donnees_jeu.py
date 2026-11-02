@@ -519,3 +519,30 @@ def test_b010_b011_replay_data_forgotten_on_source_change(monkeypatch, api_name)
     del replay_a
     sim.start()
     assert rest.setupName == ""
+
+
+# --- B-012: no player synced (spectating without override): modules notified at telemetry rate
+@pytest.mark.parametrize("synced", [True, False])
+def test_b012_modules_notified_on_new_telemetry_without_player(lmu_game, monkeypatch, synced):
+    sync, data = lmu_game
+    if not synced:
+        data.scoring.vehScoringInfo[0].mIsPlayer = False  # no player car in session
+    notified = []
+    from neopedal.adapter.data_notify import DataNotifier
+
+    monkeypatch.setattr(DataNotifier, "notify", lambda self: notified.append(1))
+
+    def next_scoring():
+        data.scoring.scoringInfo.mCurrentET += 0.2
+
+    def next_telemetry():  # telemetry 50 Hz, scoring 5 Hz
+        for row in data.telemetry.telemInfo[:3]:
+            row.mElapsedTime += 0.02
+
+    def mark():
+        notified.append("mark")
+
+    steps = [next_scoring, next_scoring, lambda: None, mark] + [next_telemetry] * 8 + [mark]
+    run_loop(sync, Ticks(monkeypatch, steps))
+    first, last = notified.index("mark"), len(notified) - 1
+    assert last - first - 1 >= 8  # once per telemetry sample, whether a player is synced or not

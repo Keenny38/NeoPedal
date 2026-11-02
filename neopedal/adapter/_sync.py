@@ -160,6 +160,10 @@ class SyncData:
         """Forget vehicle wrappers of mmap data (before close)"""
         raise NotImplementedError
 
+    def _first_tele_row(self) -> Any:
+        """Telemetry of first row (cached wrapper): its sample time stamps new telemetry while no player synced"""
+        raise NotImplementedError
+
     def _log_unavailable(self, error: Exception) -> None:
         """Log shared memory open error"""
         raise NotImplementedError
@@ -415,10 +419,12 @@ class SyncData:
                     freezed_timestamp,
                 )
 
-            # Notify data modules once data they read changed (data stamp, state)
+            # Notify data modules once data they read changed (data stamp, state); no player synced (spectating
+            # without override): telemetry of another car, so modules still follow telemetry rate, not scoring
+            tele = self.player_tele if self.synced else self._first_tele_row()
             signature = (
                 session_timestamp,
-                self.player_tele.mElapsedTime,
+                tele.mElapsedTime,
                 self.player_scor_index,
                 scor_info.mNumVehicles,
                 self.resets,
