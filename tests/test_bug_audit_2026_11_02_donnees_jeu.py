@@ -324,3 +324,30 @@ def test_b007_followed_car_starts_without_former_car_bests(monkeypatch, tmp_path
     seconds, session_best, stint_best = after[-1]
     assert seconds > 4.0
     assert session_best == stint_best == MAX_SECONDS  # car B: no lap completed since followed
+
+
+# --- B-005: Rest API garage values of the local car never given for a car followed (spectate)
+@pytest.mark.parametrize("game", ["lmu", "rf2"])
+@pytest.mark.parametrize("own_car", [True, False])
+def test_b005_rest_values_of_own_car_only(game, own_car):
+    from importlib import import_module
+    from types import SimpleNamespace
+
+    reader = import_module(f"neopedal.adapter.{game}_reader")
+    rest = SimpleNamespace(
+        repairTime=42.0, pitStopTime=55.0, absoluteRefill=80.0, maxVirtualEnergy=9e8, expectedFuelConsumption=3.1,
+        expectedEnergyConsumption=0.05, steeringWheelRange=540.0, lastCarSetup=("x",), setupName="Qatar",
+        setupModified=True)
+    car = SimpleNamespace(mIsPlayer=own_car, mPhysicalSteeringWheelRange=0.0)
+    rows = {f"{game}ScorVeh": lambda index=None: car, f"{game}TeleVeh": lambda index=None: car}
+    shmm = SimpleNamespace(playerIndex=5, **rows)  # spectate: player index points at the car followed
+    vehicle, engine, inputs = (getattr(reader, name)(shmm, rest) for name in ("Vehicle", "Engine", "Inputs"))
+    values = (vehicle.repair_time(), vehicle.pit_stop_time(), vehicle.absolute_refill(), vehicle.setup(),
+              vehicle.setup_name(), vehicle.setup_modified(), engine.expected_fuel_consumption(),
+              engine.expected_energy_consumption(), inputs.steering_range_physical())
+    if own_car:
+        assert values == (42.0, 55.0, 80.0, ("x",), "Qatar", True, 3.1, pytest.approx(5.0), 540.0)
+    else:
+        assert values == (0.0, 0.0, 0.0, (), "", False, 0.0, 0.0, 0.0)
+    if game == "lmu":
+        assert engine.max_virtual_energy() == (9e8 if own_car else 0.0)

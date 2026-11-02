@@ -77,6 +77,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Spectateur et Régie de course : suivre une autre voiture juste après que la voiture suivie a passé la ligne ne laisse plus les overlays de delta, de secteurs et de carburant sur l'ancienne voiture pendant 10 secondes.
 - Spectateur et Régie de course : les tours et les données de la voiture suivie ne sont plus enregistrés comme les vôtres (delta best, meilleurs secteurs, historique de consommation, références de carburant et d'énergie, tours enregistrés, mesures de la voie des stands et carte du circuit), comme le dit la documentation ; ils restent affichés.
 - Spectateur et Régie de course : la voiture suivie ne reprend plus les meilleurs tours de session et de relais de la voiture suivie avant (Timing, Deltabest en source session ou relais).
+- Spectateur et Régie de course, Le Mans Ultimate et rFactor 2 : la voiture suivie n'affiche plus le temps d'arrêt, le ravitaillement, les réparations prévues, la consommation prévue, l'énergie, l'angle de volant et le réglage de votre propre voiture (Estimation d'arrêt au stand, Assistant voie des stands, Drapeau, Carte du circuit, Moteur, Plan de course, tours enregistrés).
 
 ## 0.28.1 (2026-11-01)
 

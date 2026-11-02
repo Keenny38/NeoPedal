@@ -80,7 +80,8 @@ class DataAdapter:
         """
         if index is not None and index != self.shmm.playerIndex:
             return False
-        return bool(self.shmm.rf2ScorVeh(index).mIsPlayer)
+        row = self.shmm.rf2ScorVeh(index)
+        return row is None or bool(row.mIsPlayer)  # no player data yet (connector not started): own car
 
 
 class State(_reader.State, DataAdapter):
@@ -282,12 +283,12 @@ class Engine(_reader.Engine, DataAdapter):
         return 0.0
 
     def expected_fuel_consumption(self) -> float:
-        """Fuel consumption per lap estimated by game (liters), 0 if unknown"""
-        return self.rest.expectedFuelConsumption
+        """Fuel consumption per lap estimated by game (liters), 0 if unknown or a car followed (spectate)"""
+        return self.rest.expectedFuelConsumption if self._is_local_car(None) else 0.0
 
     def expected_energy_consumption(self) -> float:
-        """Virtual energy consumption per lap estimated by game (percent), 0 if unknown"""
-        return self.rest.expectedEnergyConsumption * 100
+        """Virtual energy consumption per lap estimated by game (percent), 0 if unknown or a car followed"""
+        return self.rest.expectedEnergyConsumption * 100 if self._is_local_car(None) else 0.0
 
     def overheating(self, index: int | None = None) -> bool:
         """Whether game shows engine overheating warning"""
@@ -338,7 +339,7 @@ class Inputs(_reader.Inputs, DataAdapter):
     def steering_range_physical(self, index: int | None = None) -> float:
         """Steering physical rotation range (degrees)"""
         rot_range = rmnan(self.shmm.rf2TeleVeh(index).mPhysicalSteeringWheelRange)
-        if rot_range <= 0:
+        if rot_range <= 0 and self._is_local_car(index):  # garage value of own car only (spectate)
             rot_range = self.rest.steeringWheelRange
         return rot_range
 
@@ -1152,16 +1153,16 @@ class Vehicle(_reader.Vehicle, DataAdapter):
         return self.shmm.rf2ScorVeh(index).mPitState == 1
 
     def pit_stop_time(self) -> float:
-        """Estimated pit stop time (seconds)"""
-        return self.rest.pitStopTime
+        """Estimated pit stop time (seconds), 0 for a car followed (spectate: game estimates own car only)"""
+        return self.rest.pitStopTime if self._is_local_car(None) else 0.0
 
     def absolute_refill(self) -> float:
-        """Absolute refill fuel (liter) or virtual energy (percent)"""
-        return self.rest.absoluteRefill
+        """Absolute refill fuel (liter) or virtual energy (percent), 0 for a car followed (spectate)"""
+        return self.rest.absoluteRefill if self._is_local_car(None) else 0.0
 
     def repair_time(self) -> float:
-        """Scheduled repair time (seconds)"""
-        return self.rest.repairTime
+        """Scheduled repair time (seconds), 0 for a car followed (spectate)"""
+        return self.rest.repairTime if self._is_local_car(None) else 0.0
 
     def finish_state(self, index: int | None = None) -> int:
         """Finish state, 0 = none, 1 = finished, 2 = DNF, 3 = DQ"""
@@ -1286,16 +1287,16 @@ class Vehicle(_reader.Vehicle, DataAdapter):
         return -rmnan(pos.x), rmnan(pos.z)
 
     def setup(self) -> tuple[str, ...]:
-        """Car setup data"""
-        return self.rest.lastCarSetup
+        """Car setup data, empty for a car followed (spectate: setup of own car)"""
+        return self.rest.lastCarSetup if self._is_local_car(None) else ()
 
     def setup_name(self) -> str:
-        """Name of car setup loaded in game, empty if unknown"""
-        return self.rest.setupName
+        """Name of car setup loaded in game, empty if unknown or a car followed (spectate)"""
+        return self.rest.setupName if self._is_local_car(None) else ""
 
     def setup_modified(self) -> bool:
-        """Car setup changed in garage since loaded or saved"""
-        return self.rest.setupModified
+        """Car setup changed in garage since loaded or saved (own car only, False for a car followed)"""
+        return self.rest.setupModified and self._is_local_car(None)
 
     def under_yellow(self, index: int | None = None) -> bool:
         """Whether vehicle took full course caution flag at start/finish line"""
