@@ -292,6 +292,9 @@ OPTION_FIXES["trailing"] += (OptionFix(dependencies={
     # Colors & thresholds of traces and bars (see ANY_OF)
     **dict.fromkeys(_TRAILING_SHARED, ""),
 }), OptionFix(CLASSIC, dependencies={"font_color_pedal_bar_readings": "show_pedal_bar_readings"}))
+OPTION_FIXES["friction_circle"] = (
+    *OPTION_FIXES.get("friction_circle", ()), OptionFix(dependencies={"trace_fade_out_step": "show_trace_fade_out"}),
+    OptionFix(CLASSIC, dependencies={"font_color_highlight": "show_readings"}))
 # Gauge overlays (classic): bar gap spaces the caption from the gauges only
 for _name in ("brake_pressure", "ride_height", "suspension_force", "suspension_position", "slip_angle",
               "slip_ratio", "tyre_load", "tyre_deflection"):
@@ -419,6 +422,24 @@ def _stint_warning(values: Mapping) -> Inactive:
     return dict.fromkeys(("stint_warning_minutes", "font_color_warning"), ("set", "maximum_stint_minutes"))
 
 
+def _compound_color(values: Mapping) -> Inactive:
+    """Compound text color: not used while compounds are colored by type"""
+    if values.get("show_compound_color_by_type", False):
+        return {"font_color_tyre_compound": ("off", "show_compound_color_by_type")}
+    return {}
+
+
+def _trend_duration(values: Mapping) -> Inactive:
+    """Trend duration: not used in per lap mode"""
+    return {"trend_duration": ("off", "show_trend_by_lap")} if values.get("show_trend_by_lap", False) else {}
+
+
+def _tyre_wear_captions(values: Mapping) -> Inactive:
+    """Captions of hidden sections"""
+    return {f"caption_text_{section}": ("on", f"show_{section}") for section in ('remaining', 'wear_difference', 'live_wear_difference', 'flat_spot', 'lifespan_laps', 'lifespan_minutes', 'end_stint_remaining')
+            if not values.get(f"show_{section}", True)}
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -439,11 +460,14 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "stint_timer": _stint_warning,
     "track_clock": _track_clock,
     "brake_temperature": _rules(_heatmap, _swap_colors("font_color_temperature", "background_color_temperature")),
-    "tyre_temperature": _heatmap,
-    "tyre_inner_layer": _heatmap,
-    "tyre_carcass": _heatmap,
+    "tyre_temperature": _rules(_heatmap, _compound_color, _swap_colors("font_color_surface", "background_color_surface")),
+    "tyre_inner_layer": _rules(_heatmap, _compound_color,
+                               _swap_colors("font_color_inner_layer", "background_color_inner_layer")),
+    "tyre_carcass": _rules(_heatmap, _compound_color, _swap_colors("font_color_carcass", "background_color_carcass")),
+    "tyre_pressure": _compound_color,
+    "tyre_wear": _tyre_wear_captions,
     "tyre_overview": _heatmap,
-    "tyre_temp_trend": _heatmap,
+    "tyre_temp_trend": _rules(_heatmap, _trend_duration),
 }
 
 

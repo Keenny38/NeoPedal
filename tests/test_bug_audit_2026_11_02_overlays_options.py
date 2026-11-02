@@ -827,3 +827,15 @@ def test_b058_timing_overlays_unused_options(ui_env):
         assert dimmed(name, "caption_text_virtual_energy", False, show_caption=False)
         assert dimmed(name, "caption_text_virtual_energy", False, show_caption=True,
                       show_virtual_energy_if_available=False)
+
+
+# B-074: tyre overlays & Friction Circle options active while unused
+def test_b074_tyre_overlays_unused_options(ui_env):
+    assert dimmed("tyre_temperature", "background_color_surface", False, swap_style=False)
+    assert dimmed("tyre_carcass", "font_color_carcass", False, swap_style=True)
+    assert dimmed("tyre_pressure", "font_color_tyre_compound", False, show_compound_color_by_type=True)
+    assert dimmed("tyre_temp_trend", "trend_duration", True, show_trend_by_lap=True)
+    assert dimmed("friction_circle", "trace_fade_out_step", True, show_trace_fade_out=False)
+    assert dimmed("friction_circle", "font_color_highlight", False, show_readings=False)
+    assert dimmed("tyre_wear", "caption_text_flat_spot", False, show_caption=True, show_flat_spot=False)
+    assert not dimmed("tyre_wear", "caption_text_remaining", False, show_caption=True, show_remaining=True)
