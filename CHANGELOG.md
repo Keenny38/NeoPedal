@@ -118,6 +118,7 @@ Fixes from an audit of the VR overlay.
 - Results & Replays, Le Mans Ultimate: opening a game replay is never sent twice when the game drops the connection right after (replay loaded twice).
 - Le Mans Ultimate: game answers shared between pages and overlays are no longer asked twice at the same time when the shared cache is cleaned meanwhile.
 - Le Mans Ultimate: while the game is slow to answer (loading a session or track), pages and overlays no longer get an answer kept from tens of seconds before (standings or energy use of the previous session) as a new one.
+- Relative and Standings: an error of the vehicles data module (restarted on its own) no longer leaves their order frozen on the last cars data until the car count changes.
 
 ## 0.28.1 (2026-11-01)
 

@@ -874,3 +874,26 @@ def test_b025_waiter_never_gets_answer_of_long_ago():
     finally:
         game.release.set()
         asking.join(5)
+
+
+# --- B-026: vehicles module ended by an error: relative module never left following its dead snapshot
+def test_b026_vehicles_output_reset_on_error_exit(ui_env, monkeypatch):
+    from neopedal.api_control import api
+    from neopedal.module import _base, module_vehicles
+    from neopedal.setting import cfg
+
+    monkeypatch.setattr(realtime_state, "paused", False)
+    monkeypatch.setattr(api.read.vehicle, "total_vehicles", lambda: 3, raising=False)
+    monkeypatch.setattr(_base.DataModule, "wait_update", lambda self, interval: False)
+
+    def torn_read(*args, **kwargs):
+        raise RuntimeError("torn read")
+
+    monkeypatch.setattr(module_vehicles, "update_vehicle_data", torn_read)
+    module = module_vehicles.Realtime(cfg, "module_vehicles")
+    try:
+        with pytest.raises(RuntimeError):
+            module.update_data()
+        assert not _base.vehicles_updates.active  # relative module follows game data again
+    finally:
+        _base.vehicles_updates.set_active(False)

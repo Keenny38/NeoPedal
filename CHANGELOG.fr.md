@@ -118,6 +118,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Résultats et replays, Le Mans Ultimate : l'ouverture d'un replay du jeu n'est jamais envoyée deux fois quand le jeu coupe la connexion juste après (replay chargé deux fois).
 - Le Mans Ultimate : les réponses du jeu partagées entre les pages et les overlays ne sont plus demandées deux fois en même temps quand le cache partagé est nettoyé entre-temps.
 - Le Mans Ultimate : pendant que le jeu tarde à répondre (chargement d'une session ou d'un circuit), les pages et les overlays ne reçoivent plus comme nouvelle une réponse gardée depuis des dizaines de secondes (classement ou consommation d'énergie de la session précédente).
+- Relatif et Classement : une erreur du module de données des voitures (relancé de lui-même) ne laisse plus leur ordre figé sur les dernières données des voitures jusqu'à ce que le nombre de voitures change.
 
 ## 0.28.1 (2026-11-01)
 

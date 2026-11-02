@@ -69,7 +69,15 @@ class Realtime(DataModule):
         super().__init__(config, module_name)
 
     def update_data(self):
-        """Update module data
+        """Update module data, output reset on close (error exit too: relative module would follow a dead
+        snapshot of vehicles, see vehicles_updates)"""
+        try:
+            self.update_vehicles()
+        finally:
+            close_output(minfo.vehicles)
+
+    def update_vehicles(self):
+        """Update vehicles data
 
         Full rate (active interval) only while overlays are shown (driving, or streamed while spectating),
         as overlays are their only consumers at that rate; idle interval otherwise (garage, monitor,
@@ -214,14 +222,16 @@ class Realtime(DataModule):
                     update_interval = WAIT_STATE_CHANGE  # game paused: idle until activity changes
                     vehicles_updates.set_active(False)  # relative module follows game data again
 
-        # Must reset on close
-        vehicles_updates.set_active(False)
-        output.finishTimeOffset = 0.0
-        output.finishAsLap = True
-        output.finishLapOffset = 0.0
-        output.finishLapOffsetLeader = 0.0
-        output.scoringSnapshot = None
-        reset_leader(output)
+
+def close_output(output: VehiclesInfo) -> None:
+    """Reset output on module close: relative module follows game data again"""
+    vehicles_updates.set_active(False)
+    output.finishTimeOffset = 0.0
+    output.finishAsLap = True
+    output.finishLapOffset = 0.0
+    output.finishLapOffsetLeader = 0.0
+    output.scoringSnapshot = None
+    reset_leader(output)
 
 
 def near_range_of(setting: dict) -> float:
