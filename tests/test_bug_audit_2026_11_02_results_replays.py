@@ -837,3 +837,15 @@ def test_b040_incidents_csv_for_spreadsheets(replays_page, monkeypatch, tmp_path
         i18n.set_language("English")
     text = path.read_text(encoding="utf-8-sig")
     assert not backend.noticeError and text.count(";") >= 5 and "'=HYPERLINK(1)" in text and "Jo?" in text
+
+
+# B-041: first click of a double click on the timeline (zoom reset) seeked the replay or jumped to an incident (in a
+# live session: into the replay) before the double click came
+def test_b041_timeline_double_click_never_seeks():
+    with open(os.path.join(QML, "..", "director", "IncidentPanel.qml"), encoding="utf-8") as file:
+        source = file.read()
+    area = source[source.index("id: timelineArea"):source.index("onWheel:", source.index("id: timelineArea"))]
+    clicked = area[area.index("onClicked:"):area.index("onDoubleClicked:")]
+    assert "jumpTo" not in clicked and "seek(" not in clicked and "clickTimer.restart()" in clicked
+    assert "clickTimer.stop()" in area[area.index("onDoubleClicked:"):]
+    assert "mouseDoubleClickInterval" in area

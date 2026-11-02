@@ -313,6 +313,20 @@ Item {
                 hoverEnabled: true
                 property real pressX: 0
                 property bool moved: false
+                property real clickX: 0
+                property real clickY: 0
+                // Single click done once no second click came: a double click (zoom reset) never seeks or jumps
+                Timer { id: clickTimer; interval: Qt.styleHints.mouseDoubleClickInterval; onTriggered: timelineArea.clicked1() }
+                function clicked1() {
+                    var key = timeline.markerAt(clickX, clickY)
+                    if (key !== "") {
+                        replays.selectIncident(key)
+                        if (root.canJump) replays.jumpTo(key, "")
+                        root.showSelected()
+                    } else if (replays.replayActive) {
+                        replays.seek(timeline.timeAt(clickX))
+                    }
+                }
                 cursorShape: timeline.hoverKey !== "" || replays.replayActive ? Qt.PointingHandCursor
                            : timeline.zoomed ? Qt.OpenHandCursor : Qt.ArrowCursor
                 onPressed: function(mouse) { pressX = mouse.x; moved = false }
@@ -329,16 +343,11 @@ Item {
                 onExited: { timeline.hoverKey = ""; timeline.hoverTime = -1 }
                 onClicked: function(mouse) {
                     if (moved) return
-                    var key = timeline.markerAt(mouse.x, mouse.y)
-                    if (key !== "") {
-                        replays.selectIncident(key)
-                        if (root.canJump) replays.jumpTo(key, "")
-                        root.showSelected()
-                    } else if (replays.replayActive) {
-                        replays.seek(timeline.timeAt(mouse.x))
-                    }
+                    clickX = mouse.x
+                    clickY = mouse.y
+                    clickTimer.restart()
                 }
-                onDoubleClicked: { timeline.zoomStart = -1; timeline.zoomEnd = -1 }
+                onDoubleClicked: { clickTimer.stop(); timeline.zoomStart = -1; timeline.zoomEnd = -1 }
                 onWheel: function(wheel) {
                     if (wheel.angleDelta.y !== 0) timeline.zoomAt(Math.pow(0.998, wheel.angleDelta.y), wheel.x)
                 }
