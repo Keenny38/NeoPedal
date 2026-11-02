@@ -858,3 +858,13 @@ def test_b080_driver_list_options(ui_env):
             assert dimmed(name, "show_lap_difference", True, column_driver_name=False), name
     assert dimmed("relative", "nearest_time_gap_threshold_front", True, show_highlighted_nearest_time_gap=False)
     assert dimmed("relative", "font_color_fastest_last_laptime", False, show_highlighted_fastest_last_laptime=False)
+
+
+# B-081: Heading slip angle reading under the yaw angle reading
+@DESIGNS
+def test_b081_heading_slip_reading_own_switch(ui_env, modern):
+    assert not dimmed("heading", "show_slip_angle_reading", modern, show_yaw_angle_reading=False)
+    if "font_color_slip_angle" in shown_keys("heading", modern):
+        assert dimmed("heading", "font_color_slip_angle", modern, show_slip_angle_reading=False)
+        assert not dimmed("heading", "font_color_slip_angle", modern, show_yaw_angle_reading=False,
+                          show_slip_angle_reading=True)

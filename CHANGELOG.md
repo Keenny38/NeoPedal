@@ -194,6 +194,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, tyre overlays and Friction Circle: colors unused by `swap_style` or by compound colors by type, `trend_duration` in per lap mode, the trace fade step without fade, the highlight color without readings and the captions of hidden Tyre Wear sections are dimmed.
 - `Overlay Options`, Relative (classic look): the position, driver and vehicle name colors are dimmed while `show_lap_difference` colors them by lap difference.
 - `Overlay Options`, Relative, Standings and Rivals: the pit request (classic look), nearest time gap and fastest last lap highlight options, and `show_lap_difference` (modern look) are dimmed while what uses them is hidden.
+- `Overlay Options`, Heading: the slip angle reading options are no longer dimmed while the yaw angle reading is hidden.
 
 ## 0.28.1 (2026-11-01)
 

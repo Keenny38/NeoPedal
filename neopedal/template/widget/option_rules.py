@@ -289,6 +289,11 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                      "font_color_fastest_last_laptime", "background_color_fastest_last_laptime",
                      "font_color_player_fastest_last_laptime", "background_color_player_fastest_last_laptime"),
                      "show_highlighted_fastest_last_laptime"))),
+    "heading": (OptionFix(dependencies={
+        "show_slip_angle_reading": "show_slip_angle_reading",  # drawn apart from the yaw reading
+        **dict.fromkeys(("slip_angle_offset_x", "slip_angle_offset_y", "font_color_slip_angle"),
+                        "show_slip_angle_reading"),
+    }),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
