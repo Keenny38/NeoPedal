@@ -301,3 +301,16 @@ def test_b014_stint_loaded_while_teammate_drove(tele, tmp_path, clock, monkeypat
     loop.update()
     gen.send(MODULE_STOP)
     assert driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath).valid == 1
+
+
+# B-011
+def test_b011_not_finite_stats_reset_for_viewer():
+    """NaN & Infinity (accepted by JSON) never reach the page: table cells and totals stay numbers"""
+    from neopedal.ui.quick import stats_common
+
+    data = driver_stats.validate_stats_file(json.loads(
+        '{"Spa": {"GT3": {"seconds": NaN, "meters": Infinity, "pb": -Infinity, "valid": 3}}}'))
+    vehicle = data["Spa"]["GT3"]
+    assert vehicle == {"seconds": 0.0, "meters": 0.0, "pb": driver_stats.MAX_SECONDS, "valid": 3}
+    assert stats_common.stat_number({"seconds": float("nan")}, "seconds") == 0
+    assert stats_common.format_duration(stats_common.stat_number({"seconds": float("inf")}, "seconds"))

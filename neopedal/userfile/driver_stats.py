@@ -120,7 +120,7 @@ def validate_stats_file(stats_user: dict) -> dict:
     """Validate stats file
 
     Full validation for every primary key (track name) and secondary key (vehicle name), and value
-    type of every stat (text, null or bool replaced by number, default if not a number).
+    type of every stat (text, null or bool replaced by number, default if not a number, NaN & infinity too).
     Only required for loading file in Driver Stats Viewer.
     """
     default_dict = DriverStats.__dict__
@@ -137,7 +137,9 @@ def validate_stats_file(stats_user: dict) -> dict:
             for name, value in vehicle_stats.items():
                 value_type = default_type.get(name)
                 if value_type is not None and (isinstance(value, bool) or not isinstance(value, value_type)):
-                    vehicle_stats[name] = convert_value_type(value, default_dict[name], value_type)
+                    value = vehicle_stats[name] = convert_value_type(value, default_dict[name], value_type)
+                if value_type is not None and isinstance(value, float) and not isfinite(value):
+                    vehicle_stats[name] = default_dict[name]
     return stats_user
 
 

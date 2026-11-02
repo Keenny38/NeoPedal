@@ -154,9 +154,9 @@ HISTORY_COLUMNS = (  # session history CSV export
 
 # Formatting
 def stat_number(data: dict, key: str) -> float:
-    """Stat value, 0 if missing or not a number"""
+    """Stat value, 0 if missing or not a number (NaN & infinity of a hand edited file too)"""
     value = data.get(key, 0)
-    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else 0
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value) else 0
 
 
 def plural(count: float, one: str, many: str) -> str:
