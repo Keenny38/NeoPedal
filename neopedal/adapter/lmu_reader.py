@@ -47,8 +47,16 @@ from ..validator import bytes_to_str
 from ..validator import infnan_to_zero as rmnan
 from . import _reader
 from ._reader import signed_char
-from .lmu_connector import LMU_COMPOUND_TYPE, LMUInfo
+from .lmu_connector import EMPTY_TELE, LMU_COMPOUND_TYPE, LMUInfo
 from .lmu_restapi import RestAPIData
+
+NO_PUNCTURE = (False, False, False, False)  # zeroed telemetry (no row): wear 0 is no puncture
+NO_COMPOUND = ("", "", "", "")  # no telemetry row
+
+def kelvin(temperature: float) -> float:
+    """Celsius of a Kelvin game value, 0 if zeroed (telemetry of a car without telemetry row, garage): never
+    -273 °C"""
+    return temperature - 273.15 if temperature > 0 else 0.0
 
 
 def celsius(temperature: float) -> float:
@@ -169,10 +177,10 @@ class Brake(_reader.Brake, DataAdapter):
         """Brake temperature (Celsius)"""
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(wheel_data[0].mBrakeTemp) - 273.15,
-            rmnan(wheel_data[1].mBrakeTemp) - 273.15,
-            rmnan(wheel_data[2].mBrakeTemp) - 273.15,
-            rmnan(wheel_data[3].mBrakeTemp) - 273.15,
+            kelvin(rmnan(wheel_data[0].mBrakeTemp)),
+            kelvin(rmnan(wheel_data[1].mBrakeTemp)),
+            kelvin(rmnan(wheel_data[2].mBrakeTemp)),
+            kelvin(rmnan(wheel_data[3].mBrakeTemp)),
         )
 
     def wear(self, index: int | None = None) -> tuple[float, ...]:
@@ -979,8 +987,11 @@ class Tyre(_reader.Tyre, DataAdapter):
         return front, front, rear, rear
 
     def compound_name(self, index: int | None = None) -> tuple[str, ...]:
-        """Tyre compound name set"""
-        wheel_data = self.shmm.lmuTeleVeh(index).mWheels
+        """Tyre compound name set, empty without telemetry row (never type 0 taken for a compound)"""
+        telemetry = self.shmm.lmuTeleVeh(index)
+        if telemetry is EMPTY_TELE:
+            return NO_COMPOUND
+        wheel_data = telemetry.mWheels
         return (
             LMU_COMPOUND_TYPE(wheel_data[0].mCompoundType),
             LMU_COMPOUND_TYPE(wheel_data[1].mCompoundType),
@@ -989,9 +1000,13 @@ class Tyre(_reader.Tyre, DataAdapter):
         )
 
     def compound_class(self, index: int | None = None) -> tuple[str, ...]:
-        """Tyre compound name set with class name prefix"""
-        wheel_data = self.shmm.lmuTeleVeh(index).mWheels
+        """Tyre compound name set with class name prefix (no compound without telemetry row, as rF2)"""
+        telemetry = self.shmm.lmuTeleVeh(index)
         class_name = self.tostr(self.shmm.lmuScorVeh(index).mVehicleClass)
+        if telemetry is EMPTY_TELE:
+            compound = f"{class_name} - "
+            return compound, compound, compound, compound
+        wheel_data = telemetry.mWheels
         return (
             f"{class_name} - {LMU_COMPOUND_TYPE(wheel_data[0].mCompoundType)}",
             f"{class_name} - {LMU_COMPOUND_TYPE(wheel_data[1].mCompoundType)}",
@@ -1003,10 +1018,10 @@ class Tyre(_reader.Tyre, DataAdapter):
         """Tyre surface temperature set (Celsius) average"""
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(mean(wheel_data[0].mTemperature)) - 273.15,
-            rmnan(mean(wheel_data[1].mTemperature)) - 273.15,
-            rmnan(mean(wheel_data[2].mTemperature)) - 273.15,
-            rmnan(mean(wheel_data[3].mTemperature)) - 273.15,
+            kelvin(rmnan(mean(wheel_data[0].mTemperature))),
+            kelvin(rmnan(mean(wheel_data[1].mTemperature))),
+            kelvin(rmnan(mean(wheel_data[2].mTemperature))),
+            kelvin(rmnan(mean(wheel_data[3].mTemperature))),
         )
 
     def surface_temperature_ico(self, index: int | None = None) -> tuple[float, ...]:
@@ -1017,28 +1032,28 @@ class Tyre(_reader.Tyre, DataAdapter):
         """
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(wheel_data[0].mTemperature[0]) - 273.15,
-            rmnan(wheel_data[0].mTemperature[1]) - 273.15,
-            rmnan(wheel_data[0].mTemperature[2]) - 273.15,
-            rmnan(wheel_data[1].mTemperature[0]) - 273.15,
-            rmnan(wheel_data[1].mTemperature[1]) - 273.15,
-            rmnan(wheel_data[1].mTemperature[2]) - 273.15,
-            rmnan(wheel_data[2].mTemperature[0]) - 273.15,
-            rmnan(wheel_data[2].mTemperature[1]) - 273.15,
-            rmnan(wheel_data[2].mTemperature[2]) - 273.15,
-            rmnan(wheel_data[3].mTemperature[0]) - 273.15,
-            rmnan(wheel_data[3].mTemperature[1]) - 273.15,
-            rmnan(wheel_data[3].mTemperature[2]) - 273.15,
+            kelvin(rmnan(wheel_data[0].mTemperature[0])),
+            kelvin(rmnan(wheel_data[0].mTemperature[1])),
+            kelvin(rmnan(wheel_data[0].mTemperature[2])),
+            kelvin(rmnan(wheel_data[1].mTemperature[0])),
+            kelvin(rmnan(wheel_data[1].mTemperature[1])),
+            kelvin(rmnan(wheel_data[1].mTemperature[2])),
+            kelvin(rmnan(wheel_data[2].mTemperature[0])),
+            kelvin(rmnan(wheel_data[2].mTemperature[1])),
+            kelvin(rmnan(wheel_data[2].mTemperature[2])),
+            kelvin(rmnan(wheel_data[3].mTemperature[0])),
+            kelvin(rmnan(wheel_data[3].mTemperature[1])),
+            kelvin(rmnan(wheel_data[3].mTemperature[2])),
         )
 
     def inner_temperature_avg(self, index: int | None = None) -> tuple[float, ...]:
         """Tyre inner temperature set (Celsius) average"""
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(mean(wheel_data[0].mTireInnerLayerTemperature)) - 273.15,
-            rmnan(mean(wheel_data[1].mTireInnerLayerTemperature)) - 273.15,
-            rmnan(mean(wheel_data[2].mTireInnerLayerTemperature)) - 273.15,
-            rmnan(mean(wheel_data[3].mTireInnerLayerTemperature)) - 273.15,
+            kelvin(rmnan(mean(wheel_data[0].mTireInnerLayerTemperature))),
+            kelvin(rmnan(mean(wheel_data[1].mTireInnerLayerTemperature))),
+            kelvin(rmnan(mean(wheel_data[2].mTireInnerLayerTemperature))),
+            kelvin(rmnan(mean(wheel_data[3].mTireInnerLayerTemperature))),
         )
 
     def inner_temperature_ico(self, index: int | None = None) -> tuple[float, ...]:
@@ -1048,18 +1063,18 @@ class Tyre(_reader.Tyre, DataAdapter):
         """
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(wheel_data[0].mTireInnerLayerTemperature[0]) - 273.15,
-            rmnan(wheel_data[0].mTireInnerLayerTemperature[1]) - 273.15,
-            rmnan(wheel_data[0].mTireInnerLayerTemperature[2]) - 273.15,
-            rmnan(wheel_data[1].mTireInnerLayerTemperature[0]) - 273.15,
-            rmnan(wheel_data[1].mTireInnerLayerTemperature[1]) - 273.15,
-            rmnan(wheel_data[1].mTireInnerLayerTemperature[2]) - 273.15,
-            rmnan(wheel_data[2].mTireInnerLayerTemperature[0]) - 273.15,
-            rmnan(wheel_data[2].mTireInnerLayerTemperature[1]) - 273.15,
-            rmnan(wheel_data[2].mTireInnerLayerTemperature[2]) - 273.15,
-            rmnan(wheel_data[3].mTireInnerLayerTemperature[0]) - 273.15,
-            rmnan(wheel_data[3].mTireInnerLayerTemperature[1]) - 273.15,
-            rmnan(wheel_data[3].mTireInnerLayerTemperature[2]) - 273.15,
+            kelvin(rmnan(wheel_data[0].mTireInnerLayerTemperature[0])),
+            kelvin(rmnan(wheel_data[0].mTireInnerLayerTemperature[1])),
+            kelvin(rmnan(wheel_data[0].mTireInnerLayerTemperature[2])),
+            kelvin(rmnan(wheel_data[1].mTireInnerLayerTemperature[0])),
+            kelvin(rmnan(wheel_data[1].mTireInnerLayerTemperature[1])),
+            kelvin(rmnan(wheel_data[1].mTireInnerLayerTemperature[2])),
+            kelvin(rmnan(wheel_data[2].mTireInnerLayerTemperature[0])),
+            kelvin(rmnan(wheel_data[2].mTireInnerLayerTemperature[1])),
+            kelvin(rmnan(wheel_data[2].mTireInnerLayerTemperature[2])),
+            kelvin(rmnan(wheel_data[3].mTireInnerLayerTemperature[0])),
+            kelvin(rmnan(wheel_data[3].mTireInnerLayerTemperature[1])),
+            kelvin(rmnan(wheel_data[3].mTireInnerLayerTemperature[2])),
         )
 
     def pressure(self, index: int | None = None) -> tuple[float, ...]:
@@ -1094,7 +1109,10 @@ class Tyre(_reader.Tyre, DataAdapter):
 
     def puncture(self, index: int | None = None, threshold: float = 0.01) -> tuple[bool, ...]:
         """Tyre puncture state"""
-        wheel_data = self.shmm.lmuTeleVeh(index).mWheels
+        telemetry = self.shmm.lmuTeleVeh(index)
+        if telemetry is EMPTY_TELE:
+            return NO_PUNCTURE
+        wheel_data = telemetry.mWheels
         return (
             wheel_data[0].mWear <= threshold,
             wheel_data[1].mWear <= threshold,
@@ -1106,10 +1124,10 @@ class Tyre(_reader.Tyre, DataAdapter):
         """Tyre carcass temperature (Celsius)"""
         wheel_data = self.shmm.lmuTeleVeh(index).mWheels
         return (
-            rmnan(wheel_data[0].mTireCarcassTemperature) - 273.15,
-            rmnan(wheel_data[1].mTireCarcassTemperature) - 273.15,
-            rmnan(wheel_data[2].mTireCarcassTemperature) - 273.15,
-            rmnan(wheel_data[3].mTireCarcassTemperature) - 273.15,
+            kelvin(rmnan(wheel_data[0].mTireCarcassTemperature)),
+            kelvin(rmnan(wheel_data[1].mTireCarcassTemperature)),
+            kelvin(rmnan(wheel_data[2].mTireCarcassTemperature)),
+            kelvin(rmnan(wheel_data[3].mTireCarcassTemperature)),
         )
 
     def vertical_deflection(self, index: int | None = None) -> tuple[float, ...]:

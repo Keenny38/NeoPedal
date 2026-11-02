@@ -125,6 +125,7 @@ Fixes from an audit of the VR overlay.
 - Class gaps and intervals (Standings, Rivals, Gap Trend): after a place change in a class, they are no longer measured for a moment to the car that was ahead before.
 - Telemetry recording: in, out and invalid laps are saved with their own lap number, no longer the number of the lap before (two laps with the same number in the Telemetry Viewer).
 - Fuel and energy estimates with the green flag median (`enable_green_flag_consumption` option): another car of the same class (yours or one you follow) starts its own laps instead of keeping those of the car before.
+- Le Mans Ultimate and rFactor 2: a car without telemetry (and your car for a moment when it joins) no longer shows four punctured tyres (Damage, Tyre Overview, Black Box), a `Soft` compound badge (Standings, Relative, Broadcast Director) nor temperatures of -273 °C (garage, web dashboard).
 
 ## 0.28.1 (2026-11-01)
 

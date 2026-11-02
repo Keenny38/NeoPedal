@@ -991,3 +991,24 @@ def test_b029_green_flag_median_of_the_car_only(ui_env, monkeypatch, tmp_path):
     drive(LapSim(lap_times=[90.0] * 5, fuel_per_lap=4.0), 0, "Car A #1")  # 4 L per lap
     drive(LapSim(lap_times=[90.0] * 3, fuel_per_lap=2.0), 1, "Car B #2")  # other car of the class: 2 L per lap
     assert output.estimatedConsumption == pytest.approx(2.0, abs=0.05)
+
+
+# --- B-030: zeroed telemetry (car without telemetry row, garage) never read as punctures, compounds, -273 °C
+@pytest.mark.parametrize("game", ["lmu", "rf2"])
+def test_b030_zeroed_telemetry_read_as_no_value(game):
+    from importlib import import_module
+    from types import SimpleNamespace
+
+    reader = import_module(f"neopedal.adapter.{game}_reader")
+    connector = import_module(f"neopedal.adapter.{game}_connector")
+    scoring = SimpleNamespace(mVehicleClass=b"Hyper")
+    shmm = SimpleNamespace(**{f"{game}TeleVeh": lambda index=None: connector.EMPTY_TELE,
+                              f"{game}ScorVeh": lambda index=None: scoring})
+    tyre, brake = reader.Tyre(shmm, None, lambda text: text.decode()), reader.Brake(shmm, None)
+    assert tyre.puncture() == (False, False, False, False)
+    assert tyre.surface_temperature_avg() == (0.0, 0.0, 0.0, 0.0)
+    assert tyre.carcass_temperature() == (0.0, 0.0, 0.0, 0.0)
+    assert brake.temperature() == (0.0, 0.0, 0.0, 0.0)
+    if game == "lmu":
+        assert tyre.compound_name() == ("", "", "", "")
+        assert tyre.compound_class() == ("Hyper - ",) * 4
