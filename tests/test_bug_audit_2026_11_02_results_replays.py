@@ -670,3 +670,16 @@ def test_b030_game_texts_of_penalties_translated(ui_env):
         assert game_text("Exceeded energy allowance limit.") == "Dépassement de l'énergie allouée"
     finally:
         i18n.set_language("English")
+
+
+# B-031: online session where no driver has a profile name (watched as spectator): its only human taken as the player
+def test_b031_spectated_online_session_has_no_player():
+    from neopedal.process import results_file as rf
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    one_human = RACE_XML.replace("<isPlayer>1</isPlayer>", "<isPlayer>0</isPlayer>", 1)  # only one human left
+    online = rf.parse_results(one_human.encode("utf-8"), RACE_NAME, ["someone else"])
+    assert online.setting == "Multiplayer" and online.player_entry is None
+    offline = one_human.replace("<Setting>Multiplayer</Setting>", "<Setting>Race Weekend</Setting>")
+    assert rf.parse_results(offline.encode("utf-8"), RACE_NAME, ["someone else"]).player_entry is not None
+    assert rf.parse_results(one_human.encode("utf-8"), RACE_NAME).player_entry is not None  # no profile name known

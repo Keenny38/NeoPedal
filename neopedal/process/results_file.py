@@ -352,8 +352,9 @@ def _drop_repeats(events: Iterable[Event]) -> Iterable[Event]:
             yield event
 
 
-def mark_player(entries: list[Entry], player_names: Iterable[str]) -> list[Entry]:
-    """Entry of user marked as player: driver name (or driver swap) of game profile, else the only human car"""
+def mark_player(entries: list[Entry], player_names: Iterable[str], online: bool = False) -> list[Entry]:
+    """Entry of user marked as player: driver name (or driver swap) of game profile, else the only human car
+    (online with profile names known: none, a session watched as spectator holds another human only)"""
     names = {name.strip().casefold() for name in player_names if name and name.strip()}
     found = -1
     if names:
@@ -362,7 +363,7 @@ def mark_player(entries: list[Entry], player_names: Iterable[str]) -> list[Entry
             if drivers & names:
                 found = index
                 break
-    if found < 0:
+    if found < 0 and not (names and online):
         humans = [index for index, entry in enumerate(entries) if entry.human]
         if len(humans) == 1:
             found = humans[0]
@@ -566,7 +567,7 @@ def _session_of(parsed: _Parsed, path: str) -> tuple[SessionResult, tuple[Entry,
 
 def _with_player(raw: SessionResult, cars: tuple[Entry, ...], player_names: Iterable[str]) -> SessionResult:
     """Result of raw parse with player marked & cars in classification order"""
-    entries = mark_player(list(cars), player_names)
+    entries = mark_player(list(cars), player_names, raw.setting == "Multiplayer")
     entries.sort(key=entry_order)
     return raw._replace(entries=tuple(entries))
 
