@@ -98,6 +98,7 @@ class ReplaysBase(_HostBase):
         state_generation: int
         state_time: float
         action_after: float
+        action_ready: bool
         play_command: Command | None
         playing: str
         opening_until: float

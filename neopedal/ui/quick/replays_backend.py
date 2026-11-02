@@ -179,6 +179,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.state_generation = 0
         self.state_time = 0.0  # monotonic time of last state answer used (0 if none)
         self.action_after = 0.0  # monotonic time from which action may be done (replay loaded by game)
+        self.action_ready = True  # replay asked seen open (opened from another replay: once that one is left)
         self.play_command: Command | None = None  # replay open command of action, until game answered it
         self.sending: tuple[Command, ...] = ()  # batch of commands being sent
         self.playing = ""  # replay opened from page (game tells no name): open again only if another one
@@ -503,7 +504,14 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.last_command = ""
         if time.monotonic() >= self.opening_until:
             self.playing = ""
+        self.replay_left()
         self.playbackChanged.emit()
+
+    def replay_left(self):
+        """Replay the game told before is left: action of the replay asked done once the new one settles"""
+        if self.action is not None and not self.action_ready:
+            self.action_ready = True
+            self.action_after = max(self.action_after, time.monotonic() + ACTION_SETTLE)
 
     def check_opening(self):
         """Replay opened from page never open in game in time: no longer taken as opening (spinner)"""
@@ -528,6 +536,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.rewatching = False
             if time.monotonic() >= self.opening_until:  # replay opened from page still loading: kept meanwhile
                 self.playing = ""
+            self.replay_left()
         else:
             self.opening_until = 0.0  # open
         self.playbackChanged.emit()  # replay open (playingReplay) or not

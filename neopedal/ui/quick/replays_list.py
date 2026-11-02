@@ -235,7 +235,7 @@ class ReplaysList(ReplaysBase):
             # Replay open & loaded, told by a recent answer (page hidden meanwhile: polling stopped, game may have
             # left the replay): action at once, else confirmation & replay opened again
             self.action, self.action_deadline = action, time.monotonic() + ACTION_WAIT
-            self.action_generation, self.action_after = self.state_generation, 0.0
+            self.action_generation, self.action_after, self.action_ready = self.state_generation, 0.0, True
             self.check_action(None)
             return
         message = f"Open replay <b>{replay.name}</b> in the game?"
@@ -253,6 +253,7 @@ class ReplaysList(ReplaysBase):
         """Replay opened in game (confirmed), then action done once it is open"""
         self.playing = name
         self.opening_until = time.monotonic() + ACTION_WAIT  # kept while the game loads it (menus, no answer)
+        self.action_ready = self.state != REPLAY  # from another replay: action once that one is seen left
         command = play_replay(name)
         self.action, self.action_deadline = action, time.monotonic() + ACTION_WAIT
         self.action_generation = self.state_generation + 1  # state asked once game accepted the replay
@@ -294,7 +295,8 @@ class ReplaysList(ReplaysBase):
             return
         if state is not None and state.get("generation", self.state_generation) < self.action_generation:
             return
-        if self.play_command is not None or time.monotonic() < self.action_after:  # replay still opening
+        if self.play_command is not None or not self.action_ready or time.monotonic() < self.action_after:
+            # replay still opening (opened from another replay: game still telling that one meanwhile)
             return
         if self.state != REPLAY or not self.cars or self.replay_time < 0:
             return
