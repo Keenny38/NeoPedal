@@ -298,6 +298,7 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         ("bar_color_nearby", "bar_color_critical", "bar_color_clear"), "")),),
     "chat": (OptionFix(CLASSIC, dependencies=dict.fromkeys(  # every message, with or without its time
         ("font_color_message", "font_color_new_message", "background_color_message"), "")),),
+    "race_notifications": (OptionFix(dependencies={"show_position_change_in_class": ""}),),  # own notification
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

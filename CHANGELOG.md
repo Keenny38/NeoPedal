@@ -197,6 +197,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Heading: the slip angle reading options are no longer dimmed while the yaw angle reading is hidden.
 - `Overlay Options`, Spotter (classic look): the bar colors are no longer dimmed while `show_bar_background` is off.
 - `Overlay Options`, Chat (classic look): the message colors are no longer dimmed while `show_message_time` is off.
+- `Overlay Options`, Race Notifications: `show_position_change_in_class` is no longer dimmed while `show_position_change` is off.
 
 ## 0.28.1 (2026-11-01)
 

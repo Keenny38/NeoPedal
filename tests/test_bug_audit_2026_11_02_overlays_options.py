@@ -881,3 +881,9 @@ def test_b082_spotter_bar_colors(ui_env):
 def test_b083_chat_message_colors(ui_env):
     for key in ("font_color_message", "font_color_new_message", "background_color_message"):
         assert not dimmed("chat", key, False, show_message_time=False), key
+
+
+# B-084: Race Notifications class position change dimmed by the overall one
+@DESIGNS
+def test_b084_class_position_change_own_switch(ui_env, modern):
+    assert not dimmed("race_notifications", "show_position_change_in_class", modern, show_position_change=False)

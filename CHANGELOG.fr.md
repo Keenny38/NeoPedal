@@ -197,6 +197,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Cap : les options de la valeur d'angle de dérive ne sont plus grisées quand la valeur d'angle de lacet est masquée.
 - `Options des overlays`, Spotter (design classique) : les couleurs des barres ne sont plus grisées quand `show_bar_background` est désactivée.
 - `Options des overlays`, Chat (design classique) : les couleurs des messages ne sont plus grisées quand `show_message_time` est désactivée.
+- `Options des overlays`, Notifications de course : `show_position_change_in_class` n'est plus grisée quand `show_position_change` est désactivée.
 
 ## 0.28.1 (2026-11-01)
 
