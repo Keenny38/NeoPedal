@@ -224,6 +224,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         ("prefix_estimated_laps", "font_color_estimated_laps", "background_color_estimated_laps",
          "show_predicted_extra_laps"), "show_estimated_laps")),),
     "timing": (OptionFix(CLASSIC, dependencies={"font_color_invalid_last": ""}),),  # last & current lap (ANY_OF)
+    "instrument": (OptionFix(dependencies=dict.fromkeys(  # ignition light only
+        ("warning_color_engine_off", "warning_color_stalling", "stalling_rpm_threshold"), "show_ignition")),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

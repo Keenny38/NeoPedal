@@ -182,6 +182,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Session: the estimated laps prefix and colors are no longer dimmed while `show_predicted_extra_laps` is off, and `show_predicted_extra_laps` is dimmed while the estimated laps are hidden.
 - `Overlay Options`, Timing (classic look): `font_color_invalid_last` is no longer dimmed with the last lap hidden, as it also colors an invalid current lap.
 - `Overlay Options`, Fuel and Virtual Energy (classic look): the low fuel and low energy colors are no longer dimmed with the warning flash off.
+- `Overlay Options`, Instrument: the engine off and stalling colors and `stalling_rpm_threshold` are dimmed while `show_ignition` is off.
 
 ## 0.28.1 (2026-11-01)
 

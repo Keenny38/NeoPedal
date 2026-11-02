@@ -738,3 +738,11 @@ def test_b052_timing_invalid_color_of_last_or_current_lap(ui_env):
 def test_b060_low_amount_colors_without_flash(ui_env):
     assert not dimmed("fuel", "warning_color_low_fuel", False, show_low_fuel_warning_flash=False)
     assert not dimmed("virtual_energy", "warning_color_low_energy", False, show_low_energy_warning_flash=False)
+
+
+# B-065: Instrument ignition options active with the ignition hidden
+@DESIGNS
+def test_b065_instrument_ignition_options(ui_env, modern):
+    for key in ("warning_color_engine_off", "warning_color_stalling", "stalling_rpm_threshold"):
+        if key in shown_keys("instrument", modern):
+            assert dimmed("instrument", key, modern, show_ignition=False), key
