@@ -1152,3 +1152,15 @@ def test_b091_radar_circle_decimal_width(ui_env):
     radar = SimpleNamespace(radar_radius=30, global_scale=6, area_center=180)
     Realtime.draw_circle_mark(radar, painter, pen, True, 10, 2.5, QColor("#FFFFFF"))
     assert pen.widthF() == 2.5
+
+
+# B-073: Friction Circle (classic) dot size 4000: 8000 x 8000 dot picture
+def test_b073_friction_circle_dot_picture_limited(ui_env):
+    from neopedal.widget import friction_circle
+
+    cfg.user.setting["friction_circle"].update(enable_classic_layout=True, dot_size=4000)
+    widget = friction_circle.Realtime(cfg, "friction_circle")
+    try:
+        assert widget.pixmap_dot.width() <= cfg.user.setting["friction_circle"]["display_size"]
+    finally:
+        widget.deleteLater()

@@ -216,6 +216,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Chronométrage : sans dernier tour (début de session), le tiret du dernier tour ne s'affiche plus dans la couleur de tour invalide.
 - Overlay Radar : les valeurs de `auto_hide_minimum_distance_*` au-delà de 1,5 x `radar_radius` ne sont plus ignorées (le radar se masquait alors qu'une voiture était encore à cette distance).
 - Overlay Radar, design classique : les cercles de distance sont dessinés avec leur épaisseur décimale (2,9 était dessiné à 2 pixels).
+- Overlay Cercle d'adhérence, design classique : une très grande valeur de `dot_size` ne crée plus une image du point de plusieurs centaines de Mo ; le point fait au plus le rayon du cercle.
 
 ## 0.28.1 (2026-11-01)
 

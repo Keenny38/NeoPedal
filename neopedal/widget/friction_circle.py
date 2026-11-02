@@ -76,7 +76,7 @@ class Realtime(Overlay):
         self.area_size = display_size + font_m.height * 2
         self.area_center = self.area_size * 0.5
 
-        self.dot_size = max(self.wcfg["dot_size"], 1)
+        self.dot_size = min(max(self.wcfg["dot_size"], 1), display_size * 0.5)  # picture of 2x size (B-073)
         self.rect_text_top = QRectF(
             self.area_center - text_width * 0.5,
             font_m.voffset,
