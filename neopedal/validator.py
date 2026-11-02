@@ -22,6 +22,7 @@ Validator function
 
 from __future__ import annotations
 
+import codecs
 import json
 import logging
 import os
@@ -65,10 +66,16 @@ def infnan_to_zero(value: Any) -> float:
     return 0
 
 
+def decode_text(bytestring: bytes, char_encoding: str = "utf-8") -> str:
+    """Game text decoded, invalid bytes replaced; a character cut by the end of the game field (name of 31
+    bytes) dropped, never shown as a replacement character"""
+    return codecs.getincrementaldecoder(char_encoding)(errors="replace").decode(bytestring, final=False)
+
+
 def bytes_to_str(bytestring: bytes | Any, char_encoding: str = "utf-8") -> str:
     """Convert bytes to string"""
     if isinstance(bytestring, bytes):
-        return bytestring.decode(encoding=char_encoding, errors="replace").rstrip()
+        return decode_text(bytestring, char_encoding).rstrip()
     return ""
 
 
@@ -100,7 +107,7 @@ def cached_bytes_to_str(char_encoding: str = "utf-8", max_size: int = DECODE_CAC
             pass
         if not isinstance(bytestring, bytes):
             return ""
-        text = bytestring.decode(encoding=char_encoding, errors="replace").rstrip()
+        text = decode_text(bytestring, char_encoding).rstrip()
         if len(cache) >= max_size:
             cache.clear()
         cache[bytestring] = text

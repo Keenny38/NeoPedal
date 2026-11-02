@@ -136,6 +136,7 @@ Fixes from an audit of the VR overlay.
 - Overlay previews (simulated race): cars laps ahead of you get the colors of cars ahead and gaps to the leader in whole laps, as in the game (Relative, Navigation, Standings).
 - Le Mans Ultimate: a chat message, contact or driver name sent empty (null) by the game is left out instead of showing `None` (Chat, Black Box, Broadcast Director, Results & Replays).
 - Le Mans Ultimate: energy used per lap by drivers (Standings, Relative) no longer stays the one of a previous session while the game does not give it.
+- Le Mans Ultimate and rFactor 2: a long name cut by the game in the middle of an accented letter no longer ends with `�` (Standings, Relative, Driver Stats).
 
 ## 0.28.1 (2026-11-01)
 

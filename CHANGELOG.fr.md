@@ -136,6 +136,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Aperçus des overlays (course simulée) : les voitures qui ont des tours d'avance sur vous prennent les couleurs des voitures devant et les écarts au leader en tours entiers, comme en jeu (Relatif, Navigation, Classement).
 - Le Mans Ultimate : un message de chat, un contact ou un nom de pilote envoyé vide (null) par le jeu est ignoré au lieu d'afficher `None` (Chat, HUD tableau de bord, Régie de course, Résultats et replays).
 - Le Mans Ultimate : l'énergie utilisée par tour par les pilotes (Classement, Relatif) ne reste plus celle d'une session précédente tant que le jeu ne la donne pas.
+- Le Mans Ultimate et rFactor 2 : un nom long coupé par le jeu au milieu d'une lettre accentuée ne se termine plus par `�` (Classement, Relatif, Statistiques du pilote).
 
 ## 0.28.1 (2026-11-01)
 

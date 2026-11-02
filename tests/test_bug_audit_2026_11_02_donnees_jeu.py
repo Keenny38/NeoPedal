@@ -1122,3 +1122,13 @@ def test_b036_value_dropped_once_route_unavailable():
     answers[0] = (200, b'{"Driver": 3}')
     poller.check()  # same body as before: parsed again
     assert poller.value == {"Driver": 3}
+
+
+# --- B-037: name cut by the game field (31 bytes) inside a character: dropped, never shown as "�"
+def test_b037_character_cut_by_name_field_dropped():
+    from neopedal.validator import bytes_to_str, cached_bytes_to_str
+
+    cut = ("A" * 30 + "\xe9").encode("utf-8")[:31]  # last character cut in half by the 31 bytes field
+    assert bytes_to_str(cut) == cached_bytes_to_str()(cut) == "A" * 30
+    assert bytes_to_str(b"ab\xffcd") == "ab�cd"  # invalid byte inside text still replaced
+    assert cached_bytes_to_str("cp1252")(b"Jos\xe9") == "Jos\xe9"
