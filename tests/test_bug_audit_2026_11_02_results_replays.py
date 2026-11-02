@@ -440,3 +440,19 @@ def test_b019_newest_session_read_again_with_its_new_replay(tmp_path, ui_env, mo
         page.release()
         page.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+# B-021: lap without recorded file (invalid lap, not saved) took the file of the next lap of about the same time, that
+# lap then had no telemetry link
+def test_b021_telemetry_link_never_takes_file_of_next_lap(tmp_path):
+    from neopedal.ui.quick.results_telemetry import lap_folders, recorded_laps
+    from tests.test_ui_audit_2026_10_29_analysis_results import START, entry, lap, lap_file, session
+
+    laps = [lap(1, 75.40, start=0.0), lap(2, 75.43, start=75.40), lap(3, 75.42, start=150.83), lap(4, 75.90, start=226.25)]
+    player = entry("Me", laps, player=True)
+    result = session([player])
+    folder = tmp_path / lap_folders(result, player)[0]
+    folder.mkdir()
+    files = {item.number: lap_file(folder, START + item.start + item.time + 3, item.number, item.time)
+             for item in laps if item.number != 2}  # lap 2 invalid: not saved by the recorder
+    assert recorded_laps(str(tmp_path), result, player) == files  # lap 2 none, lap 3 its own file

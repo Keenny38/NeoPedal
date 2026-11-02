@@ -67,17 +67,15 @@ def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) ->
             saved = lap_timestamp_of(lap_file.filename)
             if first <= saved <= last:
                 files.append((lap_file, saved, lap_number_of(lap_file.filename)))
-    found: dict[int, str] = {}
-    used: set[str] = set()
+    candidates: list[tuple[bool, float, int, str]] = []  # (other lap number, distance, lap, file)
     starts = {lap.number: lap.start for lap in entry.laps if lap.start >= 0}
     for lap in entry.laps:
         if lap.start >= 0 and lap.time > 0:
             end = result.time + lap.start + lap.time
         else:  # untimed lap: ends as next lap starts
             end = result.time + starts[lap.number + 1] if lap.number + 1 in starts else -1.0
-        best_path, best_distance = "", float("inf")
         for lap_file, saved, number in files:
-            if lap_file.path in used or abs(number - lap.number) > 1:
+            if abs(number - lap.number) > 1:
                 continue
             if lap.time > 0:
                 if lap_file.lap_time <= 0 or abs(lap_file.lap_time - lap.time) > SAME_LAP_TIME:
@@ -87,9 +85,13 @@ def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) ->
             if end >= 0 and not -SAVED_BEFORE_END <= saved - end <= SAVED_AFTER_END:
                 continue
             distance = abs(saved - end) if end >= 0 else abs(number - lap.number)
-            if distance < best_distance:
-                best_path, best_distance = lap_file.path, distance
-        if best_path:
-            found[lap.number] = best_path
-            used.add(best_path)
+            candidates.append((number != lap.number, distance, lap.number, lap_file.path))
+    # Files of the same lap number first, then the closest: a lap without file (invalid lap not saved) never takes the
+    # file of the next lap of about the same time
+    found: dict[int, str] = {}
+    used: set[str] = set()
+    for _, _, number, path in sorted(candidates):
+        if number not in found and path not in used:
+            found[number] = path
+            used.add(path)
     return found
