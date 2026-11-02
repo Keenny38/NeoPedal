@@ -1299,3 +1299,24 @@ def test_b045_hidden_item_prefix_never_widens(ui_env, bundled_fonts, name, show,
     hidden = {show: False, "layout": 0}
     assert picture_width(name, False, **hidden, **{prefix: "A very long prefix"}) == picture_width(
         name, False, **hidden)
+
+
+# B-046: Damage (classic) puncture drawn as an outline only, suspension damage color hidden
+def test_b046_damage_puncture_keeps_suspension_color(ui_env):
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QColor, QImage, QPainter, QPen
+
+    from neopedal.widget.damage import Realtime
+
+    image = QImage(30, 40, QImage.Format.Format_ARGB32)
+    image.fill(0)
+    widget = SimpleNamespace(
+        rects_wheels=[QRect(5, 5, 20, 30)], damage_wheel=[False], damage_tyre=[True], damage_susp=[0.9],
+        pen_puncture=QPen(QColor("#FF0000")), wcfg={"suspension_damage_light_threshold": 0.02},
+        color_damage_wheel=lambda detached, damage: "#00FF00")
+    painter = QPainter(image)
+    Realtime.draw_damage_wheel(widget, painter)
+    painter.end()
+    assert image.pixelColor(15, 20).name() == "#00ff00"

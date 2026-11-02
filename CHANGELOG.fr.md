@@ -225,6 +225,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Rivaux (design moderne) : `show_player_highlighted` est retirée ; Rivaux n'affiche jamais le joueur, l'option ne faisait rien (Relatif et Classement la gardent).
 - Overlay Rapport : le rappel du limiteur dans la voie des stands est une seule option pour les deux designs, `show_speed_limiter_pit_reminder`, activée par défaut (chaque design avait la sienne, avec des défauts opposés : changer de design activait ou coupait le rappel) ; les presets gardent la valeur du design qu'ils utilisent.
 - Overlays Angle de roulis, Différentiel, Répartition des masses, Statistiques de dégâts et Performances système, design classique : le préfixe d'un élément masqué n'élargit plus l'overlay.
+- Overlay Dégâts, design classique : une roue crevée garde sa couleur de dégât de suspension à l'intérieur du contour de crevaison.
 
 ## 0.28.1 (2026-11-01)
 

@@ -232,6 +232,8 @@ class Realtime(Overlay):
             self.rects_wheels, self.damage_wheel, self.damage_tyre, self.damage_susp
         ):
             if damage_tyre and not damage_wheel:
+                if damage_susp >= self.wcfg["suspension_damage_light_threshold"]:  # both shown (B-046)
+                    fill_rect(painter, rect_wheel, self.color_damage_wheel(damage_wheel, damage_susp))
                 painter.setPen(self.pen_puncture)
                 painter.drawRect(rect_wheel)
             else:
