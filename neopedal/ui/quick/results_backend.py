@@ -736,6 +736,7 @@ class RaceResultsBackend(PageBackend):
         self.custom_folder = str(settings.get("folder", ""))
         self.kind_filter = self._kind_index(settings)
         self.hide_empty = bool(settings.get("hide_empty", True))
+        self._user_filters: tuple[int, bool] | None = None  # filters of user while cleared for a session asked
         self.tab = self._index(settings.get("tab"), len(TABS))
         self.list_mode = self._index(settings.get("list"), len(LIST_MODES))
         self.event_filter = self._index(settings.get("event_filter"), len(EVENT_FILTERS))
@@ -872,8 +873,9 @@ class RaceResultsBackend(PageBackend):
             self.page_file.save(self.page_settings())
 
     def page_settings(self) -> dict[str, Any]:
+        kind, hide_empty = self._user_filters or (self.kind_filter, self.hide_empty)
         return {
-            "folder": self.custom_folder, "session_kind": KIND_FILTERS[self.kind_filter], "hide_empty": self.hide_empty,
+            "folder": self.custom_folder, "session_kind": KIND_FILTERS[kind], "hide_empty": hide_empty,
             "tab": self.tab, "event_filter": self.event_filter, "event_mine": self.event_mine,
             "list": self.list_mode,
         }
@@ -1097,7 +1099,8 @@ class RaceResultsBackend(PageBackend):
             self.filter_changed()
 
     def filter_changed(self, save: bool = True):
-        if save:
+        if save:  # changed by the user: saved as they are
+            self._user_filters = None
             self.save_settings()
         self.filterChanged.emit()
         self.refresh_list()
@@ -1162,6 +1165,8 @@ class RaceResultsBackend(PageBackend):
         if info is None:
             return False
         if info not in self.shown_sessions():
+            if self._user_filters is None:  # saved instead of the cleared ones until the user changes them
+                self._user_filters = (self.kind_filter, self.hide_empty)
             self.kind_filter, self.search, self.hide_empty = 0, "", False
             self.filter_changed(save=False)  # filters of user kept for next time
         self.select(info.path)

@@ -712,3 +712,20 @@ def test_b033_logos_fetched_while_hidden_shown(results_backend, monkeypatch):
     backend.page_shown()
     assert wait_until(lambda: not backend.loading)
     assert all(row["trackLogo"] == "file:///logo.png" for row in backend.sessionModel.rows)
+
+
+# B-034: session asked from another page (hidden by the list filters): filters cleared for it, then saved cleared
+def test_b034_session_asked_keeps_saved_filters(results_backend, results_folder):  # noqa: F811
+    from neopedal.ui.quick.results_backend import load_page_settings
+    from tests.test_race_results import EMPTY_NAME
+
+    backend = results_backend
+    backend.setKindFilter(3)  # races only, sessions without laps hidden (default)
+    backend.setTab(2)  # events: Show Results goes back to classification (setting saved)
+    backend.showResults(os.path.join(str(results_folder), EMPTY_NAME))  # Driver Stats: practice without lap
+    backend.page_file.flush()
+    saved = load_page_settings()
+    assert (saved["session_kind"], saved["hide_empty"]) == ("Race", True)
+    backend.setHideEmpty(True)  # changed by the user again: saved as shown
+    backend.page_file.flush()
+    assert (load_page_settings()["session_kind"], load_page_settings()["hide_empty"]) == ("", True)
