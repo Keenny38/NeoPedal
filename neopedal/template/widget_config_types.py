@@ -1359,7 +1359,6 @@ class GearConfig(WidgetConfig):
     display_order_battery: int
     display_order_rpm: int
     display_order_consumption: int
-    show_speed_limiter_reminder: bool
 
 
 class HeadingConfig(WidgetConfig):

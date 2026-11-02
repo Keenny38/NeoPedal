@@ -3413,11 +3413,8 @@ Show pit speed limiter indicator.
     speed_limiter_text
 Set custom pit speed limiter text which shows when speed limiter is engaged.
 
-    show_speed_limiter_reminder
-Modern design: show outlined speed limiter reminder while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only).
-
     show_speed_limiter_pit_reminder
-Classic layout: show speed limiter text in swapped colors (`background_color_speed_limiter` text on `font_color_speed_limiter`) while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only). Default is disabled.
+Show speed limiter reminder while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only): outlined speed limiter in modern design, speed limiter text in swapped colors (`background_color_speed_limiter` text on `font_color_speed_limiter`) in classic layout. Same option for modern design and classic layout. Default is enabled.
 
     show_battery_bar
 Show battery bar, which is only visible if electric motor available.

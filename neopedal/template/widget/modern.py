@@ -175,7 +175,6 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
     "race_plan": {"show_stint_limit": False, "show_consumption_estimate": False},
     "battery": {"show_state_of_charge": False},  # value scale to check live (LMU), same as battery charge on rF2
     "tyre_temperature": {"enable_heatmap_from_optimal_temperature": False},
-    "gear": {"show_speed_limiter_reminder": True},
     "weather": {"show_wind": True},
     "track_map": {
         "show_sector_performance": True,

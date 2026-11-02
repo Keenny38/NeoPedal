@@ -223,6 +223,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlays Estimation d'arrêt au stand et Secteurs : `bar_width` d'Estimation d'arrêt au stand (en caractères) est limité de 3 à 20 et `extra_digits` de Secteurs de 0 à 6 (des valeurs énormes faisaient des overlays de dizaines de milliers de pixels, coupés avec une erreur).
 - Options d'overlay, overlay Classement (design classique) : son aperçu suit l'ordre des catégories, le nombre maximal de voitures, les premières voitures et les modes modifiés avant de les appliquer.
 - Overlay Rivaux (design moderne) : `show_player_highlighted` est retirée ; Rivaux n'affiche jamais le joueur, l'option ne faisait rien (Relatif et Classement la gardent).
+- Overlay Rapport : le rappel du limiteur dans la voie des stands est une seule option pour les deux designs, `show_speed_limiter_pit_reminder`, activée par défaut (chaque design avait la sienne, avec des défauts opposés : changer de design activait ou coupait le rappel) ; les presets gardent la valeur du design qu'ils utilisent.
 
 ## 0.28.1 (2026-11-01)
 

@@ -56,7 +56,7 @@ class Realtime(ModernOverlay):
 
     options = (
         "font_size", "show_speed", "show_speed_below_gear", "show_speed_limiter", "speed_limiter_text",
-        "show_speed_limiter_reminder", "show_battery_bar",
+        "show_speed_limiter_pit_reminder", "show_battery_bar",
         "high_battery_threshold", "low_battery_threshold", "show_battery_reading", "decimal_places_battery",
         "battery_reading_text_alignment", "show_rpm_bar", "show_rpm_flickering_above_critical",
         "rpm_multiplier_safe", "rpm_multiplier_redline", "rpm_multiplier_critical",
@@ -333,7 +333,7 @@ class Realtime(ModernOverlay):
         switch = api.read.switch
         if switch.speed_limiter():
             return LIMITER_ON
-        if (self.wcfg["show_speed_limiter_reminder"] and switch.speed_limiter_available()
+        if (self.wcfg["show_speed_limiter_pit_reminder"] and switch.speed_limiter_available()
                 and api.read.vehicle.in_pits() and api.read.vehicle.speed() > 1):
             return LIMITER_REMINDER
         return LIMITER_OFF

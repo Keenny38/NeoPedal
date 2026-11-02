@@ -156,6 +156,16 @@ def _user_prior_2_51_9(dict_user: dict):
     rivals = dict_user.get("rivals")
     if isinstance(rivals, dict):
         rivals.pop("show_player_highlighted", None)
+    # Gear: pit lane speed limiter reminder got one option for both designs (on by default), formerly
+    # show_speed_limiter_pit_reminder for classic layout (off by default) & show_speed_limiter_reminder for
+    # modern design (on by default): value of the design used kept (modern unless classic layout set)
+    gear = dict_user.get("gear")
+    if isinstance(gear, dict):
+        modern = gear.pop("show_speed_limiter_reminder", True)
+        if gear.get("enable_classic_layout") is True:
+            gear["show_speed_limiter_pit_reminder"] = gear.get("show_speed_limiter_pit_reminder", False)
+        else:
+            gear["show_speed_limiter_pit_reminder"] = modern
 
 
 def _user_prior_2_51_5(dict_user: dict):

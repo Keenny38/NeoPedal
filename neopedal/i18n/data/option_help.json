@@ -836,8 +836,7 @@
             "show_speed": "Show speed reading.",
             "show_speed_below_gear": "Show speed reading below gear.",
             "show_speed_limiter": "Show pit speed limiter indicator.",
-            "show_speed_limiter_pit_reminder": "Classic layout: show speed limiter text in swapped colors (background_color_speed_limiter text on font_color_speed_limiter) while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only). Default is disabled.",
-            "show_speed_limiter_reminder": "Modern design: show outlined speed limiter reminder while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only).",
+            "show_speed_limiter_pit_reminder": "Show speed limiter reminder while driving in pit lane with pit speed limiter off (vehicle with pit speed limiter only): outlined speed limiter in modern design, speed limiter text in swapped colors (background_color_speed_limiter text on font_color_speed_limiter) in classic layout. Same option for modern design and classic layout. Default is enabled.",
             "show_virtual_energy_if_available": "Show virtual energy consumption instead of fuel consumption if available.",
             "speed_limiter_text": "Set custom pit speed limiter text which shows when speed limiter is engaged."
         },

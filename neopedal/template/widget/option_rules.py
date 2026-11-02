@@ -111,8 +111,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         OptionFix(dependencies={
             "show_speed_limiter": "show_speed_limiter",
             **dict.fromkeys(("speed_limiter_text", "speed_limiter_padding_horizontal", "font_color_speed_limiter",
-                             "background_color_speed_limiter", "show_speed_limiter_pit_reminder",
-                             "show_speed_limiter_reminder"), "show_speed_limiter"),
+                             "background_color_speed_limiter", "show_speed_limiter_pit_reminder"),
+                            "show_speed_limiter"),
         }),
     ),
     "rpm_led": (OptionFix(dependencies={  # zones & colors of every LED, size of single or double side LEDs

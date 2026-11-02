@@ -255,7 +255,7 @@ WIDGET_ENGINE = {
         "speed_limiter_padding_horizontal": 0.3,
         "font_color_speed_limiter": "#111111",
         "background_color_speed_limiter": "#FF2200",
-        "show_speed_limiter_pit_reminder": False,
+        "show_speed_limiter_pit_reminder": True,
         "show_battery_bar": True,
         "show_inverted_battery": False,
         "battery_bar_height": 4,

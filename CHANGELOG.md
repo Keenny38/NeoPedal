@@ -223,6 +223,7 @@ Fixes from an audit of the VR overlay.
 - Pit Stop Estimate and Sectors overlays: `bar_width` of Pit Stop Estimate (characters) is limited to 3 - 20 and `extra_digits` of Sectors to 0 - 6 (huge values made overlays tens of thousands of pixels wide, cut with an error).
 - Overlay Options, Standings overlay (classic look): its picture follows edited class order, maximum vehicles, top vehicles and modes before they are applied.
 - Rivals overlay (modern look): `show_player_highlighted` is removed; rivals never lists the player, the option did nothing (Relative and Standings keep it).
+- Gear overlay: the pit lane speed limiter reminder is one option for both looks, `show_speed_limiter_pit_reminder`, on by default (each look had its own, with opposite defaults: changing look switched the reminder on or off); presets keep the value of the look they use.
 
 ## 0.28.1 (2026-11-01)
 

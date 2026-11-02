@@ -1265,3 +1265,23 @@ def test_b078_rivals_dead_option_removed(ui_env):
               "standings": {"show_player_highlighted": False}}
     preupdate_user_setting((2, 51, 8), preset)
     assert preset == {"rivals": {"column_time_interval": True}, "standings": {"show_player_highlighted": False}}
+
+
+# B-069: Gear pit limiter reminder: one option per design with opposite defaults (changing design switched it)
+def test_b069_gear_limiter_reminder_one_option(ui_env):
+    from neopedal.setting_preupdate import preupdate_user_setting
+    from neopedal.template.setting_widget import WIDGET_DEFAULT
+    from neopedal.widget._modern.gear import Realtime
+
+    gear = WIDGET_DEFAULT["gear"]
+    assert "show_speed_limiter_reminder" not in gear and gear["show_speed_limiter_pit_reminder"] is True
+    assert "show_speed_limiter_pit_reminder" in Realtime.options
+    for modern in (True, False):
+        assert "show_speed_limiter_pit_reminder" in shown_keys("gear", modern)
+    for classic, pit, reminder, expected in ((True, False, True, False), (True, True, False, True),
+                                             (False, False, True, True), (False, True, False, False)):
+        preset = {"gear": {"enable_classic_layout": classic, "show_speed_limiter_pit_reminder": pit,
+                           "show_speed_limiter_reminder": reminder}}
+        preupdate_user_setting((2, 51, 8), preset)
+        assert preset["gear"]["show_speed_limiter_pit_reminder"] is expected, (classic, pit, reminder)
+        assert "show_speed_limiter_reminder" not in preset["gear"]
