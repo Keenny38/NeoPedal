@@ -606,6 +606,8 @@ class RankWatcher:
         with self._lock:  # online read ends on its own thread
             online_ranks, self._online_pending = self._online_ranks, False
         player = player_entry(drivers, located)
+        if player is not None and not player.steam_id and located.steam_id:  # found by name (team member entry)
+            player = player._replace(steam_id=located.steam_id)  # history of its account only, never of all
         updated = max(mtime, 0.0)
         remembered = online = False
         if online_ranks is not None and (player is None or online_ranks[1] >= mtime):  # newer online

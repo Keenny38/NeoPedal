@@ -637,3 +637,19 @@ def test_b010_history_saved_out_of_order_read_sorted(tmp_path):
         file.write('{"time": 1793580014, "driver": ["Gold", 2, 10], "steam": "1"}\n')
         file.write('{"time": 1600000000, "driver": ["Silver", 1, 0], "steam": "1"}\n')
     assert [entry.time for entry in dr.read_history(path)] == [1600000000.0, 1793580014.0]
+
+
+# B-019
+def test_b019_player_found_by_name_gets_account_history_only(tmp_path):
+    from neopedal.process import driver_ranks as dr
+
+    storage = os.path.join(tmp_path, "storage.json")
+    with open(storage, "w", encoding="utf-8") as file:
+        file.write(rank_storage(rank_profile("Me", "", "Silver", 1, team_only=True)))
+    history = os.path.join(tmp_path, "ranks.history")
+    with open(history, "w", encoding="utf-8") as file:  # other account of this computer
+        file.write(json.dumps({"time": 100, "driver": ["Platinum", 3, 90], "safety": None, "steam": ACCOUNT_A}) + "\n")
+    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_B, ("Me",)), lambda: history)
+    watcher.check()
+    assert watcher.player.steam_id == ACCOUNT_B
+    assert all(entry.steam_id == ACCOUNT_B for entry in watcher.history_of(watcher.player.steam_id))
