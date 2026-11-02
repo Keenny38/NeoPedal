@@ -327,6 +327,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
 
     def release_resources(self):
         self.page_hidden()
+        self.command_queue.clear()  # page closed: commands not sent yet dropped (lap search, jumps)
         self.copy_cancel.set()
         self.page_file.flush()
         VertexStore.remove_prefix(self.prefix)

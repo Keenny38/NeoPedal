@@ -859,3 +859,15 @@ def test_b042_toggle_play_pauses_replay_playing_from_game(replays_page):  # noqa
     backend.togglePlay()
     wait_commands(backend)
     assert replays_page.sent == [("PUT", "/rest/watch/replayCommand/VCRCOMMAND_STOP")]
+
+
+# B-043: commands queued (lap search steps, jumps) still sent to the game once the page was closed
+def test_b043_queued_commands_dropped_when_page_closed(replays_page):  # noqa: F811
+    backend = answered(replays_page, GAME_ANSWERS)
+    backend.request_command.busy = True  # a command on its way: the next ones wait in the queue
+    backend.send(("PUT", "/rest/watch/replaytime/100"))
+    backend.send(("PUT", "/rest/watch/replaytime/200"))
+    assert len(backend.command_queue) == 2
+    backend.release_resources()
+    backend.request_command.busy = False
+    assert backend.command_queue == []
