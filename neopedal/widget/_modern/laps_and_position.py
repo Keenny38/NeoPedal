@@ -100,7 +100,9 @@ class Realtime(StatsMixin, ModernOverlay):
                 points = api.read.session.cut_points()
                 limit = api.read.session.limits_points() * api.read.session.in_race()
                 text_limit = format_points(limit) if limit > 0 else DASH
-                color = theme.negative if limit > 0 and points >= limit - 1 else (theme.warning if points > 0 else theme.text_dim)
+                # Limit of 1 or less: not red at 0 point (B-054)
+                color = (theme.negative if limit > 0 and points > 0 and points >= limit - 1
+                         else (theme.warning if points > 0 else theme.text_dim))
                 values.append(Value(f"{format_points(points)}/{text_limit}", color))
             elif key == "position_change":
                 veh = player_vehicle()

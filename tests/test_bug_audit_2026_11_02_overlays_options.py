@@ -992,3 +992,40 @@ def test_b039_black_box_preview_shows_blocks_of_its_data(ui_env, bundled_fonts, 
     values = {"enable_auto_resize": True, "display_profile": "Custom"}
     assert picture("black_box", modern, show_battery_bar=True, **values) != picture(
         "black_box", modern, show_battery_bar=False, **values)
+
+
+# B-054: Laps and Position (modern) red "0/1" with a limit of one point
+def test_b054_limit_of_one_point_not_red_at_zero(ui_env, bundled_fonts):
+    from types import SimpleNamespace
+
+    from neopedal.ui.widget_preview import _with_preview_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
+    values = dict(cfg.user.setting["laps_and_position"], enable_classic_layout=False, show_track_limits_points=True)
+    class Proxy:
+        """Reader part of the simulated race, some calls replaced"""
+
+        def __init__(self, real, **calls):
+            self._real = real
+            self.__dict__.update(calls)
+
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+
+    def colors(widget):
+        import sys
+
+        module = sys.modules[type(widget).__module__]  # preview: module api swapped for simulated race
+        shown = []
+        widget.refresh = shown.append
+        real = module.api
+        try:
+            session = Proxy(real.read.session, cut_points=lambda: 0.0, limits_points=lambda: 1.0, in_race=lambda: 1)
+            module.api = SimpleNamespace(read=Proxy(real.read, session=session))
+            widget.timerEvent(None)
+        finally:
+            module.api = real
+        return [value.color for value in shown[-1] if value.text == "0/1"], widget.theme.negative
+
+    found, negative = _with_preview_widget(cfg, "laps_and_position", values, 1.0, colors)
+    assert found and negative not in found

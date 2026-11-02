@@ -209,6 +209,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, HUD tableau de bord : les options masquées par le mode compact automatique sont notées comme réglées par `auto_compact_display_scale`, et plus par le profil d'affichage.
 - `Options des overlays`, HUD tableau de bord : le thème de couleurs `Colorblind Safe` convertit aussi les couleurs du panneau de dégâts, de l'énergie, du lift and coast, du repère de remplissage et de la batterie haute, restées rouge / vert.
 - Aperçus du HUD tableau de bord (`Options des overlays`, page `Overlays`) : la barre de batterie, la jauge d'énergie, la comparaison de relais et les pastilles ABS / TC sont affichées ; les activer semblait ne rien faire.
+- Overlay Tours et position, design moderne : avec une limite de 1 point de limites de piste, `0/1` n'est plus affiché en rouge.
 
 ## 0.28.1 (2026-11-01)
 
