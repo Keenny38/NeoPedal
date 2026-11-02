@@ -2235,6 +2235,7 @@ TRANSLATION = MappingProxyType({
     "Stop & go penalty": "Pénalité stop & go",
     "Stop & go": "Stop & go",
     "Drive-through": "Drive-through",
+    "Not classified": "Non classé",
     "Time penalty": "Pénalité en temps",
     "Disqualified from the session": "Disqualifié de la session",
     "Speeding": "Excès de vitesse",

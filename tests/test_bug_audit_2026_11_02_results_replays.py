@@ -683,3 +683,18 @@ def test_b031_spectated_online_session_has_no_player():
     offline = one_human.replace("<Setting>Multiplayer</Setting>", "<Setting>Race Weekend</Setting>")
     assert rf.parse_results(offline.encode("utf-8"), RACE_NAME, ["someone else"]).player_entry is not None
     assert rf.parse_results(one_human.encode("utf-8"), RACE_NAME).player_entry is not None  # no profile name known
+
+
+# B-032: cars without status ("None": disconnected, not started) of a race others finished shown classified, with a gap
+def test_b032_cars_without_status_not_classified(ui_env):
+    from neopedal.process import results_file as rf
+    from neopedal.process.results_text import classified, entry_gap
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    result = rf.parse_results(RACE_XML.encode("utf-8"), RACE_NAME)
+    leader = result.entries[0]
+    assert leader.status == rf.FINISHED
+    gone = result.entries[1]._replace(status="None")
+    assert not classified(result, gone) and entry_gap(result, gone, leader, False) == ("Not classified", "dim")
+    nobody = result._replace(entries=tuple(entry._replace(status="None") for entry in result.entries))
+    assert classified(nobody, gone)  # race left before anyone finished: cars still running

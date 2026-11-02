@@ -28,7 +28,7 @@ from __future__ import annotations
 from .. import calculation as calc
 from ..formatter import class_alias, class_color, class_style  # noqa: F401  # shared by results pages & stream graphics
 from ..i18n import localized, tr
-from .results_file import Entry, SessionResult, best_lap_gap, race_gap
+from .results_file import FINISHED, Entry, SessionResult, best_lap_gap, race_gap
 
 MINUS = chr(0x2212)  # typeset minus sign
 # Session filter of Results, Replays & Stats pages: labels in this order (index saved by each page)
@@ -177,12 +177,21 @@ def finished(entry: Entry) -> bool:
     return entry.status not in ("DNF", "DQ")
 
 
+def classified(result: SessionResult, entry: Entry) -> bool:
+    """Car not retired nor disqualified, and not left without status ("None": disconnected, not started) in a race
+    others finished"""
+    return finished(entry) and not (result.kind == "Race" and entry.status == "None" and any(
+        other.status == FINISHED for other in result.entries))
+
+
 def entry_gap(result: SessionResult, entry: Entry, leader: Entry, first: bool) -> tuple[str, str]:
     """Time or gap text & tone: race time of winner, "+2.345", "+1 lap", "DNF" ("loss" tone); best lap gap in
     practice & qualifying ("" for fastest car: its best lap is shown on its own)"""
     if result.kind == "Race":
         if not finished(entry):
             return game_text(entry.status), "loss"
+        if not classified(result, entry):
+            return tr("Not classified"), "dim"
         if first:
             return (race_time_text(entry.finish_time) or laps_text(entry.laps_completed)), ""
         gap = race_gap(entry, leader)
