@@ -515,3 +515,21 @@ def test_b007_module_switched_on_during_reload_follows_loaded_preset(ui_env, mon
     assert control.active_modules["module_force"].setting is reloaded["module_force"]
     assert control.active_modules["module_fuel"].setting is reloaded["module_fuel"]
     control.close(wait=True)
+
+
+# B-018: Delta Best delta range 0 or negative: every delta shown as 0, or with the wrong sign
+def picture(name: str, modern: bool, **values) -> bytes:
+    from neopedal.ui.widget_preview import render_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    shown = dict(cfg.user.setting[name], enable_classic_layout=not modern, **values)
+    render_widget(cfg, name, shown)  # first render of a process: glyphs drawn slightly differently
+    image = render_widget(cfg, name, shown).toImage()
+    return bytes(image.constBits())
+
+
+@DESIGNS
+@pytest.mark.parametrize("name", ["deltabest", "deltabest_extended"])
+def test_b018_delta_range_kept_positive(ui_env, bundled_fonts, name, modern):
+    assert picture(name, modern, delta_display_range=-2) == picture(name, modern, delta_display_range=2)
+    assert picture(name, modern, delta_display_range=0) == picture(name, modern, delta_display_range=0.001)

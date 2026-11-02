@@ -33,6 +33,7 @@ from ..module_info import minfo
 from ._base import Overlay
 from ._common import delta_shown, game_deltabest, lap_delta_shown, lap_reference
 from ._painter import fill_rect
+from .speed_delta import display_range
 
 if TYPE_CHECKING:
     from ..template.widget_config_types import DeltabestConfig
@@ -68,7 +69,7 @@ class Realtime(Overlay):
         dbar_height = int(self.wcfg["delta_bar_height"])
 
         self.decimals = max(self.wcfg["decimal_places"], 1)
-        self.delta_display_range = calc.decimal_strip(self.wcfg["delta_display_range"], self.decimals)
+        self.delta_display_range = display_range(self.wcfg["delta_display_range"], self.decimals)  # 0, negative: kept positive (B-018)
         self.max_padding = 4 + self.decimals
         self.delta_width = font_m.width * self.max_padding + padx * 2
         # Delta bar at least as wide as delta text (0 or negative length: widget of no width)

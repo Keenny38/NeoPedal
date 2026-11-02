@@ -26,6 +26,7 @@ from .. import calculation as calc
 from ..module_info import minfo
 from ._base import Overlay
 from ._common import delta_shown, game_deltabest, lap_delta_shown, lap_reference
+from .speed_delta import display_range
 
 if TYPE_CHECKING:
     from ..template.widget_config_types import DeltabestExtendedConfig
@@ -55,7 +56,7 @@ class Realtime(Overlay):
         bar_padx = self.set_padding(self.wcfg["font_size"], self.wcfg["bar_padding"])
         self.freeze_duration = min(max(self.wcfg["freeze_duration"], 0), 30)
         self.decimals = max(self.wcfg["decimal_places"], 1)
-        self.delta_display_range = calc.decimal_strip(self.wcfg["delta_display_range"], self.decimals)
+        self.delta_display_range = display_range(self.wcfg["delta_display_range"], self.decimals)  # 0, negative: kept positive (B-018)
         self.max_padding = 3 + self.decimals
         text_def = f"--.{'-' * self.decimals}"
 

@@ -163,6 +163,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Standings (classic look): turning split mode off no longer dims the exclusive mode, the combined mode car count, the minimum top cars and the skipped places gap; options of the class modes not in use are dimmed instead.
 - `Overlays` page, `Screen` view: an overlay dragged or moved with the arrow keys can no longer be dropped where no screen is (screens of different sizes), where it was invisible.
 - An overlay switched on while a preset loads (Overlays page, hotkey, tray menu) no longer keeps running with the options of the previous preset: it is started again from the loaded preset, or closed if it is off there.
+- Delta Best and Delta Best Extended overlays: a `delta_display_range` of 0 no longer shows every delta as `+0.000`, and a negative one no longer shows it with the wrong sign.
 
 ## 0.28.1 (2026-11-01)
 

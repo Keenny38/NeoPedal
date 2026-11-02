@@ -37,6 +37,7 @@ from ... import calculation as calc
 from ...api_control import api
 from ...module_info import minfo
 from .._common import delta_shown, game_deltabest, lap_delta_shown, lap_reference
+from ..speed_delta import display_range
 from .base import CENTER, DASH, ModernOverlay
 from .draw import panel, readable_on, rounded
 
@@ -63,7 +64,7 @@ class Realtime(ModernOverlay):
         self.source = wcfg["deltabest_source"]
         self.delta_source = f"delta{wcfg['deltabest_source']}"
         self.decimals = max(int(wcfg["decimal_places"]), 1)
-        self.delta_range = calc.decimal_strip(wcfg["delta_display_range"], self.decimals)
+        self.delta_range = display_range(wcfg["delta_display_range"], self.decimals)  # 0, negative: kept positive (B-018)
         self.bar_range = max(float(wcfg["delta_bar_display_range"]), 0.001)
         self.freeze_duration = min(max(wcfg["freeze_duration"], 0), 30)
         self.animated = wcfg["enable_animated_deltabest"] and wcfg["show_delta_bar"]

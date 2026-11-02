@@ -33,6 +33,7 @@ from PySide6.QtGui import QPainter
 from ... import calculation as calc
 from ...module_info import minfo
 from .._common import delta_shown, game_deltabest, lap_delta_shown, lap_reference
+from ..speed_delta import display_range
 from .base import DASH, ModernOverlay, reference_accent
 from .stats import Stat, StatsMixin, Value
 
@@ -57,7 +58,7 @@ class Realtime(StatsMixin, ModernOverlay):
         wcfg = self.wcfg
         theme = self.theme
         self.decimals = max(int(wcfg["decimal_places"]), 1)
-        self.delta_range = calc.decimal_strip(wcfg["delta_display_range"], self.decimals)
+        self.delta_range = display_range(wcfg["delta_display_range"], self.decimals)  # 0, negative: kept positive (B-018)
         self.freeze_duration = min(max(wcfg["freeze_duration"], 0), 30)
         items = (  # reference laps, same labels & accents as timing (session: personal best of session)
             ("all_time_deltabest", "Best", reference_accent(theme, "best")),
