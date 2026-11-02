@@ -340,6 +340,13 @@ class SyncData:
                 if new_data or data_synced is None or last_sync_key != sync_key:
                     last_sync_key = sync_key
                     data_synced = self.__sync_player_data()
+                    if data_synced and last_slot_id != self.player_scor.mID:
+                        # Another car followed (spectate, Director): reset now, not on next scoring sample,
+                        # so data modules never mix the new car's data with the former car's state
+                        last_slot_id = self.player_scor.mID
+                        last_in_garage = self.player_scor.mInGarageStall
+                        self.resets += 1
+                        realtime_state.resets = self.resets  # read by modules before next state poll
                 # Pause if local player index no longer exists, 5 tries
                 if data_synced:
                     reset_counter = 0

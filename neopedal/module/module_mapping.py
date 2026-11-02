@@ -392,9 +392,11 @@ def record_track_map(output: MappingInfo, filepath: str, min_node_distance: floa
 
         # New lap
         if lap_stime > last_lap_stime:
-            # End recording: full lap only (enough nodes, both sector lines crossed in order)
+            # End recording: full lap only (enough nodes, both sector lines crossed in order, last node near
+            # the line: a lap cut short, such as a lap start of another car followed, is no map)
             if (recorder_data.coords and len(recorder_data.coords) >= 10
-                    and 0 < recorder_data.sectors[0] < recorder_data.sectors[1]):
+                    and 0 < recorder_data.sectors[0] < recorder_data.sectors[1]
+                    and recorder_data.dists[-1][0] >= api.read.lap.track_length() - MAX_NODE_GAP):
                 temp_data.coords = tuple(recorder_data.coords)
                 temp_data.dists = tuple(recorder_data.dists)
                 temp_data.sectors = tuple(recorder_data.sectors)
