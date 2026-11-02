@@ -525,3 +525,24 @@ def test_b012_date_of_damaged_time_shown_as_missing():
     for value in (float("nan"), float("inf"), 1e20, -5.0):
         assert format_date(value) == MISSING
     assert format_date(1700000000.0) != MISSING
+
+
+# B-026
+def test_b026_backup_with_date_out_of_platform_range_skipped(tmp_path, monkeypatch):
+    """Backup renamed by hand (year 9999, 1970 east of UTC): OSError on Windows, list of backups still shown"""
+    from datetime import datetime
+
+    filepath = f"{tmp_path}/"
+    for stamp in ("9999-12-31-23-59-59", "2026-11-02-10-00-00"):
+        with open(os.path.join(filepath, f"driver.stats.backup-auto-{stamp}-000000"), "w", encoding="utf-8") as file:
+            file.write("{}")
+
+    class Day(datetime):
+        def timestamp(self):
+            if self.year == 9999:
+                raise OSError(22, "Invalid argument")
+            return super().timestamp()
+
+    monkeypatch.setattr(driver_stats, "datetime", Day)
+    names = [name for name, _ in driver_stats.list_stats_backups(filepath)]
+    assert names == ["driver.stats.backup-auto-2026-11-02-10-00-00-000000"]
