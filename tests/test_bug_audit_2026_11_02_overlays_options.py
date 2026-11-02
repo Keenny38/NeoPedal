@@ -456,3 +456,17 @@ def test_b014_classic_standings_class_modes(ui_env):
     assert dimmed("standings", "maximum_vehicles_split_mode", False, enable_single_class_exclusive_mode=True)
     assert dimmed("standings", "show_time_gap_from_same_class", False, enable_single_class_exclusive_mode=False,
                   **no_split)
+
+
+# B-008: screen view: overlay dropped where no screen is (screens of different sizes), invisible
+def test_b008_screen_view_keeps_overlay_on_a_screen(page, monkeypatch):
+    screens = [("Big", QRect(0, 0, 2560, 1440), True), ("Small", QRect(2560, 0, 1920, 1080), False)]
+    monkeypatch.setattr(overlay_backend, "screen_rects", lambda: screens)
+    monkeypatch.setattr(overlay_backend, "positions_locked", lambda: False)
+    page._positions_locked = False
+    widget = page.test_control.widgets["speedometer"]
+    widget.rect = QRect(100, 100, 200, 100)
+    page.moveOverlay("speedometer", 3500, 1300)
+    assert any(rect.contains(widget.rect) for _, rect, _ in screens), widget.rect
+    place = page.snapOverlay("speedometer", 3500, 1300, 8, False)
+    assert any(rect.contains(QRect(place["x"], place["y"], 200, 100)) for _, rect, _ in screens), place

@@ -78,7 +78,15 @@ from ...template.widget.registry import CATEGORY_COLORS as REGISTRY_COLORS
 from ...template.widget.registry import OTHER as CATEGORY_OTHER
 from ...template.widget.registry import category_of
 from ..module_view import sort_key
-from .overlay_screen import bounds_of, clamped_position, overlapping, rect_value, screen_for_image, snap_position
+from .overlay_screen import (
+    bounds_of,
+    clamped_position,
+    on_screens,
+    overlapping,
+    rect_value,
+    screen_for_image,
+    snap_position,
+)
 from .page_backend import PageBackend
 from .preview_provider import STORE
 
@@ -1483,7 +1491,8 @@ class OverlayBackend(PageBackend):
             self._update_screen()
             return
         move, rect = movable
-        pos = clamped_position(rect, x, y, bounds_of(rect for _, rect, _ in screen_rects()))
+        screens = [screen for _, screen, _ in screen_rects()]
+        pos = on_screens(rect, clamped_position(rect, x, y, bounds_of(screens)), screens)
         if pos != rect.topLeft():
             before = rect.topLeft()
             if merge:
@@ -1541,7 +1550,7 @@ class OverlayBackend(PageBackend):
         screens = [rect for _, rect, _ in screen_rects()]
         bounds = bounds_of(screens)
         target = QRect(geometry())
-        target.moveTopLeft(clamped_position(target, x, y, bounds))
+        target.moveTopLeft(on_screens(target, clamped_position(target, x, y, bounds), screens))
         others = []
         for other, other_widget in self._control.active_modules.items():
             other_geometry = getattr(other_widget, "geometry", None)
@@ -1551,7 +1560,7 @@ class OverlayBackend(PageBackend):
                     others.append(QRect(rect))
         if snap:
             snapped = snap_position(target, others, screens, distance)
-            target.moveTopLeft(clamped_position(target, snapped.x(), snapped.y(), bounds))
+            target.moveTopLeft(on_screens(target, clamped_position(target, snapped.x(), snapped.y(), bounds), screens))
         lines_x: set[int] = set()
         lines_y: set[int] = set()
         for screen in screens:

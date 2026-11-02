@@ -68,6 +68,17 @@ def clamped_position(rect: QRect, x: int, y: int, bounds: QRect) -> QPoint:
     return QPoint(min(max(x, bounds.left()), max_x), min(max(y, bounds.top()), max_y))
 
 
+def on_screens(rect: QRect, pos: QPoint, screens: Sequence[QRect]) -> QPoint:
+    """Place of rect brought onto the nearest screen if too little of it would be shown: the rect around
+    screens of different sizes has corners no screen covers (B-008)"""
+    from ...widget._snapping import fit_on_screens
+
+    placed = QRect(rect)
+    placed.moveTopLeft(pos)
+    fitted = fit_on_screens(placed, screens)
+    return pos if fitted is None else fitted
+
+
 def snap_position(
     target: QRect, others: Iterable[QRect], screen: QRect | Sequence[QRect], distance: int = SNAP_DISTANCE
 ) -> QPoint:
