@@ -174,6 +174,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, HUD tableau de bord : `enable_auto_font_offset` et `font_offset_vertical` ne sont plus affichées, le HUD ne s'en servant pas.
 - `Options des overlays`, Température des freins : `off_brake_duration` (design moderne) est grisée quand la moyenne est masquée, et la couleur de texte ou de fond de la température (design classique) est grisée quand `swap_style` la rend inutile.
 - `Options des overlays`, Dégâts : la couleur de l'intégrité n'est plus grisée par défaut, et les options de l'intégrité sont grisées quand `show_integrity_reading` est désactivée.
+- `Options des overlays`, Statistiques de dégâts (design classique) : les préfixes d'intégrité sont grisés quand `show_integrity_prefix` est désactivée.
 
 ## 0.28.1 (2026-11-01)
 

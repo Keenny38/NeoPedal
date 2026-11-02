@@ -209,6 +209,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "damage": (OptionFix(dependencies=dict.fromkeys(
         ("font_color_integrity", "show_inverted_integrity", "show_aero_integrity_if_available"),
         "show_integrity_reading")),),
+    "damage_stats": (OptionFix(CLASSIC, dependencies=dict.fromkeys(  # prefixes drawn only with the switch on
+        ("prefix_aero_integrity", "prefix_body_integrity", "prefix_suspension_integrity", "prefix_tyre_integrity"),
+        "show_integrity_prefix")),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

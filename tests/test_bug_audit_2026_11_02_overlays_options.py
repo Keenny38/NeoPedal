@@ -679,3 +679,8 @@ def test_b041_damage_integrity_options_follow_reading(ui_env, modern):
         assert not dimmed("damage", "font_color_integrity", modern, show_inverted_integrity=False)
     for key in ("show_inverted_integrity", "show_aero_integrity_if_available"):
         assert dimmed("damage", key, modern, show_integrity_reading=False), key
+
+
+# B-042: Damage Stats (classic) prefixes active while prefixes hidden
+def test_b042_damage_stats_prefixes_follow_prefix_switch(ui_env):
+    assert dimmed("damage_stats", "prefix_aero_integrity", False, show_integrity_prefix=False)
