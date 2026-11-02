@@ -336,8 +336,14 @@ class ReplaysList(ReplaysBase):
     @Slot(str)
     def showInFolder(self, key: str):
         folder = self.replay_folder()
-        if folder and self.replay_of(key) is not None:
-            replay_files.show_in_folder(replay_files.replay_path(folder, key))
+        if folder and (replay := self.replay_of(key)) is not None:
+            replay_files.show_in_folder(self.file_of(replay))
+
+    def file_of(self, replay: GameReplay) -> str:
+        """File of replay: in the replay folder the game told for it (several folders: custom one changed), else in
+        the replay folder of the page"""
+        folder = replay.folder if replay.folder and os.path.isdir(replay.folder) else self.replay_folder()
+        return replay_files.replay_path(folder, replay.name)
 
     def replay_of(self, key: str) -> GameReplay | None:
         return next((replay for replay in self.replays if replay.name == key), None)

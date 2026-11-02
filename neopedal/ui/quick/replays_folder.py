@@ -174,7 +174,7 @@ class ReplaysFolder(ReplaysBase):
                                                   last_folder.start_folder("replays_export"))
         if target:
             last_folder.remember("replays_export", target)
-            self.start_copy([replay_files.replay_path(folder, replay.name) for replay in replays], target, "export")
+            self.start_copy([self.file_of(replay) for replay in replays], target, "export")
 
     @Slot(str)
     def renameReplay(self, key: str):
@@ -191,7 +191,9 @@ class ReplaysFolder(ReplaysBase):
         if not folder or not name or name == key or self.replay_of(key) is None:  # gone meanwhile
             return True
         listed = any(replay.name.casefold() == name.casefold() and replay.name != key for replay in self.replays)
-        error = "name already used" if listed else replay_files.rename_replay(folder, key, name)  # listed: two rows
+        replay = self.replay_of(key)
+        own = os.path.dirname(self.file_of(replay)) if replay is not None else folder  # folder told by game
+        error = "name already used" if listed else replay_files.rename_replay(own, key, name)  # listed: two rows
         if error:
             self.notify(trm(f"Unable to rename: {error}"), True)
             return False
@@ -250,7 +252,7 @@ class ReplaysFolder(ReplaysBase):
         else:
             message = (f"Move replay <b>{replays[0].name}</b> ({size}) to the recycle bin?" if len(replays) == 1
                        else f"Move <b>{len(replays)}</b> replays ({size}) to the recycle bin?")
-        paths = [replay_files.replay_path(folder, replay.name) for replay in replays]
+        paths = [self.file_of(replay) for replay in replays]
 
         def confirmed(chosen: bool):
             if chosen and not self.trash_busy():  # asked in the page: another deletion may have started meanwhile

@@ -528,3 +528,18 @@ def test_b016_half_copied_replays_cleaned_with_temporary_files(tmp_path):
     found = replay_files.temp_files(str(tmp_path), now=4e9)
     assert sorted(os.path.basename(path) for path in found) == ["Spa R1 1.Vcr.part", "_vcr12.tmp"]
     assert replay_files.temp_files(str(tmp_path)) == []  # just written: maybe being copied or recorded
+
+
+# B-017: file actions used the replay folder of the page for every replay, not the folder the game told for it
+def test_b017_replay_file_in_folder_told_by_game(replays_page, tmp_path):  # noqa: F811
+    from neopedal.ui.quick.replays_backend import GameReplay
+
+    backend = page_of_replays(replays_page, tmp_path / "Replays", "AB")
+    other = tmp_path / "Other"
+    other.mkdir()
+    (other / "C.Vcr").write_bytes(b"replay")
+    replay = GameReplay(5, "C", "", "", "", 1.0, 6, "", str(other))
+    assert backend.file_of(replay) == os.path.join(str(other), "C.Vcr")
+    assert backend.file_of(replay._replace(folder="")) == os.path.join(backend.replay_folder(), "C.Vcr")
+    backend.replays = [*backend.replays, replay]
+    assert backend.rename_replay("C", "C2") and (other / "C2.Vcr").exists()
