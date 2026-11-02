@@ -79,7 +79,7 @@ def test_live_map_cars_glide_then_page_idle(replays_page, monkeypatch):  # noqa:
     reader = FakeReader([(7, 120.0, -30.0)])
     monkeypatch.setattr(type(backend), "reader", staticmethod(lambda: reader))
     backend.setPanel(2)
-    answered(replays_page, GAME_ANSWERS)
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False})  # live session (never in a replay)
     replays_page.resize(1400, 860)
     replays_page.show()
     process_events(0.5)  # glide from place of game answer to first shared memory place done

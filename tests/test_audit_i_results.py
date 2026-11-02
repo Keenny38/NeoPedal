@@ -23,7 +23,7 @@ from neopedal.setting import cfg
 from neopedal.userfile.driver_history import SessionRecord, parse_record
 from tests.test_broadcast_director import TRACK, car, director_page, field  # noqa: F401
 from tests.test_driver_stats_viewer import OREGA, SPA, backend, dialogs, window  # noqa: F401
-from tests.test_game_info import GAME_ANSWERS, answered, replays_page  # noqa: F401
+from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_requests  # noqa: F401
 from tests.test_res_data_memory import results_xml
 from tests.test_ui_editors import compound_editor, editor_env, set_cell  # noqa: F401
 
@@ -219,8 +219,11 @@ def test_replays_map_asked_again_after_missed_answer(replays_page):  # noqa: F81
         answered(replays_page, {**GAME_ANSWERS, "/rest/watch/trackmap": None})
     assert replays.map_track and not replays.map_center
     asked.clear()
-    answered(replays_page, GAME_ANSWERS)
+    replays.refresh_state()  # next answer of the timer
+    wait_requests(replays.request_state)
     assert "/rest/watch/trackmap" not in asked
+    answered(replays_page, GAME_ANSWERS)  # F5: map given up asked again (B-036, audit 2026-11-02)
+    assert "/rest/watch/trackmap" in asked and replays.map_center
 
 
 # --- BUG-033: row names required, stripped, duplicates told whatever the spaces
