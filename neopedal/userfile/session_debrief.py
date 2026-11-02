@@ -194,6 +194,8 @@ def reference_lap(folder: str, laps: Sequence[DebriefLap], record: SessionRecord
     start, _ = stint_window(record)
     vehicles = {lap.vehicle for lap in laps if lap.vehicle}
     stint_best = min((lap.time for lap in laps if lap.valid), default=0.0)
+    if 0 < record.best < (stint_best or record.best + 1):  # best lap of stint not recorded (invalid file, pruned)
+        stint_best = record.best
     older = sorted((lap for lap in (lap_files(folder) if files is None else files)
                     if lap.valid and lap.lap_time > 0 and lap_timestamp_of(lap.filename) < start),
                    key=lambda lap: lap.lap_time)

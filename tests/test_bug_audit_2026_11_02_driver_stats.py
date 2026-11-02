@@ -799,3 +799,19 @@ def test_b033_debrief_uses_exact_lap_end_time_of_lap_info(tmp_path):
     record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="Car A", best=120.0, valid=1,
                                           seconds=130, vehicle_class="GT3")
     assert len(session_debrief.build_debrief(record, [record], str(tmp_path)).laps) == 1
+
+
+# B-035
+def test_b035_debrief_never_compares_with_a_lap_slower_than_stint_best(tmp_path):
+    """Best lap of stint (record) not in the lap files: an older lap slower than it is no personal best reference"""
+    from neopedal.userfile import session_debrief
+    from neopedal.userfile.telemetry_lap import lap_folder_name
+
+    folder = os.path.join(tmp_path, lap_folder_name("Spa - GT3"))
+    write_debrief_lap(folder, 1, 119.5, DEBRIEF_T - 5000)  # older stint, slower than this stint best (119.0)
+    for number in (1, 2):
+        write_debrief_lap(folder, number, 120.0 + number, DEBRIEF_T - 400 + 125 * number)
+    record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="Car A", best=119.0, valid=3,
+                                          seconds=400, vehicle_class="GT3")
+    debrief = session_debrief.build_debrief(record, [record], str(tmp_path))
+    assert debrief.reference_kind != "personal_best"
