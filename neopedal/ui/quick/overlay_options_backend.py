@@ -683,6 +683,8 @@ class OverlayOptionsBackend(PageBackend):
             state = tr("on") if overrides[key] else tr("off")
             ui = layout.option_ui
             source = ui.override_source if ui is not None else ""
+            if ui is not None and ui.fixed_source and ui.release is not None and key not in ui.release(values):
+                source = ui.fixed_source  # set by auto compact mode, not by the profile (B-037)
             row["note"] = f"{tr('Set by')} {option_label(source)}: {tr(str(values.get(source, '')))} ({state})"
             if not locked:
                 row["note"] += f"  ·  {tr('Changing it switches to')} {tr('Custom')}"

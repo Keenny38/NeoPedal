@@ -961,3 +961,15 @@ def test_b033_pending_layout_written_before_reload(ui_env, monkeypatch):
     mode.store_layout_soon()
     loader.write_pending()  # reload, restart or quit
     assert stored == [1] and not mode._layout_timer.isActive()
+
+
+# B-037: Black Box options set by auto compact mode noted as set by the display profile
+def test_b037_compact_mode_note_names_its_option(options):
+    from neopedal.i18n.options import option_label
+    from tests.test_overlay_options import row
+
+    cfg.user.setting["black_box"].update(display_profile="Custom", auto_compact_display_scale=0.8, display_scale=0.6)
+    options.selectOverlay("black_box")
+    options.setAdvanced(True)
+    note = row(options, "black_box/show_tyre_compound")["note"]
+    assert option_label("auto_compact_display_scale") in note

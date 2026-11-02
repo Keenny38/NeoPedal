@@ -435,6 +435,8 @@ class OptionUI(NamedTuple):
     # Options doing nothing with these values (dimmed with a note): option -> ("on", control) used only while
     # control is on, or ("off", control) not used while control is on
     inactive: Callable[[Mapping], Mapping[str, tuple[str, str]]] | None = None
+    # Option setting overridden options the override source does not (auto compact mode), named in notes
+    fixed_source: str = ""
 
 
 ORDER_LIST = "display_order_*"  # layout option standing for the display order list
@@ -446,6 +448,7 @@ BLACK_BOX_UI = OptionUI(
     color_themes=BLACK_BOX_COLOR_THEMES,
     overrides=display_overrides,
     override_source="display_profile",
+    fixed_source="auto_compact_display_scale",
     release=release_profile,
     dependencies=BLACK_BOX_DEPENDENCIES,
     simple_switches=BLACK_BOX_SIMPLE_SWITCHES,
