@@ -39,12 +39,15 @@ from ...i18n import tr, trm
 from ...rank_info import ranks
 from ...userfile import pb_code
 from ...userfile.driver_history import SessionRecord, best_lap_date
+from ...userfile.lap_reference import LEVEL_COLORS
 from ...userfile.pb_code import SharedBest
 from ..lap_viewer import number_text, signed
 from . import dialogs
 from .formatting import format_date
+from .game_pictures import dark_track_logo_url
 from .stats_card import CardData, draw_card
 from .stats_common import (
+    COLORBLIND_LEVEL_COLORS,
     HISTORY_COLUMNS,
     RAW_UNITS,
     SESSION_NAMES,
@@ -370,11 +373,15 @@ class StatsSharing(StatsHost):
             detail = trm(f"{number_text(reference.percent(best), 2)} % of community reference "
                          f"{calc.sec2laptime_full(reference.reference)}")
         shared = self.shared_best()
-        logo = self.logos.track(self.selected_stats_key)
+        # Card background is dark whatever the theme: level color & circuit logo as on a dark page
+        logo = dark_track_logo_url(self.selected_stats_key)
+        level_color = ""
+        if level >= 0:
+            level_color = (COLORBLIND_LEVEL_COLORS if self.colorblind_colors else LEVEL_COLORS)[level]
         return CardData(
             track=self.selected_stats_key, vehicle=vehicle, laptime=calc.sec2laptime_full(best),
             driver=self.driver_name(), date=format_date(shared.time) if shared is not None and shared.time else "",
-            level=level_text(level) if level >= 0 else "", level_color=self.level_color(level) if level >= 0 else "",
+            level=level_text(level) if level >= 0 else "", level_color=level_color,
             detail=detail, logo=QUrl(logo).toLocalFile() if logo else "", title=tr("Personal Best").upper())
 
     @Slot()

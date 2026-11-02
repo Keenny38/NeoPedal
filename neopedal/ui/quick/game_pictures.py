@@ -75,6 +75,11 @@ def _track_logo_url(names: tuple[str, ...], light: bool) -> str:
     return file_url(logo_for_background(images.track_logo(*names), light))
 
 
+def dark_track_logo_url(name: str) -> str:
+    """Logo of circuit for a dark background whatever the app theme (share card), any thread"""
+    return _track_logo_url((name, ""), False)
+
+
 def track_picture_url(*names: str, large: bool = False) -> str:
     """Picture of circuit from any of its names (card size, or large)"""
     return file_url(images.track_picture(*names, large=large))

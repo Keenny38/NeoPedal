@@ -995,3 +995,25 @@ def test_b029_online_races_kept_after_player_name_changed(tmp_path, monkeypatch)
         assert len(ri.cached_summaries([str(folder)], str(cache))) == 1
     finally:
         ri.forget_summary_cache()
+
+
+# B-030
+def test_b030_share_card_same_in_light_and_dark_theme(monkeypatch):
+    """Card drawn on its own dark background: level color & circuit logo never the light page ones"""
+    from types import SimpleNamespace
+
+    from neopedal.ui.quick import stats_sharing
+    from neopedal.userfile.lap_reference import LEVEL_COLORS, LapReference
+
+    monkeypatch.setattr(stats_sharing, "dark_track_logo_url", lambda name: "file:///C:/logos/dark.png",
+                        raising=False)
+    reference = LapReference("Spa", "LMGT3", "", 130.0, (131.0, 132.0, 133.0, 134.0, 135.0, 136.0, 137.0, 138.0),
+                             "", 0.0)
+    page = SimpleNamespace(
+        selected_best=lambda: ("GT3 - Ferrari", 132.5), reference_of=lambda vehicle: reference,
+        shared_best=lambda: None, driver_name=lambda: "Me", selected_stats_key="Spa", colorblind_colors=False,
+        level_color=lambda level: "#000000",  # darker on a light page
+        logos=SimpleNamespace(track=lambda name: "file:///C:/logos/light.png"))
+    data = stats_sharing.StatsSharing.card_data(page)
+    assert data.level_color == LEVEL_COLORS[reference.level(132.5)]
+    assert data.logo.endswith("dark.png")

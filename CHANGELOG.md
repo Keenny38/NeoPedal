@@ -98,6 +98,7 @@ Fixes from an audit of the VR overlay.
 - Driver Stats `% Clean` column: a team race with several stints of yours counts once, no longer once per stint.
 - Driver Stats activity of a year: days of the weeks drawn around the year (end of December before, start of January after) are no longer counted in its driving days and time.
 - Driver Stats and Home driver card: online races driven under a former name of your game profile still count as yours (races, clean streak, places gained, rivals) after you change your name.
+- Driver Stats personal best card (picture): drawn the same in light and dark theme, as promised: the level color is no longer darkened and the circuit logo no longer recolored for a light page on the dark card.
 - Spectate and Broadcast Director (`Overlays follow the car on air`), Le Mans Ultimate and rFactor 2: overlays switch to the car you follow at once, instead of mixing it for a moment with the car followed before (lap times, fuel and laps of the former car taken for the new one's, a pit lane entry measured at the new car's place, part of a lap saved as the track map).
 - Spectate and Broadcast Director: following another car just after the car followed crossed the line no longer keeps the delta, sectors and fuel overlays on the former car for 10 seconds.
 - Spectate and Broadcast Director: laps and data of the car you follow are no longer saved as yours (delta best, best sectors, consumption history, fuel and energy references, recorded laps, pit lane measures and track map), as the docs say; they are still shown.
