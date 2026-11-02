@@ -370,7 +370,8 @@ def valid_time(value: Any) -> bool:
 
 
 def read_history(path: str) -> list[HistoryEntry]:
-    """History entries, oldest first (invalid lines skipped)"""
+    """History entries, oldest first (invalid lines skipped; lines out of time order, saved by older versions,
+    sorted)"""
     entries = []
     try:
         with open(path, encoding="utf-8", errors="replace") as file:
@@ -385,6 +386,7 @@ def read_history(path: str) -> list[HistoryEntry]:
                                                 _text(data.get("steam"))))
     except OSError:
         return []
+    entries.sort(key=lambda entry: entry.time)  # stable: lines of equal times kept in file order
     return entries
 
 
@@ -816,6 +818,8 @@ class RankWatcher:
             last = history.last("") if history is not None else None
         if (last is not None and last.driver == player.driver and last.safety == player.safety
                 and last.badge == player.badge):
+            return
+        if last is not None and mtime < last.time:  # older ranks (game file after online ones): never after newer
             return
         self._add_history(path, HistoryEntry(mtime, player.driver, player.safety, player.badge, steam_id))
 

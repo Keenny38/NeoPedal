@@ -606,3 +606,34 @@ def test_b009_online_ranks_without_steam_id_never_given_to_next_account(tmp_path
     watcher.check()
     assert [entry.steam_id for entry in dr.read_history(history)] == [ACCOUNT_A]
     assert watcher.player is None or watcher.player.driver != dr.Rank("Platinum", 3, 50)
+
+
+# B-010
+def test_b010_older_file_ranks_never_saved_after_online_ones(tmp_path):
+    from neopedal.process import driver_ranks as dr
+
+    storage = os.path.join(tmp_path, "storage.json")
+    with open(storage, "w", encoding="utf-8") as file:
+        file.write(rank_storage(rank_profile("Me", ACCOUNT_A, "Silver", 1)))
+    os.utime(storage, (1_600_000_000, 1_600_000_000))  # game file written long ago
+    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_A, "", "", dr.Rank("Gold", 2, 10), None))
+    history = os.path.join(tmp_path, "ranks.history")
+    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)), lambda: history, online=online,
+                             run_online=lambda work: work())
+    watcher.check()
+    watcher.check()
+    online.on = False  # online ranks turned off: game file ranks again
+    watcher.check()
+    entries = dr.read_history(history)
+    assert [entry.time for entry in entries] == sorted(entry.time for entry in entries)
+    assert entries[-1].driver == dr.Rank("Gold", 2, 10)
+
+
+def test_b010_history_saved_out_of_order_read_sorted(tmp_path):
+    from neopedal.process import driver_ranks as dr
+
+    path = os.path.join(tmp_path, "ranks.history")
+    with open(path, "w", encoding="utf-8") as file:
+        file.write('{"time": 1793580014, "driver": ["Gold", 2, 10], "steam": "1"}\n')
+        file.write('{"time": 1600000000, "driver": ["Silver", 1, 0], "steam": "1"}\n')
+    assert [entry.time for entry in dr.read_history(path)] == [1600000000.0, 1793580014.0]
