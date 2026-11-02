@@ -732,3 +732,9 @@ def test_b051_session_estimated_laps_options(ui_env, modern):
 def test_b052_timing_invalid_color_of_last_or_current_lap(ui_env):
     assert not dimmed("timing", "font_color_invalid_last", False, show_last=False, show_current=True)
     assert dimmed("timing", "font_color_invalid_last", False, show_last=False, show_current=False)
+
+
+# B-060: Fuel & Virtual Energy (classic) low colors dimmed with the warning flash off
+def test_b060_low_amount_colors_without_flash(ui_env):
+    assert not dimmed("fuel", "warning_color_low_fuel", False, show_low_fuel_warning_flash=False)
+    assert not dimmed("virtual_energy", "warning_color_low_energy", False, show_low_energy_warning_flash=False)

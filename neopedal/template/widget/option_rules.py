@@ -111,11 +111,13 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     }),),
     "fuel": (OptionFix(dependencies={
         "low_fuel_lap_threshold": "",  # low amount color, flashing or not
+        "warning_color_low_fuel": "",
         "show_refueling_level_mark": "show_fuel_level_bar",
         **_EARLY_PITSTOPS,
     }),),
     "virtual_energy": (OptionFix(dependencies={
         "low_energy_lap_threshold": "",
+        "warning_color_low_energy": "",
         "show_refilling_level_mark": "show_energy_level_bar",
         **_EARLY_PITSTOPS,
     }),),

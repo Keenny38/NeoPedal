@@ -181,6 +181,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Delta Best: `delta_display_range` is no longer dimmed with the delta bar hidden, while `enable_animated_deltabest` and `layout` are dimmed then.
 - `Overlay Options`, Session: the estimated laps prefix and colors are no longer dimmed while `show_predicted_extra_laps` is off, and `show_predicted_extra_laps` is dimmed while the estimated laps are hidden.
 - `Overlay Options`, Timing (classic look): `font_color_invalid_last` is no longer dimmed with the last lap hidden, as it also colors an invalid current lap.
+- `Overlay Options`, Fuel and Virtual Energy (classic look): the low fuel and low energy colors are no longer dimmed with the warning flash off.
 
 ## 0.28.1 (2026-11-01)
 
