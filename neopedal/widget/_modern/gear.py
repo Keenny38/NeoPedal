@@ -94,7 +94,8 @@ class Realtime(ModernOverlay):
         # Bar readings fit (wider digits of modern font): widest reading widens speed, else gear part
         samples = {"rpm": 88888, "battery": 100, "consumption": 8}
         reading_w = max((self.text_width("value", f"{samples[key]:.{max(int(wcfg[f'decimal_places_{key}']), 0)}f}")
-                         + unit * 1.2 for key in samples if wcfg[f"show_{key}_reading"]), default=0.0)
+                         + unit * 1.2 for key in samples
+                         if wcfg[f"show_{key}_reading"] and wcfg[f"show_{key}_bar"]), default=0.0)  # on bars (B-068)
         if not show_speed:
             gear_w = max(gear_w, reading_w)
         elif wcfg["show_speed_below_gear"]:

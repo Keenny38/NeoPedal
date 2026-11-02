@@ -1164,3 +1164,10 @@ def test_b073_friction_circle_dot_picture_limited(ui_env):
         assert widget.pixmap_dot.width() <= cfg.user.setting["friction_circle"]["display_size"]
     finally:
         widget.deleteLater()
+
+
+# B-068: Gear (modern) widened by the reading of a hidden bar
+def test_b068_gear_reading_of_hidden_bar(ui_env, bundled_fonts):
+    hidden = {"show_rpm_bar": False, "decimal_places_rpm": 9}
+    assert picture_width("gear", True, show_rpm_reading=True, **hidden) == picture_width(
+        "gear", True, show_rpm_reading=False, **hidden)
