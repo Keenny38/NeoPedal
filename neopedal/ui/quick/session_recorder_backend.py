@@ -614,7 +614,7 @@ class SessionRecorderBackend(PageBackend):
         """Set replay looping (kept for next replays)"""
         self._loop = loop
         if replay.player is not None:
-            replay.player.loop = loop
+            replay.player.set_loop(loop)
         self._publish(loop=loop)
 
     @Slot(int)

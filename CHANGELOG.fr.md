@@ -132,6 +132,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate et rFactor 2 : une voiture sans télémétrie (et la vôtre un instant à son arrivée) n'affiche plus quatre pneus crevés (Dégâts, Pneus (vue d'ensemble), HUD tableau de bord), un badge de gomme `Soft` (Classement, Relatif, Régie de course) ni des températures de -273 °C (garage, tableau de bord web).
 - Le Mans Ultimate, overlay Moteur électrique : plus de courte pointe de déploiement (plus de 400 kW) pendant que le moteur régénère au freinage.
 - Replays de l'enregistreur de session : les valeurs du garage d'un fichier de replay abîmé ou d'une autre version (énergie, usure des freins, chat, contacts...) sont ignorées quand elles ont une autre forme, au lieu de casser les overlays qui les lisent pendant toute la lecture.
+- Replays de l'enregistreur de session : activer ou désactiver `Boucle` reprend à la position affichée, au lieu de sauter à la fin (pendant un deuxième passage) ou au milieu du replay (après sa fin).
 
 ## 0.28.1 (2026-11-01)
 

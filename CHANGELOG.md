@@ -132,6 +132,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate and rFactor 2: a car without telemetry (and your car for a moment when it joins) no longer shows four punctured tyres (Damage, Tyre Overview, Black Box), a `Soft` compound badge (Standings, Relative, Broadcast Director) nor temperatures of -273 °C (garage, web dashboard).
 - Le Mans Ultimate, Electric Motor overlay: no more short deploy spike (over 400 kW) while the motor regenerates under braking.
 - Session recorder replays: garage values of a damaged replay file or of another version (energy, brake wear, chat, contacts...) are ignored when they have another shape, instead of breaking the overlays that read them during the whole playback.
+- Session recorder replays: turning `Loop` on or off goes on from the position shown, instead of jumping to the end (during a second pass) or into the middle of the replay (after its end).
 
 ## 0.28.1 (2026-11-01)
 

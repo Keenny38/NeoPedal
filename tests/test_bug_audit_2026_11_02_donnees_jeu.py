@@ -1053,3 +1053,23 @@ def test_b032_replay_snapshot_fields_of_another_shape_ignored():
     node = default.forecastRace[0]
     apply_rest_snapshot(dataset, {"forecastRace": [list(node)]})  # emptied forecast filled again
     assert dataset.forecastRace == (node,)
+
+
+# --- B-033: replay Loop turned on or off: playback goes on from the position shown
+def test_b033_loop_toggle_keeps_position(tmp_path):
+    from neopedal.replay import ReplayFile, ReplayPlayer
+    from tests.test_replay import Clock, make_frames, write_replay
+
+    clock = Clock()
+    player = ReplayPlayer(ReplayFile(write_replay(tmp_path, make_frames(100, 8))), clock=clock)
+    duration = player.replay.duration
+    player.loop = True
+    clock.now = duration * 2 + 1.0  # second pass, 1 s in
+    shown = player.position
+    player.set_loop(False)
+    assert player.position == pytest.approx(shown)  # not jumped to the end
+    clock.now += duration * 3  # played to the end, then stays there
+    assert player.position == pytest.approx(duration)
+    player.set_loop(True)
+    assert player.position == pytest.approx(duration)  # not jumped inside the replay
+    player.replay.close()

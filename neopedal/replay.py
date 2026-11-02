@@ -1055,6 +1055,13 @@ class ReplayPlayer:
             self._reanchor(self._current())
             self.speed = speed
 
+    def set_loop(self, loop: bool) -> None:
+        """Set looping from the position shown now (position counted from the anchor would jump: to the end
+        when turned off during a later pass, inside the replay when turned on after its end)"""
+        with self._lock:
+            self._reanchor(self._current())
+            self.loop = loop
+
     def current_frame(self) -> bytes:
         """Frame at current replay time
 
