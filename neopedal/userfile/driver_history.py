@@ -453,6 +453,25 @@ def restore_records(filepath: str, records: list[SessionRecord]) -> None:
     replace_records(filepath, (), records)
 
 
+def read_history_backup(path: str) -> list[SessionRecord] | None:
+    """Records of a session history copy (made with a stats backup), oldest first, None if unreadable"""
+    try:
+        with open(path, "rb") as file:
+            return sorted(parse_lines(file.read()), key=by_time)
+    except OSError as error:
+        logger.error("USERDATA: unable to read %s: %s", path, error)
+        return None
+
+
+def restored_history(records: list[SessionRecord], backup: list[SessionRecord], since: float,
+                     ) -> tuple[list[SessionRecord], list[SessionRecord]]:
+    """History change putting a history copy back (records removed, records added), records saved after since
+    (time of copy) kept"""
+    current, kept = set(records), set(backup)
+    removed = [record for record in records if record not in kept and record.time <= since]
+    return removed, [record for record in backup if record not in current]
+
+
 def worth_recording(valid: int, invalid: int, seconds: float) -> bool:
     """Stint recorded in history: a lap completed, or driven long enough"""
     return valid + invalid > 0 or seconds >= MIN_SESSION_SECONDS

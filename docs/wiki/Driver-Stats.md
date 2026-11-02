@@ -147,6 +147,6 @@ The viewer never lets you edit a value, only reset or remove:
 - right-click a car > `Remove Car`;
 - `⋯` > `Delete All Stats of This Track` removes all stats of the track (or `Delete` on a track of `All Tracks`).
 
-Before each change, the stats file is backed up (the last 10 are kept): `⋯` > `Restore Backup`. `Undo` / `Redo` (`Ctrl+Z` / `Ctrl+Y`) work while the page is open (they wait while an edit is being saved), and stats recorded meanwhile are kept. `⋯` > `Reload` (`F5`) reads the stats file again (the page also reloads by itself when the Stats module saves).
+Before each change, the stats file is backed up (the last 10 are kept), with the session history when the change removes or changes sessions: `⋯` > `Restore Backup` puts both back (sessions recorded since are kept). `Undo` / `Redo` (`Ctrl+Z` / `Ctrl+Y`) work while the page is open (they wait while an edit is being saved), and stats recorded meanwhile are kept. `⋯` > `Reload` (`F5`) reads the stats file again (the page also reloads by itself when the Stats module saves).
 
 All options: [Driver stats viewer](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#driver-stats-viewer) and [Stats module](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#stats-module).

@@ -422,3 +422,46 @@ def test_b007_lap_time_reset_only_if_still_the_one_shown(stats_folder):
     outcome, _ = StatsEdits.write_edit(path, driver_stats.MAX_SECONDS, None, 125.0)
     assert outcome == "saved"
     assert read_stats(stats_folder)["Spa"]["Hyper - Toyota"]["pb"] == driver_stats.MAX_SECONDS
+
+
+# B-008
+def test_b008_history_backed_up_with_stats_and_restored(stats_folder):
+    """Track removed (stats & its sessions), page closed: backup restores the sessions too, newer ones kept"""
+    from functools import partial
+
+    from neopedal.ui.quick.stats_common import read_backup_files
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    write_stats(stats_folder, {"Spa": {"Hyper - Toyota": {"pb": 130.0, "valid": 10}}, "Monza": {"GT3": {"valid": 1}}})
+    spa = driver_history.session_record("Spa", "Hyper - Toyota", 1, 130.0, 10, 0, 7000.0, 900.0, 0, 0, 1000.0)
+    monza = driver_history.session_record("Monza", "GT3", 1, 0.0, 1, 0, 5000.0, 100.0, 0, 0, 2000.0)
+    driver_history.save_history(stats_folder, [spa, monza])
+
+    def remove_spa(records):
+        return [record for record in records if record.track == "Spa"], []
+
+    assert StatsEdits.write_edit(("Spa",), None, remove_spa)[0] == "saved"
+    assert [record.track for record in driver_history.read_records(stats_folder)] == ["Monza"]
+    name, created = driver_stats.list_stats_backups(stats_folder)[0]
+    newer = monza._replace(time=created + 60.0)  # stint saved after the backup
+    driver_history.append_record(stats_folder, newer)
+    stats_backup, history_backup = read_backup_files(stats_folder, name)
+    assert history_backup == [spa, monza]
+    change = partial(driver_history.restored_history, backup=history_backup, since=created)
+    assert StatsEdits.write_edit((), stats_backup, change)[0] == "saved"
+    assert driver_history.read_records(stats_folder) == [spa, monza, newer]
+    assert "Spa" in read_stats(stats_folder)
+
+
+def test_b008_history_copies_follow_stats_backups_rotation(stats_folder):
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    write_stats(stats_folder, {"Spa": {"GT3": {"valid": 1}}})
+    driver_history.save_history(stats_folder, [
+        driver_history.session_record("Spa", "GT3", 1, 0.0, 1, 0, 1.0, 100.0, 0, 0, 1000.0)])
+    for _ in range(driver_stats.BACKUP_COUNT + 2):
+        StatsEdits.write_edit(("Spa", "GT3", "valid"), 1, lambda records: ([], []))
+    copies = [name for name in os.listdir(stats_folder) if name.startswith(driver_stats.HISTORY_BACKUP_PREFIX)]
+    assert len(copies) == driver_stats.BACKUP_COUNT
+    assert all(driver_stats.history_backup_path(stats_folder, name) for name, _ in
+               driver_stats.list_stats_backups(stats_folder))

@@ -50,9 +50,10 @@ from ...process.results_text import (
 from ...rank_info import ranks
 from ...setting import cfg
 from ...userfile.brands import select_brand_name
-from ...userfile.driver_history import SESSION_GROUPS, SessionRecord
+from ...userfile.driver_history import SESSION_GROUPS, SessionRecord, read_history_backup
 from ...userfile.driver_stats import (
     DriverStats,
+    history_backup_path,
     load_stats_backup,
     validate_stats_file,
 )
@@ -222,6 +223,12 @@ def read_stats_backup(path: str, name: str) -> dict | None:
     """Stats backup read & checked (background), None if unreadable"""
     stats_backup = load_stats_backup(path, name)
     return validate_stats_file(stats_backup) if stats_backup is not None else None
+
+
+def read_backup_files(path: str, name: str) -> tuple[dict | None, list[SessionRecord] | None]:
+    """Stats backup read & checked, session history copied with it (None if none or unreadable), background"""
+    history_path = history_backup_path(path, name)
+    return read_stats_backup(path, name), read_history_backup(history_path) if history_path else None
 
 
 def lap_folder_stamp(folder: str) -> int:

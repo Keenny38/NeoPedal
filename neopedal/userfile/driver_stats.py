@@ -29,6 +29,7 @@ import copy
 import json
 import logging
 import os
+import shutil
 import threading
 from collections.abc import KeysView, Sequence
 from dataclasses import dataclass
@@ -281,9 +282,47 @@ def backup_prefix(filename: str = StatsFile.DRIVER) -> str:
     return f"{filename}{FileExt.STATS}{FileExt.BACKUP}-auto-"
 
 
-def backup_stats_file(filepath: str, filename: str = StatsFile.DRIVER) -> bool:
-    """Automatic backup of stats file before an edit (last BACKUP_COUNT kept), True if created"""
-    return create_versioned_backup(f"{filename}{FileExt.STATS}", filepath, max_count=BACKUP_COUNT, min_interval=0)
+HISTORY_BACKUP_PREFIX = "driver.history.backup-auto-"  # session history copied with a stats backup, same time
+
+
+def backup_stats_file(filepath: str, filename: str = StatsFile.DRIVER, with_history: bool = False) -> bool:
+    """Automatic backup of stats file before an edit (last BACKUP_COUNT kept), True if created
+
+    Args:
+        with_history: session history file copied too (edit changing it), named with the time of the stats
+            backup (restored with it, see history_backup_path); copies of stats backups removed since deleted.
+    """
+    created = create_versioned_backup(f"{filename}{FileExt.STATS}", filepath, max_count=BACKUP_COUNT,
+                                      min_interval=0)
+    if with_history and created and filename == StatsFile.DRIVER:
+        backups = list_stats_backups(filepath, filename)
+        if backups:
+            backup_history_file(filepath, backups[0][0][len(backup_prefix(filename)):])
+    return created
+
+
+def backup_history_file(filepath: str, stamp: str) -> None:
+    """Session history copied for the stats backup of stamp, copies of stats backups no longer kept removed"""
+    from .driver_history import HISTORY_FILE
+
+    source = os.path.join(filepath, HISTORY_FILE)
+    try:
+        if os.path.exists(source):
+            shutil.copyfile(source, os.path.join(filepath, f"{HISTORY_BACKUP_PREFIX}{stamp}"))
+        stamps = {name[len(backup_prefix()):] for name, _ in list_stats_backups(filepath)}
+        for name in os.listdir(filepath):
+            if name.startswith(HISTORY_BACKUP_PREFIX) and name[len(HISTORY_BACKUP_PREFIX):] not in stamps:
+                os.remove(os.path.join(filepath, name))
+    except OSError as error:
+        logger.error("USERDATA: unable to back up %s: %s", HISTORY_FILE, error)
+
+
+def history_backup_path(filepath: str, name: str, filename: str = StatsFile.DRIVER) -> str:
+    """Session history copied with stats backup name, empty if none"""
+    if not name.startswith(backup_prefix(filename)) or os.path.basename(name) != name:
+        return ""
+    path = os.path.join(filepath, f"{HISTORY_BACKUP_PREFIX}{name[len(backup_prefix(filename)):]}")
+    return path if os.path.isfile(path) else ""
 
 
 def list_stats_backups(filepath: str, filename: str = StatsFile.DRIVER) -> list[tuple[str, float]]:

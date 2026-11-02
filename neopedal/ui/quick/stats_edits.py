@@ -46,6 +46,7 @@ from ...userfile.driver_history import (
     SessionRecord,
     load_history,
     replace_records,
+    restored_history,
 )
 from ...userfile.driver_stats import (
     STATS_LOCK,
@@ -70,7 +71,7 @@ from .stats_common import (
     MAX_UNDO,
     ROLLBACK_ATTEMPTS,
     ROLLBACK_DELAY,
-    read_stats_backup,
+    read_backup_files,
     valid_laptime,
 )
 from .stats_core import StatsCore
@@ -230,7 +231,7 @@ class StatsEdits(StatsHost):
                 return "unreadable", None
             if expected and abs(valid_laptime(stats_entry(stats_user, path) or 0) - expected) > 0.0005:
                 return "changed", None  # stats module saved a new lap time since shown: never reset unseen
-            backup_stats_file(cfg.path.config)
+            backup_stats_file(cfg.path.config, with_history=history_change is not None)
             before = stats_entry(stats_user, path) if path else copy.deepcopy(stats_user)
             if path:
                 set_stats_entry(stats_user, path, value)
@@ -303,7 +304,7 @@ class StatsEdits(StatsHost):
             stats_user = cls.load_fresh_stats()
             if stats_user is None:
                 return False
-            backup_stats_file(cfg.path.config)
+            backup_stats_file(cfg.path.config, with_history=bool(edit.history_before or edit.history_after))
             if not edit.path:  # whole file (backup restored, lap times completed): stats recorded since kept
                 since = stats_since(stats_user, edit.after if undo else edit.before)
                 stats_user = merge_stats_since(edit.before if undo else edit.after, since)
@@ -442,17 +443,24 @@ class StatsEdits(StatsHost):
         if self.editing:
             return
         date = next((entry["date"] for entry in self.cached_backups() if entry["name"] == name), name)
-        self.jobs.run("stats backup", partial(read_stats_backup, cfg.path.config, name),
-                      partial(self.backup_read, date=date), self.backup_failed, key="backup")
+        created = next((created for backup, created in list_stats_backups(cfg.path.config) if backup == name), 0.0)
+        self.jobs.run("stats backup", partial(read_backup_files, cfg.path.config, name),
+                      partial(self.backup_read, date=date, created=created), self.backup_failed, key="backup")
 
-    def backup_read(self, stats_backup: dict | None, date: str = ""):
-        """Backup read (checked): restored as an edit"""
+    def backup_read(self, backup: tuple[dict | None, list[SessionRecord] | None], date: str = "",
+                    created: float = 0.0):
+        """Backup read (checked): restored as an edit, with the session history copied with it (records saved
+        since kept)"""
         if self._released or self.editing:
             return
+        stats_backup, history_backup = backup
         if stats_backup is None:
             self.warning(tr("Unable to read stats file."))
             return
-        self.edit_stats((), stats_backup, done_text=tr("Stats restored from the backup of %1").replace(
+        history_change = None
+        if history_backup is not None:
+            history_change = partial(restored_history, backup=history_backup, since=created)
+        self.edit_stats((), stats_backup, history_change, done_text=tr("Stats restored from the backup of %1").replace(
             "%1", f"<b>{html.escape(date)}</b>"))
 
     def backup_failed(self, error: BaseException):
