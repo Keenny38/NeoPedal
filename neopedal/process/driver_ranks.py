@@ -589,18 +589,16 @@ class RankWatcher:
             drivers = self._file_drivers
         else:
             raw = read_raw(located.path) if mtime >= 0 else b""
-            if raw is None:  # unreadable (game writing it): values kept, read again next poll
-                return
-            content = (len(raw), zlib.crc32(raw))
-            if content == self._content:  # same content (file saved again unchanged): not parsed again
-                drivers = self._file_drivers
-            else:
-                drivers = parse_raw(raw)  # parsed only if it holds rank keys
-                # Half-written file (no driver & invalid JSON): values kept, read again next poll
-                if not drivers and mtime >= 0 and not valid_raw(raw):
-                    return
-                self._content = content
-            self._file_key = file_key
+            # Unreadable (game writing it), half-written (no driver & invalid JSON) or too large: values of file
+            # kept, read again next poll, online & last known ranks still applied below
+            drivers = self._file_drivers
+            if raw is not None:
+                content = (len(raw), zlib.crc32(raw))
+                parsed = drivers if content == self._content else parse_raw(raw)  # same content: not parsed again
+                if content == self._content or parsed or mtime < 0 or valid_raw(raw):
+                    drivers = parsed
+                    self._content = content
+                    self._file_key = file_key
         self._mtime = mtime
         self._file_drivers = drivers
         with self._lock:  # online read ends on its own thread

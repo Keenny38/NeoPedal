@@ -653,3 +653,26 @@ def test_b019_player_found_by_name_gets_account_history_only(tmp_path):
     watcher.check()
     assert watcher.player.steam_id == ACCOUNT_B
     assert all(entry.steam_id == ACCOUNT_B for entry in watcher.history_of(watcher.player.steam_id))
+
+
+# B-017
+def test_b017_cut_short_game_file_still_shows_online_ranks(tmp_path):
+    """Game killed while writing its storage file: online ranks applied all the same, file read again later"""
+    from neopedal.process import driver_ranks as dr
+
+    storage = os.path.join(tmp_path, "storage.json")
+    with open(storage, "w", encoding="utf-8") as file:
+        file.write('{"profile": "{\\"x\\": 1')  # no ranks, invalid JSON
+    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_A, "", "", dr.Rank("Gold", 2, 10), None))
+    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)),
+                             lambda: os.path.join(tmp_path, "ranks.history"), online=online,
+                             run_online=lambda work: work())
+    for _ in range(3):
+        watcher.check()
+    assert watcher.online and watcher.player is not None and watcher.player.driver == dr.Rank("Gold", 2, 10)
+    with open(storage, "w", encoding="utf-8") as file:  # written again in full
+        file.write(rank_storage(rank_profile("Me", ACCOUNT_A, "Silver", 1)))
+    os.utime(storage, (2_000_000_000, 2_000_000_000))
+    watcher._checked_time = -99
+    watcher.check()
+    assert watcher.find_name("Me") is not None
