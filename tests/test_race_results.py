@@ -467,7 +467,8 @@ def test_backend_sessions(backend, english):
     assert backend.shownCount == 2  # session without lap hidden
     assert backend.selectedKey.endswith(RACE_NAME)  # newest first
     assert backend.isRace and backend.hasSession
-    assert backend.sessionHeader["title"] == "24 Heures du Mans"
+    assert backend.sessionHeader["title"] == "Circuit de la Sarthe"  # layout name, as every page shows it
+    assert backend.sessionHeader["subtitle"] == "24 Heures du Mans"
     assert backend.classificationModel.rowCount() == 3
     assert backend.selectedEntry == "0"  # player
     assert backend.lapModel.rowCount() == 3 and backend.lapColumns == {"usage": True, "wear": True, "telemetry": False}

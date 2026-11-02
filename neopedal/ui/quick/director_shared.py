@@ -502,7 +502,10 @@ def read_qualifying_times(track: str) -> dict[str, float]:
         result = streamoverlay.results.latest("qualifying")
     except (OSError, ValueError):
         return {}
-    if result is None or not track or not (track in fold(result.track) or fold(result.track) in track):
+    if result is None or not track:
+        return {}
+    names = [fold(name) for name in (result.course, result.track) if name]  # layout (REST trackName), event
+    if not any(track in name or name in track for name in names):
         return {}
     return {entry.name: entry.best_lap for entry in result.entries if entry.best_lap > 0}
 

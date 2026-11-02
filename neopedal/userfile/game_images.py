@@ -44,6 +44,7 @@ from collections.abc import Callable
 from urllib.parse import quote
 
 from ..process import game_images as gi
+from ..process import track_names as tn
 from ..setting import cfg
 from ..validator import avoid_reserved_filename, json_loads_checked
 from . import atomic_replace, read_json, write_json
@@ -110,6 +111,7 @@ class GameImages:
         self.vehicles: dict[str, gi.VehicleInfo] = {}  # vehicle name (lower case) -> car
         self.brands: dict[str, str] = {}  # brand (normalized) -> brand as game names it
         self.tracks: dict[str, str] = {}  # circuit name (lower case) -> circuit picture name
+        self.track_names: dict[str, str] = {}  # any name of a layout (lower case) -> layout name shown
         self.missing: dict[str, float] = {}  # picture path on game server -> time game did not have it
         self.version = 0
         self.logos_version = 0
@@ -134,6 +136,7 @@ class GameImages:
             self.vehicles.clear()
             self.brands.clear()
             self.tracks.clear()
+            self.track_names.clear()
             self.missing.clear()
         data = read_json(os.path.join(folder, CATALOG_FILE), strict=False, dict_only=True)
         if data is None:
@@ -145,6 +148,10 @@ class GameImages:
             tracks = data.get("tracks", {})
             if isinstance(tracks, dict):
                 self.tracks.update((str(name), str(key)) for name, key in tracks.items() if key in gi.TRACK_KEYS)
+            track_names = data.get("track_names", {})
+            if isinstance(track_names, dict):
+                self.track_names.update((str(name).lower(), layout) for name, layout in track_names.items()
+                                        if isinstance(layout, str) and layout)
             missing = data.get("missing", {})
             if isinstance(missing, dict):
                 self.missing.update((str(path), stamp) for path, stamp in
@@ -156,6 +163,7 @@ class GameImages:
             data = {
                 "vehicles": sorted({tuple(car) for car in self.vehicles.values()}),
                 "tracks": dict(sorted(self.tracks.items())),
+                "track_names": dict(sorted(self.track_names.items())),
                 "missing": dict(sorted(self.missing.items())),
             }
         path = os.path.join(self.folder, CATALOG_FILE)
@@ -216,6 +224,12 @@ class GameImages:
             if key:
                 return key
         return gi.track_key(*names)
+
+    def track_name(self, *names: str, scene: str = "") -> str:
+        """Layout name shown for the scene or first name game lists know (layout, event or folder name), else first
+        name cleaned (see process.track_names): the same name on every page"""
+        self.start()
+        return tn.layout_name(self.track_names, *names, scene=scene)
 
     def file(self, kind: str, key: str) -> str:
         """Cached picture file, "" if not cached yet (then fetched in background) or game has none"""
@@ -365,6 +379,7 @@ class GameImages:
         """Car & circuit lists of game (brands, picture files), logos of every brand & circuit queued"""
         vehicles: list[gi.VehicleInfo] = []
         tracks: dict[str, str] = {}
+        track_names: dict[str, str] = {}
         for route in (gi.VEHICLES_ROUTE, gi.CARS_ROUTE, gi.TRACKS_ROUTE):
             status, body = fetch_from_game(route)
             if not self.game_answered(status):
@@ -377,6 +392,7 @@ class GameImages:
                 continue
             if route == gi.TRACKS_ROUTE:
                 tracks.update(gi.parse_tracks(data))
+                track_names.update(tn.parse_track_names(data))
             else:
                 vehicles.extend(gi.parse_vehicles(data))
         if not vehicles and not tracks:  # lists empty (null outside a session): read again later
@@ -386,6 +402,7 @@ class GameImages:
         with self._lock:
             self.set_vehicles(vehicles)
             self.tracks.update(tracks)
+            self.track_names.update(track_names)
             brands = sorted({car.manufacturer for car in vehicles})
             track_keys = sorted(set(tracks.values()))
         self.save_catalog()

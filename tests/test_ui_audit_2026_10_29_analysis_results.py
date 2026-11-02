@@ -310,11 +310,11 @@ def test_track_stats_and_lap_telemetry_links(page, monkeypatch, tmp_path):  # no
     monkeypatch.setattr(lap_focus, "show_laps", lambda backend, path: shown.append(path) or True)
     results.openTrackStats()  # no player found in this file (two people, no profile name): track only
     assert results.result.player_entry is None
-    assert opened == ["driver_stats_viewer.DriverStatsViewer"] and combos == [("24 Heures du Mans", "Circuit de la Sarthe")]
+    assert opened == ["driver_stats_viewer.DriverStatsViewer"] and combos == [("Circuit de la Sarthe", "Circuit de la Sarthe")]
     first, *others = results.result.entries
     results.result = results.result._replace(entries=(first._replace(player=True), *others))
     results.openTrackStats()  # player's car too
-    assert combos[-1] == ("24 Heures du Mans", "Circuit de la Sarthe", "Hyper", first.car, first.vehicle)
+    assert combos[-1] == ("Circuit de la Sarthe", "Circuit de la Sarthe", "Hyper", first.car, first.vehicle)
     opened.clear()
     # Lap not recorded: told, nothing opened
     monkeypatch.setattr(toast, "show_toast", lambda widget, text, **kwargs: messages.append((text, kwargs)))

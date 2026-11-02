@@ -84,7 +84,7 @@ class ResultSummary(NamedTuple):
     end: float  # results file written (Unix time): session end
     kind: str  # "Practice", "Qualifying", "Warmup", "Race"
     code: str  # session letter of file name: "P", "Q", "W", "R"
-    track: str  # event name (driver stats track key)
+    track: str  # event name, else venue
     venue: str
     game_version: str  # "1.42"
     setting: str  # "Multiplayer", "Race Weekend"...
@@ -109,6 +109,7 @@ class ResultSummary(NamedTuple):
     grid: int = 0  # start position (race), 0 if unknown
     class_grid: int = 0  # start position in class (race), 0 if unknown
     rivals: tuple[Rival, ...] = ()  # other people of player class (race), AI left out
+    course: str = ""  # layout: game track name (driver stats track key), "" if file has none
 
 
 class ReplayFile(NamedTuple):
@@ -292,7 +293,7 @@ def summarize(result: SessionResult, end: float, names: Iterable[str] = ()) -> R
         impacts=sum(contacts.get(name, (0, 0))[1] for name in names),
         penalties=sum(penalties.get(name, 0) for name in names),
         track_limits=max((limits.get(name, 0.0) for name in names), default=0.0),
-        grid=entry.grid, class_grid=entry.class_grid, rivals=rivals_of(result, entry),
+        grid=entry.grid, class_grid=entry.class_grid, rivals=rivals_of(result, entry), course=result.course,
     )
 
 
@@ -564,7 +565,7 @@ def kept_files() -> int:
 
 def same_track(name: str, summary: ResultSummary) -> bool:
     folded = name.strip().casefold()
-    return bool(folded) and folded in (summary.track.casefold(), summary.venue.casefold())
+    return bool(folded) and folded in (summary.course.casefold(), summary.track.casefold(), summary.venue.casefold())
 
 
 def same_vehicle(vehicle: str, vehicle_class: str, summary: ResultSummary) -> bool:
@@ -617,7 +618,7 @@ class SessionMatcher:
     def __init__(self, summaries: Sequence[ResultSummary]):
         groups: dict[tuple[str, str], tuple[list[float], list[ResultSummary]]] = {}
         for summary in summaries:
-            for name in {summary.track.casefold(), summary.venue.casefold()}:
+            for name in {summary.course.casefold(), summary.track.casefold(), summary.venue.casefold()}:
                 if name:
                     limits, found = groups.setdefault((summary.kind, name), ([], []))
                     limits.append(summary.start - STINT_BEFORE_START)  # as match_session compares
@@ -701,10 +702,11 @@ class ReplaySession(NamedTuple):
     venue: str
     code: str
     end: float
+    course: str = ""  # layout: replays are named after it
 
 
 def replay_session(summary: ResultSummary) -> ReplaySession:
-    return ReplaySession(summary.path, summary.track, summary.venue, summary.code, summary.end)
+    return ReplaySession(summary.path, summary.track, summary.venue, summary.code, summary.end, summary.course)
 
 
 def match_replays(sessions: Iterable[ReplaySession], replays: Iterable[ReplayFile]) -> dict[str, ReplayFile]:
@@ -716,7 +718,7 @@ def match_replays(sessions: Iterable[ReplaySession], replays: Iterable[ReplayFil
             by_key.setdefault(key, []).append(replay)
     pairs = []
     for session in sessions:
-        for track in {session.track.casefold(), session.venue.casefold()}:
+        for track in {session.course.casefold(), session.track.casefold(), session.venue.casefold()}:
             for replay in by_key.get((track, session.code), ()):
                 delay = replay.modified - session.end
                 if -REPLAY_BEFORE <= delay <= REPLAY_AFTER:
@@ -788,7 +790,8 @@ def best_lap_fixes(summaries: Iterable[ResultSummary], stats: dict, linked: dict
     for summary in summaries:
         if summary.game != "LMU" or summary.best_lap <= 0:
             continue
-        vehicles = stats.get(summary.track)
+        track = next((name for name in (summary.course, summary.track) if isinstance(stats.get(name), dict)), "")
+        vehicles = stats.get(track) if track else None
         if not isinstance(vehicles, dict):
             continue
         vehicle = linked.get(summary.path) or vehicle_key(summary, vehicles, classification, brands)
@@ -800,9 +803,9 @@ def best_lap_fixes(summaries: Iterable[ResultSummary], stats: dict, linked: dict
             current = float(current) if isinstance(current, (int, float)) and 0 < current < 99999 else 0.0
             if current and summary.best_lap >= current - 0.0005:
                 continue
-            key = (summary.track, vehicle, stat)
+            key = (track, vehicle, stat)
             known = best.get(key)
             if known is None or summary.best_lap < known.laptime:
-                best[key] = BestLapFix(summary.track, vehicle, stat, summary.best_lap, current, summary.path,
+                best[key] = BestLapFix(track, vehicle, stat, summary.best_lap, current, summary.path,
                                        summary.end)
     return sorted(best.values(), key=lambda fix: (fix.track, fix.vehicle, ("pb", "qb", "rb").index(fix.stat)))

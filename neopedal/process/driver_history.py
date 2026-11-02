@@ -143,13 +143,13 @@ class DriverHistory:
         if parsed is not None and parsed.stamp == ri.file_stamp(path):
             if parsed.info is None or parsed.cars is None:  # not a results file, or not a race
                 return {}
-            return race_records(path, parsed.info.time, parsed.info.track, parsed.cars)
+            return race_records(path, parsed.info.time, rf.layout_of(parsed.info), parsed.cars)
         try:
             result = rf.read_results(path, keep=False)  # bulk scan: only records kept
         except (OSError, ValueError):
             return {}
         cars = ri.race_cars(result)
-        return race_records(path, result.time, result.track, cars) if cars is not None else {}
+        return race_records(path, result.time, rf.layout_of(result), cars) if cars is not None else {}
 
     def records(self, driver: str) -> list[RaceRecord]:
         with self._lock:

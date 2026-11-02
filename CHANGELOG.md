@@ -7,6 +7,10 @@ The full list of commits of each version is on the [Releases](https://github.com
 
 Fixes from an audit of the VR overlay.
 
+### Improvements
+
+- Track names: every page shows the same name for a Le Mans Ultimate track layout, the name the game gives the layout and its replays (`Circuit de la Sarthe`, `Bahrain Outer Circuit`, `Paul Ricard - ELMS`), instead of a mix of event names (`24 Heures du Mans`, `6 Hours of Monza`), circuit names shared by several layouts (`Bahrain International Circuit` for the Outer Circuit) and folder names (`PortimaoWEC 2023`). `Results & Replays` and the OBS `/results` source show the event name under it. Same name in the Driver Stats official races card and the Broadcast Director driver sheet. Names come from the game track list, kept for when the game is closed; saved stats, laps, maps, notes and presets keep their names.
+
 ### Fixes
 
 - VR overlay: overlays reloaded while SteamVR was still starting or closing no longer shut the new SteamVR overlay down (overlay gone from the headset, possible app crash).
@@ -277,6 +281,7 @@ Fixes from an audit of the VR overlay.
 - Race Notifications overlay: `show_position_change` and `show_position_change_in_class` each have their own help.
 - `Overlay Options`: 291 options of 64 overlays that had no help text have one (layouts, bar sizes, paddings, gaps, captions, line widths, Dashboard HUD status icons, Relative classic columns, Virtual Energy level bar...), Navigation and Track Map help names `show_vehicle_class_standings` and Track Map `fixed_pitstop_duration_*` (stale names before), and caption texts of Fuel and Virtual Energy no longer show the help of a fuel reading.
 - `Overlay Options`, Standings overlay (modern look): `column_class` is no longer dimmed under class headers; it still switches the class color stripe of each row.
+- Results files matched to your Driver Stats track by its layout name: lap times completed from results again on every track whose event has another name (Le Mans, Monza, Spa, Fuji...); stints linked to their session, game replays and recorded laps found again at Paul Ricard (ELMS) and Silverstone; Broadcast Director `Best here` and the grid of the last qualifying found again (Le Mans...). Races to come on another layout of a circuit (Bahrain Outer, Mulsanne...) no longer show your laps of its main layout.
 
 ## 0.28.1 (2026-11-01)
 

@@ -173,7 +173,7 @@ def load_results(folders: Sequence[str], known: dict[str, tuple[FileStamp, Sessi
         except (OSError, ValueError) as error:  # changed meanwhile: read once picked
             logger.debug("RACE RESULTS: %s not read: %s", path, error)
     sessions = [ri.ReplaySession(path, info.track, info.venue, ri.session_code(path) or KIND_CODES.get(info.kind, ""),
-                                 stamp.modified) for path, (stamp, info) in files.items() if info is not None]
+                                 stamp.modified, info.course) for path, (stamp, info) in files.items() if info is not None]
     return Loaded(tuple(folders), files, full, ri.session_replays(sessions))
 
 
@@ -210,11 +210,8 @@ def length_text(result: SessionResult) -> str:
 
 
 def track_subtitle(result: SessionResult | SessionInfo) -> str:
-    """Layout name, or venue when event name is shown"""
-    for name in (result.course, result.venue):
-        if name and name != result.track:
-            return name
-    return ""
+    """Event name, or venue, under the layout name (see rf.layout_of)"""
+    return rf.event_of(result)
 
 
 def player_result_text(result: SessionResult | SessionInfo, entry: Entry | None) -> tuple[str, str]:
@@ -244,7 +241,7 @@ def session_row(result: SessionResult | SessionInfo, today: QDate, newest: bool 
         detail = player.car
     return {
         "key": info.path,
-        "title": info.track,
+        "title": rf.layout_of(info),
         "course": track_subtitle(info),
         "code": KIND_CODES.get(info.kind, "?"),
         "kindText": kind_text(info.kind),
@@ -431,7 +428,7 @@ def session_header(result: SessionResult) -> dict[str, Any]:
         odometer_text(result.track_length) if result.track_length > 0 else "",  # user distance unit
     ]
     return {
-        "title": result.track,
+        "title": rf.layout_of(result),
         "subtitle": track_subtitle(result),
         "code": KIND_CODES.get(result.kind, "?"),
         "kindText": kind_text(result.kind),
@@ -1579,9 +1576,9 @@ class RaceResultsBackend(PageBackend):
         if callable(show):
             player = result.player_entry
             if player is None:
-                show(result.track, result.venue)
+                show(rf.layout_of(result), result.venue)
             else:
-                show(result.track, result.venue, player.car_class, player.car, player.vehicle)
+                show(rf.layout_of(result), result.venue, player.car_class, player.car, player.vehicle)
 
     def page_window(self) -> QWidget | None:
         parent = self.parent()

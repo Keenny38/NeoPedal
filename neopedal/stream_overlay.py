@@ -753,13 +753,13 @@ def _results_data(result: rf.SessionResult) -> dict[str, Any]:
             "player": entry.player,
             "logo": brand_picture(entry),
         })
-    subtitle = next((name for name in (result.course, result.venue) if name and name != result.track), "")
+    subtitle = rf.event_of(result)  # layout name as title, as every page shows it
     return {
         "available": True,
         # Page made again when it changes: other results, pictures, language or class colors
         "id": (f"{os.path.basename(result.path)}:{len(entries)}:{result.most_laps}:{images.version}:"
                f"{current_language()}:{classes_key()}"),
-        "title": result.track,
+        "title": rf.layout_of(result),
         "trackLogo": picture_link(images.track_logo(result.track, result.venue, result.course)),
         "subtitle": subtitle,
         "kind": rt.kind_text(result.kind),

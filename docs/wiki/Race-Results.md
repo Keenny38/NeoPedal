@@ -35,7 +35,7 @@ Newest first, grouped by day, with the session kind (`R`, `Q`, `P`, `W`), track,
 
 ## Session
 
-The header shows the track and layout, date, online server or single player, session length (minutes or laps), number of cars and track length, with the circuit logo and picture of Le Mans Ultimate (taken from the game once it ran with the app open, kept in the `gameimage` folder). Below it, your key figures:
+The header shows the track layout, with the name the game gives it as on every page of the app (`Circuit de la Sarthe`), and the event name under it (`24 Heures du Mans`), then the date, online server or single player, session length (minutes or laps), number of cars and track length, with the circuit logo and picture of Le Mans Ultimate (taken from the game once it ran with the app open, kept in the `gameimage` folder). Below it, your key figures:
 
 - **Position** (with your class position and the number of cars of your class; gold on the podium), **Grid** with places gained or lost,
 - **Best lap** with its rank in your class (purple when fastest), **Laps** and pit stops,

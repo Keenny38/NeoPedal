@@ -56,7 +56,7 @@ import time
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator
-from typing import BinaryIO, NamedTuple, cast
+from typing import BinaryIO, NamedTuple, Protocol, cast
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +196,31 @@ class SessionResult(NamedTuple):
         for entry in self.entries:
             seen.setdefault(entry.car_class, None)
         return list(seen)
+
+
+class NamedTrack(Protocol):
+    """Session naming its track as results files do (<TrackEvent> or venue, <TrackVenue>, <TrackCourse>)"""
+
+    @property
+    def track(self) -> str: ...
+
+    @property
+    def venue(self) -> str: ...
+
+    @property
+    def course(self) -> str: ...
+
+
+def layout_of(result: NamedTrack) -> str:
+    """Layout name of a session as every page shows it (process.track_names): <TrackCourse>, the game track name
+    (driver stats key), else event or venue name"""
+    return result.course or result.track
+
+
+def event_of(result: NamedTrack) -> str:
+    """Name shown under the layout name: event name, else venue, "" if both are the layout name"""
+    layout = layout_of(result)
+    return next((name for name in (result.track, result.venue) if name and name != layout), "")
 
 
 def session_kind(tag: str) -> str:

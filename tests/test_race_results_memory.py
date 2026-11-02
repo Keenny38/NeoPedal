@@ -60,7 +60,7 @@ def test_list_keeps_infos_only(results_folder, english):  # noqa: F811
         oldest = backend.sessionModel.rows[-1]["key"]
         assert oldest not in backend.kept
         backend.select(oldest)  # not kept: read in background, list follows at once
-        assert backend.selectedKey == oldest and backend.sessionHeader["title"] == "24 Heures du Mans"
+        assert backend.selectedKey == oldest and backend.sessionHeader["title"] == "Circuit de la Sarthe"
         assert wait_until(lambda: backend.result is not None and backend.result.path == oldest)
         assert backend.selectedKey == oldest and oldest in backend.kept and len(backend.kept) <= KEPT_RESULTS
         assert backend.classificationModel.rowCount() == 3 and backend.eventModel.rowCount() == 5

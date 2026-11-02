@@ -611,7 +611,7 @@ class StatsCore(StatsHost):
             self.selectRow(vehicle)
 
     def show_results_combo(self, track: str, venue: str, car_class: str = "", car: str = "", vehicle: str = ""):
-        """Track & player's car of a results session (race results page): stats track of its event or venue name,
+        """Track & player's car of a results session (race results page): stats track of its layout or venue name,
         vehicle row of the car (entry name, class & brand, class); now if stats are read, else once read"""
         if not self._loaded or any(job is not None and job.kind == "reload"
                                    for job in (self._running_job, *self._locked_jobs)):

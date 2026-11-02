@@ -7,6 +7,10 @@ C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en 
 
 Des corrections issues d'un audit de l'overlay VR.
 
+### Améliorations
+
+- Noms des circuits : toutes les pages affichent le même nom pour un tracé de Le Mans Ultimate, celui que le jeu donne au tracé et à ses replays (`Circuit de la Sarthe`, `Bahrain Outer Circuit`, `Paul Ricard - ELMS`), au lieu d'un mélange de noms d'événements (`24 Heures du Mans`, `6 Hours of Monza`), de noms de circuits partagés par plusieurs tracés (`Bahrain International Circuit` pour l'Outer Circuit) et de noms de dossiers (`PortimaoWEC 2023`). `Résultats & Replays` et la source OBS `/results` affichent le nom de l'événement en dessous. Même nom dans la carte des courses officielles des Stats pilote et la fiche pilote de la Régie de course. Les noms viennent de la liste des circuits du jeu, gardée pour quand le jeu est fermé ; les stats, tours, cartes, notes et presets enregistrés gardent leur nom.
+
 ### Corrections
 
 - Overlay VR : des overlays rechargés pendant que SteamVR démarrait ou se fermait ne coupent plus le nouvel overlay SteamVR (overlay disparu du casque, plantage possible de l'app).
@@ -277,6 +281,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Notifications de course : `show_position_change` et `show_position_change_in_class` ont chacune leur aide.
 - `Options des overlays` : 291 options de 64 overlays sans texte d'aide en ont un (dispositions, tailles de barres, marges, écarts, légendes, épaisseurs de trait, icônes d'état du HUD tableau de bord, colonnes classiques du Relatif, barre de niveau d'Énergie virtuelle…), l'aide de Navigation et de Carte du circuit nomme `show_vehicle_class_standings` et celle de Carte du circuit `fixed_pitstop_duration_*` (anciens noms auparavant), et les textes de légende de Carburant et d'Énergie virtuelle n'affichent plus l'aide d'une valeur de carburant.
 - `Options des overlays`, overlay Classement (design moderne) : `column_class` n'est plus grisée sous les en-têtes de catégorie ; elle active toujours la bande de couleur de catégorie de chaque ligne.
+- Fichiers de résultats reliés à ton circuit des Stats pilote par le nom du tracé : temps au tour complétés depuis les résultats de nouveau sur chaque circuit dont l'événement porte un autre nom (Le Mans, Monza, Spa, Fuji...) ; relais reliés à leur session, replays du jeu et tours enregistrés retrouvés à Paul Ricard (ELMS) et Silverstone ; `Meilleur ici` et la grille de la dernière qualification de la Régie de course retrouvés (Le Mans...). Les courses à venir sur un autre tracé d'un circuit (Bahrain Outer, Mulsanne...) n'affichent plus tes tours du tracé principal.
 
 ## 0.28.1 (2026-11-01)
 

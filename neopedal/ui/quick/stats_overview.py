@@ -34,6 +34,7 @@ from ...process import results_index as ri
 from ...process.results_text import MISSING, laptime_text
 from ...rank_info import online_enabled, ranks
 from ...setting import cfg
+from ...userfile.game_images import images
 from ..lap_viewer import signed
 from .formatting import country_name, date_locale, format_date, format_day, localized_number
 from .stats_analysis import (
@@ -382,7 +383,8 @@ class StatsOverview(StatsHost):
                               "seconds": best})
             driven = self.track_last_driven.get(track, 0.0) if track else 0.0
             races.append({
-                "tier": tr(event.tier.capitalize()), "title": event.title, "track": track or event.track,
+                "tier": tr(event.tier.capitalize()), "title": event.title,
+                "track": track or images.track_name(event.track, scene=event.scene),
                 "start": QDateTime.fromSecsSinceEpoch(int(event.start)).toString(
                     date_locale().dateTimeFormat(QLocale.FormatType.ShortFormat)),
                 "classes": " · ".join(event.classes), "bests": bests, "known": bool(track),

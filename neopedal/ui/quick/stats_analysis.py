@@ -116,7 +116,7 @@ def rivals(summaries: Iterable[ri.ResultSummary]) -> list[Rival]:
             if summary.best_lap > 0 and other.best_lap > 0:
                 entry[3].append(summary.best_lap - other.best_lap)
             if summary.end >= entry[4]:
-                entry[4:7] = [summary.end, summary.path, summary.track]
+                entry[4:7] = [summary.end, summary.path, rf.layout_of(summary)]
     shown = [Rival(name, races, ahead, behind, sum(gaps) / len(gaps) if gaps else None, last, path, track)
              for name, (races, ahead, behind, gaps, last, path, track) in found.items() if races >= MIN_MEETINGS]
     shown.sort(key=lambda rival: (-rival.races, -rival.last, rival.name.casefold()))
@@ -267,9 +267,18 @@ def track_names(game_tracks: Any) -> dict[str, tuple[str, ...]]:
     return names
 
 
+def scene_names(scene: str, names: dict[str, tuple[str, ...]]) -> set[str]:
+    """Names (casefold) the driver stats track of a game scene has: its layout name once game lists are read
+    (process.track_names), else every name /rest/race/track gives the scene (venue names shared by layouts too)"""
+    from ...userfile.game_images import images
+
+    layout = images.track_name(scene=scene)
+    return {layout.casefold()} if layout else {name.casefold() for name in names.get(scene.casefold(), ())}
+
+
 def stats_track(event: Upcoming, keys: Iterable[str], names: dict[str, tuple[str, ...]]) -> str:
-    """Driver stats track of an event ("" if never driven there): game names of its scene, else its own name"""
-    wanted = {name.casefold() for name in names.get(event.scene.casefold(), ())} | {event.track.casefold()}
+    """Driver stats track of an event ("" if never driven there): layout of its scene, else its own name"""
+    wanted = scene_names(event.scene, names) | {event.track.casefold()}
     return next((key for key in keys if key.casefold() in wanted), "")
 
 

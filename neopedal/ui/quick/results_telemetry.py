@@ -42,8 +42,8 @@ SESSION_MARGIN = 600.0  # s: laps saved before session start / after its last la
 
 
 def lap_folders(result: SessionResult, entry: Entry) -> list[str]:
-    """Recorded laps folder names of the car of entry: event name, then venue (game track name is one of them)"""
-    names = dict.fromkeys(name for name in (result.track, result.venue) if name)
+    """Recorded laps folder names of the car of entry: layout (game track name), then event name & venue"""
+    names = dict.fromkeys(name for name in (result.course, result.track, result.venue) if name)
     return [lap_folder_name(strip_invalid_char(f"{name} - {entry.car_class}")) for name in names]
 
 

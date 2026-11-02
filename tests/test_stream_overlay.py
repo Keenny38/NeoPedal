@@ -249,7 +249,8 @@ def test_results_snapshot(ui_env, tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "find_results_folders", lambda libraries=None: {})
     cache = stream_overlay.ResultsCache()
     data = stream_overlay.results_snapshot(cache, "race")
-    assert data["available"] and data["title"] == "24 Heures du Mans" and data["race"]  # race without lap skipped
+    assert data["available"] and data["title"] == "Circuit de la Sarthe" and data["race"]  # race without lap skipped
+    assert data["subtitle"] == "24 Heures du Mans"  # event under layout name
     assert [row["driver"] for row in data["rows"]] == ["Alice Driver", "Bob Racer", "Carl Slow"]
     alice, bob, carl = data["rows"]
     assert (alice["gap"], bob["gap"], carl["gap"], carl["gapTone"]) == ("4:57.800", "+4.700", "DNF", "loss")
@@ -259,7 +260,7 @@ def test_results_snapshot(ui_env, tmp_path, monkeypatch):
     assert data["labels"]["best"] == "Best Lap"
     assert cache.latest("race") is cache.latest("race")  # file read once
     practice = stream_overlay.results_snapshot(cache, "any")
-    assert practice["title"] == "Monza" and not practice["race"]
+    assert practice["title"] == "Monza GP" and practice["subtitle"] == "Monza" and not practice["race"]
     assert stream_overlay.results_snapshot(cache, "qualifying") == {"available": False, "labels": data["labels"]}
 
 
