@@ -119,3 +119,29 @@ def test_b002_hud_hidden_shown_again_when_page_closed(replays_page):  # noqa: F8
     while replays_page.sent != SHOW_HUD and time.monotonic() < end:
         time.sleep(0.01)
     assert replays_page.sent == SHOW_HUD
+
+
+# B-004: end of a copy wrote over a replay that took its name during the copy (renamed in the page, saved by game)
+def test_b004_copy_never_writes_over_a_replay_named_meanwhile(tmp_path):
+    from neopedal.ui.quick import replay_files
+
+    game, downloads = tmp_path / "Replays", tmp_path / "Downloads"
+    game.mkdir()
+    downloads.mkdir()
+    (game / "Spa R1 1.Vcr").write_bytes(b"game replay")
+    (game / "My best race.Vcr").write_bytes(b"precious")
+    source = downloads / "Spa R1 1.Vcr"
+    source.write_bytes(b"z" * (replay_files.CHUNK_SIZE * 2))
+    renamed: list[str] = []
+
+    def progress(_value: float):
+        if not renamed:  # during the copy: renamed in the page to the name the copy will take, game saves one too
+            renamed.append(replay_files.rename_replay(str(game), "My best race", "Spa R1 1 (2)"))
+            (game / "Spa R1 1 (2).Vcr").write_bytes(b"saved by game")
+
+    result = replay_files.copy_replays([str(source)], str(game), progress)
+    assert renamed == ["name already used"]  # name of the replay being copied refused
+    assert (game / "My best race.Vcr").read_bytes() == b"precious"
+    assert (game / "Spa R1 1 (2).Vcr").read_bytes() == b"saved by game"  # never written over
+    assert result.added == ["Spa R1 1 (3)"] and (game / "Spa R1 1 (3).Vcr").stat().st_size == source.stat().st_size
+    assert not list(game.glob("*.part"))

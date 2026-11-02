@@ -145,7 +145,8 @@ def copy_replays(sources: Sequence[str], folder: str, progress: Callable[[float]
     added: list[str] = []
     errors: list[str] = []
     for source in sources:
-        name = free_name(folder, os.path.splitext(os.path.basename(source))[0])
+        base = os.path.splitext(os.path.basename(source))[0]
+        name = free_name(folder, base)
         target = replay_path(folder, name)
         part = f"{target}{PART_EXTENSION}"
         try:
@@ -160,8 +161,7 @@ def copy_replays(sources: Sequence[str], folder: str, progress: Callable[[float]
                 remove_part(part)
                 return CopyResult(added, errors, True)
             shutil.copystat(source, part)  # replay keeps its date in game list
-            os.replace(part, target)
-            added.append(name)
+            added.append(finish_copy(part, folder, base, name))
         except OSError as error:
             errors.append(f"{os.path.basename(source)}: {error.strerror or error}")
             remove_part(part)
@@ -169,6 +169,27 @@ def copy_replays(sources: Sequence[str], folder: str, progress: Callable[[float]
             remove_part(part)
             raise
     return CopyResult(added, errors)
+
+
+def rename_new(source: str, target: str):
+    """File renamed, never replacing an existing one (FileExistsError)"""
+    if sys.platform == "win32":
+        os.rename(source, target)  # refuses an existing target
+    else:  # os.rename replaces: hard link refuses an existing target
+        os.link(source, target)
+        os.remove(source)
+
+
+def finish_copy(part: str, folder: str, base: str, name: str) -> str:
+    """Copied file given its replay name, the next free one after base if that name was taken during the copy
+    (renamed replay, replay saved by the game): never written over, name given returned"""
+    for _ in range(100):
+        try:
+            rename_new(part, replay_path(folder, name))
+            return name
+        except FileExistsError:
+            name = free_name(folder, base)
+    raise FileExistsError(f"no free name for {name}")
 
 
 def remove_part(path: str):
@@ -184,6 +205,8 @@ def rename_replay(folder: str, name: str, new_name: str) -> str:
         return "invalid name"
     if os.path.exists(replay_path(folder, new_name)) and not same_file(
             replay_path(folder, new_name), replay_path(folder, name)):
+        return "name already used"
+    if os.path.exists(f"{replay_path(folder, new_name)}{PART_EXTENSION}"):  # replay being copied under that name
         return "name already used"
     try:
         os.replace(replay_path(folder, name), replay_path(folder, new_name))
