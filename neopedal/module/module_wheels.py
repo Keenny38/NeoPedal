@@ -248,7 +248,7 @@ def calc_tyre_wear(output: WheelsInfo, min_delta_distance: float, lock_threshold
     """Calculate tyre wear & delta wear"""
     last_reset = None  # reset check
 
-    last_lap_stime = 0.0  # last lap start time
+    last_lap_stime = -1.0  # last lap start time, -1: none (a lap may start at 0)
     tread_last = list(WHEELS_ZERO)  # last moment remaining tread
     tread_wear_curr = list(WHEELS_ZERO)  # current lap tread wear
     tread_wear_valid = list(WHEELS_ZERO)  # valid last lap tread wear
@@ -279,7 +279,7 @@ def calc_tyre_wear(output: WheelsInfo, min_delta_distance: float, lock_threshold
             delta_array_last = (WHEELS_DELTA_DEFAULT,)
             is_valid_delta = False
             delta_recording = False  # lap in progress (reset mid-lap): partial, never a lap wear
-            last_lap_stime = 0.0
+            last_lap_stime = -1.0
             output.lastLapTreadWear[:] = WHEELS_ZERO
 
         tread_curr_set = api.read.tyre.wear()
@@ -388,7 +388,7 @@ def calc_brake_wear(output: WheelsInfo, min_delta_distance: float):
     """Calculate brake wear"""
     last_reset = None  # reset check
 
-    last_lap_stime = 0.0  # last lap start time
+    last_lap_stime = -1.0  # last lap start time, -1: none (a lap may start at 0)
     brake_last = list(WHEELS_ZERO)  # last moment remaining brake
     brake_wear_curr = list(WHEELS_ZERO)  # current lap brake wear
     brake_wear_valid = list(WHEELS_ZERO)  # valid last lap brake wear
@@ -421,7 +421,7 @@ def calc_brake_wear(output: WheelsInfo, min_delta_distance: float):
             delta_array_last = (WHEELS_DELTA_DEFAULT,)
             is_valid_delta = False
             delta_recording = False  # lap in progress (reset mid-lap): partial, never a lap wear
-            last_lap_stime = 0.0
+            last_lap_stime = -1.0
             output.lastLapBrakeWear[:] = WHEELS_ZERO
             output.failureBrakeThickness[:] = brake_failure_thickness(
                 api.read.vehicle.class_name(),
