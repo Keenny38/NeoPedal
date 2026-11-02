@@ -885,8 +885,27 @@ def test_b025_every_goal_beaten_meanwhile_announced(monkeypatch):
     page = SimpleNamespace(
         goals=lambda: {"Spa|GT3": 130.0, "Monza|GT3": 110.0}, reached_goals=list, _window=None,
         stats_temp={"Spa": {"GT3": {"pb": 129.0}}, "Monza": {"GT3": {"pb": 109.5}}},
-        save_viewer_config=lambda **values: saved.update(values), page_visible=True,
+        save_viewer_config=lambda **values: saved.update(values), check_goals=None,
         defer_while_hidden=lambda callback: False)
     StatsSelection.check_goals(page)
     assert saved["goals_reached"] == ["Spa|GT3", "Monza|GT3"]
     assert len(shown) == 1 and "Spa" in shown[0] and "Monza" in shown[0]
+
+
+# B-039
+def test_b039_goal_toast_waits_until_page_shown(monkeypatch):
+    """Stats read while the page is made (not shown): goals left to announce once shown, not marked as told"""
+    from types import SimpleNamespace
+
+    from neopedal.ui import toast
+    from neopedal.ui.quick.stats_selection import StatsSelection
+
+    shown, saved, deferred = [], {}, []
+    monkeypatch.setattr(toast, "show_toast", lambda window, text, **kwargs: shown.append(text))
+    page = SimpleNamespace(
+        goals=lambda: {"Spa|GT3": 130.0}, reached_goals=list, _window=None,
+        stats_temp={"Spa": {"GT3": {"pb": 129.0}}}, save_viewer_config=lambda **values: saved.update(values),
+        defer_while_hidden=lambda callback: deferred.append(callback) or True)
+    page.check_goals = lambda: StatsSelection.check_goals(page)
+    StatsSelection.check_goals(page)
+    assert deferred and not shown and not saved

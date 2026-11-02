@@ -407,7 +407,10 @@ class StatsSelection(StatsHost):
         return [str(name) for name in reached] if isinstance(reached, list) else []
 
     def check_goals(self):
-        """Stats read: goals beaten since last time announced once (toast), also when beaten while page closed"""
+        """Stats read: goals beaten since last time announced once (toast), also when beaten while page closed;
+        page not shown yet (stats read while page is made): once shown, never marked as told unseen"""
+        if self.defer_while_hidden(self.check_goals):
+            return
         goals = self.goals()
         if not goals:
             return

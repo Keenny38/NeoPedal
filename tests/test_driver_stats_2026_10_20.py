@@ -345,6 +345,7 @@ def test_goal_set_reached_once(stats, monkeypatch):
 
     toasts = []
     monkeypatch.setattr(toast, "show_toast", lambda host, text, **kwargs: toasts.append(text))
+    monkeypatch.setattr(stats, "_page_visible", True)  # page shown: goals beaten told at once (else once shown)
     assert stats.goal["visible"] and not stats.goal["set"] and stats.goal["suggestion"].startswith("Suggested:")
     stats.set_goal(f"{SPA}|{OREGA}", 121.0)
     goal = stats.goal
