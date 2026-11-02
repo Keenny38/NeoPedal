@@ -71,6 +71,7 @@ Fixes from an audit of the VR overlay.
 - Driver Stats: applying an option or loading a preset during a race (overlays and modules reloaded) no longer counts a second race start, nor records your position at that moment as your start position (places gained). A start is counted when you drive at the green flag.
 - Driver Stats (Le Mans Ultimate team races): while a teammate drives your car after a driver swap, their laps, distance and driving time are no longer recorded as yours.
 - Driver Stats: a `driver.stats` file holding `NaN` or `Infinity` (edited by hand or by another tool) no longer leaves the page empty: those values read as 0 (best lap times as none).
+- Driver Stats: `Undo` / `Redo` of `Restore Backup` and of `Complete…` (lap times from race results) keep the stats recorded since (laps, distance, a newer best lap), instead of putting back the whole file as it was.
 - Spectate and Broadcast Director (`Overlays follow the car on air`), Le Mans Ultimate and rFactor 2: overlays switch to the car you follow at once, instead of mixing it for a moment with the car followed before (lap times, fuel and laps of the former car taken for the new one's, a pit lane entry measured at the new car's place, part of a lap saved as the track map).
 - Spectate and Broadcast Director: following another car just after the car followed crossed the line no longer keeps the delta, sectors and fuel overlays on the former car for 10 seconds.
 

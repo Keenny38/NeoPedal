@@ -314,3 +314,55 @@ def test_b011_not_finite_stats_reset_for_viewer():
     assert vehicle == {"seconds": 0.0, "meters": 0.0, "pb": driver_stats.MAX_SECONDS, "valid": 3}
     assert stats_common.stat_number({"seconds": float("nan")}, "seconds") == 0
     assert stats_common.format_duration(stats_common.stat_number({"seconds": float("inf")}, "seconds"))
+
+
+# B-002
+SPA_HYPER = ("Spa", "Hyper - Toyota")
+
+
+def write_stats(filepath: str, data: dict) -> None:
+    with open(os.path.join(filepath, "driver.stats"), "w", encoding="utf-8") as file:
+        json.dump(data, file)
+
+
+@pytest.fixture
+def stats_folder(tmp_path, monkeypatch):
+    from neopedal.setting import cfg
+
+    filepath = f"{tmp_path}/"
+    monkeypatch.setattr(cfg.path, "config", filepath)
+    return filepath
+
+
+def test_b002_undo_backup_restore_keeps_stats_recorded_since(stats_folder):
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    write_stats(stats_folder, {"Spa": {"Hyper - Toyota": {"pb": 128.0, "valid": 20, "meters": 2000.0}}})
+    backup = {"Spa": {"Hyper - Toyota": {"pb": 130.0, "valid": 10, "meters": 1000.0}}}
+    outcome, edit = StatsEdits.write_edit((), backup, None)  # backup restored
+    assert outcome == "saved"
+    driver_stats.save_driver_stats(SPA_HYPER, DriverStats(pb=125.0, valid=5, meters=500.0), stats_folder)
+    assert StatsEdits.apply_edit(edit, True)[0] == "saved"  # undo: stats before restore + stint since
+    vehicle = read_stats(stats_folder)["Spa"]["Hyper - Toyota"]
+    assert (vehicle["pb"], vehicle["valid"], vehicle["meters"]) == (125.0, 25, 2500.0)
+    driver_stats.save_driver_stats(SPA_HYPER, DriverStats(valid=1), stats_folder)
+    assert StatsEdits.apply_edit(edit, False)[0] == "saved"  # redo: backup + both stints since
+    vehicle = read_stats(stats_folder)["Spa"]["Hyper - Toyota"]
+    assert (vehicle["pb"], vehicle["valid"], vehicle["meters"]) == (125.0, 16, 1500.0)
+
+
+def test_b002_undo_lap_times_completed_keeps_newer_best(stats_folder):
+    from neopedal.process import results_index as ri
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    write_stats(stats_folder, {"Spa": {"Hyper - Toyota": {"pb": 130.0, "valid": 10, "meters": 1000.0}}})
+    values = {"track": "Spa", "vehicle": "Hyper - Toyota", "stat": "qb", "laptime": 129.0, "current": 0.0,
+              "time": 0.0}
+    fix = ri.BestLapFix(**{name: values.get(name, "") for name in ri.BestLapFix._fields})
+    outcome, edit = StatsEdits.write_fixes((fix,))
+    assert outcome == "saved"
+    driver_stats.save_driver_stats(SPA_HYPER, DriverStats(pb=124.0, valid=3), stats_folder)
+    StatsEdits.apply_edit(edit, True)
+    vehicle = read_stats(stats_folder)["Spa"]["Hyper - Toyota"]
+    assert (vehicle["pb"], vehicle["valid"]) == (124.0, 13)
+    assert driver_stats.best_lap_time(vehicle.get("qb")) == 0.0  # completed lap time undone

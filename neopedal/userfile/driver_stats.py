@@ -190,6 +190,45 @@ def merge_vehicle_stats(current: dict, restored: dict) -> dict:
     return merged
 
 
+def stats_since(current: dict, saved: dict) -> dict:
+    """Stats recorded since file held saved stats (whole files): counters increase, improved best lap times"""
+    since: dict = {}
+    for track, vehicles in current.items():
+        saved_vehicles = saved.get(track)
+        if not isinstance(vehicles, dict):
+            continue
+        for vehicle, stats in vehicles.items():
+            old = saved_vehicles.get(vehicle) if isinstance(saved_vehicles, dict) else None
+            if not isinstance(stats, dict):
+                continue
+            if not isinstance(old, dict):
+                old = {}
+            added = {}
+            for key, value in stats.items():
+                previous = old.get(key)
+                if DriverStats.is_lap_time(key):
+                    best = best_lap_time(value)
+                    if best and best < (best_lap_time(previous) or MAX_SECONDS) - 0.0005:
+                        added[key] = best
+                elif is_number(value) and value > (previous if is_number(previous) else 0):
+                    added[key] = value - (previous if is_number(previous) else 0)
+            if added:
+                since.setdefault(track, {})[vehicle] = added
+    return since
+
+
+def merge_stats_since(stats_user: dict, since: dict) -> dict:
+    """Whole stats file (undo, redo, backup restored) with stats recorded since added (see stats_since)"""
+    merged = copy.deepcopy(stats_user)
+    for track, vehicles in since.items():
+        merged_vehicles = get_sub_dict(merged, track)
+        for vehicle, stats in vehicles.items():
+            known = merged_vehicles.get(vehicle)
+            merged_vehicles[vehicle] = (merge_vehicle_stats(known, stats) if isinstance(known, dict)
+                                        else copy.deepcopy(stats))
+    return merged
+
+
 def merge_stats_entry(current: Any, restored: Any, path: Sequence[str]) -> Any:
     """Restored stats at path (track, vehicle or stat) merged with current stats there
 

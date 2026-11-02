@@ -54,9 +54,11 @@ from ...userfile.driver_stats import (
     list_stats_backups,
     load_stats_json_file,
     merge_stats_entry,
+    merge_stats_since,
     save_stats_json_file,
     set_stats_entry,
     stats_entry,
+    stats_since,
     validate_stats_file,
 )
 from . import dialogs
@@ -290,8 +292,9 @@ class StatsEdits(StatsHost):
             stats_user = cls.load_fresh_stats()
             if stats_user is None:
                 return False
-            if not edit.path:  # whole file (backup restored)
-                stats_user = copy.deepcopy(edit.before if undo else edit.after)
+            if not edit.path:  # whole file (backup restored, lap times completed): stats recorded since kept
+                since = stats_since(stats_user, edit.after if undo else edit.before)
+                stats_user = merge_stats_since(edit.before if undo else edit.after, since)
             elif undo:
                 current = stats_entry(stats_user, edit.path)
                 set_stats_entry(stats_user, edit.path, merge_stats_entry(current, edit.before, edit.path))
