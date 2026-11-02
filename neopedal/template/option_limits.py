@@ -71,6 +71,7 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     ("^radar_radius$", OptionLimit(5, 200)),
     ("^number_of_led$", OptionLimit(1, 100, True)),
     ("^decimal_places_energy_remaining$", OptionLimit(0, 2, True)),  # modern columns show 2 at most
+    ("^extra_digits$", OptionLimit(0, 6, True)),  # characters added to sector times
     ("^decimal_places", OptionLimit(0, 9, True)),
     ("^maximum_(loading|saving)_attempts$", OptionLimit(1, 100, True)),
     ("^maximum_vehicles_per_split_others$", OptionLimit(0, 126, True)),  # 0 = other classes hidden
@@ -121,6 +122,7 @@ OVERLAY_LIMITS: dict[tuple[str, str], OptionLimit] = {
     ("gap_trend", "number_of_laps"): OptionLimit(2, 50, True),
     ("track_map", "number_of_prediction"): OptionLimit(1, 20, True),
     ("relative_finish_order", "number_of_prediction"): OptionLimit(0, 10, True),
+    ("pit_stop_estimate", "bar_width"): OptionLimit(3, 20, True),  # characters, not pixels
     **dict.fromkeys(((name, "decimal_places") for name in ("delta_graph", "gap_trend", "telemetry_compare")),
                     OptionLimit(0, 3, True)),
     # Modern design shows 2 at most: classic one the same (designs show the same reading)

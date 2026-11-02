@@ -62,7 +62,7 @@ class Realtime(ModernOverlay):
         self.theoretical = wcfg["target_laptime"] == "Theoretical"
         self.target_label = "TB" if self.theoretical else "PB"
         # Characters of times as classic design: sector 7, lap 8, gap 9, plus extra digits (default 2: whole times)
-        self.extra = max(int(wcfg["extra_digits"]), 0)
+        self.extra = min(max(int(wcfg["extra_digits"]), 0), 6)  # characters (B-057)
         self.add_font("time", 1.2, "bold")
 
         pad = unit * 0.3

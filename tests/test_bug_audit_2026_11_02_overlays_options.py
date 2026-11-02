@@ -1221,3 +1221,13 @@ def test_b059_defaults_within_limits_of_their_overlay(ui_env):
     assert not [(name, key, value) for name, values in WIDGET_DEFAULT.items() for key, value in values.items()
                 if isinstance(value, (int, float)) and not isinstance(value, bool)
                 and limit_error(key, float(value), name)]
+
+
+# B-057: Pit Stop Estimate bar_width (characters) & Sectors extra_digits: overlays of 24000 - 160000 pixels
+@pytest.mark.parametrize("name, key, value", [("pit_stop_estimate", "bar_width", 4000), ("sectors", "extra_digits", 5000)])
+@DESIGNS
+def test_b057_huge_character_widths_limited(ui_env, bundled_fonts, name, key, value, modern):
+    from neopedal.ui.quick.option_kinds import number_range
+
+    assert number_range(key, name)[1] <= 20
+    assert picture_width(name, modern, **{key: value}) < 2000

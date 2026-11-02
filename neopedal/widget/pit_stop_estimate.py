@@ -56,7 +56,7 @@ class Realtime(Overlay):
         # Config variable
         text_def = "-.--"
         bar_padx = self.set_padding(self.wcfg["font_size"], self.wcfg["bar_padding"])
-        self.bar_width = max(self.wcfg["bar_width"], 3)
+        self.bar_width = min(max(self.wcfg["bar_width"], 3), 20)  # characters (B-057)
         style_width = font_m.width * self.bar_width + bar_padx
 
         # Config units

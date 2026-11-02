@@ -68,7 +68,7 @@ class Realtime(Overlay):
             self.prefix_best = "TB"
         else:
             self.prefix_best = "PB"
-        self.extra_width = max(int(self.wcfg["extra_digits"]), 0)
+        self.extra_width = min(max(int(self.wcfg["extra_digits"]), 0), 6)  # characters (B-057)
 
         # Target time
         layout_laptime = self.set_grid_layout(gap=bar_gap)
