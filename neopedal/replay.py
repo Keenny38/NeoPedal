@@ -503,6 +503,7 @@ class ReplayFile:
         self._rest_lock = threading.Lock()  # Rest API snapshot cache
         self._rest_cache: tuple[int, dict] = (-1, {})  # last decoded snapshot (index, data)
         self._rest_corrupt: set[int] = set()
+        self._results_index: RecordedStream | None = None  # results stream index (LMU), see results_index
 
     def _scan(self, cancel: threading.Event | None, progress: Callable[[int, int], None] | None):
         file = self._file
@@ -611,7 +612,21 @@ class ReplayFile:
 
     def close(self) -> None:
         """Close file"""
+        if self._results_index is not None:
+            self._results_index.stop()
         self._file.close()
+
+    def results_index(self, elapsed_offset: int, stream_offset: int, stream_size: int) -> RecordedStream:
+        """Results stream index of file (LMU), built once in background, see RecordedStream
+
+        Args:
+            elapsed_offset: frame offset of session elapsed time (double).
+            stream_offset: frame offset of results stream (text, zero terminated).
+            stream_size: stream field size.
+        """
+        if self._results_index is None:
+            self._results_index = RecordedStream(self, elapsed_offset, stream_offset, stream_size)
+        return self._results_index
 
     def __del__(self):
         # Closed when last reader (player, API shared memory zones) is gone, see ReplayControl.unload
@@ -838,6 +853,83 @@ class ReplayFile:
         return writer.frames
 
 
+class RecordedStream:
+    """Results stream of a recorded LMU session (incidents, penalties, track limits lines), indexed once in
+    background (every frame decoded), so lines of frames the player never fed (skipped at fast speed, jumped
+    over by a seek) or fed before a seek back (results cleared) are read again, as the game streamed them
+
+    Attributes:
+        ready: index of whole file made (until then, the stream of the frame read is used, see stream).
+    """
+
+    YIELD_FRAMES = 64  # frames decoded between two pauses of the index thread (playback & overlays run)
+
+    def __init__(self, replay: ReplayFile, elapsed_offset: int, stream_offset: int, stream_size: int):
+        self.ready = False
+        self._indexes = array("q")  # frame index of each stream change (stream not empty)
+        self._streams: list[bytes] = []  # stream of each change
+        self._starts = array("q", [0])  # first frame of each session (elapsed time gone back)
+        self._stop = threading.Event()
+        threading.Thread(
+            target=self._build, args=(replay, elapsed_offset, stream_offset, stream_offset + stream_size),
+            daemon=True, name="replay results index").start()
+
+    def stop(self) -> None:
+        """Stop indexing (replay closed)"""
+        self._stop.set()
+
+    def _build(self, replay: ReplayFile, elapsed_offset: int, stream_offset: int, stream_end: int) -> None:
+        indexes, streams, starts = array("q"), [], array("q", [0])
+        last_stream = b""
+        last_elapsed = float("-inf")
+        frame = b""
+        broken = True
+        try:
+            for index in range(len(replay)):
+                if self._stop.is_set():
+                    return
+                if not index % self.YIELD_FRAMES:
+                    time.sleep(0.001)
+                if broken and not replay.keyframes[index]:
+                    continue
+                decoded = replay._decode(index, frame)
+                if decoded is None:  # damaged: skipped until next keyframe, as played
+                    broken = True
+                    continue
+                frame, broken = decoded, False
+                elapsed = struct.unpack_from("<d", frame, elapsed_offset)[0]
+                if elapsed < last_elapsed - 0.001:  # next session of recording
+                    starts.append(index)
+                    last_stream = b""
+                last_elapsed = elapsed
+                stream = frame[stream_offset:stream_end].split(b"\0", 1)[0]
+                if stream != last_stream:  # same stream on following frames read once, as live
+                    last_stream = stream
+                    if stream:
+                        indexes.append(index)
+                        streams.append(stream)
+        except (OSError, ValueError):  # file closed meanwhile (replay unloaded)
+            return
+        self._indexes, self._streams, self._starts = indexes, streams, starts
+        self.ready = True
+        logger.info("replay: results stream indexed, %s changes", len(streams))
+
+    def between(self, fed: int, index: int) -> bytes | None:
+        """Stream lines of frames after frame fed up to frame index, None while index not ready
+
+        Args:
+            fed: last frame whose lines were fed, -1: none (results cleared): from start of session of index.
+            index: frame read now.
+        """
+        if not self.ready:
+            return None
+        indexes = self._indexes
+        if fed < 0 or fed > index:
+            starts = self._starts
+            fed = starts[bisect_right(starts, index) - 1] - 1
+        return b"\n".join(self._streams[bisect_right(indexes, fed):bisect_right(indexes, index)])
+
+
 class ReplayPlayer:
     """Play replay file against wall clock"""
 
@@ -851,6 +943,7 @@ class ReplayPlayer:
         self.paused = False
         self.loop = True
         self.last_frame = b""  # frame of current update, read by every shared memory zone
+        self.last_index = -1  # index of last_frame
 
     @property
     def position(self) -> float:
@@ -905,6 +998,7 @@ class ReplayPlayer:
         with self._lock:
             index = self.replay.index_at(self._current())
         self.last_frame = self.replay.frame(index)
+        self.last_index = index
         return self.last_frame
 
     def current_rest(self) -> int:
@@ -922,7 +1016,7 @@ class ReplayMMap:
 
     __slots__ = (
         "_primary", "_struct", "_buffer", "_player", "_offset", "_end", "_whole", "_rest_target", "_rest_index",
-        "update", "data",
+        "_results", "update", "data",
     )
 
     def __init__(
@@ -943,8 +1037,25 @@ class ReplayMMap:
         self._buffer = bytearray(player.current_frame()[offset:self._end])
         self._rest_target = rest_target
         self._rest_index = -1
+        self._results: RecordedStream | None = None  # results stream index (LMU), see index_results
         self.update: Callable[[], None] = no_update
         self.data: Any = data_struct.from_buffer(self._buffer)
+
+    def index_results(self, elapsed_offset: int, stream_offset: int, stream_size: int) -> None:
+        """Results stream lines read from the index of the replay file (offsets in zone), see recorded_stream"""
+        self._results = self._player.replay.results_index(
+            self._offset + elapsed_offset, self._offset + stream_offset, stream_size)
+
+    def recorded_stream(self, fed: int) -> tuple[int, bytes] | None:
+        """(frame read, stream lines of frames after frame fed up to it), None while not indexed (stream of
+        frame read used), see RecordedStream.between"""
+        if self._results is None:
+            return None
+        index = self._player.last_index
+        stream = self._results.between(fed, index)
+        if stream is None:
+            return None
+        return index, stream
 
     @property
     def paused(self) -> bool:

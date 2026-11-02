@@ -646,3 +646,36 @@ def test_b016_contacts_of_player_with_name_cut():
 
     contacts = ((10.0, FULL_NAME, "Other Driver"), (20.0, "Third Driver", FULL_NAME), (30.0, "A", "B"))
     assert player_contacts(contacts, shared_memory_name(FULL_NAME)) == [(10.0, "Other Driver"), (20.0, "Third Driver")]
+
+
+# --- B-017: replay seek back & frames skipped keep results stream lines (recorded session, index of the file)
+def test_b017_replay_results_kept_after_seek_back_and_skipped_frames(ui_env):
+    import time
+
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession
+
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    try:
+        index = session.sync.dataset.shmm._results
+        deadline = time.monotonic() + 120.0  # indexing in background: generous bound, any computer
+        while not index.ready:
+            assert time.monotonic() < deadline, "results stream never indexed"
+            time.sleep(0.05)
+
+        def incidents() -> dict:
+            return {driver: dict(values) for driver, values in session.sync.results.data.items()}
+
+        control = {}
+        for frame in range(201):
+            session.load(frame)
+            control[frame] = incidents()
+        assert control[200]  # incidents recorded by then
+        session.load(150)  # seek back: results of the session up to frame 150
+        assert incidents() == control[150]
+        session.load(120)
+        for frame in range(127, 201, 7):  # fast playback: 6 frames of 7 never read
+            session.load(frame)
+        assert incidents() == control[197]
+    finally:
+        session.close()

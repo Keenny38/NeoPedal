@@ -100,6 +100,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate, Spectate and Broadcast Director: following a car without virtual energy (LMP2, GT3) after a Hypercar no longer shows its virtual energy at 0 % and 0 laps (Virtual Energy, Flag low energy alert, Fuel Energy Saver); it is hidden as for your own car.
 - Consumption history (Race Calculator): switching to another track and class (or following a car of another class) while a save was waiting no longer replaces the history file of the former one with the new one's laps, and the latest laps are no longer lost on a reload.
 - Le Mans Ultimate: drivers with a long name (over 31 bytes, accents count double) get their energy per lap column (Standings, Relative), and their contacts in the Black Box; the game cuts names in its shared memory.
+- Session recorder replays (Le Mans Ultimate): going back in a replay no longer resets the incidents, penalties and track limits to 0 for the rest of the playback, and a seek forward or a fast speed (x2, x4) no longer loses those of the frames jumped.
 
 ## 0.28.1 (2026-11-01)
 

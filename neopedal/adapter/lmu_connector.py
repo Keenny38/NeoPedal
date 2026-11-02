@@ -106,6 +106,24 @@ def unescape_name(name: bytes) -> bytes:
     return html.unescape(name.decode("utf-8", "surrogateescape")).encode("utf-8", "surrogateescape")
 
 
+def field_layout(struct: Any, *names: str) -> tuple[int, int]:
+    """(offset, size) of a nested ctypes structure field (names from outer structure)"""
+    offset = 0
+    field: Any = None
+    for name in names:
+        field = getattr(struct, name)
+        offset += field.offset
+        struct = dict(struct._fields_)[name]  # type of field (CField.type only since Python 3.14)
+    return offset, field.size
+
+
+def results_stream_layout() -> tuple[int, int, int]:
+    """Offsets of session elapsed time & results stream in shared memory structure, stream size (replay index)"""
+    elapsed, _ = field_layout(lmu_data.LMUObjectOut, "scoring", "scoringInfo", "mCurrentET")
+    stream, size = field_layout(lmu_data.LMUObjectOut, "scoring", "scoringStream")
+    return elapsed, stream, size
+
+
 class LMUResults:
     """LMU results data (extracted from results stream)"""
 
@@ -119,6 +137,7 @@ class LMUResults:
         "penalties",
         "track_points",
         "timestamp",
+        "fed_index",
         "_last_stream",
         "_full_names",
         "_points_source",
@@ -130,6 +149,7 @@ class LMUResults:
         # driver name: (track limits points of server, count of track limits lines)
         self.track_points: dict[bytes, tuple[float, int]] = {}
         self.timestamp = 0
+        self.fed_index = -1  # replay: last frame whose stream lines were fed, -1: none (see _results_stream)
         self._last_stream = b""
         # (id of table, cut name): full name matched by start, None if no or several matches.
         # Replaced (never mutated) after driver names change, so a lookup of old names is never kept
@@ -194,6 +214,7 @@ class LMUResults:
 
     def clear(self) -> None:
         """Forget drivers of previous session"""
+        self.fed_index = -1
         self.data.clear()
         self.penalties.clear()
         self.track_points.clear()
@@ -440,8 +461,20 @@ class SyncData(_sync.SyncData):
         return data.scoring.scoringInfo, True
 
     def _results_stream(self) -> bytes:
-        """Results stream of current data"""
-        return self.dataset.shmm.data.scoring.scoringStream
+        """Results stream of current data; replay (once indexed): lines of every frame since last fed, frames
+        skipped at fast speed included, from session start once results cleared (seek back)"""
+        shmm = self.dataset.shmm
+        recorded = getattr(shmm, "recorded_stream", None)
+        if recorded is not None:
+            results = self.results
+            found = recorded(results.fed_index)
+            if found is not None:
+                if results.fed_index < 0:  # lines of frames read before index was ready: counted again
+                    results.clear()
+                results.fed_index, stream = found
+                results._last_stream = b""  # lines of other frames may repeat a stream: never skipped
+                return stream
+        return shmm.data.scoring.scoringStream
 
     def _release_rows(self) -> None:
         """Forget vehicle wrappers of mmap data (before close)"""
@@ -528,6 +561,7 @@ class LMUInfo:
             shmm: Any = self._live_shmm
         else:
             shmm = ReplayMMap(lmu_data.LMUObjectOut, player, player.replay.zone_offset("shmm"), rest_target)
+            shmm.index_results(*results_stream_layout())
         self._sync.dataset.shmm = shmm
         self._shmm = shmm
 
