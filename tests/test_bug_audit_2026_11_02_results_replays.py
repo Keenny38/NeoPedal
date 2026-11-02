@@ -472,3 +472,16 @@ def test_b022_object_contacts_never_counted_as_car_contacts():
     assert "with Post" in contacts[1].text or any("with Post" in event.text for event in contacts)
     counts = rf.contact_counts(result.events)
     assert counts["Carl Slow"] == (0, 6) and not set(counts) & {"Post", "Sign", "Cone", "Wheel", "Wing"}
+
+
+# B-023: race restarts & races left before the start (one results file each, no lap) counted as races, and clean ones
+def test_b023_race_record_leaves_out_races_without_lap():
+    from neopedal.process import results_file as rf
+    from neopedal.process import results_index as ri
+
+    def race(laps: int, status: str = rf.FINISHED, position: int = 2):
+        return ri.ResultSummary._make([None] * len(ri.ResultSummary._fields))._replace(
+            kind="Race", status=status, class_position=position, contacts=0, penalties=0, laps=laps)
+
+    record = ri.race_record([race(12), race(0, "None", 5), race(0, "DNF", 0)])
+    assert record.races == 1 and record.clean == 1 and record.podiums == 1

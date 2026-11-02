@@ -46,7 +46,7 @@ def test_races_only_uses_results_name():
 def test_race_record():
     def summary(kind, status, position, contacts=0, penalties=0):
         return ri.ResultSummary._make([None] * len(ri.ResultSummary._fields))._replace(
-            kind=kind, status=status, class_position=position, contacts=contacts, penalties=penalties)
+            kind=kind, status=status, class_position=position, contacts=contacts, penalties=penalties, laps=10)
 
     from neopedal.process import results_file as rf
     record = ri.race_record([

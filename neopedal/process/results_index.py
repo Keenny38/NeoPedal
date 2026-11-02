@@ -394,8 +394,9 @@ class RaceRecord(NamedTuple):
 
 
 def race_record(summaries: Iterable[ResultSummary]) -> RaceRecord:
-    """Race record of player sessions (other session kinds left out)"""
-    races = [summary for summary in summaries if summary.kind == "Race"]
+    """Race record of player sessions (other session kinds left out, races without lap too: restarts & races left
+    before the start, the game writes a results file for each)"""
+    races = [summary for summary in summaries if summary.kind == "Race" and (summary.laps or 0) > 0]
     placed = [summary.class_position for summary in races
               if summary.status == rf.FINISHED and summary.class_position > 0]
     return RaceRecord(
