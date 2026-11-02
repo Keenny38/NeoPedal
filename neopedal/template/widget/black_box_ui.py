@@ -449,7 +449,8 @@ BLACK_BOX_UI = OptionUI(
     release=release_profile,
     dependencies=BLACK_BOX_DEPENDENCIES,
     simple_switches=BLACK_BOX_SIMPLE_SWITCHES,
-    hidden=frozenset(USER_PROFILES.values()),
+    # User profiles (set by page tools) & font offset options never read by its designs (B-036)
+    hidden=frozenset((*USER_PROFILES.values(), "enable_auto_font_offset", "font_offset_vertical")),
     user_profiles=USER_PROFILES,
     profile_text=format_user_profile,
     part_options={

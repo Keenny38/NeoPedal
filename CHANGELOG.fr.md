@@ -171,6 +171,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Les options d'épaisseur de trait (`*_line_width` : Historique, Carte du circuit, Altitude, Cap…) sont limitées à 50 pixels : une épaisseur énorme dans Historique ralentissait tous les overlays.
 - `Options des overlays`, HUD tableau de bord : les options partagées par plusieurs éléments (taille des icônes d'état, contour d'alerte, seuil de surchauffe, couleurs des pédales et ABS / TC de l'enregistreur d'incidents, couleurs des dégâts de suspension, couleur du repère de remplissage) ne sont plus grisées tant qu'un élément qui les utilise est affiché.
 - `Options des overlays`, HUD tableau de bord : `event_log_line_scale`, `damage_event_threshold` et `incident_color` sont grisées quand le journal d'événements et l'enregistreur d'incidents qu'elles servent sont désactivés.
+- `Options des overlays`, HUD tableau de bord : `enable_auto_font_offset` et `font_offset_vertical` ne sont plus affichées, le HUD ne s'en servant pas.
 
 ## 0.28.1 (2026-11-01)
 

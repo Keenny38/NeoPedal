@@ -654,3 +654,9 @@ def test_b035_black_box_log_and_recorder_options_follow_them(ui_env):
     assert not dimmed("black_box", "damage_event_threshold", False, **dict(off, show_incident_recorder=True))
     assert not dimmed("black_box", "event_log_line_scale", False, **dict(off, show_event_log=True))
 
+
+# B-036: Black Box font offset options shown, never read by its designs (dead options): hidden
+def test_b036_black_box_dead_font_offset_options_hidden(ui_env):
+    for modern in (True, False):
+        keys = shown_keys("black_box", modern)
+        assert "enable_auto_font_offset" not in keys and "font_offset_vertical" not in keys
