@@ -803,3 +803,54 @@ def test_b023_acting_get_never_sent_twice():
     finally:
         server.close()
     assert plays == ["/rest/watch/play/3"]
+
+
+# --- B-024 & B-025: shared game answers cache
+ADDRESS = ("localhost", 6397)  # address key of cache entries only: nothing is ever sent to it (fake fetch)
+
+
+class HangingGame:
+    """Fake game: requests counted, answered once released"""
+
+    def __init__(self):
+        import threading
+
+        self.calls: list[str] = []
+        self.asked = threading.Event()
+        self.release = threading.Event()
+
+    def fetch(self, address, route, timeout):
+        self.calls.append(route)
+        self.asked.set()
+        assert self.release.wait(5)
+        return 200, b"[1]"
+
+
+def test_b024_route_pruned_before_its_request_stays_shared():
+    import threading
+
+    from neopedal.game_rest_cache import PRUNE_EVERY, GameRestCache
+
+    game = HangingGame()
+    clock = [1000.0]
+    cache = GameRestCache(game.fetch, clock=lambda: clock[0])
+    take_route = cache._route
+
+    def pruned_meanwhile(address, route):  # another thread prunes right after the entry is taken
+        entry = take_route(address, route)
+        clock[0] += PRUNE_EVERY
+        cache.prune()
+        return entry
+
+    cache._route = pruned_meanwhile
+    first = threading.Thread(target=cache.answer, args=("/rest/x", 1.0, ADDRESS))
+    first.start()
+    assert game.asked.wait(5)
+    cache._route = take_route
+    assert (ADDRESS, "/rest/x") in cache._routes  # request in progress still shared
+    second = threading.Thread(target=cache.answer, args=("/rest/x", 1.0, ADDRESS))
+    second.start()
+    game.release.set()
+    first.join(5)
+    second.join(5)
+    assert game.calls == ["/rest/x"]  # one request for both callers

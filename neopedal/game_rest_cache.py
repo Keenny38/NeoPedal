@@ -153,11 +153,20 @@ class GameRestCache:
 
     def _evict_locked(self) -> None:
         """Oldest answered route without request in progress dropped (a pending route keeps its waiters & answer
-        sharing: dropping it would start a second identical request)"""
-        idle = [(entry.answer.time if entry.answer is not None else 0.0, key)
-                for key, entry in self._routes.items() if entry.pending is None]
+        sharing: dropping it would start a second identical request; a route without answer yet is about to ask)"""
+        idle = [(entry.answer.time, key)
+                for key, entry in self._routes.items() if entry.pending is None and entry.answer is not None]
         if idle:
             del self._routes[min(idle)[1]]
+
+    def _kept_locked(self, key: tuple[Address, str], entry: _Route) -> _Route:
+        """Entry of route as kept in cache: dropped since taken (prune, eviction by another thread) put back, so
+        its request & answer stay shared; newer entry of route if made meanwhile"""
+        current = self._routes.get(key)
+        if current is None:
+            self._routes[key] = entry
+            return entry
+        return current
 
     def fresh(self, route: str, max_age: float = DEFAULT_MAX_AGE, address: Address | None = None) -> Answer | None:
         """Kept answer not older than max_age, None if none (never asks)"""
@@ -179,7 +188,7 @@ class GameRestCache:
         if address is not None:
             entry = self._route(address, route)
             with self._lock:
-                entry.answer = answer
+                self._kept_locked((address, route), entry).answer = answer
         return answer
 
     def answer(self, route: str, max_age: float = DEFAULT_MAX_AGE, address: Address | None = None) -> Answer:
@@ -191,6 +200,7 @@ class GameRestCache:
         entry = self._route(address, route)
         while True:
             with self._lock:
+                entry = self._kept_locked((address, route), entry)
                 answer = entry.answer
                 if answer is not None and max_age > 0 and self._clock() - answer.time <= max_age:  # 0: ask
                     return answer

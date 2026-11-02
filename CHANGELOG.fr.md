@@ -115,6 +115,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate et rFactor 2 : lancer l'app, charger un preset ou redémarrer l'API pendant que le jeu est en pause dans un menu n'affiche plus les overlays environ 2 secondes avec des données figées ; ils attendent que les données du jeu bougent.
 - Le Mans Ultimate : les événements du jeu de la mémoire partagée sont lus comme la file qu'ils sont (début et fin de session et conduite étaient toujours vus comme signalés) ; les copies des données du jeu n'en dépendent plus.
 - Résultats et replays, Le Mans Ultimate : l'ouverture d'un replay du jeu n'est jamais envoyée deux fois quand le jeu coupe la connexion juste après (replay chargé deux fois).
+- Le Mans Ultimate : les réponses du jeu partagées entre les pages et les overlays ne sont plus demandées deux fois en même temps quand le cache partagé est nettoyé entre-temps.
 
 ## 0.28.1 (2026-11-01)
 
