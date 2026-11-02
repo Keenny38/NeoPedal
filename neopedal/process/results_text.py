@@ -53,11 +53,22 @@ GAME_LABELS = {
     "Invalid Lap Off Track": "Lap invalidated (off track)",
     "Drive Through Penalty": "Drive-through penalty",
     "Stop/Go Penalty": "Stop & go penalty",
+    "Disqualify": "Disqualified from the session",
     # Penalties & reasons
     "Stop/Go": "Stop & go",
     "Drive Through": "Drive-through",
+    "Drive Thru": "Drive-through",  # as LMU writes it
+    "Time": "Time penalty",
     "Speeding In Pitlane": "Pit lane speeding",
     "Exiting Pits Under Red": "Pit exit on red light",
+    "Speeding": "Speeding",
+    "Exceeded energy allowance limit.": "Energy allowance exceeded",
+    "Driving Too Slow": "Driving too slow",
+    "Track Limits": "Track limits",
+    "Jumped the start": "Jump start",
+    "Out of position": "Out of position",
+    "Erratic driving": "Erratic driving",
+    "Unsportsmanlike Driving": "Unsportsmanlike driving",
 }
 
 

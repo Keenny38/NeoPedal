@@ -161,6 +161,7 @@ class Event(NamedTuple):
     other: str  # other car of contact, object hit ("Immovable"), penalty kind, track limits resolution
     text: str
     value: float = 0.0  # contact strength, penalty time (s), track limits points
+    reason: str = ""  # penalty reason as written by game ("Speeding In Pitlane"), "" if none
 
 
 class SessionResult(NamedTuple):
@@ -322,7 +323,7 @@ def parse_events(stream: ET.Element | None) -> tuple[Event, ...]:
             if not element.get("Driver"):  # notice without driver: "X served ... penalty", "finished before serving"
                 continue
             events.append(Event(time, "penalty", element.get("Driver", ""), element.get("Penalty", ""), text,
-                                _float(element.get("Time"))))
+                                _float(element.get("Time")), element.get("Reason", "").strip()))
         elif tag == "TrackLimits":
             # No further action: not listed, its points counted (they grow with these warnings too)
             kind = POINTS_ONLY if element.get("Resolution") == "7" else "track_limits"

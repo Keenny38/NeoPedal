@@ -649,3 +649,24 @@ def test_b029_no_phantom_driver_on_untimed_first_lap():
     team = xml.replace("--.----", "110.2000")  # timed first lap: a real stint, kept
     assert driver_names(rf.parse_results(team.encode("utf-8"), PRACTICE_NAME, ["offline player"]).player_entry) == [
         "Someone Else", "Offline Player"]
+
+
+# B-030: texts written by LMU never translated ("Drive Thru", "Disqualify", reasons), reason cut on " for " of names
+def test_b030_game_texts_of_penalties_translated(ui_env):
+    from neopedal import i18n
+    from neopedal.process import results_file as rf
+    from neopedal.process.results_text import game_text
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    penalty = ('<Penalty Driver="Ford for Speed" ID="3" Penalty="Drive Thru" Time="0" Laps="3" Reason="Speeding" '
+               'et="610.0">Ford for Speed received Drive Thru penalty for Speeding. Result: penalties=1</Penalty>\n')
+    xml = RACE_XML.replace("<Penalty Driver=", penalty + "<Penalty Driver=", 1)
+    event = next(event for event in rf.parse_results(xml.encode("utf-8"), RACE_NAME).events if event.time == 610.0)
+    assert (event.other, event.reason) == ("Drive Thru", "Speeding")
+    assert game_text("Drive Thru") == "Drive-through" and game_text("Disqualify") == "Disqualified from the session"
+    i18n.set_language("Français")
+    try:
+        assert game_text("Speeding") == "Excès de vitesse" and game_text("Disqualify") == "Disqualifié de la session"
+        assert game_text("Exceeded energy allowance limit.") == "Dépassement de l'énergie allouée"
+    finally:
+        i18n.set_language("English")

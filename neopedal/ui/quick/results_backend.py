@@ -676,7 +676,7 @@ def event_rows(result: SessionResult, kind: str, only: set[str], highlight: set[
             detail = f"{tr('Impact')} {event.value:.0f}"
         elif event.kind == "penalty":
             title = event.driver or tr("Penalty")
-            reason = event.text.partition(" for ")[2].partition(".")[0].strip()
+            reason = event.reason or event.text.partition(" for ")[2].partition(".")[0].strip()  # older parse
             seconds = f" {event.value:g} s" if event.value > 0 else ""
             detail = " · ".join(part for part in (f"{game_text(event.other)}{seconds}", game_text(reason)) if part)
         elif event.kind == "track_limits":
