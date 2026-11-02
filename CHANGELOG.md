@@ -185,6 +185,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Instrument: the engine off and stalling colors and `stalling_rpm_threshold` are dimmed while `show_ignition` is off.
 - `Overlay Options`, Gear: the speed limiter options are no longer dimmed while the speed is hidden, as the limiter still shows; they follow `show_speed_limiter`.
 - `Overlay Options`, Gear: the RPM zones (multipliers, colors, flicker) are no longer dimmed while the RPM bar is hidden, as they also color the gear.
+- `Overlay Options`, Engine Temperature: the temperature prefixes no longer follow the water temperature, the rate of change interval and smoothing follow `show_rate_of_change` instead of the net change, and the rate colors stay active while either reading shows.
 
 ## 0.28.1 (2026-11-01)
 

@@ -763,3 +763,16 @@ def test_b062_gear_rpm_zones_used_without_rpm_bar(ui_env, modern):
     for key in ("rpm_multiplier_safe", "rpm_multiplier_redline", "rpm_multiplier_critical", "rpm_color_safe"):
         if key in keys:
             assert not dimmed("gear", key, modern, show_rpm_bar=False), key
+
+
+# B-063: Engine Temperature prefixes under water temperature, rate options under net change
+@DESIGNS
+def test_b063_engine_temperature_options(ui_env, modern):
+    keys = shown_keys("engine_temperature", modern)
+    if "show_temperature_prefix" in keys:
+        assert not dimmed("engine_temperature", "show_temperature_prefix", modern, show_water_temperature=False)
+        assert not dimmed("engine_temperature", "font_color_rate_of_change", modern, show_net_change_per_lap=False,
+                          show_rate_of_change=True)
+    assert not dimmed("engine_temperature", "rate_of_change_interval", modern, show_net_change_per_lap=False,
+                      show_rate_of_change=True)
+    assert dimmed("engine_temperature", "rate_of_change_interval", modern, show_rate_of_change=False)

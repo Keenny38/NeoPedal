@@ -234,6 +234,15 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "timing": (OptionFix(CLASSIC, dependencies={"font_color_invalid_last": ""}),),  # last & current lap (ANY_OF)
     "instrument": (OptionFix(dependencies=dict.fromkeys(  # ignition light only
         ("warning_color_engine_off", "warning_color_stalling", "stalling_rpm_threshold"), "show_ignition")),),
+    "engine_temperature": (OptionFix(CLASSIC, dependencies={
+        "show_temperature_prefix": "show_temperature_prefix",  # prefixes of oil & water
+        **dict.fromkeys(("prefix_oil_temperature", "prefix_water_temperature", "font_color_prefix",
+                         "background_color_prefix"), "show_temperature_prefix"),
+        # Colors of rate of change & net change per lap (see ANY_OF)
+        **dict.fromkeys(("font_color_rate_of_change", "background_color_rate_of_change", "font_color_rate_gain",
+                         "font_color_rate_loss"), ""),
+    }), OptionFix(dependencies=dict.fromkeys(("rate_of_change_interval", "rate_of_change_smoothing_samples"),
+                                              "show_rate_of_change"))),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
@@ -388,6 +397,9 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "engine_temperature": dict.fromkeys(
+        ("font_color_rate_of_change", "background_color_rate_of_change", "font_color_rate_gain", "font_color_rate_loss"),
+        ("show_rate_of_change", "show_net_change_per_lap")),
     "timing": {"font_color_invalid_last": ("show_last", "show_current")},
     "track_clock": dict.fromkeys(("enable_track_clock_synchronization", "track_clock_time_scale"),
                                  ("show_track_clock", "show_time_scale", "show_sunlight_phase_countdown")),
