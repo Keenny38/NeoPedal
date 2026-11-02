@@ -27,6 +27,7 @@ from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 
 from ..api_control import api
 from ..module_info import minfo
+from ..template.option_limits import MAX_LINE_WIDTH
 from ._base import Overlay
 from ._painter import fill_pixmap
 from ._pedal_alert import PedalAlertMixin, wheel_lock
@@ -190,7 +191,7 @@ class Realtime(TrailingMixin, Overlay):
         self.area_width = max(int(self.wcfg["display_width"]), 2)
         self.area_height = self.display_height + self.margin * 2
 
-        max_line_width = int(max(1, *(self.wcfg[f"{plot_name}_line_width"] for plot_name in PLOT_NAMES)))
+        max_line_width = int(max(1, *(self.line_width(plot_name) for plot_name in PLOT_NAMES)))
         max_samples = 3 + max_line_width  # 3 offset + max line width
         self.samples_offset = max_samples - 2
 
@@ -432,6 +433,10 @@ class Realtime(TrailingMixin, Overlay):
         y_pos += self.extra_top  # room for bar maximum indicator or readings
         return QRect(x_pos, y_pos, width, height)
 
+    def line_width(self, plot_name: str) -> int:
+        """Line width of plot, limited (wider: samples shifted at every update grow with it, B-017)"""
+        return min(max(int(self.wcfg[f"{plot_name}_line_width"]), 0), MAX_LINE_WIDTH)
+
     def config_display_order(self, plot_names):
         """Config plot display order"""
         for plot_name in plot_names:
@@ -439,7 +444,7 @@ class Realtime(TrailingMixin, Overlay):
                 continue
             pen = QPen()
             pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-            pen.setWidth(self.wcfg[f"{plot_name}_line_width"])
+            pen.setWidth(self.line_width(plot_name))
             pen.setColor(self.wcfg[f"{plot_name}_color"])
             yield (
                 self.wcfg[f"display_order_{plot_name}"],  # index

@@ -168,6 +168,7 @@ Fixes from an audit of the VR overlay.
 - Fuel and Virtual Energy overlays, classic look: the start and refill marks of the level bar no longer disappear at 100 % (stint started full) or when a full tank is needed.
 - Pace notes playback: a sound volume (or update interval) changed in `Settings` is used at once, no longer only after the car is reset.
 - Radar overlay: a big `radar_radius` with a big `global_scale` no longer makes drawing pictures of several GB (app memory); the radar is at most 4096 pixels wide.
+- Line width options (`*_line_width`: Trailing, Track Map, Elevation, Heading...) are limited to 50 pixels: a huge Trailing line width slowed every overlay.
 
 ## 0.28.1 (2026-11-01)
 

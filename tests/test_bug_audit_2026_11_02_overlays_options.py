@@ -607,3 +607,14 @@ def test_b016_radar_area_kept_reasonable(ui_env, modern):
         from neopedal.widget._modern.radar import Realtime
 
         assert Realtime.area_size_option(radar) == radar.area_size
+
+
+# B-017: line widths up to 4000 (Trailing: 30 ms of work per update on the GUI thread, every overlay slowed)
+def test_b017_line_width_limited(ui_env):
+    from neopedal.template.option_limits import clamp_to_limit, option_limit
+    from neopedal.ui.widget_preview import _with_preview_widget
+
+    assert option_limit("throttle_line_width").maximum == 50 and clamp_to_limit("start_line_width", 4000) == 50
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    values = dict(cfg.user.setting["trailing"], enable_classic_layout=True, throttle_line_width=4000)
+    assert _with_preview_widget(cfg, "trailing", values, 1.0, lambda widget: widget.samples_offset) <= 51

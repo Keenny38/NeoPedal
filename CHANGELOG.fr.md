@@ -168,6 +168,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlays Carburant et Énergie virtuelle, design classique : les repères de départ et de remplissage de la barre de niveau ne disparaissent plus à 100 % (relais commencé plein) ou quand il faut faire le plein.
 - Lecture des notes de pilotage : un volume (ou un intervalle de mise à jour) changé dans `Paramètres` est appliqué tout de suite, et plus seulement après la remise à zéro de la voiture.
 - Overlay Radar : un grand `radar_radius` avec un grand `global_scale` ne crée plus d'images de dessin de plusieurs Go (mémoire de l'app) ; le radar fait au plus 4096 pixels de large.
+- Les options d'épaisseur de trait (`*_line_width` : Historique, Carte du circuit, Altitude, Cap…) sont limitées à 50 pixels : une épaisseur énorme dans Historique ralentissait tous les overlays.
 
 ## 0.28.1 (2026-11-01)
 

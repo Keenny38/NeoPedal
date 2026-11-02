@@ -40,6 +40,7 @@ class OptionLimit(NamedTuple):
 
 
 NO_LIMIT = OptionLimit()
+MAX_LINE_WIDTH = 50  # pixels, line width options
 
 # Option key pattern (regex), limit: matched in order, first match wins
 OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
@@ -91,6 +92,7 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     ("^(position|mirror_position)_[xy]$", NO_LIMIT),
     ("^(edge_|radar_)?fade_(in|out)_radius$", OptionLimit(0, 1)),  # fraction of radius
     ("_radius$", OptionLimit(0, 5000)),
+    ("_line_width$", OptionLimit(0, MAX_LINE_WIDTH)),  # wider: work grows with it (Trailing), nothing shown
     ("(_|^)(width|height|length)$", OptionLimit(0, 4000)),
     ("_size$", OptionLimit(0, 4000)),
     ("^(area|inner|rotation_line)_margin$", OptionLimit(0, 2000)),
