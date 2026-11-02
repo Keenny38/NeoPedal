@@ -335,3 +335,16 @@ def test_b009_replay_never_open_no_longer_opening(replays_page, monkeypatch):  #
     backend.opening_until = time.monotonic() - 1  # given up
     answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})
     assert backend.openingReplay == ""
+
+
+# B-011: page freed while hidden (unused a while, window minimized) during a copy: copy stopped, nothing told
+def test_b011_page_kept_while_replays_are_copied(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui.app_tab_view import kept_when_hidden
+
+    backend = replays_page.backend
+    assert not kept_when_hidden(replays_page.page)
+    backend.request_copy.busy = True  # copy running: never freed while hidden
+    try:
+        assert kept_when_hidden(replays_page.page)
+    finally:
+        backend.request_copy.busy = False

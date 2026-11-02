@@ -117,6 +117,10 @@ class RaceResultsViewer(BaseDialog):
         super().hideEvent(event)
         self.update_replays_active()
 
+    def keep_when_hidden(self) -> bool:
+        """Replays being copied (add, export) or moved to the recycle bin: kept while hidden (freed, a copy stops)"""
+        return self.replays.request_copy.busy or self.replays.request_trash.busy
+
     def free_page(self):
         """QML gone before both backends it binds to"""
         self.view.setSource(QUrl())
