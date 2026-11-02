@@ -456,3 +456,19 @@ def test_b021_telemetry_link_never_takes_file_of_next_lap(tmp_path):
     files = {item.number: lap_file(folder, START + item.start + item.time + 3, item.number, item.time)
              for item in laps if item.number != 2}  # lap 2 invalid: not saved by the recorder
     assert recorded_laps(str(tmp_path), result, player) == files  # lap 2 none, lap 3 its own file
+
+
+# B-022: contacts with objects other than "Immovable" (Post, Sign, Cone, Wheel, Wing) were counted as car contacts
+def test_b022_object_contacts_never_counted_as_car_contacts():
+    from neopedal.process import results_file as rf
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    objects = "\n".join(f'<Incident et="{400 + index * 10}.0">Carl Slow(2) reported contact (50.00) with {name}</Incident>'
+                        for index, name in enumerate(("Post", "Sign", "Cone", "Wheel", "Wing")))
+    xml = RACE_XML.replace('<Incident et="300.0">', f'{objects}\n<Incident et="300.0">', 1)
+    result = rf.parse_results(xml.encode("utf-8"), RACE_NAME, ["alice driver"])
+    contacts = [event for event in result.events if event.kind == "contact" and event.driver == "Carl Slow"]
+    assert len(contacts) == 6 and {event.other for event in contacts} == {rf.IMMOVABLE}
+    assert "with Post" in contacts[1].text or any("with Post" in event.text for event in contacts)
+    counts = rf.contact_counts(result.events)
+    assert counts["Carl Slow"] == (0, 6) and not set(counts) & {"Post", "Sign", "Cone", "Wheel", "Wing"}

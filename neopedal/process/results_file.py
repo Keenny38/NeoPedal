@@ -306,8 +306,9 @@ def parse_events(stream: ET.Element | None) -> tuple[Event, ...]:
             match = CONTACT.match(text)
             if match is None:
                 continue
-            other = match.group("other") or match.group("object") or ""
-            events.append(Event(time, "contact", match.group("driver"), other.strip(), text,
+            # Objects named by the game (Immovable, Post, Sign, Cone, Wheel, Wing...): one object marker, name in text
+            other = match.group("other").strip() if match.group("other") else IMMOVABLE
+            events.append(Event(time, "contact", match.group("driver"), other, text,
                                 _float(match.group("strength"))))
         elif tag == "Penalty":
             events.append(Event(time, "penalty", element.get("Driver", ""), element.get("Penalty", ""), text,
