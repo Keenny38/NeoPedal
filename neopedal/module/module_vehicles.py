@@ -863,6 +863,9 @@ def reset_vehicle_history(data: VehicleDataSet) -> None:
     data.currentStintLaps = 0  # recalculated from new pit timer & histories
     data.estimatedStintLaps = 0.0
     data.elapsedTime = 0.0  # no earlier sample: position never extrapolated from previous car's
+    data.gapsFrozen = False  # finished car: its own gaps measured, never those kept for previous car
+    data.gapBehindNext = data.gapBehindNextInClass = 0.0
+    data.gapBehindLeader = data.gapBehindLeaderInClass = 0.0
 
 
 def update_stint_usage(

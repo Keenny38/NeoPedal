@@ -12,6 +12,7 @@ from neopedal.module import module_mapping
 from neopedal.module_info import MappingInfo
 from pyLMUSharedMemory import lmu_data
 from tests.test_module_mapping_stats_notes import drive_map_lap, tele  # noqa: F401
+from tests.test_module_vehicles_field import field  # noqa: F401
 
 
 class MemoryShmm:
@@ -381,3 +382,31 @@ def test_b004_car_moved_to_player_index_never_served_as_player(lmu_game, monkeyp
     for synced, name, fuel, resets in after:
         assert name != b"Driver 5" and fuel != 5.0  # never the car now at the player's index
         assert not synced and resets == before[3]  # no false reset counted either
+
+
+# --- B-006: finished car moved to the index of a car that left measures its own gaps
+def test_b006_finished_car_never_keeps_gaps_of_car_that_left(field, monkeypatch):  # noqa: F811
+    import ctypes
+
+    from neopedal.api_control import api
+    from neopedal.module import module_vehicles
+
+    monkeypatch.setattr(module_vehicles, "_index_slot_ids", {})
+    monkeypatch.setattr(module_vehicles, "_point_times", {})
+    data = api._api._shmmapi._shmm.data
+    scoring, telemetry = data.scoring.vehScoringInfo, data.telemetry.telemInfo
+    for index in range(4):
+        scoring[index].mFinishStatus = 1  # race over: gaps frozen at the line
+    module_vehicles.update_vehicle_data(field, 1.0, 1.0, True, 600.0, True)
+    module_vehicles.update_vehicle_data(field, 1.0, 1.0, True, 601.0, True)
+    kept = field.dataSet[2].gapBehindLeader, field.dataSet[2].gapBehindNext
+    # Car of index 2 leaves, the game moves car of index 3 up to index 2
+    ctypes.memmove(ctypes.addressof(scoring[2]), ctypes.addressof(scoring[3]), ctypes.sizeof(scoring[3]))
+    ctypes.memmove(ctypes.addressof(telemetry[2]), ctypes.addressof(telemetry[3]), ctypes.sizeof(telemetry[3]))
+    data.scoring.scoringInfo.mNumVehicles = data.telemetry.activeVehicles = 3
+    data.scoring.scoringInfo.mCurrentET = 602.0
+    api._api._shmmapi._sync._update_indexes()
+    module_vehicles.update_vehicle_data(field, 1.0, 1.0, True, 602.0, True, veh_total=3)
+    moved = field.dataSet[2]
+    assert moved.gapsFrozen  # its own gaps, frozen now
+    assert (moved.gapBehindLeader, moved.gapBehindNext) != kept
