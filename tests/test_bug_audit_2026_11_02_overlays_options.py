@@ -925,3 +925,12 @@ def test_b088_radar_fade_follows_auto_hide(ui_env, modern):
 def test_b090_notes_pit_texts(ui_env, name):
     assert dimmed(name, "pit_notes_text", True, enable_auto_hide_if_not_available=True)
     assert not dimmed(name, "pit_notes_text", True, enable_auto_hide_if_not_available=False)
+
+
+# B-031: option opened from Find Option hidden by the "used options only" filter
+def test_b031_focused_option_shown_with_used_only_filter(options):
+    cfg.user.setting["acceleration"]["speed_range_6_end"] = 0  # range start does nothing: dimmed
+    options.setUsedOnly(True)
+    options.selectOverlay("speedometer")
+    options.focus_option("acceleration", "speed_range_6_start")
+    assert options.rowIndex("acceleration/speed_range_6_start") >= 0

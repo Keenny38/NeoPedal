@@ -1250,6 +1250,10 @@ class OverlayOptionsBackend(PageBackend):
         if not self.shown_in_mode(layout, key) and not self._advanced:
             self._advanced = True
             self.filterChanged.emit()
+        values = self.values(name)
+        if self._used_only and self._unused_note(layout, values, self._overrides(layout, values), key):
+            self._used_only = False  # option opened does nothing now: shown anyway (B-031)
+            self.filterChanged.emit()
         self._collapsed.get(name, set()).discard(section.key)
         self.update_rows()
         target = section_id(name, section.key) if key == section.toggle else option_id(name, key)

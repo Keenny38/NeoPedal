@@ -203,6 +203,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Track Map: options of the multi class styling and pit out prediction mode not in use (class position, car colors, fixed or automatic pit stop durations) and `show_pitstop_duration` without the prediction are dimmed.
 - `Overlay Options`, Radar: `enable_radar_fade` and the fade radii are dimmed while `enable_auto_hide` is off.
 - `Overlay Options`, Pace Notes and Track Notes: the pit notes and comments texts are dimmed while `enable_auto_hide_if_not_available` hides the overlay instead.
+- `Overlay Options`: an option opened from `Find Option` or by clicking the preview is shown even when `Hide Unused Options` would hide it.
 
 ## 0.28.1 (2026-11-01)
 
