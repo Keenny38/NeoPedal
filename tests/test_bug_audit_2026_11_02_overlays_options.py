@@ -1077,3 +1077,50 @@ def test_b047_brake_performance_percentage_first_text(ui_env):
         assert widget.bar_delta_rate.text == "+0%"  # before any update (first braking)
     finally:
         widget.deleteLater()
+
+
+# B-053: Timing missing last lap (0) shown in the invalid lap color
+def test_b053_classic_timing_no_last_lap_not_invalid(ui_env):
+    from types import SimpleNamespace
+
+    from neopedal.widget.timing import Realtime
+
+    target = SimpleNamespace(last=None, fg="", text="", update=lambda: None)
+    widget = SimpleNamespace(bar_style_last=("invalid", "valid"))
+    for data in (0.0, -0.0):  # no last lap, negated as invalid lap
+        target.last = None
+        Realtime.update_last(widget, target, data, "")
+        assert target.fg == "valid", data
+
+
+def test_b053_modern_timing_no_last_lap_not_invalid(ui_env, bundled_fonts):
+    import sys
+
+    from neopedal.ui.widget_preview import _with_preview_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
+    values = dict(cfg.user.setting["timing"], enable_classic_layout=False, show_invalid_lap_indicator=True)
+
+    class Proxy:
+        def __init__(self, real, **values):
+            self._real = real
+            self.__dict__.update(values)
+
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+
+    def last_color(widget):
+        module = sys.modules[type(widget).__module__]
+        shown = []
+        widget.refresh = shown.append
+        real = module.minfo
+        try:
+            module.minfo = Proxy(real, delta=Proxy(real.delta, lapTimeLast=0.0, isValidLap=False))
+            widget.timerEvent(None)
+        finally:
+            module.minfo = real
+        index = list(widget.keys).index("last")
+        return shown[-1][index].color, widget.theme.negative
+
+    color, negative = _with_preview_widget(cfg, "timing", values, 1.0, last_color)
+    assert color != negative

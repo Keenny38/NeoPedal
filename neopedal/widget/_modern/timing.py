@@ -99,7 +99,7 @@ class Realtime(StatsMixin, ModernOverlay):
             elif key == "best":
                 values.append(Value(laptime(minfo.delta.lapTimeBest)))
             elif key == "last":  # invalid lap in red, as current lap (invalid lap indicator option)
-                invalid = self.show_invalid and not minfo.delta.isValidLap
+                invalid = self.show_invalid and not minfo.delta.isValidLap and minfo.delta.lapTimeLast > 0
                 values.append(Value(laptime(minfo.delta.lapTimeLast), theme.negative if invalid else None))
             elif key == "current":
                 text = laptime(minfo.delta.lapTimeCurrent, True)

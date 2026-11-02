@@ -298,7 +298,7 @@ class Realtime(Overlay):
         """Update last laptime"""
         if target.last != data:
             target.last = data
-            target.fg = self.bar_style_last[data > 0]
+            target.fg = self.bar_style_last[data >= 0]  # no last lap (0): not invalid (B-053)
             data = abs(data)
             if 0 < data < MAX_SECONDS:
                 text = f"{prefix}{calc.sec2laptime(data):>8.8}"
