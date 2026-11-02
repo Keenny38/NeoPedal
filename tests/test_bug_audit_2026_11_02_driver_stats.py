@@ -546,3 +546,63 @@ def test_b026_backup_with_date_out_of_platform_range_skipped(tmp_path, monkeypat
     monkeypatch.setattr(driver_stats, "datetime", Day)
     names = [name for name, _ in driver_stats.list_stats_backups(filepath)]
     assert names == ["driver.stats.backup-auto-2026-11-02-10-00-00-000000"]
+
+
+# Ranks: online source simulated (network never called)
+ACCOUNT_A, ACCOUNT_B = "76561190000000001", "76561190000000002"
+
+
+class FakeOnline:
+    """Online ranks source (RaceControl) answering given ranks"""
+
+    def __init__(self, ranks):
+        self.ranks = ranks
+        self.calls = 0
+        self.on = True
+
+    def enabled(self):
+        return self.on
+
+    def game_running(self):
+        return True
+
+    def fetch(self, account):
+        self.calls += 1
+        return self.ranks
+
+    def forget(self):
+        pass
+
+
+def rank_storage(*entries) -> str:
+    return json.dumps({"profile": json.dumps({"teams": [{"drivers": list(entries)}]})})
+
+
+def rank_profile(name: str, steam_id: str, rank: str, tier: int, team_only: bool = False) -> dict:
+    data = {"name": name, "driverRank": {"rank": rank, "tier": tier, "progress": 0},
+            "safetyRank": {"rank": "Gold", "tier": 1, "progress": 0}}
+    data["driverId" if team_only else "steamId"] = "x1" if team_only else steam_id
+    return data
+
+
+# B-009
+def test_b009_online_ranks_without_steam_id_never_given_to_next_account(tmp_path):
+    from neopedal.process import driver_ranks as dr
+
+    storage = os.path.join(tmp_path, "storage.json")
+    with open(storage, "w", encoding="utf-8") as file:
+        file.write("{}")
+    located = {"value": dr.Located(storage, ACCOUNT_A, ("Me",))}
+    online = FakeOnline(dr.DriverRanks("Me", "", "", "", dr.Rank("Platinum", 3, 50), None))  # no platforms
+    history = os.path.join(tmp_path, "ranks.history")
+    watcher = dr.RankWatcher(lambda: located["value"], lambda: history, online=online, run_online=lambda work: work(),
+                             active_account=lambda: located["value"].steam_id)
+    watcher.check()
+    watcher.check()
+    online.ranks = None  # account B: online read not done yet
+    located["value"] = dr.Located(storage, ACCOUNT_B, ("Other",))
+    watcher._checked_time = -99
+    watcher.check()
+    watcher.check()
+    assert [entry.steam_id for entry in dr.read_history(history)] == [ACCOUNT_A]
+    assert watcher.player is None or watcher.player.driver != dr.Rank("Platinum", 3, 50)

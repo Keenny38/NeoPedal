@@ -711,6 +711,8 @@ class RankWatcher:
                 self._online_next = now + wait
                 return
             self._online_next = now + ONLINE_SECONDS
+            if account and not ranks.steam_id:  # answer without Steam ID: ranks of the account read for (never
+                ranks = ranks._replace(steam_id=account)  # given to another one after a Steam account switch)
             self._online_ranks, self._online_pending = (ranks, self._wall_clock()), True
             self._checked_time = -CHECK_SECONDS  # applied by next poll
 
