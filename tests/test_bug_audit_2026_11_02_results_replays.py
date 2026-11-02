@@ -568,3 +568,17 @@ def test_b020_file_read_while_written_read_again(results_backend, results_folder
         assert backend.sessionCount == count  # unreadable yet
         file.write(text[half:])  # written to the end, same file open: no folder event
     assert wait_until(lambda: backend.sessionCount == count + 1)
+
+
+# B-024: laps this client did not see (online session joined later) read as position 105 & compound "N/A"
+def test_b024_unseen_laps_have_no_position_nor_compound():
+    from neopedal.process import results_file as rf
+    from tests.test_race_results import RACE_NAME, RACE_XML
+
+    seen = '<Lap num="1" p="1" et="100.0" s1="30.0" s2="40.0" s3="30.5" topspeed="300.5" fcompound="0,Medium"'
+    unseen = '<Lap num="1" p="105" et="--.---" s1="30.0" s2="40.0" s3="30.5" topspeed="300.5" fcompound="15,N/A"'
+    assert seen in RACE_XML
+    result = rf.parse_results(RACE_XML.replace(seen, unseen, 1).encode("utf-8"), RACE_NAME)
+    lap = next(entry for entry in result.entries if entry.laps and entry.laps[0].number == 1 and
+               entry.laps[0].position != 2).laps[0]
+    assert lap.position == 0 and lap.compound == ""

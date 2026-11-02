@@ -238,7 +238,11 @@ def _compound(text: str | None) -> str:
     """Compound name of "0,Medium" """
     if not text:
         return ""
-    return text.split(",", 1)[-1].strip()
+    name = text.split(",", 1)[-1].strip()
+    return "" if name == "N/A" else name  # lap not seen by this client (joined later): "15,N/A"
+
+
+UNKNOWN_POSITION = 105  # position the game writes for laps this client did not see (joined later, 15000 laps seen)
 
 
 def parse_lap(element: ET.Element) -> Lap:
@@ -246,7 +250,7 @@ def parse_lap(element: ET.Element) -> Lap:
     wear = tuple(_float(get(key), -1.0) for key in ("twfl", "twfr", "twrl", "twrr"))
     return Lap(
         number=_int(get("num")),
-        position=_int(get("p")),
+        position=position if (position := _int(get("p"))) < UNKNOWN_POSITION else 0,  # lap not seen: p="105"
         time=_time(element.text),
         start=_float(get("et"), -1.0),
         sectors=(_time(get("s1")), _time(get("s2")), _time(get("s3"))),
