@@ -37,6 +37,8 @@ from ...i18n import current_language, tr
 from ...process.results_text import MISSING, number_text
 from ...setting import cfg
 
+MAX_DATE_TIME = 4_102_444_800.0  # Unix time of year 2100: later time not a date (damaged file, milliseconds)
+
 
 # Fixed formats
 def iso_minutes(timestamp: float | None = None) -> str:
@@ -111,8 +113,9 @@ def day_month_format() -> str:
 
 
 def format_date(timestamp: float) -> str:
-    """Short date in language format (24/10/2025 in French), missing text if none"""
-    if timestamp <= 0:
+    """Short date in language format (24/10/2025 in French), missing text if none (or not a date: NaN, infinity,
+    milliseconds of a damaged file)"""
+    if not 0 < timestamp < MAX_DATE_TIME:  # NaN compares False
         return MISSING
     day = QDateTime.fromSecsSinceEpoch(int(timestamp)).date()
     return date_locale().toString(day, QLocale.FormatType.ShortFormat)

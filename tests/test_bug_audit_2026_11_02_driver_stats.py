@@ -505,3 +505,23 @@ def test_b016_app_closing_waits_for_stats_edit_being_saved(monkeypatch):
     saving.start()
     assert stats_io.wait_edits(timeout=10.0) is True and finished.is_set()
     saving.join()
+
+
+# B-012
+def test_b012_rank_history_time_out_of_range_skipped(tmp_path):
+    from neopedal.process import driver_ranks
+
+    path = os.path.join(tmp_path, "ranks.history")
+    with open(path, "w", encoding="utf-8") as file:
+        for time_text in ("NaN", "Infinity", "1e20", "1793580014000", "true", "1700000000"):
+            file.write(f'{{"time": {time_text}, "driver": ["Gold", 2, 10], "steam": "1"}}\n')
+    assert [entry.time for entry in driver_ranks.read_history(path)] == [1700000000.0]
+
+
+def test_b012_date_of_damaged_time_shown_as_missing():
+    from neopedal.process.results_text import MISSING
+    from neopedal.ui.quick.formatting import format_date
+
+    for value in (float("nan"), float("inf"), 1e20, -5.0):
+        assert format_date(value) == MISSING
+    assert format_date(1700000000.0) != MISSING

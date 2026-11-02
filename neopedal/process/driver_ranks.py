@@ -50,6 +50,8 @@ from ..validator import json_loads_checked, load_json_strict
 
 logger = logging.getLogger(__name__)
 
+MAX_HISTORY_TIME = 4_102_444_800.0  # Unix time of year 2100: later entry time invalid (garbage)
+
 STORAGE_FILE = "coherent_local_storage.json"
 MAX_FILE_SIZE = 64 * 1024 * 1024  # never read a huge file whole
 MAX_DEPTH = 40  # nested items & JSON text values (team members of registered events: 13 levels deep)
@@ -361,6 +363,12 @@ def write_history(path: str, entries: Sequence[HistoryEntry]) -> bool:
     return True
 
 
+def valid_time(value: Any) -> bool:
+    """Unix time of a history entry (seconds, until year 2100), not NaN, infinity, milliseconds or text"""
+    return (isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            and 0 < value < MAX_HISTORY_TIME)
+
+
 def read_history(path: str) -> list[HistoryEntry]:
     """History entries, oldest first (invalid lines skipped)"""
     entries = []
@@ -371,7 +379,7 @@ def read_history(path: str) -> list[HistoryEntry]:
                     data = json_loads_checked(line)
                 except (ValueError, RecursionError):  # RecursionError: nested too deeply
                     continue
-                if isinstance(data, dict) and isinstance(data.get("time"), (int, float)):
+                if isinstance(data, dict) and valid_time(data.get("time")):
                     entries.append(HistoryEntry(float(data["time"]), _rank_from_list(data.get("driver")),
                                                 _rank_from_list(data.get("safety")), _text(data.get("badge")),
                                                 _text(data.get("steam"))))
