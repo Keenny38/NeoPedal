@@ -215,6 +215,7 @@ Fixes from an audit of the VR overlay.
 - Brake Performance overlay, classic look: with `show_delta_braking_rate_in_percentage`, the delta shows `+0%` before the first braking instead of `+0.00`.
 - Timing overlay: with no last lap yet (start of session), the last lap dash is no longer shown in the invalid lap color.
 - Radar overlay: `auto_hide_minimum_distance_*` set beyond 1.5 x `radar_radius` are no longer ignored (the radar hid while a car was still within that distance).
+- Radar overlay, classic look: distance circles are drawn with their decimal width (2.9 was drawn 2 pixels wide).
 
 ## 0.28.1 (2026-11-01)
 

@@ -463,7 +463,7 @@ class Realtime(RadarMixin, Overlay):
             pos = self.area_center - scale
             size = scale * 2
             pen.setStyle(Qt.PenStyle.SolidLine if style else Qt.PenStyle.DashLine)
-            pen.setWidth(width)
+            pen.setWidthF(width)  # decimal width kept (B-091)
             pen.setColor(color)
             painter.setPen(pen)
             painter.drawEllipse(pos, pos, size, size)

@@ -1137,3 +1137,18 @@ def test_b089_radar_quick_range_covers_auto_hide_distances(ui_env):
     radar = Radar(dict(cfg.user.setting["radar"], radar_radius=30, auto_hide_minimum_distance_ahead=100))
     radar.setup_radar()
     assert radar.straight_range >= 100
+
+
+# B-091: Radar (classic) distance circle width cut to whole pixels
+def test_b091_radar_circle_decimal_width(ui_env):
+    from types import SimpleNamespace
+
+    from PySide6.QtGui import QColor, QPen
+
+    from neopedal.widget.radar import Realtime
+
+    pen = QPen()
+    painter = SimpleNamespace(setPen=lambda pen: None, drawEllipse=lambda *args: None)
+    radar = SimpleNamespace(radar_radius=30, global_scale=6, area_center=180)
+    Realtime.draw_circle_mark(radar, painter, pen, True, 10, 2.5, QColor("#FFFFFF"))
+    assert pen.widthF() == 2.5
