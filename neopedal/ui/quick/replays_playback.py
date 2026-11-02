@@ -174,7 +174,7 @@ class ReplaysPlayback(ReplaysBase):
         """Slot of car followed by camera: replay camera, else car with focus in standings, -1 if unknown"""
         if self.state not in (SESSION, REPLAY):
             return -1
-        if self.state == REPLAY and self.focus >= 0:
+        if self.focus >= 0:  # told by the game (replay, live session)
             return self.focus
         return next((car.slot for car in self.standings if car.focus), -1)
 

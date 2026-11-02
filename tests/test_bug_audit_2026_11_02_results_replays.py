@@ -809,3 +809,10 @@ def test_b038_partial_state_answer_not_used(replays_page, monkeypatch):  # noqa:
     backend.refresh_state()
     wait_requests(backend.request_state)
     assert backend.incidents == incidents and backend.standings == standings and backend.hud == hud
+
+
+# B-039: live session: car followed by the camera not asked to the game, "camera car" of the Incidents panel stale
+def test_b039_live_session_camera_car_asked(replays_page):  # noqa: F811
+    backend = answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False, "/rest/watch/focus": 4})
+    assert backend.gameState == "session"
+    assert backend.focusedDriver == "Zaac Latta"  # slot 4 told by the game (standings still tell the car before)

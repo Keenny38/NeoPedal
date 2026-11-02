@@ -317,8 +317,7 @@ def ask_state(connection: GameConnection, previous: tuple[Contact, ...], known_d
         "track": str(info.get("trackName") or "") if isinstance(info, dict) else "",
         "session": str(info.get("session") or "") if isinstance(info, dict) else "",
     }
-    if active is True:
-        state["focus"] = parse_focus(connection.get(FOCUS_RESOURCE))
+    state["focus"] = parse_focus(connection.get(FOCUS_RESOURCE))  # live session too: camera car moved by the page
     drivers = {name for contact in state["contacts"] for name in (contact.driver, contact.other)} - {IMMOVABLE}
     if want_standings or active is True or (drivers and (state["contacts"] != previous or drivers - known_drivers)):
         state["standings"] = parse_standings(connection.get(STANDINGS_RESOURCE))
