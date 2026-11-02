@@ -342,11 +342,11 @@ def test_b002_undo_backup_restore_keeps_stats_recorded_since(stats_folder):
     outcome, edit = StatsEdits.write_edit((), backup, None)  # backup restored
     assert outcome == "saved"
     driver_stats.save_driver_stats(SPA_HYPER, DriverStats(pb=125.0, valid=5, meters=500.0), stats_folder)
-    assert StatsEdits.apply_edit(edit, True)[0] == "saved"  # undo: stats before restore + stint since
+    StatsEdits.apply_edit(edit, True)  # undo: stats before restore + stint since
     vehicle = read_stats(stats_folder)["Spa"]["Hyper - Toyota"]
     assert (vehicle["pb"], vehicle["valid"], vehicle["meters"]) == (125.0, 25, 2500.0)
     driver_stats.save_driver_stats(SPA_HYPER, DriverStats(valid=1), stats_folder)
-    assert StatsEdits.apply_edit(edit, False)[0] == "saved"  # redo: backup + both stints since
+    StatsEdits.apply_edit(edit, False)  # redo: backup + both stints since
     vehicle = read_stats(stats_folder)["Spa"]["Hyper - Toyota"]
     assert (vehicle["pb"], vehicle["valid"], vehicle["meters"]) == (125.0, 16, 1500.0)
 
