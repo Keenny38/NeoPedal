@@ -151,6 +151,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, RPM LED and Lift and Coast LED: the LED count, size and outline are no longer dimmed with single side LEDs (default), nor the LED colors by `show_rpm_flickering_above_critical` or `show_lift_and_coast`.
 - `Overlay Options`, Steering Wheel, Steering Meter and Steering Angle: `manual_steering_range` is no longer dimmed while the angle reading is hidden, as it still turns the wheel and the bar (and sets the steering ratio).
 - `Overlay Options`, Track Clock (classic look): the sunlight phase countdown colors are no longer dimmed by default (they followed `enable_time_scaled_countdown` instead of the countdown itself).
+- `Overlay Options`, Delta Best (classic look): `background_color_deltabest` is no longer dimmed by default.
 
 ## 0.28.1 (2026-11-01)
 

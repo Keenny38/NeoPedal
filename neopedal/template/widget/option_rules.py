@@ -179,6 +179,7 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     # Manual range: turns the wheel & bar whether the angle is read or not (Steering Angle: see ANY_OF)
     "steering_wheel": (OptionFix(dependencies={"manual_steering_range": ""}),),
     "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
+    "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),),  # delta box, any source
 }
 
 

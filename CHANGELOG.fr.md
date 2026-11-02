@@ -151,6 +151,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, LED de régime et LED lever-pied : le nombre, la taille et le contour des LED ne sont plus grisés avec les LED d'un seul côté (par défaut), ni les couleurs des LED par `show_rpm_flickering_above_critical` ou `show_lift_and_coast`.
 - `Options des overlays`, Volant, Jauge de direction et Angle de direction : `manual_steering_range` n'est plus grisée quand la lecture de l'angle est masquée, car elle fait toujours tourner le volant et la barre (et sert au rapport de direction).
 - `Options des overlays`, Horloge de piste (design classique) : les couleurs du compte à rebours de la phase de lumière ne sont plus grisées par défaut (elles suivaient `enable_time_scaled_countdown` au lieu du compte à rebours lui-même).
+- `Options des overlays`, Delta best (design classique) : `background_color_deltabest` n'est plus grisée par défaut.
 
 ## 0.28.1 (2026-11-01)
 

@@ -323,3 +323,8 @@ def test_b026_track_clock_countdown_colors_follow_countdown(ui_env, modern):
     for key in (key for key in COUNTDOWN_COLORS if key in shown_keys("track_clock", modern)):
         assert not dimmed("track_clock", key, modern, enable_time_scaled_countdown=False), key
         assert dimmed("track_clock", key, modern, show_sunlight_phase_countdown=False), key
+
+
+# B-027: main background color of Delta Best (classic) under show_game_deltabest_if_available
+def test_b027_deltabest_background_color_never_dimmed(ui_env):
+    assert not dimmed("deltabest", "background_color_deltabest", False, show_game_deltabest_if_available=False)
