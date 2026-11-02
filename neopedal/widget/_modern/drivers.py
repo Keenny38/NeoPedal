@@ -180,7 +180,7 @@ class DriverTable(TableMixin, ModernOverlay):
         self.limits_shown = "track_limits" in shown  # data read per update only for shown columns
         self.energy_shown = "energy_per_lap" in shown
         # Cell builders of columns (options read once), kept colors & cells: same objects compare fast
-        self.highlight_player = self.wcfg.get("show_player_highlighted", True)
+        self.highlight_player = bool(self.wcfg.get("show_player_highlighted", True))  # not in Rivals (B-078)
         self.class_stripe = bool(self.wcfg["column_class"])
         self.class_shades: dict[int, QColor] = {}
         self.compound_cells: dict[tuple, Cell] = {}
