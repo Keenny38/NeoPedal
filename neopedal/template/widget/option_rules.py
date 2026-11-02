@@ -180,7 +180,8 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         "auto_prediction_additional_pitstop_time": "enable_auto_pitout_prediction"}),),
     "corner_coach": (OptionFix(dependencies={"braking_point_tolerance": "show_braking_point"}),),
     # Heatmap picked by compound or brake while automatic: own option used only with it off (see INACTIVE_RULES)
-    "brake_temperature": (OptionFix(dependencies={"heatmap_name": ""}),),
+    "brake_temperature": (OptionFix(dependencies={"heatmap_name": ""}),
+                          OptionFix(MODERN, dependencies={"off_brake_duration": "show_average"})),
     "tyre_temperature": (OptionFix(dependencies={"heatmap_name": ""}),),
     "tyre_inner_layer": (OptionFix(dependencies={"heatmap_name": ""}),),
     "tyre_carcass": (OptionFix(dependencies={"heatmap_name": ""}),),
@@ -295,6 +296,28 @@ def _heatmap(values: Mapping) -> Inactive:
     return {"heatmap_name": ("off", "enable_heatmap_auto_matching")} if values.get("enable_heatmap_auto_matching") else {}
 
 
+def _swap_colors(font: str, background: str) -> Callable[[Mapping], Inactive]:
+    """Heatmap readings (classic): heatmap colors the background, or the text with swap_style (other color of
+    the pair unused)"""
+    def rule(values: Mapping) -> Inactive:
+        if values.get("swap_style", False):
+            return {font: ("off", "swap_style")}
+        return {background: ("on", "swap_style")}
+
+    return rule
+
+
+def _rules(*rules: Callable[[Mapping], Inactive]) -> Callable[[Mapping], Inactive]:
+    """Rules of an overlay put together"""
+    def rule(values: Mapping) -> Inactive:
+        inactive: Inactive = {}
+        for each in rules:
+            inactive.update(each(values))
+        return inactive
+
+    return rule
+
+
 def _black_box(values: Mapping) -> Inactive:
     """Speed & RPM labels: drawn only with justified center column"""
     if values.get("center_column_alignment", "Justified") == "Justified":
@@ -310,7 +333,7 @@ INACTIVE_RULES: dict[str, Callable[[Mapping], Inactive]] = {
     "acceleration": _speed_ranges,
     "radar": _radar,
     "black_box": _black_box,
-    "brake_temperature": _heatmap,
+    "brake_temperature": _rules(_heatmap, _swap_colors("font_color_temperature", "background_color_temperature")),
     "tyre_temperature": _heatmap,
     "tyre_inner_layer": _heatmap,
     "tyre_carcass": _heatmap,

@@ -660,3 +660,12 @@ def test_b036_black_box_dead_font_offset_options_hidden(ui_env):
     for modern in (True, False):
         keys = shown_keys("black_box", modern)
         assert "enable_auto_font_offset" not in keys and "font_offset_vertical" not in keys
+
+
+# B-040: Brake Temperature options active while unused (modern off brake duration, classic swap style colors)
+def test_b040_brake_temperature_unused_options_dimmed(ui_env):
+    assert dimmed("brake_temperature", "off_brake_duration", True, show_average=False)
+    assert dimmed("brake_temperature", "background_color_temperature", False, swap_style=False)
+    assert not dimmed("brake_temperature", "font_color_temperature", False, swap_style=False)
+    assert dimmed("brake_temperature", "font_color_temperature", False, swap_style=True)
+    assert not dimmed("brake_temperature", "background_color_temperature", False, swap_style=True)

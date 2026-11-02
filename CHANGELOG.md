@@ -172,6 +172,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Black Box: options shared by several parts (status icon size, warning outline, overheat threshold, pedal and ABS / TC colors of the incident recorder, suspension damage colors, refill mark color) are no longer dimmed while a part using them is shown.
 - `Overlay Options`, Black Box: `event_log_line_scale`, `damage_event_threshold` and `incident_color` are dimmed while the event log and the incident recorder they serve are off.
 - `Overlay Options`, Black Box: `enable_auto_font_offset` and `font_offset_vertical` are no longer shown, as the Black Box never used them.
+- `Overlay Options`, Brake Temperature: `off_brake_duration` (modern look) is dimmed while the average is hidden, and the temperature font or background color (classic look) is dimmed when `swap_style` makes it unused.
 
 ## 0.28.1 (2026-11-01)
 
