@@ -13,7 +13,7 @@ from tests.test_module_vehicles_field import field  # noqa: F401 (fixture)
 
 
 def practice_field(bests: list[float], classes: list[str]) -> VehiclesInfo:
-    """Cars in best lap order (place = index + 1), class indexes as relative module sets them"""
+    """Cars in best lap order (place = index + 1), class from game data, class indexes as relative module sets them"""
     output = VehiclesInfo()
     output.totalVehicles = len(bests)
     leaders: dict[str, int] = {}
@@ -22,6 +22,7 @@ def practice_field(bests: list[float], classes: list[str]) -> VehiclesInfo:
         car = output.dataSet[index]
         car.positionOverall = index + 1
         car.bestLapTime = best
+        car.vehicleClass = class_name
         car.classLeaderIndex = leaders.setdefault(class_name, index)
         car.classAheadIndex = last_of_class.get(class_name, -1)
         last_of_class[class_name] = index

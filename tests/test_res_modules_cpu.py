@@ -281,7 +281,8 @@ def test_vehicles_full_rate_only_while_shown(ui_env, monkeypatch):
     monkeypatch.setattr(module_vehicles, "update_qualify_position", lambda output: None)
     monkeypatch.setattr(api, "read", SimpleNamespace(
         timing=SimpleNamespace(elapsed=lambda index=None: 1.0),
-        session=SimpleNamespace(elapsed=lambda: 2.0, in_race=lambda: False),
+        session=SimpleNamespace(elapsed=lambda: 2.0, in_race=lambda: False, track_name=lambda: "Track",
+                                session_type=lambda: 1, start=lambda: 0.0),
         vehicle=SimpleNamespace(player_index=lambda: 0, total_vehicles=lambda: 0),
     ))
     monkeypatch.setattr(realtime_state, "paused", False)

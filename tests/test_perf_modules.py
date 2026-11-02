@@ -31,7 +31,8 @@ def fake_reader(game: dict) -> SimpleNamespace:
     """Reader of data stamp values & vehicle count"""
     return SimpleNamespace(
         timing=SimpleNamespace(elapsed=lambda index=None: game["tele"]),
-        session=SimpleNamespace(elapsed=lambda: game["scor"], in_race=lambda: False),
+        session=SimpleNamespace(elapsed=lambda: game["scor"], in_race=lambda: False, track_name=lambda: "Track",
+                                session_type=lambda: 1, start=lambda: 0.0),
         vehicle=SimpleNamespace(player_index=lambda: game["player"], total_vehicles=lambda: game["total"]),
     )
 
