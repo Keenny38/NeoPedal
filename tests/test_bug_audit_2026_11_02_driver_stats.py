@@ -785,3 +785,17 @@ def test_b023_debrief_keeps_first_laps_of_stint_with_a_pause(tmp_path):
     debrief = session_debrief.build_debrief(record, [record], str(tmp_path))
     assert [lap.number for lap in debrief.laps] == [1, 2, 3, 4]
     assert "lap001" in debrief.best_path
+
+
+# B-033
+def test_b033_debrief_uses_exact_lap_end_time_of_lap_info(tmp_path):
+    """Lap saved in the hour repeated when clocks go back: local file name read an hour late, lap info end time
+    (epoch) puts it back in its stint"""
+    from neopedal.userfile import session_debrief
+    from neopedal.userfile.telemetry_lap import lap_folder_name
+
+    folder = os.path.join(tmp_path, lap_folder_name("Spa - GT3"))
+    write_debrief_lap(folder, 1, 120.0, DEBRIEF_T + 3600, finished=DEBRIEF_T - 100)  # name an hour off
+    record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="Car A", best=120.0, valid=1,
+                                          seconds=130, vehicle_class="GT3")
+    assert len(session_debrief.build_debrief(record, [record], str(tmp_path)).laps) == 1

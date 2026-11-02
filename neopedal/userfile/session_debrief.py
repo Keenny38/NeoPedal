@@ -45,6 +45,7 @@ STINT_MARGIN = 120  # seconds: laps saved this long before stint start or after 
 PACE_WINDOW = 1.03  # valid laps within 103% of best lap count for pace & consistency (slow laps: traffic, spin)
 MIN_PACE_LAPS = 2  # pace & consistency need this many laps
 TIP_LIMIT = 3  # corners to work on
+DST_SLACK = 3600  # seconds a local file name time is off in the hour repeated when clocks go back
 
 
 class DebriefLap(NamedTuple):
@@ -143,16 +144,24 @@ def stint_laps(folder: str, record: SessionRecord, files: Sequence[LapFile] | No
         return []
     start, end = stint_window(record)
     first = previous + 0.5  # lap file times are whole seconds (name): a lap of previous stint never
-    candidates = [lap for lap in (lap_files(folder) if files is None else files)
-                  if first <= lap_timestamp_of(lap.filename) <= end and lap.lap_time > 0]
-    found = [lap for lap in candidates if lap_timestamp_of(lap.filename) >= start]
+    # File name time is local: an hour off in the hour repeated when clocks go back, exact end time of lap info
+    # used when saved (lap infos read for laps near the stint only)
+    nearby = [lap for lap in (lap_files(folder) if files is None else files)
+              if first - DST_SLACK <= lap_timestamp_of(lap.filename) <= end + DST_SLACK and lap.lap_time > 0]
+    infos = {lap.path: read_lap_info(lap.path) for lap in nearby}
+
+    def finished(lap: LapFile) -> float:
+        return finite(infos[lap.path].get("finished")) or lap_timestamp_of(lap.filename)
+
+    candidates = [lap for lap in nearby if first <= finished(lap) <= end]
+    found = [lap for lap in candidates if finished(lap) >= start]
     if found:  # pauses, pit stops: stint started before its driving time says, never before its session
-        newest = max(found, key=lambda lap: lap_timestamp_of(lap.filename))
-        session_start = finite(read_lap_info(newest.path).get("session_start"))
+        newest = max(found, key=finished)
+        session_start = finite(infos[newest.path].get("session_start"))
         if 0 < session_start < start:
-            found = [lap for lap in candidates if lap_timestamp_of(lap.filename) >= session_start]
-    found.sort(key=lambda lap: (lap_timestamp_of(lap.filename), lap_number_of(lap.filename)))
-    return [debrief_lap(lap, read_lap_info(lap.path)) for lap in found]
+            found = [lap for lap in candidates if finished(lap) >= session_start]
+    found.sort(key=lambda lap: (finished(lap), lap_number_of(lap.filename)))
+    return [debrief_lap(lap, infos[lap.path]) for lap in found]
 
 
 def pace_of(laps: Iterable[DebriefLap], best: float) -> tuple[float, float, int]:
