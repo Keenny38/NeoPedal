@@ -20,6 +20,7 @@
 Radar Widget
 """
 
+from collections.abc import Mapping
 from itertools import islice
 from math import isfinite
 from typing import TYPE_CHECKING, NamedTuple
@@ -72,6 +73,15 @@ def whole(value: float) -> int:
     return round(value) if isfinite(value) else 0
 
 
+MAX_AREA_CENTER = 2048  # pixels from radar center to edge: bigger made pictures of GB (B-016), > 4K height
+
+
+def area_center_of(wcfg: Mapping) -> int:
+    """Pixels from radar center to edge: radius x global scale (minimum scale relative to radius), limited"""
+    radius = max(wcfg["radar_radius"], 5)
+    return min(round(radius * max(wcfg["global_scale"], 5 / radius)), MAX_AREA_CENTER)
+
+
 class RadarMixin:
     """Radar scale, ranges, auto hide & fade, collision course, for classic & modern widget"""
 
@@ -80,9 +90,7 @@ class RadarMixin:
     def setup_radar(self):
         """Radar scale & ranges, auto hide state"""
         self.radar_radius = max(self.wcfg["radar_radius"], 5)
-        self.area_center = round(  # limit minimum global scale relative to radar radius
-            self.radar_radius * max(self.wcfg["global_scale"], 5 / self.radar_radius)
-        )  # round to int
+        self.area_center = area_center_of(self.wcfg)
         self.area_size = self.area_center * 2
         self.global_scale = self.area_center / self.radar_radius  # recalibrate
 

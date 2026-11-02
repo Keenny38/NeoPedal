@@ -586,3 +586,24 @@ def test_b015_pace_notes_volume_change_applied(ui_env):
         mcfg["enable"] = False
         playback.refresh(True)
         playback.deleteLater()
+
+
+# B-016: Radar radius & scale accepted by the page made drawing pictures of 20000 pixels (GB of memory)
+@DESIGNS
+def test_b016_radar_area_kept_reasonable(ui_env, modern):
+    from neopedal.widget.radar import RadarMixin
+
+    class Radar(RadarMixin):
+        def __init__(self, wcfg):
+            self.wcfg = wcfg
+
+    radar = Radar(dict(cfg.user.setting["radar"], radar_radius=200, global_scale=50))
+    radar.setup_radar()
+    assert radar.area_size <= 4096 and radar.global_scale == radar.area_center / radar.radar_radius
+    normal = Radar(dict(cfg.user.setting["radar"]))
+    normal.setup_radar()
+    assert normal.area_center == round(normal.radar_radius * cfg.user.setting["radar"]["global_scale"])
+    if modern:
+        from neopedal.widget._modern.radar import Realtime
+
+        assert Realtime.area_size_option(radar) == radar.area_size

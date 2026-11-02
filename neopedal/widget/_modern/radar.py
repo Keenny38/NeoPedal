@@ -33,7 +33,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPen, QPixmap, QRadialGradient
 
 from ... import calculation as calc
-from ..radar import IndicatorDimension, RadarMixin
+from ..radar import IndicatorDimension, RadarMixin, area_center_of
 from .base import ModernOverlay
 from .cars import car_colors, status_color
 from .draw import disc
@@ -101,8 +101,7 @@ class Realtime(RadarMixin, ModernOverlay):
 
     def area_size_option(self) -> float:
         """Radar size from options (before radar setup)"""
-        radius = max(self.wcfg["radar_radius"], 5)
-        return round(radius * max(self.wcfg["global_scale"], 5 / radius)) * 2
+        return area_center_of(self.wcfg) * 2
 
     def cone_brush(self, color: QColor) -> QBrush:
         """Cone indicator fill: color fading out from center"""

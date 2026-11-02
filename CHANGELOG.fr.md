@@ -167,6 +167,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Répartition de freinage, design moderne : les valeurs ne sont plus coupées par `…` avec plus de décimales que les valeurs par défaut.
 - Overlays Carburant et Énergie virtuelle, design classique : les repères de départ et de remplissage de la barre de niveau ne disparaissent plus à 100 % (relais commencé plein) ou quand il faut faire le plein.
 - Lecture des notes de pilotage : un volume (ou un intervalle de mise à jour) changé dans `Paramètres` est appliqué tout de suite, et plus seulement après la remise à zéro de la voiture.
+- Overlay Radar : un grand `radar_radius` avec un grand `global_scale` ne crée plus d'images de dessin de plusieurs Go (mémoire de l'app) ; le radar fait au plus 4096 pixels de large.
 
 ## 0.28.1 (2026-11-01)
 
