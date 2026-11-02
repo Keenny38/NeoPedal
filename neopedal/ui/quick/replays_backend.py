@@ -177,6 +177,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.action_deadline = 0.0  # monotonic time action is given up
         self.action_generation = 0  # state answers asked before replay was opened ignored for action
         self.state_generation = 0
+        self.state_time = 0.0  # monotonic time of last state answer used (0 if none)
         self.action_after = 0.0  # monotonic time from which action may be done (replay loaded by game)
         self.play_command: Command | None = None  # replay open command of action, until game answered it
         self.sending: tuple[Command, ...] = ()  # batch of commands being sent
@@ -418,6 +419,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         if state.get("generation", self.state_generation) < self.state_generation:  # asked before a replay opened
             self.schedule_state()
             return
+        self.state_time = time.monotonic()
         active = state["active"]
         if active is None:  # session left: its incidents & standings kept until next one
             self.set_state(MENU if state["running"] else OFFLINE)

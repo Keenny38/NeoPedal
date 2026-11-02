@@ -180,3 +180,25 @@ def test_b005_recycle_bin_of_drives(tmp_path):
 
     assert replay_files.recycle_bin(str(tmp_path))  # fixed drive
     assert not replay_files.recycle_bin("//no-such-server/share/Replays")  # network share
+
+
+# B-003: action of a replay taken as open from a stale state (page hidden, polling stopped, game left the replay) sent
+# its focus & time to the game at once, without confirmation
+def test_b003_action_on_stale_state_asks_and_opens_replay(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui.quick import dialogs
+    from neopedal.ui.quick.replays_common import ReplayAction
+
+    backend = answered(replays_page, GAME_ANSWERS)
+    asked: list[str] = []
+    monkeypatch.setattr(dialogs, "confirm", lambda parent, title, text, action, on_result, **kwargs: asked.append(text))
+    backend.playing = "Bahrain R1"  # opened from the page, open in game (told by the answer just received)
+    action = ReplayAction("Bahrain R1", 300.0, ("Kevin Ramirez",))
+    replays_page.sent.clear()
+    backend.watch("Bahrain R1", action)  # recent answer: done at once
+    wait_commands(backend)
+    assert not asked and ("PUT", "/rest/watch/replaytime/295") in replays_page.sent
+    replays_page.sent.clear()
+    backend.state_time -= 60  # page hidden for a minute: the game may have left the replay
+    backend.watch("Bahrain R1", action)
+    wait_commands(backend)
+    assert asked and "Open replay" in asked[0] and replays_page.sent == []

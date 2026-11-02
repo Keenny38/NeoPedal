@@ -96,6 +96,7 @@ class ReplaysBase(_HostBase):
         action_deadline: float
         action_generation: int
         state_generation: int
+        state_time: float
         action_after: float
         play_command: Command | None
         playing: str

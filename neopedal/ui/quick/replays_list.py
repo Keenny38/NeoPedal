@@ -45,6 +45,7 @@ from .replays_common import (
     SESSION_FILTERS,
     SHIFT,
     SORTS,
+    STATE_FRESH,
     ReplayAction,
     event_type_text,
     go_to_lap,
@@ -229,7 +230,10 @@ class ReplaysList(ReplaysBase):
             return
         if key not in self.checked:
             self.selectReplay(key)
-        if action is not None and self.state == REPLAY and self.playing == replay.name:
+        if action is not None and self.state == REPLAY and self.playing == replay.name and self.play_sent is None and (
+                time.monotonic() - self.state_time < STATE_FRESH and time.monotonic() >= self.action_after):
+            # Replay open & loaded, told by a recent answer (page hidden meanwhile: polling stopped, game may have
+            # left the replay): action at once, else confirmation & replay opened again
             self.action, self.action_deadline = action, time.monotonic() + ACTION_WAIT
             self.action_generation, self.action_after = self.state_generation, 0.0
             self.check_action(None)

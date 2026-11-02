@@ -92,6 +92,7 @@ LAP_SEARCH_STEPS = 8  # replay moves to find a lap start
 REPLAY_WAIT = 3.0  # seconds: live session going to its replay
 ACTION_WAIT = 90.0  # seconds: replay asked by race results (event, lap) given this long to open in game
 ACTION_SETTLE = 3.0  # seconds: replay open command accepted, game loading it (state of former replay meanwhile)
+STATE_FRESH = 5.0  # seconds: last state answer this recent still tells the replay open in game (asked every 2 s)
 SETTINGS_FILE = "game_replays.json"
 ROAD_WIDTH, PIT_WIDTH = 14.0, 6.0  # map line widths (meters), at least a few pixels
 CTRL, SHIFT = 0x04000000, 0x02000000  # Qt.KeyboardModifier values of QML mouse events
