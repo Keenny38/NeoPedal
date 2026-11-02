@@ -311,3 +311,27 @@ def test_b044_replay_loading_without_answer_is_not_refused(replays_page, monkeyp
     monkeypatch.setattr(game_rest, "GameConnection", connect)
     answered(replays_page, GAME_ANSWERS)  # replay loaded
     assert backend.playingReplay == "Bahrain R1"
+
+
+# B-009: another replay opened in game while the page saw no menu (page hidden) kept the name, cars, laps & "back to
+# live" of the former one; a replay never open in game stayed "opening" for good
+def test_b009_other_replay_open_in_game_forgets_former_one(replays_page):  # noqa: F811
+    backend = answered(replays_page, GAME_ANSWERS)
+    backend.playing, backend.rewatching = "Bahrain R1", True
+    backend.lap_starts = {7: {2: 100.0}}
+    other = {**GAME_ANSWERS["/rest/watch/sessionInfo"], "trackName": "Bahrain International Circuit"}
+    answered(replays_page, {**GAME_ANSWERS, "/rest/watch/sessionInfo": other})
+    assert backend.gameState == "replay" and backend.playingReplay == "" and not backend.canGoLive
+    assert 2 not in backend.lap_starts.get(7, {})
+
+
+def test_b009_replay_never_open_no_longer_opening(replays_page, monkeypatch):  # noqa: F811
+    import time
+
+    backend = answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})
+    backend.playing, backend.opening_until = "Bahrain R1", time.monotonic() + 100
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})
+    assert backend.openingReplay == "Bahrain R1"
+    backend.opening_until = time.monotonic() - 1  # given up
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})
+    assert backend.openingReplay == ""

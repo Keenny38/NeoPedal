@@ -430,10 +430,16 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
                 self.last_session = True
                 self.statusChanged.emit()
             self.update_replay_time(-1.0)
+            self.check_opening()
             self.check_action(state)
             self.schedule_state()
             return
+        was_replay = self.state == REPLAY
         self.set_state(REPLAY if active else SESSION)
+        if was_replay and active and self.track and (state["end"], state["track"], state["session"]) != (
+                self.session_end, self.track, self.session_name):
+            self.new_replay()  # another replay opened in game without the page seeing the menus (page hidden)
+        self.check_opening()
         if self.last_session:
             self.last_session = False
             self.statusChanged.emit()
@@ -485,6 +491,27 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.replayTimeChanged.emit()
         self.check_action(state)
         self.schedule_state()
+
+    def new_replay(self):
+        """Another replay open in game: cars, laps & replay of live session of the former one forgotten (the replay
+        opened from the page kept while it opens)"""
+        self.cars.clear()
+        self.looked_up.clear()
+        self.lap_starts.clear()
+        self.laps_changed()
+        self.rewatching = False
+        self.last_command = ""
+        if time.monotonic() >= self.opening_until:
+            self.playing = ""
+        self.playbackChanged.emit()
+
+    def check_opening(self):
+        """Replay opened from page never open in game in time: no longer taken as opening (spinner)"""
+        if self.opening_until and time.monotonic() >= self.opening_until:
+            self.opening_until = 0.0
+            if self.state != REPLAY and self.playing:
+                self.playing = ""
+                self.playbackChanged.emit()
 
     def set_state(self, state: str):
         if state == self.state:
