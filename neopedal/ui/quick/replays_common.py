@@ -90,7 +90,8 @@ SECONDS_BEFORE = 5  # replay starts this long before incident (default)
 TOP_DRIVERS = 10  # drivers with most incidents shown as filter chips
 LAP_SEARCH_STEPS = 8  # replay moves to find a lap start
 REPLAY_WAIT = 3.0  # seconds: live session going to its replay
-ACTION_WAIT = 90.0  # seconds: replay asked by race results (event, lap) given this long to open in game
+ACTION_WAIT = 300.0  # seconds: replay asked by race results (event, lap) given this long to open in game (from the
+# menus LMU loads the track and answers nothing for minutes: 3.5 min seen)
 ACTION_SETTLE = 3.0  # seconds: replay open command accepted, game loading it (state of former replay meanwhile)
 STATE_FRESH = 5.0  # seconds: last state answer this recent still tells the replay open in game (asked every 2 s)
 SETTINGS_FILE = "game_replays.json"
@@ -328,7 +329,10 @@ def play_replay(name: str) -> Command:
     def run(connection: GameConnection) -> bool:
         replay = next((replay for replay in parse_replays(connection.get(REPLAYS_RESOURCE)) if replay.name == name),
                       None)
-        return replay is not None and connection.send("GET", f"/rest/watch/play/{replay.id}")
+        if replay is None:
+            return False
+        # No answer after the replays list did: game loading the replay (refused: answered with an error status)
+        return connection.send("GET", f"/rest/watch/play/{replay.id}") or (connection.failed and connection.answered)
     return run
 
 

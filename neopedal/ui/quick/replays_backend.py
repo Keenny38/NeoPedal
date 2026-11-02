@@ -182,6 +182,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.play_command: Command | None = None  # replay open command of action, until game answered it
         self.sending: tuple[Command, ...] = ()  # batch of commands being sent
         self.playing = ""  # replay opened from page (game tells no name): open again only if another one
+        self.opening_until = 0.0  # monotonic time the replay opened from page is given to load (0: not opening)
         self.play_sent: Command | None = None  # open command of playing, until game answered it (refused: forgotten)
         self.results_links: dict[str, str] = {}  # replay name: results file of its session (race results page)
         self.folder = ""  # replay folder of game, kept when game closes
@@ -498,7 +499,10 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         if state != REPLAY:
             self.last_command = ""
             self.rewatching = False
-            self.playing = ""
+            if time.monotonic() >= self.opening_until:  # replay opened from page still loading: kept meanwhile
+                self.playing = ""
+        else:
+            self.opening_until = 0.0  # open
         self.playbackChanged.emit()  # replay open (playingReplay) or not
         if state != REPLAY and (commands := self.restore_hud()):  # replay or session left: HUD hidden by page shown
             self.send(*commands)
@@ -534,6 +538,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.play_sent = None
             if not accepted:  # replay not opened: never taken as open by a later action (done without asking)
                 self.playing = ""
+                self.opening_until = 0.0
             self.playbackChanged.emit()  # replay opened (playingReplay), or not
         if self.play_command is not None and self.play_command in self.sending:  # replay of action opening
             self.play_command = None

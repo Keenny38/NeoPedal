@@ -100,6 +100,7 @@ class ReplaysBase(_HostBase):
         action_after: float
         play_command: Command | None
         playing: str
+        opening_until: float
         play_sent: Command | None
         results_links: dict[str, str]
         folder: str

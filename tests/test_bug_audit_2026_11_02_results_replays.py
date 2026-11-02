@@ -271,3 +271,43 @@ def test_b008_live_replay_waits_before_taking_commands(monkeypatch):
     connection = SimpleNamespace(get=lambda resource: next(active), send=lambda *args: True)
     assert replays_common.enter_replay(connection)
     assert slept[-1] == replays_common.REPLAY_READY  # replay open: commands after a moment
+
+
+# B-044: LMU answers nothing for minutes while it loads a replay from its menus: the open command timing out was taken
+# as refused ("Game did not accept the command"), the replay opened from the page and its action forgotten
+def test_b044_replay_loading_without_answer_is_not_refused(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui import game_rest
+    from neopedal.ui.quick import dialogs
+    from neopedal.ui.quick.replays_common import ReplayAction
+
+    game = replays_page.game
+    backend = answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})  # game in its menus
+    monkeypatch.setattr(dialogs, "confirm", lambda parent, title, text, action, on_result, **kwargs: on_result(True))
+    connect = game.connection
+
+    def connection(*args, **kwargs):
+        link = connect(*args, **kwargs)
+        send = link.send
+
+        def sending(method, resource, body=None):
+            if resource.startswith("/rest/watch/play/"):  # loading: no answer
+                send(method, resource, body)
+                link.failed = True
+                return False
+            return send(method, resource, body)
+
+        link.send = sending
+        link.answered = True
+        return link
+
+    monkeypatch.setattr(game_rest, "GameConnection", connection)
+    backend.watch("Bahrain R1", ReplayAction("Bahrain R1", 300.0, ("Kevin Ramirez",)))
+    wait_commands(backend)
+    assert not backend.noticeError and backend.openingReplay == "Bahrain R1"
+    game.answers = {}  # still loading: no answer at all
+    backend.refresh()
+    wait_requests(backend.request_replays, backend.request_state)
+    assert backend.openingReplay == "Bahrain R1" and backend.action is not None
+    monkeypatch.setattr(game_rest, "GameConnection", connect)
+    answered(replays_page, GAME_ANSWERS)  # replay loaded
+    assert backend.playingReplay == "Bahrain R1"

@@ -252,6 +252,7 @@ class ReplaysList(ReplaysBase):
     def open_replay(self, name: str, action: ReplayAction | None):
         """Replay opened in game (confirmed), then action done once it is open"""
         self.playing = name
+        self.opening_until = time.monotonic() + ACTION_WAIT  # kept while the game loads it (menus, no answer)
         command = play_replay(name)
         self.action, self.action_deadline = action, time.monotonic() + ACTION_WAIT
         self.action_generation = self.state_generation + 1  # state asked once game accepted the replay
