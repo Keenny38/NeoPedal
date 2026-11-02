@@ -106,6 +106,16 @@ class DriverStats:
         return key in ("pb", "qb", "rb")
 
 
+def combined_stats(first: DriverStats, second: DriverStats) -> DriverStats:
+    """Stats of two stints of a vehicle as one (stint not saved, added to the next one): counters added, best
+    lap times kept"""
+    values = {}
+    for key, old in first.__dict__.items():
+        new = getattr(second, key)
+        values[key] = min(old, new) if DriverStats.is_lap_time(key) else old + new
+    return DriverStats(**values)
+
+
 def validate_stats_file(stats_user: dict) -> dict:
     """Validate stats file
 

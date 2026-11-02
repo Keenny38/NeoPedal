@@ -684,4 +684,8 @@ MESSAGE_RULES = (
      r"Tour enregistré pour le partage : \1 · envoyez ce fichier, l'autre pilote l'ajoute avec Ajouter un fichier…"),
     (r"^Unable to share lap: (.+)$", r"Impossible de partager le tour : \1"),
     (r"^shared by (.+)$", r"partagé par \1"),
+    # Driver Stats bug audit 2026-11-02
+    (r"^Driver stats of the last stint could not be saved \(file locked by another program, or disk error\?\)\.$",
+     "Les statistiques pilote du dernier relais n'ont pas pu être enregistrées (fichier verrouillé par un autre "
+     "programme, ou erreur de disque ?)."),
 )

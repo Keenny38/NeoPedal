@@ -114,6 +114,11 @@ def notices_ready() -> None:
         app_signal.error.emit(message)
 
 
+def notify_stats_not_saved() -> None:
+    """Tell user driver stats of a stint could not be saved (every attempt failed, app or module stopping)"""
+    _show_notice("Driver stats of the last stint could not be saved (file locked by another program, or disk error?).")
+
+
 def notify_save_failed(filename: str) -> None:
     """Tell user a file could not be saved (every attempt failed): changes are only in memory"""
     _show_notice(

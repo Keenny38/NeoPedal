@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from dataclasses import replace
 from time import localtime, strftime, time
 
 from .. import calculation as calc
@@ -42,7 +43,8 @@ from ..userfile.car_setup import (
     set_car_setup_laptime,
 )
 from ..userfile.driver_history import append_record, session_record, worth_recording
-from ..userfile.driver_stats import DriverStats, load_driver_stats, save_driver_stats
+from ..userfile.driver_stats import DriverStats, combined_stats, load_driver_stats, save_driver_stats
+from ..userfile.json_setting import notify_stats_not_saved
 from ..validator import generator_init
 from ._base import MODULE_STOP, PENDING_CHECK, WAIT_STATE_CHANGE, DataModule, PendingLap
 from ._lap_state import LOAD, SKIP, LapState
@@ -237,6 +239,8 @@ def record_driver_stats(
     last_lap_stime = FLOAT_INF
     last_best_laptime = FLOAT_INF
     last_raw_laptime = FLOAT_INF
+    unsaved: dict[tuple[str, str], DriverStats] = {}  # stats of stints not saved yet (see save_data)
+    stopping = False  # module stopping: last save
 
     def best_laptime(laptime_valid: float, lap_session_type: int):
         """Personal, qualifying & race best lap times"""
@@ -279,12 +283,15 @@ def record_driver_stats(
 
     def save_data():
         """Stats & history record of stint saved (keys of stint start: track & vehicle may already
-        be the next ones)"""
-        save_driver_stats(
-            key_list=key_list,
-            stats_update=driver_stats,
-            filepath=filepath,
-        )
+        be the next ones)
+
+        Stats not saved (file held by another program, disk error) kept and saved with the next stint, user
+        told if still not saved once module stops.
+        """
+        if all(key_list):
+            stint = unsaved.get(key_list)
+            unsaved[key_list] = replace(driver_stats) if stint is None else combined_stats(stint, driver_stats)
+        save_unsaved()
         if all(key_list) and worth_recording(driver_stats.valid, driver_stats.invalid, driver_stats.seconds):
             if best_conditions[0] >= 0:
                 wetness, temperature, compound = best_conditions
@@ -300,11 +307,24 @@ def record_driver_stats(
             ))
         lap_state.delayed_save = False
 
+    def save_unsaved():
+        """Stats of stints not saved yet saved, user told if still not saved once module stops (lost)"""
+        for keys in tuple(unsaved):
+            if save_driver_stats(key_list=keys, stats_update=unsaved[keys], filepath=filepath):
+                del unsaved[keys]
+        if unsaved and stopping:
+            unsaved.clear()
+            notify_stats_not_saved()
+
     # Lap waiting to be counted, stats saved on reset
     lap_state = LapState(resolved_lap, save_data)
 
     while True:
-        step = lap_state.receive((yield lap_state.pending is not None))
+        received = yield lap_state.pending is not None
+        stopping = received is MODULE_STOP
+        step = lap_state.receive(received)
+        if stopping and unsaved:  # stint saved earlier failed, none to save now: last attempt
+            save_unsaved()
         if step == SKIP:
             continue
 

@@ -65,6 +65,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Flux WebSocket de commande à distance : les options envoyées en texte sont lues comme dans l'adresse (`"changes": "false"` n'active plus les changements seuls, `"fields": "speed,gear"` choisit ces champs).
 - Overlays de stream : reprendre le volant après avoir été spectateur avec une source à l'antenne ne fait plus clignoter les overlays de la source (transparents, puis réapparaissant en fondu).
 - Statistiques pilote : un fichier `driver.stats` tenu un instant par un autre programme (antivirus, OneDrive) à la fin d'un relais n'est plus pris pour un fichier abîmé ni remplacé par les seules stats de ce relais (toutes les autres pistes et voitures perdues).
+- Statistiques pilote : les stats d'un relais qui n'ont pas pu être enregistrées (fichier tenu par un autre programme, erreur de disque) sont gardées et enregistrées avec le relais suivant, au lieu d'être perdues sans rien dire ; si elles ne peuvent toujours pas l'être à la fermeture de l'app, un message le signale.
 
 ## 0.28.1 (2026-11-01)
 
