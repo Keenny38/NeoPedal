@@ -43,7 +43,15 @@ from ..module_info import FuelInfo, minfo
 from ..userfile.data_saver import queue_save
 from ..userfile.fuel_delta import load_fuel_delta_file, save_fuel_delta_file
 from ..validator import generator_init, valid_delta_raw
-from ._base import PENDING_CHECK, WAIT_STATE_CHANGE, DataModule, PendingLap, derived_stamp, round6
+from ._base import (
+    PENDING_CHECK,
+    WAIT_STATE_CHANGE,
+    DataModule,
+    PendingLap,
+    derived_stamp,
+    followed_slot_id,
+    round6,
+)
 from ._lap_state import LOAD, SKIP, LapState
 
 # Consumption estimate method in use (FuelInfo.consumptionMethod)
@@ -100,6 +108,8 @@ class Realtime(DataModule):
         try:
             while not _event_wait(update_interval):
                 if realtime_state.active or vehicle_resets != realtime_state.resets:
+                    if vehicle_resets != realtime_state.resets:  # car may change only with a vehicle reset
+                        energy_presence.car_changed((followed_slot_id(), api.read.vehicle.vehicle_name()))
                     vehicle_resets = realtime_state.resets
 
                     if not reset:
@@ -161,11 +171,20 @@ class EnergyPresence:
         present: virtual energy available on car.
     """
 
-    __slots__ = ("present", "_zero_since")
+    __slots__ = ("present", "_zero_since", "_car")
 
     def __init__(self, present: bool = False):
         self.present = present
         self._zero_since: float | None = None  # clock time reading became 0 with car idle
+        self._car: tuple | None = None  # car read (slot id, vehicle name), None until first vehicle reset
+
+    def car_changed(self, car: tuple) -> None:
+        """Car read after a vehicle reset (slot id, vehicle name): another car (car followed changed, spectate)
+        starts absent until read above 0, as the idle condition never applies to a car followed on track"""
+        if self._car is not None and car != self._car:
+            self.present = False
+            self._zero_since = None
+        self._car = car
 
     def update(self, reading: float, idle: bool, now: float) -> bool:
         """Update with virtual energy reading (fraction), whether car is idle & clock time, returns present"""

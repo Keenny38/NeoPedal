@@ -561,3 +561,19 @@ def test_b013_lmu_gap_to_car_ahead_positive(ui_env):
     finally:
         session.close()
     assert min(gaps) >= 0 and max(gaps) > 1.0
+
+
+# --- B-014: virtual energy presence of the car followed before never kept for another car
+def test_b014_energy_presence_follows_the_car():
+    from neopedal.module.module_fuel import EnergyPresence
+
+    presence = EnergyPresence()
+    presence.car_changed((10, "Hypercar"))
+    assert presence.update(0.55, idle=False, now=0.0)
+    presence.car_changed((10, "Hypercar"))  # back to garage, same car: kept
+    assert presence.update(0.0, idle=False, now=1.0)
+    presence.car_changed((11, "LMP2"))  # car followed without virtual energy, driving on track
+    for second in range(2, 60):
+        assert not presence.update(0.0, idle=False, now=float(second))
+    presence.car_changed((10, "Hypercar"))
+    assert presence.update(0.5, idle=False, now=61.0)
