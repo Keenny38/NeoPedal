@@ -6,6 +6,7 @@ import sys
 from types import SimpleNamespace
 
 import pytest
+from PySide6.QtCore import QCoreApplication
 
 from tests.test_dialog_pages import window  # noqa: F401 (window: fixture)
 from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_commands, wait_requests  # noqa: F401 (fixtures)
@@ -202,3 +203,21 @@ def test_b003_action_on_stale_state_asks_and_opens_replay(replays_page, monkeypa
     backend.watch("Bahrain R1", action)
     wait_commands(backend)
     assert asked and "Open replay" in asked[0] and replays_page.sent == []
+
+
+# B-006: map of a replay drew its cars at positions read in shared memory, frozen during replays (another session's)
+def test_b006_replay_map_never_uses_shared_memory(replays_page, monkeypatch):  # noqa: F811
+    from tests.test_replay_map_motion import FakeReader
+
+    backend = replays_page.backend
+    reader = FakeReader([(7, 890.0, -241.0)])  # slot of the replay, position of another session
+    monkeypatch.setattr(type(backend), "reader", staticmethod(lambda: reader))
+    backend.setPanel(2)
+    answered(replays_page, GAME_ANSWERS)  # replay open
+    replays_page.resize(1400, 860)
+    replays_page.show()
+    for _ in range(10):
+        QCoreApplication.processEvents()
+    assert backend.gameState == "replay" and backend.map_center and backend._shown
+    backend.read_live_positions()
+    assert not backend.live_wanted() and backend.mapLive == {}

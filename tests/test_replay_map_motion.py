@@ -106,7 +106,7 @@ def test_map_cars_follow_shared_memory_like_director(replays_page, monkeypatch):
     reader = FakeReader([(7, 120.0, -30.0), (99, 1.0, 1.0)])
     monkeypatch.setattr(type(backend), "reader", staticmethod(lambda: reader))
     backend.setPanel(2)
-    answered(replays_page, GAME_ANSWERS)
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False})  # live session (never in a replay)
     replays_page.resize(1400, 860)
     replays_page.show()
     for _ in range(10):

@@ -33,7 +33,7 @@ from ...process.game_info import Standing
 from .lines import VertexStore, band
 from .models import DictListModel
 from .replays_base import ReplaysBase
-from .replays_common import JUMP, MAX_PATH_SPEED, OFF_TRACK, PANELS, PIT_WIDTH, REPLAY, ROAD_WIDTH, SESSION
+from .replays_common import JUMP, MAX_PATH_SPEED, OFF_TRACK, PANELS, PIT_WIDTH, ROAD_WIDTH, SESSION
 from .track_path import TrackPath
 
 
@@ -139,8 +139,9 @@ class ReplaysMap(ReplaysBase):
         return getattr(api, "read", None)
 
     def live_wanted(self) -> bool:
-        return self._shown and PANELS[self.panel] == "map" and self.state in (SESSION, REPLAY) and bool(
-            self.map_center)
+        """Live session only: shared memory is not updated during a replay (positions frozen, or those of the live
+        session behind its replay)"""
+        return self._shown and PANELS[self.panel] == "map" and self.state == SESSION and bool(self.map_center)
 
     def update_live_timer(self):
         if self.live_wanted():
