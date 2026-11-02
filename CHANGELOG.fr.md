@@ -228,6 +228,48 @@ Des corrections issues d'un audit de l'overlay VR.
 - Overlay Dégâts, design classique : une roue crevée garde sa couleur de dégât de suspension à l'intérieur du contour de crevaison.
 - Overlay Tours et position, design classique : les points de limites de piste face à la limite de la course (par exemple 10.25/12.5) ne sont plus coupés.
 - Overlays Carburant et Énergie virtuelle, design moderne : les valeurs à 3 décimales ou plus ne sont plus coupées et ne débordent plus sur la case suivante.
+- `Résultats et replays`, vue du replay : l'interface du jeu masquée avec `Masquer le HUD` est réaffichée quand vous quittez le replay ou la session, ou fermez la page ; elle ne reste plus masquée dans votre course suivante. La masquer pendant une session en direct demande d'abord confirmation.
+- `Résultats et replays`, liste `Replays` : un replay ajouté ou exporté n'écrase plus un replay qui a pris son nom pendant la copie (renommé dans la page ou enregistré par le jeu) ; il prend le nom libre suivant. Renommer un replay avec le nom d'un replay en cours de copie est refusé.
+- `Résultats et replays`, liste `Replays` : quand le dossier des replays est sur un disque sans corbeille (clé USB, disque réseau), supprimer des replays ou des fichiers temporaires demande de les supprimer définitivement, au lieu d'annoncer la corbeille alors que le système les supprime définitivement.
+- `Résultats et replays` : voir un événement ou un tour d'une session dont la page a ouvert le replay ne déplace plus aussitôt la caméra du jeu quand le jeu a pu quitter ce replay entre-temps (page masquée) ; la page demande d'abord et ouvre le replay.
+- `Résultats et replays`, vue du replay, panneau Carte : les voitures d'un replay bougent à nouveau sur la carte ; elles étaient dessinées aux positions figées que le jeu garde pendant les replays (parfois celles d'un autre circuit).
+- `Résultats et replays`, incidents de la vue du replay : en session en direct, sauter à un incident (frise, précédent / suivant, `Entrée`) demande d'abord confirmation, au lieu d'envoyer aussitôt le jeu dans le replay de la session.
+- `Résultats et replays`, replay de la session en direct (saut vers un incident) : la page n'affiche plus l'heure et le tour du direct comme ceux du replay ; tour précédent / suivant et `Aller au tour` invitent à utiliser la frise au lieu de sauter ailleurs, et le saut vers l'incident attend que le jeu le prenne.
+- `Résultats et replays` : un replay ouvert depuis la page quand LMU est dans ses menus ne se termine plus par `Le jeu n'a pas accepté la commande` pendant que le jeu le charge (LMU ne répond plus pendant plusieurs minutes) ; la page l'attend, et l'événement ou le tour demandé depuis les résultats est bien montré une fois le replay ouvert.
+- `Résultats et replays`, vue du replay : quand un autre replay est ouvert dans le jeu pendant que la page est masquée, la page ne garde plus le nom, les tours et `Retour au direct` du précédent ; un replay qui ne s'ouvre jamais ne reste plus affiché « en cours d'ouverture ».
+- `Résultats et replays` : des replays en cours d'ajout, d'export ou de mise à la corbeille ne sont plus arrêtés sans message quand la page est libérée pendant qu'elle est masquée (inutilisée un moment, fenêtre réduite).
+- `Résultats et replays`, liste `Replays` : quand la liste des replays protégés ne peut pas être lue, la page s'ouvre quand même, garde le fichier sous `game_replays.json.bad` et le signale ; `Supprimer les replays plus anciens que…` et `Garder seulement les derniers replays…` sont refusés jusqu'à ce que vous protégiez à nouveau un replay, pour qu'aucun replay protégé avant ne soit supprimé.
+- `Résultats et replays`, `Sessions` : revenir sur la page, `F5` ou un nouveau fichier de résultats ne remet plus en haut le classement et les événements de la session affichée, et ne rejoue plus l'animation de son graphique des positions.
+- `Résultats et replays`, `Sessions` : la session que vous venez de terminer obtient son bouton `Regarder le replay` et son onglet `Replay` une fois le replay enregistré par le jeu (`F5`, ou retour sur la page), et un fichier de résultats réécrit par le jeu est relu ; la session la plus récente affichée n'était jamais relue.
+- `Résultats et replays`, `Tours` : le bouton télémétrie d'un tour n'ouvre plus le tour suivant quand le tour lui-même n'a pas été enregistré (tour invalide) et que les deux tours ont pris à peu près le même temps.
+- `Résultats et replays`, carte pilote de l'accueil, `Statistiques pilote` : les contacts avec des objets autres que les murs (poteaux, panneaux, plots, roues détachées, ailerons) ne sont plus comptés comme des contacts avec des voitures ; contacts et courses propres sont justes.
+- Carte pilote de l'accueil, `Statistiques pilote` : les courses relancées et les courses quittées avant le départ (aucun tour) ne sont plus comptées dans les courses et les courses propres.
+- `Résultats et replays`, liste `Replays` : un replay renommé reste sélectionné.
+- `Résultats et replays`, liste `Replays` : renommer un replay avec le nom d'un replay encore listé est refusé, au lieu de créer deux lignes du même nom.
+- `Résultats et replays`, liste `Replays` : renommer un replay refuse les noms de périphériques Windows (`CON`, `NUL`, `COM1`...) et les caractères de contrôle, et ne double plus une extension `.Vcr` tapée.
+- `Résultats et replays`, liste `Replays` : `Supprimer les fichiers temporaires` supprime aussi les replays restés à moitié copiés (`.Vcr.part`) quand l'app s'est arrêtée pendant une copie.
+- `Résultats et replays`, liste `Replays` : renommer, supprimer, exporter et `Afficher dans le dossier` agissent sur le fichier du replay dans le dossier où le jeu le liste.
+- `Résultats et replays`, `Sessions` : un fichier de résultats encore en cours d'écriture quand la page le lit la première fois est relu jusqu'à ce qu'il soit lisible, au lieu que sa session manque jusqu'à `F5`.
+- `Résultats et replays`, `Tours` et graphique des positions : les tours des sessions en ligne rejointes en cours n'affichent plus `P105` et un pneu `N/A`, et ne mettent plus ces voitures en dernier sur le graphique.
+- `Résultats et replays`, `Événements` : les avis de pénalités purgées ne sont plus listés et comptés comme des pénalités sans pilote.
+- `Résultats et replays` : les points de limites de piste comptent aussi les avertissements que le jeu a laissés sans suite, au lieu d'afficher moins de points (ou aucun).
+- `Résultats et replays`, `Événements` : un avertissement de limites de piste réécrit autour de la pénalité qu'il a donnée n'est listé qu'une fois.
+- `Résultats et replays` : un temps de course à une fraction de milliseconde d'une minute ronde ne s'écrit plus `59:60.000`.
+- `Résultats et replays`, `Classement` : les voitures des essais et des qualifications n'affichent plus un second pilote qui n'apparaît que sur leur premier tour non chronométré.
+- `Résultats et replays`, `Événements` : les pénalités et limites de piste reconnaissent les textes écrits par LMU (`Drive Thru`, `Disqualify`, motifs comme l'excès de vitesse ou les limites de piste) et sont donc traduites ; un motif n'est plus coupé quand un nom de pilote contient « for ».
+- `Résultats et replays`, `Statistiques pilote` : une session en ligne regardée en spectateur ne prend plus son seul pilote humain pour vous.
+- `Résultats et replays`, `Classement` : les voitures d'une course restées sans statut (déconnectées, jamais parties) sont affichées `Non classé` au lieu d'un écart et de places gagnées.
+- `Résultats et replays`, `Sessions` : les logos de circuits récupérés pendant que la page était masquée s'affichent dans la liste à votre retour.
+- `Résultats et replays`, `Sessions` : une session ouverte depuis une autre page ne remplace plus vos filtres enregistrés de la liste (type de session, masquer les sessions sans tour).
+- `Résultats et replays`, `Tours` : les tours enregistrés pendant l'heure répétée du passage à l'heure d'hiver ont leur bouton télémétrie.
+- `Résultats et replays`, vue du replay, panneau Carte : une carte du circuit envoyée vide par le jeu pendant son chargement est redemandée, et `F5` redemande une carte abandonnée, au lieu que la carte reste vide.
+- `Résultats et replays`, vue du replay : après un saut (frise, tour, incident), la vitesse du replay et la tête de lecture n'affichent plus une fausse vitesse comme `40x`.
+- `Résultats et replays`, vue du replay : une requête au jeu restée sans réponse ne vide plus un moment les incidents, le classement et le menu HUD, et ne perd plus l'incident sélectionné.
+- `Résultats et replays`, vue du replay : en session en direct, la voiture suivie affichée suit celle de la caméra du jeu.
+- `Résultats et replays`, `Exporter les incidents` : le CSV utilise `;` quand la langue de l'app écrit les décimales avec une virgule (français), pour qu'Excel lise ses colonnes ; un nom de pilote qui commence comme une formule n'est jamais exécuté, et un caractère cassé dans un nom ne laisse plus un fichier vide.
+- `Résultats et replays` et `Régie de course`, frise des incidents : un double-clic (remise à zéro du zoom) ne déplace plus aussi le replay et ne saute plus à un incident.
+- `Résultats et replays`, vue du replay : `Lecture / Pause` (et `Espace`) met en pause dès le premier appui un replay lancé depuis le jeu.
+- `Résultats et replays` : les commandes de replay encore en attente (recherche d'un tour, sauts) ne sont plus envoyées au jeu une fois la page fermée.
 
 ## 0.28.1 (2026-11-01)
 

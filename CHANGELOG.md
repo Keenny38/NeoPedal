@@ -228,6 +228,48 @@ Fixes from an audit of the VR overlay.
 - Damage overlay, classic look: a punctured wheel keeps its suspension damage color inside the puncture outline.
 - Laps and Position overlay, classic look: track limits points against the race limit (such as 10.25/12.5) are no longer cut off.
 - Fuel and Virtual Energy overlays, modern look: values with 3 decimal places or more are no longer cut off or spilled over the next tile.
+- `Results & Replays`, replay view: the game HUD hidden with `Hide HUD` is shown again once you leave the replay or the session, or close the page; it no longer stays hidden in your next race. Hiding it during a live session asks first.
+- `Results & Replays`, `Replays` list: a replay added or exported no longer writes over a replay that took its name while it was being copied (renamed in the page or saved by the game); it takes the next free name. Renaming a replay to the name of a replay being copied is refused.
+- `Results & Replays`, `Replays` list: when the replay folder is on a drive without a recycle bin (USB stick, network drive), deleting replays or temporary files asks to delete them for good, instead of saying they go to the recycle bin while the system deletes them for good.
+- `Results & Replays`: watching an event or a lap of a session whose replay the page opened no longer moves the game camera at once when the game may have left that replay meanwhile (page hidden); it asks first and opens the replay.
+- `Results & Replays`, replay view, map panel: cars of a replay move on the map again; they were drawn at the frozen positions the game keeps during replays (sometimes those of another track).
+- `Results & Replays`, incidents of the replay view: in a live session, jumping to an incident (timeline, previous / next, `Enter`) asks first, instead of sending the game to the replay of the session at once.
+- `Results & Replays`, replay of the live session (jump to an incident): the page no longer shows the live time and lap as those of the replay; previous / next lap and `Go to lap` tell to use the timeline instead of jumping elsewhere, and the jump to the incident waits until the game takes it.
+- `Results & Replays`: a replay opened from the page while LMU is in its menus no longer ends with `Game did not accept the command` while the game loads it (LMU answers nothing for minutes then); the page waits for it, and the event or lap asked from the results is still shown once it is open.
+- `Results & Replays`, replay view: when another replay is opened in the game while the page is hidden, the page no longer keeps the name, laps and `Back to Live` of the former one; a replay that never opens no longer stays shown as opening.
+- `Results & Replays`: replays being added, exported or moved to the recycle bin are no longer stopped without a word when the page is freed while hidden (unused for a while, window minimized).
+- `Results & Replays`, `Replays` list: when the list of protected replays can't be read, the page opens anyway, keeps the file as `game_replays.json.bad` and tells it; `Delete Replays Older Than…` and `Keep Only Latest Replays…` are refused until you protect a replay again, so no formerly protected replay is deleted.
+- `Results & Replays`, `Sessions`: going back to the page, `F5` or a new results file no longer scrolls the classification and events of the session shown back to the top, nor animates its positions chart again.
+- `Results & Replays`, `Sessions`: the session you just finished gets its `Watch Replay` button and `Replay` tab once the game has saved its replay (`F5`, or going back to the page), and a results file rewritten by the game is shown again; the newest session shown was never read again.
+- `Results & Replays`, `Laps`: the telemetry button of a lap no longer opens the next lap when the lap itself was not recorded (invalid lap) and both laps took about the same time.
+- `Results & Replays`, Home driver card, `Driver Stats`: contacts with track objects other than walls (posts, signs, cones, loose wheels, wings) are no longer counted as contacts with cars, so contacts and clean races are right.
+- Home driver card, `Driver Stats`: race restarts and races left before the start (no lap) are no longer counted in races and clean races.
+- `Results & Replays`, `Replays` list: a replay renamed stays selected.
+- `Results & Replays`, `Replays` list: renaming a replay to the name of a replay still listed is refused, instead of making two rows of the same name.
+- `Results & Replays`, `Replays` list: renaming a replay refuses Windows device names (`CON`, `NUL`, `COM1`...) and control characters, and no longer doubles a typed `.Vcr` extension.
+- `Results & Replays`, `Replays` list: `Delete Temporary Files` also removes replays left half copied (`.Vcr.part`) when the app ended during a copy.
+- `Results & Replays`, `Replays` list: rename, delete, export and `Show in Folder` act on the replay file in the folder the game lists it in.
+- `Results & Replays`, `Sessions`: a results file still being written when the page first reads it is read again until it can be, instead of its session missing until `F5`.
+- `Results & Replays`, `Laps` and positions chart: laps of online sessions you joined later no longer show `P105` and an `N/A` tyre, nor put those cars last on the chart.
+- `Results & Replays`, `Events`: notices of penalties served are no longer listed and counted as penalties without a driver.
+- `Results & Replays`: track limits points also count the warnings the game left without further action, instead of showing fewer points (or none).
+- `Results & Replays`, `Events`: a track limits warning written again around the penalty it gave is listed once.
+- `Results & Replays`: a race time a fraction of a millisecond below a whole minute is no longer written `59:60.000`.
+- `Results & Replays`, `Classification`: cars of practice and qualifying sessions no longer show a second driver who only appears on their untimed first lap.
+- `Results & Replays`, `Events`: penalties and track limits use the texts LMU writes (`Drive Thru`, `Disqualify`, reasons such as speeding or track limits), so they are translated, and a reason is no longer cut when a driver name holds "for".
+- `Results & Replays`, `Driver Stats`: an online session watched as a spectator no longer takes its only human driver as you.
+- `Results & Replays`, `Classification`: cars of a race left without status (disconnected, never started) are shown `Not classified` instead of with a gap and places gained.
+- `Results & Replays`, `Sessions`: track logos fetched while the page was hidden show in the list once you come back.
+- `Results & Replays`, `Sessions`: a session opened from another page no longer replaces your saved list filters (session type, hide sessions without laps).
+- `Results & Replays`, `Laps`: laps recorded in the hour repeated when daylight saving time ends get their telemetry button.
+- `Results & Replays`, replay view, map panel: a track map the game sends empty while it loads is asked again, and `F5` asks again a map given up, instead of the map staying empty.
+- `Results & Replays`, replay view: after a jump (timeline, lap, incident), the replay speed and playhead no longer show a false speed such as `40x`.
+- `Results & Replays`, replay view: a game request timing out no longer empties the incidents, standings and HUD menu for a moment nor loses the selected incident.
+- `Results & Replays`, replay view: in a live session the camera car shown follows the car the game camera is on.
+- `Results & Replays`, `Export Incidents`: the CSV uses `;` when the app language writes decimals with a comma (French), so Excel reads its columns; driver names starting like a formula are never run, and a broken character in a name no longer leaves an empty file.
+- `Results & Replays` and `Broadcast Director`, incidents timeline: a double click (zoom reset) no longer also moves the replay or jumps to an incident.
+- `Results & Replays`, replay view: `Play / Pause` (and `Space`) pauses a replay played from the game at the first press.
+- `Results & Replays`: replay commands still waiting (lap search, jumps) are no longer sent to the game once the page is closed.
 
 ## 0.28.1 (2026-11-01)
 
