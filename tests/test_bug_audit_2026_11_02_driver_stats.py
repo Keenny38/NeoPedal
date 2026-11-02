@@ -694,3 +694,21 @@ def test_b018_online_answer_for_other_account_not_read_again_every_check(tmp_pat
         watcher.check()
     assert online.calls == 1  # one sign in, not one per check
     assert watcher.player is None or watcher.player.driver != dr.Rank("Gold", 2, 10)
+
+
+# B-037
+def test_b037_driver_username_never_given_ranks_of_a_homonym():
+    """Driver Y's username is the real name of driver X: Y keeps own ranks whatever the answer order"""
+    from neopedal.process import driver_ranks as dr
+    from neopedal.process import field_ranks as fr
+    from tests.test_field_ranks import FakeSource, profile
+
+    mate = profile("Alex Martin", ("Gold", 2, 10))
+    other = profile("Speedy", ("Bronze", 1, 0))
+    other["name"] = "Alex Martin"  # real name of driver "Speedy"
+    source = FakeSource()
+    source.post = lambda path, payload: [mate, other]  # homonym answered last
+    field = fr.FieldRanks(source, clock=lambda: 0.0, run=lambda work: work())
+    field.poll(["Alex Martin", "Speedy"])
+    assert field.ranks_of("Alex Martin").driver == dr.Rank("Gold", 2, 10)
+    assert field.ranks_of("Speedy").driver == dr.Rank("Bronze", 1, 0)

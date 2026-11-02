@@ -218,6 +218,7 @@ class FieldRanks:
         if not due:
             return
         found: dict[str, DriverRanks] = {}
+        by_name: dict[str, DriverRanks] = {}  # real names: only where no username matched (homonyms)
         for start in range(0, len(due), BATCH):
             batch = due[start:start + BATCH]
             for name in batch:
@@ -229,9 +230,11 @@ class FieldRanks:
                 entry = player_ranks(player)
                 if entry is None or not isinstance(player, dict):
                     continue
-                for value in (player.get("username"), player.get("name")):
+                for value, names in ((player.get("username"), found), (player.get("name"), by_name)):
                     if isinstance(value, str) and value.strip():
-                        found[driver_key(value)] = entry
+                        names[driver_key(value)] = entry
+        for key, entry in by_name.items():
+            found.setdefault(key, entry)  # a username asked never given the ranks of a driver named like it
         if found:
             merged = {**ranks, **{key: entry for key, entry in found.items() if key in wanted}}
             if len(merged) > KEEP_DRIVERS:  # drivers gone long ago dropped first (oldest asked)
