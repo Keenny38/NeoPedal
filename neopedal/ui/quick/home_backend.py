@@ -472,6 +472,8 @@ class HomeBackend(PageBackend):
 
         record = last_session()
         if self._record_read and record == self._record:
+            if record is not None:  # lap time goal changed on driver stats page since (debrief key checks it)
+                self.refresh_debrief(record)
             return
         self._record_read = True
         self._record = record

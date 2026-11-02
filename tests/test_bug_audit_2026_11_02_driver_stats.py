@@ -854,3 +854,19 @@ def test_b024_home_week_uses_personal_bests_of_stats_file(stats_folder, monkeypa
     home_backend.HomeBackend.refresh_week(page)
     kinds = [item["kind"] for item in jobs[0]()]
     assert "goal_near" not in kinds
+
+
+# B-027
+def test_b027_goal_changed_on_stats_page_refreshes_home_debrief(monkeypatch):
+    """Last session unchanged: debrief made again once its lap time goal changed (key compares the goal)"""
+    from types import SimpleNamespace
+
+    from neopedal.ui import home_view
+    from neopedal.ui.quick.home_backend import HomeBackend
+
+    record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="GT3", best=100.0, valid=3)
+    monkeypatch.setattr(home_view, "last_session", lambda: record)
+    debriefs = []
+    page = SimpleNamespace(_record_read=True, _record=record, refresh_debrief=debriefs.append)
+    HomeBackend.refresh_last_session(page)
+    assert debriefs == [record]
