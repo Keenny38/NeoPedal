@@ -238,15 +238,22 @@ class ReplaysFolder(ReplaysBase):
         if not folder or not replays:
             return
         size = size_text(sum(replay.size for replay in replays))
-        message = (f"Move replay <b>{replays[0].name}</b> ({size}) to the recycle bin?" if len(replays) == 1
-                   else f"Move <b>{len(replays)}</b> replays ({size}) to the recycle bin?")
+        permanent = not replay_files.recycle_bin(folder)  # no recycle bin (USB stick, network drive): deleted for good
+        if permanent:
+            message = (f"Delete replay <b>{replays[0].name}</b> ({size}) for good? The drive of the replay folder "
+                       "has no recycle bin." if len(replays) == 1 else f"Delete <b>{len(replays)}</b> replays ({size}) "
+                       "for good? The drive of the replay folder has no recycle bin.")
+        else:
+            message = (f"Move replay <b>{replays[0].name}</b> ({size}) to the recycle bin?" if len(replays) == 1
+                       else f"Move <b>{len(replays)}</b> replays ({size}) to the recycle bin?")
         paths = [replay_files.replay_path(folder, replay.name) for replay in replays]
 
         def confirmed(chosen: bool):
             if chosen and not self.trash_busy():  # asked in the page: another deletion may have started meanwhile
-                self.start_trash(paths, "replays", len(kept))
+                self.start_trash(paths, "replays", len(kept), permanent)
 
-        dialogs.confirm(self._window, tr(title), trm(message), tr(title), confirmed, danger=True)
+        dialogs.confirm(self._window, tr(title), trm(message), tr("Delete Permanently") if permanent else tr(title),
+                        confirmed, danger=True)
 
     def trash_busy(self) -> bool:
         """Files still being moved to the recycle bin (told): one deletion at a time"""
@@ -254,10 +261,11 @@ class ReplaysFolder(ReplaysBase):
             self.notify(tr("Files are still being moved to the recycle bin, try again once done"), True)
         return self.request_trash.busy
 
-    def start_trash(self, paths: list[str], kind: str, kept: int = 0):
+    def start_trash(self, paths: list[str], kind: str, kept: int = 0, permanent: bool = False):
         """Files moved to the recycle bin in background (hundreds of large replays take a while), progress shown,
-        list refreshed once done"""
+        list refreshed once done. Permanent: no recycle bin, the system deletes them for good (told once done)."""
         self.trash_progress, self.trash_kind, self.trash_kept = 0.0, kind, kept
+        self.trash_permanent = permanent
         self.trash_cancel = cancelled = threading.Event()
         progress = copy_reporter(self, "set_trash_progress")
         self.request_trash.start(lambda: replay_files.trash_replays(paths, progress, cancelled))
@@ -277,12 +285,15 @@ class ReplaysFolder(ReplaysBase):
         if result.errors:
             self.notify(trm(f"Unable to delete (replay open in game?): {', '.join(result.errors)}"), True)
         elif result.cancelled:
-            self.notify(trm(f"Deletion stopped, {count} file(s) moved to the recycle bin"), True)
+            self.notify(trm(f"Deletion stopped, {count} file(s) deleted for good" if self.trash_permanent
+                            else f"Deletion stopped, {count} file(s) moved to the recycle bin"), True)
         elif self.trash_kind == "temp":
-            self.notify(trm(f"{count} temporary file(s) moved to the recycle bin"))
+            self.notify(trm(f"{count} temporary file(s) deleted for good" if self.trash_permanent
+                            else f"{count} temporary file(s) moved to the recycle bin"))
         else:
             kept = self.trash_kept
-            self.notify(trm(f"{count} replay(s) moved to the recycle bin")
+            self.notify(trm(f"{count} replay(s) deleted for good" if self.trash_permanent
+                            else f"{count} replay(s) moved to the recycle bin")
                         + (f" · {trm(f'{kept} protected replay(s) kept')}" if kept else ""))
         if self.trash_kind == "temp":
             self.update_files()
@@ -328,14 +339,17 @@ class ReplaysFolder(ReplaysBase):
             return
         size = self.temp_size()
         paths = list(self.temp)
+        permanent = not replay_files.recycle_bin(self.replay_folder())
 
         def confirmed(chosen: bool):
             if chosen and not self.trash_busy():
-                self.start_trash(paths, "temp")
+                self.start_trash(paths, "temp", permanent=permanent)
 
-        dialogs.confirm(self._window, tr("Delete Temporary Files"),
-                        trm(f"Move <b>{len(paths)}</b> temporary files ({size}) to the recycle bin?"),
-                        tr("Delete Temporary Files"), confirmed, danger=True)
+        message = (f"Delete <b>{len(paths)}</b> temporary files ({size}) for good? The drive of the replay folder has "
+                   "no recycle bin." if permanent else
+                   f"Move <b>{len(paths)}</b> temporary files ({size}) to the recycle bin?")
+        dialogs.confirm(self._window, tr("Delete Temporary Files"), trm(message),
+                        tr("Delete Permanently") if permanent else tr("Delete Temporary Files"), confirmed, danger=True)
 
     def refresh_files(self, added: list[str] | None = None, deleted: list[str] | None = None):
         """Replays list updated after files changed: at once from files, then from game (ids, metadata)"""

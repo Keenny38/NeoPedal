@@ -2,7 +2,10 @@
 
 import os
 import re
+import sys
 from types import SimpleNamespace
+
+import pytest
 
 from tests.test_dialog_pages import window  # noqa: F401 (window: fixture)
 from tests.test_game_info import GAME_ANSWERS, answered, replays_page, wait_commands, wait_requests  # noqa: F401 (fixtures)
@@ -145,3 +148,35 @@ def test_b004_copy_never_writes_over_a_replay_named_meanwhile(tmp_path):
     assert (game / "Spa R1 1 (2).Vcr").read_bytes() == b"saved by game"  # never written over
     assert result.added == ["Spa R1 1 (3)"] and (game / "Spa R1 1 (3).Vcr").stat().st_size == source.stat().st_size
     assert not list(game.glob("*.part"))
+
+
+# B-005: on a drive without recycle bin (USB stick, network drive), "moved to the recycle bin" deleted replays for good
+def test_b005_no_recycle_bin_asks_to_delete_for_good(replays_page, monkeypatch, tmp_path):  # noqa: F811
+    from neopedal.ui.quick import dialogs, replay_files
+
+    backend = page_of_replays(replays_page, tmp_path / "Replays", "AB")
+    asked: list[tuple[str, str]] = []
+
+    def confirm(parent, title, text, action, on_result, **kwargs):
+        asked.append((text, action))
+        on_result(True)
+
+    monkeypatch.setattr(dialogs, "confirm", confirm)
+    monkeypatch.setattr(replay_files, "QFile", SimpleNamespace(moveToTrash=lambda path: True))
+    monkeypatch.setattr(replay_files, "recycle_bin", lambda folder: False)
+    backend.deleteReplays("A")
+    wait_requests(backend.request_trash)
+    assert "for good" in asked[0][0] and "no recycle bin" in asked[0][0] and asked[0][1] == "Delete Permanently"
+    assert backend.noticeText == "1 replay(s) deleted for good"
+    monkeypatch.setattr(replay_files, "recycle_bin", lambda folder: True)  # usual drive: recycle bin as before
+    backend.deleteReplays("B")
+    wait_requests(backend.request_trash)
+    assert "recycle bin?" in asked[1][0] and backend.noticeText == "1 replay(s) moved to the recycle bin"
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="drive types of Windows")
+def test_b005_recycle_bin_of_drives(tmp_path):
+    from neopedal.ui.quick import replay_files
+
+    assert replay_files.recycle_bin(str(tmp_path))  # fixed drive
+    assert not replay_files.recycle_bin("//no-such-server/share/Replays")  # network share

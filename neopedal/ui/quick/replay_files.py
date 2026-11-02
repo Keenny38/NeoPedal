@@ -236,6 +236,23 @@ def temp_files(folder: str, now: float | None = None) -> list[str]:
     return paths
 
 
+def recycle_bin(folder: str) -> bool:
+    """Files of folder go to a recycle bin when moved there (Windows: fixed drive whose recycle bin answers; USB
+    sticks & network drives have none, files are deleted for good), True if unknown (other systems)"""
+    if sys.platform != "win32":
+        return True
+    import ctypes
+
+    class RecycleBinInfo(ctypes.Structure):  # SHQUERYRBINFO
+        _fields_ = [("cbSize", ctypes.c_uint32), ("i64Size", ctypes.c_int64), ("i64NumItems", ctypes.c_int64)]
+
+    root = os.path.splitdrive(os.path.abspath(folder))[0] + "\\"
+    if ctypes.windll.kernel32.GetDriveTypeW(root) != 3:  # DRIVE_FIXED
+        return False
+    info = RecycleBinInfo(ctypes.sizeof(RecycleBinInfo))
+    return ctypes.windll.shell32.SHQueryRecycleBinW(root, ctypes.byref(info)) == 0  # S_OK
+
+
 def trash_replays(paths: Sequence[str], progress: Callable[[float], None] | None = None,
                   cancelled: threading.Event | None = None) -> TrashResult:
     """Move files to the recycle bin (in background: a few seconds each for large replays on some disks), progress

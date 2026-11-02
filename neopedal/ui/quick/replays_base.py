@@ -155,6 +155,7 @@ class ReplaysBase(_HostBase):
         trash_progress: float
         trash_kind: str
         trash_kept: int
+        trash_permanent: bool
         trash_cancel: threading.Event
         map_track: str | None
         map_center: list[tuple[float, float, float]]

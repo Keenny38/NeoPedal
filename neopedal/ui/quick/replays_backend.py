@@ -250,6 +250,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.trash_progress = -1.0  # files being moved to the recycle bin: 0 to 1, -1 if none
         self.trash_kind = "replays"  # replays or temp (temporary files of game)
         self.trash_kept = 0  # protected replays left out of the deletion running (told once done)
+        self.trash_permanent = False  # deletion running deletes for good (no recycle bin on the drive)
         self.trash_cancel = threading.Event()
         self.notice = ""
         self.notice_error = False
