@@ -208,6 +208,7 @@ Fixes from an audit of the VR overlay.
 - Overlays moved with the arrow keys: a preset load, restart or quit right after the last key press no longer loses the new place for the screen setup.
 - `Overlay Options`, Black Box: options hidden by the automatic compact mode are noted as set by `auto_compact_display_scale`, no longer by the display profile.
 - `Overlay Options`, Black Box: the `Colorblind Safe` color theme also converts the damage panel, energy, lift and coast, refill mark and high battery colors, which stayed red / green.
+- Black Box previews (`Overlay Options`, `Overlays` page): the battery bar, energy gauge, stint comparison and ABS / TC chips are shown, as switching them on seemed to do nothing.
 
 ## 0.28.1 (2026-11-01)
 

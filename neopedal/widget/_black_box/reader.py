@@ -219,6 +219,7 @@ class DataReader:
     unit_temp: Any
     update: Any
     wcfg: BlackBoxConfig
+    cfg: Any  # setting (preview proxy too)
     wear_forecast_laps: Any
     wheel_targets: Any
     wheels: Any
@@ -629,7 +630,11 @@ class DataReader:
 
     def update_presence(self):
         """Relayout once a presence change stayed stable for resize_delay"""
-        target = self.resize_debounce.update(self.current_presence(), monotonic())
+        presence = self.current_presence()
+        if getattr(self.cfg, "preview", False):  # drawn from one update: blocks of its data at once (B-039)
+            target = presence
+        else:
+            target = self.resize_debounce.update(presence, monotonic())
         if target != self.presence:
             self.relayout(target)
             self.last_state = ()  # repaint

@@ -71,6 +71,8 @@ class _PreviewUser:
 class PreviewSetting:
     """Setting proxy for preview: reads edited values, never saves"""
 
+    preview = True  # overlays drawn from one update (black box: no wait for stable data)
+
     def __init__(self, config: Setting, widget_name: str, widget_setting: dict, scale: float = 1.0):
         self._cfg = config
         self.user = _PreviewUser(config.user, widget_name, widget_setting, scale)

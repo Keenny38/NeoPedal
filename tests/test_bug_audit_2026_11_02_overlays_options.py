@@ -984,3 +984,11 @@ def test_b038_colorblind_theme_converts_semantic_colors(ui_env):
     for key in ("damage_panel_suspension_color", "damage_panel_body_color_detached", "energy_gauge_color",
                 "gauge_refill_mark_color", "warning_color_high_battery"):
         assert theme_color(defaults[key], theme) != defaults[key].upper(), key
+
+
+# B-039: Black Box preview drawn compact (auto resize): battery & other blocks never shown
+@DESIGNS
+def test_b039_black_box_preview_shows_blocks_of_its_data(ui_env, bundled_fonts, modern):
+    values = {"enable_auto_resize": True, "display_profile": "Custom"}
+    assert picture("black_box", modern, show_battery_bar=True, **values) != picture(
+        "black_box", modern, show_battery_bar=False, **values)
