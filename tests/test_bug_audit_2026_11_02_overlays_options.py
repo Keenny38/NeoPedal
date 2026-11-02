@@ -1350,3 +1350,31 @@ def test_b067_consumption_tiles_fit_decimals(ui_env, bundled_fonts, name, key):
     values = {option: value for option, value in shown.items() if option in cfg.user.setting[name]}
     assert picture_width(name, True, **values, **{key: 6}) > picture_width(name, True, **values)
     assert picture_width(name, True, **values, **{key: 0}) == picture_width(name, True, **values)
+
+
+# B-079: modern gap trend column narrower than "9.9" drawn, arrow & rate never centered
+@pytest.mark.parametrize("name", ["relative", "standings", "rivals"])
+def test_b079_gap_trend_column_fits_and_centers(ui_env, bundled_fonts, monkeypatch, name):
+    from PySide6.QtCore import QRectF
+    from PySide6.QtGui import QImage, QPainter
+
+    from neopedal.ui.widget_preview import _with_preview_widget
+    from neopedal.widget._modern import table
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
+    values = dict(cfg.user.setting[name], enable_classic_layout=False, column_gap_trend=True, font_size=22)
+    arrows = []
+    monkeypatch.setattr(table, "triangle", lambda painter, rect, up, color: arrows.append(QRectF(rect)))
+
+    def check(widget):
+        column = next(column for column in widget.table.columns if column.key == "gap_trend")
+        size = widget.table.row_height * table.CHANGE_ARROW
+        assert column.width >= size * 1.3 + widget.text_width("value", "9.9")
+        image = QImage(400, 100, QImage.Format.Format_ARGB32)
+        painter = QPainter(image)
+        cell = QRectF(0, 0, 300, widget.table.row_height)
+        widget.draw_trend(painter, cell, (9.9, True))
+        painter.end()
+        assert arrows[-1].left() > 100  # centered, was: at the left edge
+
+    _with_preview_widget(cfg, name, values, 1.0, check)

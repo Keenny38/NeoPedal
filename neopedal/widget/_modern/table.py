@@ -471,10 +471,14 @@ class TableMixin:
         rate, good = trend
         color = theme.positive if good else theme.negative
         size = rect.height() * CHANGE_ARROW
-        arrow = QRectF(rect.left(), rect.center().y() - size / 2, size, size)
+        text = f"{min(abs(rate), 9.9):.1f}"
+        # Arrow & rate centered in the cell (column wider under a wider label) (B-079)
+        left = rect.left() + max(rect.width() - size * 1.3 - self.text_width("value", text), 0.0) / 2
+        arrow = QRectF(left, rect.center().y() - size / 2, size, size)
         triangle(painter, arrow, rate > 0, color)
-        text_rect = QRectF(arrow.right() + size * 0.3, rect.top(), rect.width() - size * 1.3, rect.height())
-        self.draw_text(painter, text_rect, f"{min(abs(rate), 9.9):.1f}", "value", color, LEFT, elide=False)
+        text_rect = QRectF(arrow.right() + size * 0.3, rect.top(), rect.right() - arrow.right() - size * 0.3,
+                           rect.height())
+        self.draw_text(painter, text_rect, text, "value", color, LEFT, elide=False)
 
     def draw_deltas(self: Any, painter: QPainter, rect: QRectF, deltas: tuple):
         """Lap time difference to player of recent laps: green if player was faster"""

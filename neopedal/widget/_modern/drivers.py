@@ -536,9 +536,8 @@ class DriverTable(TableMixin, ModernOverlay):
             return Column(key, self.text_width("dim", "88.8%"), RIGHT)
         if key == "delta_laptime":
             return Column(key, (self.text_width("small", "8.8") + unit * 0.3) * self.delta_count, RIGHT)
-        if key == "gap_trend":  # centered: apart from the right aligned gap before it
-            return Column(key, change_width(unit, ROW_SCALE, self.digit_width("value"), 2) + self.text_width("value", "."),
-                          CENTER)
+        if key == "gap_trend":  # centered: apart from the right aligned gap before it; "9.9" as drawn (B-079)
+            return Column(key, change_width(unit, ROW_SCALE, 0.0, 0) + self.text_width("value", "9.9"), CENTER)
         return self.extra_column(key)
 
     def extra_column(self, key: str) -> Column | None:
