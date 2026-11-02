@@ -533,3 +533,18 @@ def picture(name: str, modern: bool, **values) -> bytes:
 def test_b018_delta_range_kept_positive(ui_env, bundled_fonts, name, modern):
     assert picture(name, modern, delta_display_range=-2) == picture(name, modern, delta_display_range=2)
     assert picture(name, modern, delta_display_range=0) == picture(name, modern, delta_display_range=0.001)
+
+
+# B-019: Brake Bias (modern): boxes sized for the default decimal places, more decimals cut with "..."
+def picture_width(name: str, modern: bool, **values) -> int:
+    from neopedal.ui.widget_preview import render_widget
+
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    return render_widget(cfg, name, dict(cfg.user.setting[name], enable_classic_layout=not modern, **values)).width()
+
+
+@pytest.mark.parametrize("key", ["decimal_places_brake_bias", "decimal_places_baseline_bias_delta",
+                                 "decimal_places_brake_migration"])
+def test_b019_brake_bias_modern_boxes_fit_decimal_places(ui_env, bundled_fonts, key):
+    default = cfg.user.setting["brake_bias"][key]
+    assert picture_width("brake_bias", True, **{key: default + 2}) > picture_width("brake_bias", True)

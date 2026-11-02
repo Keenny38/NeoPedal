@@ -164,6 +164,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Page `Overlays`, vue `Écran` : un overlay glissé ou déplacé avec les flèches ne peut plus être déposé là où il n'y a aucun écran (écrans de tailles différentes), où il devenait invisible.
 - Un overlay activé pendant le chargement d'un preset (page Overlays, raccourci, menu de la zone de notification) ne tourne plus avec les options du preset précédent : il est relancé avec le preset chargé, ou fermé s'il y est désactivé.
 - Overlays Delta best et Delta best étendu : une valeur 0 de `delta_display_range` n'affiche plus chaque delta à `+0.000`, et une valeur négative ne l'affiche plus avec le mauvais signe.
+- Overlay Répartition de freinage, design moderne : les valeurs ne sont plus coupées par `…` avec plus de décimales que les valeurs par défaut.
 
 ## 0.28.1 (2026-11-01)
 

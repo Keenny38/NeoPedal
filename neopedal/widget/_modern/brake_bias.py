@@ -39,6 +39,11 @@ if TYPE_CHECKING:
     from ...template.widget_config_types import BrakeBiasConfig
 
 
+def sample_number(whole: int, decimals: int) -> str:
+    """Widest number of digits & decimal places (box size sample)"""
+    return "8" * whole + ("." + "8" * decimals if decimals > 0 else "")
+
+
 class Realtime(StatsMixin, ModernOverlay):
     """Draw widget"""
 
@@ -63,12 +68,14 @@ class Realtime(StatsMixin, ModernOverlay):
         self.suffix_migration = wcfg["suffix_brake_migration"]  # F: front
         stats = []
         if wcfg["show_brake_bias"]:
-            sample = "88.88:88.88" if wcfg["show_front_and_rear"] else "88.88%"
+            # Samples of the decimal places set (were fixed: more decimals cut, B-019)
+            bias = sample_number(2, self.dec_bias)
+            sample = f"{bias}:{bias}" if wcfg["show_front_and_rear"] else f"{bias}%"
             stats.append(Stat("bias", "Brake bias", sample, "strong", theme.orange))
         if wcfg["show_baseline_bias_delta"]:
-            stats.append(Stat("delta", "Change", "+8.88"))
+            stats.append(Stat("delta", "Change", "+" + sample_number(1, self.dec_delta)))
         if wcfg["show_brake_migration"]:
-            stats.append(Stat("migration", "Migration", f"88.8{self.suffix_migration}"))
+            stats.append(Stat("migration", "Migration", sample_number(2, self.dec_migration) + self.suffix_migration))
         stats = self.display_ordered(stats, names={
             "bias": "brake_bias", "delta": "baseline_bias_delta", "migration": "brake_migration",
         })

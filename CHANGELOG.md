@@ -164,6 +164,7 @@ Fixes from an audit of the VR overlay.
 - `Overlays` page, `Screen` view: an overlay dragged or moved with the arrow keys can no longer be dropped where no screen is (screens of different sizes), where it was invisible.
 - An overlay switched on while a preset loads (Overlays page, hotkey, tray menu) no longer keeps running with the options of the previous preset: it is started again from the loaded preset, or closed if it is off there.
 - Delta Best and Delta Best Extended overlays: a `delta_display_range` of 0 no longer shows every delta as `+0.000`, and a negative one no longer shows it with the wrong sign.
+- Brake Bias overlay, modern look: values are no longer cut with `…` when more decimal places than the defaults are set.
 
 ## 0.28.1 (2026-11-01)
 
