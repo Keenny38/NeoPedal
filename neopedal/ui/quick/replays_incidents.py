@@ -31,9 +31,10 @@ from PySide6.QtCore import Property, QObject, Slot
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QFileDialog
 
-from ...i18n import tr, trm
+from ...i18n import decimal_point, tr, trm
 from ...process.game_info import IMMOVABLE, Incident
 from . import dialogs, last_folder
+from .director_log import safe_row
 from .game_camera import Command
 from .models import DictListModel
 from .replays_base import ReplaysBase
@@ -259,20 +260,23 @@ class ReplaysIncidents(ReplaysBase):
             return
         last_folder.remember("incidents_export", filename)
         try:
-            with open(filename, "w", encoding="utf-8-sig", newline="") as file:
-                file.write(self.incidents_text(","))
+            # Decimal comma (French): semicolon separator, as the other exports (Excel); names never read as formulas
+            text = self.incidents_text(";" if decimal_point() == "," else ",", safe=True)
+            with open(filename, "w", encoding="utf-8-sig", errors="replace", newline="") as file:
+                file.write(text)
         except OSError as error:
             self.notify(trm(f"Unable to save: {error.strerror or error}"), True)
             return
         self.notify(trm(f"{len(self._incidents_model.rows)} incident(s) exported"))
 
-    def incidents_text(self, delimiter: str) -> str:
+    def incidents_text(self, delimiter: str, safe: bool = False) -> str:
+        """Incidents shown as delimited text (safe: cells starting like a formula quoted, for spreadsheets)"""
         output = io.StringIO()
         writer = csv.writer(output, delimiter=delimiter, lineterminator="\n")
         writer.writerow([tr("Time"), tr("Driver"), tr("Car"), tr("Contact With"), tr("Car"), tr("Contacts")])
         for row in self._incidents_model.rows:
-            writer.writerow([row["timeText"], row["driver"], row["driverCar"], row["other"], row["otherCar"],
-                             row["count"]])
+            cells = (row["timeText"], row["driver"], row["driverCar"], row["other"], row["otherCar"], row["count"])
+            writer.writerow(safe_row(cells) if safe else cells)
         return output.getvalue()
 
     def player_name(self) -> str:

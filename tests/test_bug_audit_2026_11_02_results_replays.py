@@ -816,3 +816,24 @@ def test_b039_live_session_camera_car_asked(replays_page):  # noqa: F811
     backend = answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False, "/rest/watch/focus": 4})
     assert backend.gameState == "session"
     assert backend.focusedDriver == "Zaac Latta"  # slot 4 told by the game (standings still tell the car before)
+
+
+# B-040: incidents CSV: "," even with a decimal comma (one column in French Excel), names starting like a formula
+# written as is, a name with a lone surrogate raised (file left empty)
+def test_b040_incidents_csv_for_spreadsheets(replays_page, monkeypatch, tmp_path):  # noqa: F811
+    from neopedal import i18n
+    from neopedal.ui.quick import replays_incidents
+
+    backend = answered(replays_page, GAME_ANSWERS)
+    rows = backend.incidentRows.rows
+    rows[0]["driver"] = "=HYPERLINK(1)"
+    rows[1]["other"] = "Jo" + chr(0xD83D)  # lone surrogate (broken name)
+    path = tmp_path / "incidents.csv"
+    monkeypatch.setattr(replays_incidents.QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(path), ""))
+    i18n.set_language("Français")
+    try:
+        backend.exportIncidents()
+    finally:
+        i18n.set_language("English")
+    text = path.read_text(encoding="utf-8-sig")
+    assert not backend.noticeError and text.count(";") >= 5 and "'=HYPERLINK(1)" in text and "Jo?" in text
