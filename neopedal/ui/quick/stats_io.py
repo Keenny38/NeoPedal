@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -71,6 +72,10 @@ from .stint_analysis import (
 )
 
 logger = logging.getLogger(__name__)
+
+EDITS_CLOSE_TIMEOUT = 5.0  # seconds app closing waits for stats edits being saved
+_edits_running: set[threading.Event] = set()  # finished events of edits saved on worker threads
+_edits_lock = threading.Lock()
 
 class HistoryData(NamedTuple):
     """Session history read & indexed (background): records, file stamp, records of each (track, vehicle),
@@ -172,6 +177,29 @@ def run_holding_lock(work: Callable[..., Any], *args, finished: threading.Event 
             finished.set()
 
 
+def track_edit(finished: threading.Event) -> None:
+    """Edit saved on a worker thread waited by app closing (bounded): history & stats files never left half
+    changed by the process end (see wait_edits)"""
+    from ... import loader
+
+    loader.on_close(wait_edits)
+    with _edits_lock:
+        for event in [event for event in _edits_running if event.is_set()]:
+            _edits_running.discard(event)
+        _edits_running.add(finished)
+
+
+def wait_edits(timeout: float = EDITS_CLOSE_TIMEOUT) -> bool:
+    """Wait for stats edits being saved (app closing), True if all finished in time"""
+    deadline = time.monotonic() + timeout
+    with _edits_lock:
+        events = tuple(_edits_running)
+    done = all(event.wait(max(deadline - time.monotonic(), 0.0)) for event in events)
+    if not done:
+        logger.warning("DRIVER STATS: stats edit not finished before closing")
+    return done
+
+
 def save_edits_detached(edits: list[StatsJob], after: threading.Event | None) -> threading.Event:
     """Edits still waiting when page closed: saved in order on a thread once job running before is over,
     page never updated (done callbacks skipped)
@@ -194,6 +222,7 @@ def save_edits_detached(edits: list[StatsJob], after: threading.Event | None) ->
             forget_records(cfg.path.config)  # history read by edits not kept: page closed
             finished.set()
 
+    track_edit(finished)
     threading.Thread(target=saving, daemon=True, name="Driver stats edits").start()
     return finished
 

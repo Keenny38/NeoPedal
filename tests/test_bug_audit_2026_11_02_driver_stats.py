@@ -485,3 +485,22 @@ def test_b015_backup_restored_over_damaged_stats_file(stats_folder, monkeypatch)
     assert StatsEdits.write_edit((), {"Monza": {}}, None)[0] == "unreadable"
     release_stats_file(monkeypatch)
     assert read_stats(stats_folder) == backup
+
+
+# B-016
+def test_b016_app_closing_waits_for_stats_edit_being_saved(monkeypatch):
+    import threading
+
+    from neopedal import loader
+    from neopedal.ui.quick import stats_io
+
+    monkeypatch.setattr(stats_io, "_edits_running", set())
+    monkeypatch.setattr(loader, "_close_waiters", [])
+    finished = threading.Event()
+    stats_io.track_edit(finished)
+    assert stats_io.wait_edits in loader._close_waiters  # run by loader.close (quit, restart, system end)
+    assert stats_io.wait_edits(timeout=0.0) is False
+    saving = threading.Timer(0.05, finished.set)  # edit thread writing history, then stats
+    saving.start()
+    assert stats_io.wait_edits(timeout=10.0) is True and finished.is_set()
+    saving.join()

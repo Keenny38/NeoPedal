@@ -85,6 +85,7 @@ from .stats_io import (
     stats_file_size,
     stats_file_times,
     store_reference,
+    track_edit,
 )
 
 logger = logging.getLogger(__name__)
@@ -520,6 +521,8 @@ class StatsCore(StatsHost):
             return
         job = self._running_job = self._locked_jobs.pop(0)
         finished = self._last_finished = threading.Event()
+        if job.kind == "edit":
+            track_edit(finished)  # waited by app closing
         self.jobs.run(f"stats {job.kind}", partial(run_holding_lock, job.work, *self.job_args(job), finished=finished),
                       self.locked_job_done, self.locked_job_failed, key="history" if job.kind == "reload" else None)
 
