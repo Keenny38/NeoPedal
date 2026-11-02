@@ -1618,7 +1618,10 @@ class OverlayOptionsBackend(PageBackend):
         if ui is None or ui.profile_text is None or profile_name not in ui.user_profiles:
             return
         values = self.values(name)
-        shown = {**values, **self._overrides(self.layout(name), values)}
+        # Display profile values only: items hidden by auto compact mode stay automatic (B-010)
+        profile = dict(ui.release(values)) if ui.release is not None else {}
+        profile.pop(ui.override_source, None)
+        shown = {**values, **profile}
         with self._step():
             self._set(option_id(name, ui.user_profiles[profile_name]), ui.profile_text(shown))
             self._set(option_id(name, ui.override_source), profile_name)

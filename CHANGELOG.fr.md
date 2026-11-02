@@ -157,6 +157,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Historique : les options des barres de pédales sont grisées quand `show_pedal_bars` est désactivée, et plus par `show_ffb_bar` ou la pression de freinage, chaque flash d'alerte a son propre interrupteur, et les couleurs et seuils partagés par les tracés et les barres restent actifs tant que l'un d'eux est affiché.
 - `Options des overlays` : `Réinitialiser l'overlay` ne déplace plus l'overlay à sa position par défaut ; sa place est gardée, comme son état activé ou désactivé.
 - `Options des overlays`, HUD tableau de bord : `Rétablir l'overlay par défaut` n'efface plus les profils utilisateur enregistrés avec `Enregistrer comme profil`.
+- `Options des overlays`, HUD tableau de bord : `Enregistrer les éléments affichés comme` n'enregistre plus comme masqués dans le profil utilisateur les éléments cachés par le mode compact automatique (overlay réduit).
 
 ## 0.28.1 (2026-11-01)
 

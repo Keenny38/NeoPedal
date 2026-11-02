@@ -409,3 +409,17 @@ def test_b011_reset_overlay_keeps_hidden_user_profiles(options):
     options.resetOverlay()
     assert "black_box/opacity" in options._pending
     assert not any(oid.startswith("black_box/user_profile_") for oid in options._pending)
+
+
+# B-010: user profile saved while auto compact mode hid items: those items stayed hidden at full size
+def test_b010_user_profile_saved_in_compact_mode_keeps_shown_items(options):
+    from neopedal.template.widget.black_box_ui import COMPACT_HIDDEN, parse_user_profile
+
+    setting = cfg.user.setting["black_box"]
+    setting.update(display_profile="Custom", auto_compact_display_scale=0.8, display_scale=0.6,
+                   show_tyre_compound=True)
+    options.selectOverlay("black_box")
+    options.saveUserProfile("User 1")
+    saved = parse_user_profile(options._pending["black_box/user_profile_1"])
+    assert "show_tyre_compound" in COMPACT_HIDDEN and saved.get("show_tyre_compound", True)
+
