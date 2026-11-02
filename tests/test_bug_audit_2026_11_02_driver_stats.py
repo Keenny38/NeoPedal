@@ -11,6 +11,7 @@ import os
 
 import pytest
 
+from neopedal import realtime_state
 from neopedal.module import module_stats
 from neopedal.module._base import MODULE_STOP
 from neopedal.module_info import StatsInfo
@@ -173,3 +174,48 @@ def test_b013_stats_saved_at_checkpoints_while_driving(tele, tmp_path, clock, mo
     records = driver_history.read_records(filepath)
     assert len(records) == 1 and (records[0].valid, records[0].best) == (2, 89.0)
     assert records[0].seconds == pytest.approx(182.0)
+
+
+# B-005
+def test_b005_lap_invalidated_by_game_never_best_lap(tele, tmp_path, clock):  # noqa: F811
+    """LMU lap invalidated (track limits) with a lap time: counted invalid, never a personal best; next clean lap
+    counts"""
+    filepath = f"{tmp_path}/"
+    tele.update(STINT_TELE)
+    tele.update({"timing.current_laptime": 30.0, "lap.invalidated": True})  # track limits during the lap
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    loop.update()
+    drive_stats_lap(tele, loop, 0.0, 85.0)
+    tele.update({"timing.elapsed": 88.0, "timing.current_laptime": 3.0, "lap.invalidated": False})
+    loop.update()
+    loop.update()
+    drive_stats_lap(tele, loop, 85.0, 90.0)
+    tele["timing.elapsed"] = 178.0
+    loop.update()
+    loop.update()
+    gen.send(MODULE_STOP)
+    stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
+    assert (stats.valid, stats.invalid) == (1, 1)
+    assert stats.pb == 90.0 and stats.qb == 90.0
+    assert driver_history.read_records(filepath)[0].best == 90.0
+
+
+def test_b005_lap_invalidated_just_before_leaving_track(tele, tmp_path, clock):  # noqa: F811
+    """Lap invalidated, garage just after the line: validated later by game lap time, still no best lap"""
+    filepath = f"{tmp_path}/"
+    tele.update(STINT_TELE)
+    tele.update({"timing.current_laptime": 30.0, "lap.invalidated": True})
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    loop.update()
+    drive_stats_lap(tele, loop, 0.0, 85.0, report=False)
+    realtime_state.active = False  # back to garage before the lap is counted
+    loop.resets += 1
+    loop.update()
+    tele["timing.last_laptime"] = 85.0
+    clock["now"] += 1.0
+    loop.update()
+    gen.send(MODULE_STOP)
+    stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
+    assert stats.pb > 85.0 and stats.invalid == 1

@@ -67,6 +67,7 @@ Fixes from an audit of the VR overlay.
 - Driver Stats: a `driver.stats` file held for a moment by another program (antivirus, OneDrive) at the end of a stint is no longer taken for a damaged file and replaced by the stats of that stint alone (every other track and car lost).
 - Driver Stats: stats of a stint that could not be saved (file held by another program, disk error) are kept and saved with the next stint, instead of being lost without a word; if they still cannot be saved when the app closes, a message tells you.
 - Driver Stats: the Stats module also saves your stats every 5 minutes while you drive, so a crash of the app or a power cut no longer loses the whole stint (laps, distance, personal best); the session history still gets one line per stint.
+- Driver Stats (Le Mans Ultimate): a lap invalidated by the game for track limits no longer counts as a valid lap nor becomes your personal, qualifying or race best (stats and session history), like delta best and best sectors already did.
 
 ## 0.28.1 (2026-11-01)
 

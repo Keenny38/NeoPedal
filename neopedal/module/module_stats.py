@@ -238,6 +238,9 @@ def record_driver_stats(
     stint_wetness = -1.0  # wettest road of stint (no best lap)
     track_temp = 0.0
     is_pit_lap = 0  # set on reset
+    lap_invalid = False  # lap in progress invalidated by game (track limits): no best lap time, invalid lap
+    finished_invalid = False  # last lap finished invalidated by game
+    lap_crossed = FLOAT_INF  # lap start time of last line crossing seen
     last_lap_stime = FLOAT_INF
     last_best_laptime = FLOAT_INF
     last_raw_laptime = FLOAT_INF
@@ -267,14 +270,18 @@ def record_driver_stats(
 
     def resolved_lap(lap: PendingLap, valid: bool):
         """Count lap completed before player left track: valid & best lap time once validated by game"""
-        nonlocal last_lap_stime, last_raw_laptime, last_best_laptime, is_pit_lap
-        lap_session_type, lap_pit = lap.data
+        nonlocal last_lap_stime, last_raw_laptime, last_best_laptime, is_pit_lap, finished_invalid
+        lap_session_type, lap_pit, lap_invalidated = lap.data
         laptime_valid = api.read.timing.last_laptime()
         # Lap counted (as at 2s after line)
         last_lap_stime = lap.finish
         last_raw_laptime = lap.laptime
         is_pit_lap = 0
-        if valid:
+        finished_invalid = lap_invalidated
+        if lap_invalidated:  # track limits: never a best lap time
+            if not lap_pit:
+                driver_stats.invalid += 1
+        elif valid:
             driver_stats.valid += 1
             if last_best_laptime > laptime_valid:
                 last_best_laptime = laptime_valid
@@ -361,6 +368,8 @@ def record_driver_stats(
             lap_state.delayed_save = True
 
             is_pit_lap = 0
+            lap_invalid = finished_invalid = False
+            lap_crossed = FLOAT_INF
             last_lap_stime = FLOAT_INF
             last_lap_etime = FLOAT_INF
             last_best_laptime = FLOAT_INF
@@ -386,7 +395,7 @@ def record_driver_stats(
 
         # Best lap time
         last_valid_laptime = api.read.timing.last_laptime()
-        if (last_best_laptime > last_valid_laptime > 1 and
+        if (last_best_laptime > last_valid_laptime > 1 and not finished_invalid and
             abs(last_valid_laptime - last_raw_laptime) < 0.001):  # validate lap time
             last_best_laptime = last_valid_laptime
             best_laptime(last_valid_laptime, session_type)
@@ -404,17 +413,25 @@ def record_driver_stats(
                 driver_stats.meters += moved_distance
             gps_last = gps_curr
 
+        # Track limits of lap in progress (flag of lap just completed may stay a moment)
+        if api.read.timing.current_laptime() > 1:
+            lap_invalid |= api.read.lap.invalidated()
+
         # Laps complete
         if last_lap_stime > lap_stime:
             last_lap_stime = lap_stime
             lap_state.pending = None
         elif last_lap_stime < lap_stime:
             # Line crossed: lap kept until counted (new lap may start meanwhile: back to garage)
+            if lap_crossed != lap_stime:  # track limits of lap just finished kept, next lap starts clean
+                lap_crossed = lap_stime
+                finished_invalid, lap_invalid = lap_invalid, False
             if lap_state.pending is None:
-                lap_state.pending = PendingLap(lap_stime - last_lap_stime, lap_stime, (session_type, is_pit_lap))
+                lap_state.pending = PendingLap(lap_stime - last_lap_stime, lap_stime,
+                                               (session_type, is_pit_lap, finished_invalid))
             if lap_etime - lap_stime > 2:
                 last_raw_laptime = lap_stime - last_lap_stime
-                if last_valid_laptime > 0: # valid lap check
+                if last_valid_laptime > 0 and not finished_invalid: # valid lap check
                     driver_stats.valid += 1  # 1 lap at a time
                 elif not is_pit_lap:  # only count non-pit invalid lap
                     driver_stats.invalid += 1
