@@ -217,6 +217,10 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "damage_stats": (OptionFix(CLASSIC, dependencies=dict.fromkeys(  # prefixes drawn only with the switch on
         ("prefix_aero_integrity", "prefix_body_integrity", "prefix_suspension_integrity", "prefix_tyre_integrity"),
         "show_integrity_prefix")),),
+    # Estimated laps box: its prefix & colors, extra laps added to it
+    "session": (OptionFix(dependencies=dict.fromkeys(
+        ("prefix_estimated_laps", "font_color_estimated_laps", "background_color_estimated_laps",
+         "show_predicted_extra_laps"), "show_estimated_laps")),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={

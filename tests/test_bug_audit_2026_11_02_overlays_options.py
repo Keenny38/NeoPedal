@@ -716,3 +716,13 @@ def test_b050_deltabest_range_and_bar_options(ui_env, modern):
     assert not dimmed("deltabest", "delta_display_range", modern, show_delta_bar=False)
     assert dimmed("deltabest", "enable_animated_deltabest", modern, show_delta_bar=False)
     assert dimmed("deltabest", "layout", modern, show_delta_bar=False)
+
+
+# B-051: Session estimated laps options under the extra laps switch
+@DESIGNS
+def test_b051_session_estimated_laps_options(ui_env, modern):
+    keys = shown_keys("session", modern)
+    for key in ("prefix_estimated_laps", "font_color_estimated_laps", "background_color_estimated_laps"):
+        if key in keys:
+            assert not dimmed("session", key, modern, show_predicted_extra_laps=False), key
+    assert dimmed("session", "show_predicted_extra_laps", modern, show_estimated_laps=False)
