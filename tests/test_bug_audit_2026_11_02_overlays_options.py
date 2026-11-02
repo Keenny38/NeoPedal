@@ -1320,3 +1320,20 @@ def test_b046_damage_puncture_keeps_suspension_color(ui_env):
     Realtime.draw_damage_wheel(widget, painter)
     painter.end()
     assert image.pixelColor(15, 20).name() == "#00ff00"
+
+
+# B-055: Laps and Position (classic) track limits points cell of 7 characters: "10.25/12.5" cut off
+@pytest.mark.parametrize("layout", [0, 1])
+def test_b055_track_limits_points_fit(ui_env, layout):
+    from neopedal.widget import laps_and_position
+
+    cfg.user.setting["laps_and_position"].update(enable_classic_layout=True, show_track_limits_points=True,
+                                                  prefix_track_limits_points="", layout=layout)
+    widget = laps_and_position.Realtime(cfg, "laps_and_position")
+    try:
+        target = widget.bar_cut_points
+        cell = len(target.text)
+        widget.update_cut_points(target, 10.25, 12.5)
+        assert target.text.strip() == "10.25/12.5" and len(target.text) <= cell
+    finally:
+        widget.deleteLater()

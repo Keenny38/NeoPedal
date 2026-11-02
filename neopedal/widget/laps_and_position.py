@@ -82,7 +82,7 @@ class Realtime(Overlay):
                 len(self.prefix_laps) + 12 + width_extra_laps,
                 len(self.prefix_pos_overall) + 5,
                 len(self.prefix_pos_inclass) + 5,
-                len(self.prefix_cut_points) + 7,
+                len(self.prefix_cut_points) + 10,  # "10.25/12.5" (B-055)
             )
             self.just_laps = max_width - len(self.prefix_laps)
             self.just_pos_overall = max_width - len(self.prefix_pos_overall)
@@ -93,7 +93,7 @@ class Realtime(Overlay):
             self.just_laps = 12 + width_extra_laps
             self.just_pos_overall = 5
             self.just_pos_inclass = 5
-            self.just_cut_points = 7
+            self.just_cut_points = 10
             self.just_pos_change = 2
 
         # Lap number
@@ -154,7 +154,7 @@ class Realtime(Overlay):
 
         # Track limits points
         if self.wcfg["show_track_limits_points"]:
-            text_cut_points = f"{self.prefix_cut_points}{'0.000/-':>{self.just_cut_points}}"
+            text_cut_points = f"{self.prefix_cut_points}{'10.25/12.5':>{self.just_cut_points}}"
             self.bar_cut_points = self.set_rawtext(
                 text=text_cut_points,
                 width=font_m.width * len(text_cut_points) + bar_padx,

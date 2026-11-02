@@ -226,6 +226,7 @@ Fixes from an audit of the VR overlay.
 - Gear overlay: the pit lane speed limiter reminder is one option for both looks, `show_speed_limiter_pit_reminder`, on by default (each look had its own, with opposite defaults: changing look switched the reminder on or off); presets keep the value of the look they use.
 - Roll Angle, Differential, Weight Distribution, Damage Stats and System Performance overlays, classic look: the prefix of a hidden item no longer widens the overlay.
 - Damage overlay, classic look: a punctured wheel keeps its suspension damage color inside the puncture outline.
+- Laps and Position overlay, classic look: track limits points against the race limit (such as 10.25/12.5) are no longer cut off.
 
 ## 0.28.1 (2026-11-01)
 
