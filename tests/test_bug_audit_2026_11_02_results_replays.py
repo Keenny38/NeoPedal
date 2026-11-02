@@ -729,3 +729,25 @@ def test_b034_session_asked_keeps_saved_filters(results_backend, results_folder)
     backend.setHideEmpty(True)  # changed by the user again: saved as shown
     backend.page_file.flush()
     assert (load_page_settings()["session_kind"], load_page_settings()["hide_empty"]) == ("", True)
+
+
+# B-035: lap saved in the hour repeated when daylight saving time ends: its local file name read an hour off, no link
+def test_b035_lap_saved_in_repeated_hour_linked(tmp_path, monkeypatch):
+    from neopedal.ui.quick import results_telemetry
+    from neopedal.ui.quick.results_telemetry import lap_folders, recorded_laps
+    from tests.test_ui_audit_2026_10_29_analysis_results import START, entry, lap, lap_file, session
+
+    first = lap(1, 103.2, start=0.0)
+    player = entry("Me", [first], player=True)
+    result = session([player])
+    folder = tmp_path / lap_folders(result, player)[0]
+    folder.mkdir()
+    end = START + first.start + first.time
+    named = end - 3600 + 2  # local name read as the first of the two same hours: an hour before the lap end
+    path = lap_file(folder, named, 1, 103.2)
+    real = time.localtime
+    repeated = named + 1800  # from there local clock shows the same hour again (fake time zone, daylight saving end)
+    monkeypatch.setattr(results_telemetry.time, "localtime",
+                        lambda seconds=None: real(seconds - 3600 if seconds is not None and seconds >= repeated
+                                                  else seconds))
+    assert recorded_laps(str(tmp_path), result, player) == {1: path}

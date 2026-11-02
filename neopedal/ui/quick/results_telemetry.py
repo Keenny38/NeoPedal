@@ -29,6 +29,7 @@ the end of that lap.
 from __future__ import annotations
 
 import os
+import time
 
 from ...formatter import strip_invalid_char
 from ...process.results_file import Entry, SessionResult
@@ -53,6 +54,13 @@ def session_window(result: SessionResult, entry: Entry) -> tuple[float, float]:
     return result.time - SESSION_MARGIN, result.time + span + SESSION_MARGIN
 
 
+def saved_times(saved: float) -> tuple[float, ...]:
+    """Times a lap file named in local time may have been saved at: an hour earlier or later too when that local
+    time is ambiguous (hour repeated when daylight saving time ends)"""
+    wall = time.localtime(saved)[:6]
+    return (saved, *(other for other in (saved - 3600, saved + 3600) if time.localtime(other)[:6] == wall))
+
+
 def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) -> dict[int, str]:
     """Recorded lap file of each lap of entry (lap number: path), laps without a file left out
 
@@ -64,9 +72,9 @@ def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) ->
     files = []
     for folder in lap_folders(result, entry):
         for lap_file in lap_files(os.path.join(telemetry_folder, folder)):
-            saved = lap_timestamp_of(lap_file.filename)
-            if first <= saved <= last:
-                files.append((lap_file, saved, lap_number_of(lap_file.filename)))
+            times = saved_times(lap_timestamp_of(lap_file.filename))
+            if any(first <= saved <= last for saved in times):
+                files.append((lap_file, times, lap_number_of(lap_file.filename)))
     candidates: list[tuple[bool, float, int, str]] = []  # (other lap number, distance, lap, file)
     starts = {lap.number: lap.start for lap in entry.laps if lap.start >= 0}
     for lap in entry.laps:
@@ -74,7 +82,7 @@ def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) ->
             end = result.time + lap.start + lap.time
         else:  # untimed lap: ends as next lap starts
             end = result.time + starts[lap.number + 1] if lap.number + 1 in starts else -1.0
-        for lap_file, saved, number in files:
+        for lap_file, times, number in files:
             if abs(number - lap.number) > 1:
                 continue
             if lap.time > 0:
@@ -82,9 +90,10 @@ def recorded_laps(telemetry_folder: str, result: SessionResult, entry: Entry) ->
                     continue
             elif number != lap.number or end < 0:  # untimed lap: same number, saved at its end
                 continue
-            if end >= 0 and not -SAVED_BEFORE_END <= saved - end <= SAVED_AFTER_END:
+            fits = [abs(saved - end) for saved in times if -SAVED_BEFORE_END <= saved - end <= SAVED_AFTER_END]
+            if end >= 0 and not fits:
                 continue
-            distance = abs(saved - end) if end >= 0 else abs(number - lap.number)
+            distance = min(fits) if end >= 0 else abs(number - lap.number)
             candidates.append((number != lap.number, distance, lap.number, lap_file.path))
     # Files of the same lap number first, then the closest: a lap without file (invalid lap not saved) never takes the
     # file of the next lap of about the same time
