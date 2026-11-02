@@ -1103,3 +1103,22 @@ def test_b035_null_text_fields_left_out():
                                        {"et": 2.0, "player": "A", "contactWith": "B"}])
     assert [(contact.time, contact.other) for contact in contacts] == [(2.0, "B")]
     assert game_info.parse_session_time({"currentEventTime": float("inf")}) == -1.0
+
+
+# --- B-036: route polled answering another status than 200 for a while (other session): value of before dropped
+def test_b036_value_dropped_once_route_unavailable():
+    from neopedal.game_rest_poll import REFUSED_RESET, RoutePoller
+
+    answers = [(200, b'{"Driver": 3}')]
+    poller = RoutePoller("/rest/strategy/usage", lambda data: data, {}, 1.0, fetch=lambda: answers[0])
+    poller.check()
+    assert poller.value == {"Driver": 3}
+    answers[0] = (404, b"")
+    poller.check()  # one refused answer: kept (route briefly unavailable)
+    assert poller.value == {"Driver": 3}
+    for _ in range(REFUSED_RESET - 1):
+        poller.check()
+    assert poller.value == {}
+    answers[0] = (200, b'{"Driver": 3}')
+    poller.check()  # same body as before: parsed again
+    assert poller.value == {"Driver": 3}

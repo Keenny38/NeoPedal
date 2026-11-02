@@ -135,6 +135,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Replays de l'enregistreur de session : activer ou désactiver `Boucle` reprend à la position affichée, au lieu de sauter à la fin (pendant un deuxième passage) ou au milieu du replay (après sa fin).
 - Aperçus des overlays (course simulée) : les voitures qui ont des tours d'avance sur vous prennent les couleurs des voitures devant et les écarts au leader en tours entiers, comme en jeu (Relatif, Navigation, Classement).
 - Le Mans Ultimate : un message de chat, un contact ou un nom de pilote envoyé vide (null) par le jeu est ignoré au lieu d'afficher `None` (Chat, HUD tableau de bord, Régie de course, Résultats et replays).
+- Le Mans Ultimate : l'énergie utilisée par tour par les pilotes (Classement, Relatif) ne reste plus celle d'une session précédente tant que le jeu ne la donne pas.
 
 ## 0.28.1 (2026-11-01)
 

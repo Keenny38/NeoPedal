@@ -135,6 +135,7 @@ Fixes from an audit of the VR overlay.
 - Session recorder replays: turning `Loop` on or off goes on from the position shown, instead of jumping to the end (during a second pass) or into the middle of the replay (after its end).
 - Overlay previews (simulated race): cars laps ahead of you get the colors of cars ahead and gaps to the leader in whole laps, as in the game (Relative, Navigation, Standings).
 - Le Mans Ultimate: a chat message, contact or driver name sent empty (null) by the game is left out instead of showing `None` (Chat, Black Box, Broadcast Director, Results & Replays).
+- Le Mans Ultimate: energy used per lap by drivers (Standings, Relative) no longer stays the one of a previous session while the game does not give it.
 
 ## 0.28.1 (2026-11-01)
 

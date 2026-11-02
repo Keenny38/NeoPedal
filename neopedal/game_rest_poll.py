@@ -55,6 +55,7 @@ class FileRead:
 
     def __call__(self) -> object:
         return self.work()
+REFUSED_RESET = 3  # answers in a row of another status than 200 dropping the value (route not available)
 
 
 class PollWorker:
@@ -152,6 +153,7 @@ class RoutePoller(Generic[T]):
         self._busy = False  # read waiting or running on poll worker
         self._checked = -interval
         self._digest: int | None = None  # hash of body parsed into value
+        self._refused = 0  # answers in a row of another status than 200
         self.value: T = empty
 
     def poll(self) -> None:
@@ -181,8 +183,13 @@ class RoutePoller(Generic[T]):
             self._wait = self._interval
             self.value = self._empty
             return
-        if status != 200:
+        if status != 200:  # route not available now (other session, menu): value of before dropped once it lasts
+            self._refused += 1
+            if self._refused >= REFUSED_RESET:
+                self._digest = None
+                self.value = self._empty
             return
+        self._refused = 0
         if self._bytes_per_second > 0:  # large body (long race): read & parsed less often
             self._wait = max(self._interval, len(body) / self._bytes_per_second)
         digest = hash(body)  # cached by bytes: shared answer hashed once
