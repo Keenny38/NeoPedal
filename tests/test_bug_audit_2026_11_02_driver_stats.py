@@ -465,3 +465,23 @@ def test_b008_history_copies_follow_stats_backups_rotation(stats_folder):
     assert len(copies) == driver_stats.BACKUP_COUNT
     assert all(driver_stats.history_backup_path(stats_folder, name) for name, _ in
                driver_stats.list_stats_backups(stats_folder))
+
+
+# B-015
+def test_b015_backup_restored_over_damaged_stats_file(stats_folder, monkeypatch):
+    from neopedal.ui.quick.stats_edits import StatsEdits
+
+    damaged = '{"Spa": {"GT3": {"valid": 1'
+    with open(os.path.join(stats_folder, "driver.stats"), "w", encoding="utf-8") as file:
+        file.write(damaged)
+    backup = {"Spa": {"GT3": {"valid": 40, "pb": 120.0}}}
+    assert StatsEdits.write_edit((), backup, None) == ("restored", None)
+    assert read_stats(stats_folder) == backup
+    kept = [name for name, _ in driver_stats.list_stats_backups(stats_folder)]
+    with open(os.path.join(stats_folder, kept[0]), encoding="utf-8") as file:
+        assert file.read() == damaged  # damaged file kept as backup
+    # File only held by another program: never written over
+    hold_stats_file(monkeypatch, 1000)
+    assert StatsEdits.write_edit((), {"Monza": {}}, None)[0] == "unreadable"
+    release_stats_file(monkeypatch)
+    assert read_stats(stats_folder) == backup

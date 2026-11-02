@@ -52,6 +52,7 @@ from ...userfile.driver_stats import (
     STATS_LOCK,
     DriverStats,
     backup_stats_file,
+    is_invalid_stats_file,
     list_stats_backups,
     load_stats_json_file,
     merge_stats_entry,
@@ -223,12 +224,17 @@ class StatsEdits(StatsHost):
 
         Returns:
             Outcome ("saved", "history" changed only, "unsaved", "unreadable", "changed": lap time saved since
-            shown), edit to undo.
+            shown, "restored": whole file written over a damaged one, kept as backup, no undo), edit to undo.
         """
         with STATS_LOCK:  # held already (run_locked), reentrant
             stats_user = cls.load_fresh_stats()
+            damaged = False
             if stats_user is None:
-                return "unreadable", None
+                # Damaged file (not only locked) replaced by a backup: copied as backup first, then restored
+                damaged = not path and is_invalid_stats_file(cfg.path.config)
+                if not damaged:
+                    return "unreadable", None
+                stats_user = {}
             if expected and abs(valid_laptime(stats_entry(stats_user, path) or 0) - expected) > 0.0005:
                 return "changed", None  # stats module saved a new lap time since shown: never reset unseen
             backup_stats_file(cfg.path.config, with_history=history_change is not None)
@@ -252,6 +258,8 @@ class StatsEdits(StatsHost):
                 return "unsaved", None
             if saved is None:  # history changed only: its undo recorded
                 return "history", StatsEdit(path, None, None, removed, added, history_only=True)
+        if damaged:  # damaged file kept as backup, nothing to undo to
+            return "restored", None
         return "saved", StatsEdit(path, before, copy.deepcopy(value), removed, added)
 
     def edit_written(self, result: tuple[str, StatsEdit | None], done_text: str = ""):
@@ -264,6 +272,12 @@ class StatsEdits(StatsHost):
             self.stats_unsaved()
         elif outcome == "changed":
             self.stats_changed()
+        elif outcome == "restored":
+            self.reload_stats()
+            if done_text and not self._released:
+                from ..toast import show_toast
+
+                show_toast(self._window, done_text)
         elif edit is not None:
             self.edit_done(edit)
             if outcome == "history":
