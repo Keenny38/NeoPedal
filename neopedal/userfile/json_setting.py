@@ -577,15 +577,27 @@ def create_versioned_backup(
     prefix = f"{filename}{FileExt.BACKUP}-auto-"
     backup = f"{filepath}{filename}{set_backup_timestamp(f'{FileExt.BACKUP}-auto')}"
     copied = False
+
+    def backups_by_age() -> list[str]:
+        """Backups oldest first by creation (modified time, name if equal): names hold local time, an hour off
+        in the hour repeated when clocks go back"""
+        def created(name: str) -> tuple[float, str]:
+            try:
+                return os.path.getmtime(f"{filepath}{name}"), name
+            except OSError:  # removed meanwhile: first to go
+                return 0.0, name
+
+        return sorted((name for name in os.listdir(filepath) if name.startswith(prefix)), key=created)
+
     try:
-        existing = sorted(name for name in os.listdir(filepath) if name.startswith(prefix))
+        existing = backups_by_age()
         # Backup modified time is its creation time (preset time not copied), for interval.
         # No interval: never throttled (file time can be ahead of time() by the clock resolution)
         if min_interval > 0 and existing and time() - os.path.getmtime(f"{filepath}{existing[-1]}") < min_interval:
             return False
         shutil.copyfile(source, backup)
         copied = True
-        existing = sorted(name for name in os.listdir(filepath) if name.startswith(prefix))
+        existing = backups_by_age()
         for old_backup in existing[:-max_count]:
             os.remove(f"{filepath}{old_backup}")
         return True

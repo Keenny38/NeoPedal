@@ -328,19 +328,23 @@ def history_backup_path(filepath: str, name: str, filename: str = StatsFile.DRIV
 def list_stats_backups(filepath: str, filename: str = StatsFile.DRIVER) -> list[tuple[str, float]]:
     """Automatic backups of stats file (name, creation time), newest first"""
     prefix = backup_prefix(filename)
-    backups = []
+    backups: list[tuple[str, float, float]] = []
     try:
         names = [name for name in os.listdir(filepath) if name.startswith(prefix)]
     except OSError:
         return []
     for name in names:
-        try:  # timestamp in name: copy keeps modified time of stats file
+        try:  # date shown: timestamp in name
             created = datetime.strptime(name[len(prefix):][:19], "%Y-%m-%d-%H-%M-%S").timestamp()
         except (ValueError, OverflowError, OSError):  # renamed by hand: out of range for this platform
             continue
-        backups.append((name, created))
-    backups.sort(key=lambda backup: backup[0], reverse=True)
-    return backups
+        try:  # creation order: file time (name holds local time, an hour off when clocks go back)
+            modified = os.path.getmtime(os.path.join(filepath, name))
+        except OSError:
+            continue
+        backups.append((name, created, modified))
+    backups.sort(key=lambda backup: (backup[2], backup[0]), reverse=True)
+    return [(name, created) for name, created, _ in backups]
 
 
 def load_stats_backup(filepath: str, name: str, filename: str = StatsFile.DRIVER) -> dict | None:

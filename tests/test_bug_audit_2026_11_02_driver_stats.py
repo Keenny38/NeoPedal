@@ -1050,3 +1050,23 @@ def test_b032_card_picture_never_left_half_written(tmp_path):
     with open(target, "rb") as file:
         assert file.read() == b"previous card"
     assert os.listdir(tmp_path) == ["card.png"]  # no temporary file left
+
+
+# B-034
+def test_b034_backups_rotated_by_creation_in_the_hour_repeated(tmp_path):
+    """Hour repeated when clocks go back: backup named 02-30 (made after 02-50 of summer time) is the newer one"""
+    filepath = f"{tmp_path}/"
+    write_stats(filepath, {"Spa": {"GT3": {"valid": 1}}})
+    older = os.path.join(filepath, "driver.stats.backup-auto-2026-10-25-02-50-00-000000")
+    newer = os.path.join(filepath, "driver.stats.backup-auto-2026-10-25-02-30-00-000000")
+    for path, stamp in ((older, 1_793_000_000), (newer, 1_793_003_000)):
+        with open(path, "w", encoding="utf-8") as file:
+            file.write("{}")
+        os.utime(path, (stamp, stamp))
+    assert [name for name, _ in driver_stats.list_stats_backups(filepath)] == [os.path.basename(newer),
+                                                                              os.path.basename(older)]
+    from neopedal.userfile.json_setting import create_versioned_backup
+
+    assert create_versioned_backup("driver.stats", filepath, max_count=2, min_interval=0)
+    names = sorted(name for name in os.listdir(filepath) if name.startswith("driver.stats.backup-auto-"))
+    assert os.path.basename(newer) in names and os.path.basename(older) not in names
