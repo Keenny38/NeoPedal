@@ -156,7 +156,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Navigation: the car size, offset, colors and outlines are no longer dimmed with the arrow shape (default); the place number colors follow `show_vehicle_class_standings`.
 - `Overlay Options`, Trailing: the pedal bar options are dimmed while `show_pedal_bars` is off and no longer by `show_ffb_bar` or the brake pressure switch, each alert flash is its own switch, and the colors and thresholds shared by traces and bars stay active while any of them is shown.
 - `Overlay Options`: `Reset Overlay` no longer moves the overlay to its default position; its place is kept, like its on/off state.
-- `Overlay Options`, Black Box: `Reset Overlay` no longer erases the user profiles saved with `Save as Profile`.
+- `Overlay Options`, Black Box: `Reset Overlay` no longer erases the user profiles saved with `Save shown items as`.
 - `Overlay Options`, Black Box: `Save shown items as` no longer saves the items hidden by the automatic compact mode (small overlay) as hidden in the user profile.
 - `Overlay Options`, Standings: `maximum_vehicles_combined_mode` is no longer dimmed in split mode, as it sets the number of cars of sessions with one class.
 - `Overlay Options`, Black Box: color themes are offered in the classic look only; in the modern look they wrote colors it hides, which then stopped following the overlay theme (Modern Light, colorblind colors).
@@ -203,7 +203,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Track Map: options of the multi class styling and pit out prediction mode not in use (class position, car colors, fixed or automatic pit stop durations) and `show_pitstop_duration` without the prediction are dimmed.
 - `Overlay Options`, Radar: `enable_radar_fade` and the fade radii are dimmed while `enable_auto_hide` is off.
 - `Overlay Options`, Pace Notes and Track Notes: the pit notes and comments texts are dimmed while `enable_auto_hide_if_not_available` hides the overlay instead.
-- `Overlay Options`: an option opened from `Find Option` or by clicking the preview is shown even when `Hide Unused Options` would hide it.
+- `Overlay Options`: an option opened from `Find Option` or by clicking the preview is shown even with the `Used Only` filter on.
 - `Overlay Options`: `Apply` in a locked preset no longer says `Options saved`; it tells that changes to a locked preset are not saved.
 - Overlays moved with the arrow keys: a preset load, restart or quit right after the last key press no longer loses the new place for the screen setup.
 - `Overlay Options`, Black Box: options hidden by the automatic compact mode are noted as set by `auto_compact_display_scale`, no longer by the display profile.
@@ -219,9 +219,9 @@ Fixes from an audit of the VR overlay.
 - Friction Circle overlay, classic look: a huge `dot_size` no longer makes a dot picture of hundreds of MB; the dot is at most the circle radius.
 - Gear overlay, modern look: the reading of a hidden bar no longer widens the overlay with an empty area.
 - Rake Angle, Roll Angle and Steering Angle overlays: `wheelbase` and `wheel_track_front` / `wheel_track_rear` are limited to 100 - 10000 mm (0 froze the angle, a negative value flipped it).
-- Overlay Options: number limits match what overlays show: Gap Trend `number_of_laps` 2 - 50, Stint Timer `number_of_drivers` 0 - 6, Chat `number_of_lines` 1 - 20, Race Notifications 1 - 8, Weather Forecast 1 - 4, Track Map `number_of_prediction` 1 - 20, `number_of_extra_laps` at least 1, Delta Graph, Gap Trend and Telemetry Compare `decimal_places` 0 - 3, Heading, Steering Wheel and Wind Direction 0 - 2 (both looks now show the same decimals), `decimal_places_energy_remaining` 0 - 2, `*_radius_g` up to 20, `manual_steering_range` up to 3600 and `dot_size` 1 - 1000 (larger values were accepted and cut without telling).
+- `Overlay Options`: number limits match what overlays show: Gap Trend `number_of_laps` 2 - 50, Stint Timer `number_of_drivers` 0 - 6, Chat `number_of_lines` 1 - 20, Race Notifications 1 - 8, Weather Forecast 1 - 4, Track Map `number_of_prediction` 1 - 20, `number_of_extra_laps` at least 1, Delta Graph, Gap Trend and Telemetry Compare `decimal_places` 0 - 3, Heading, Steering Wheel and Wind Direction 0 - 2 (both looks now show the same decimals), `decimal_places_energy_remaining` 0 - 2, `*_radius_g` up to 20, `manual_steering_range` up to 3600 and `dot_size` 1 - 1000 (larger values were accepted and cut without telling).
 - Pit Stop Estimate and Sectors overlays: `bar_width` of Pit Stop Estimate (characters) is limited to 3 - 20 and `extra_digits` of Sectors to 0 - 6 (huge values made overlays tens of thousands of pixels wide, cut with an error).
-- Overlay Options, Standings overlay (classic look): its picture follows edited class order, maximum vehicles, top vehicles and modes before they are applied.
+- `Overlay Options`, Standings overlay (classic look): its picture follows edited class order, maximum vehicles, top vehicles and modes before they are applied.
 - Rivals overlay (modern look): `show_player_highlighted` is removed; rivals never lists the player, the option did nothing (Relative and Standings keep it).
 - Gear overlay: the pit lane speed limiter reminder is one option for both looks, `show_speed_limiter_pit_reminder`, on by default (each look had its own, with opposite defaults: changing look switched the reminder on or off); presets keep the value of the look they use.
 - Roll Angle, Differential, Weight Distribution, Damage Stats and System Performance overlays, classic look: the prefix of a hidden item no longer widens the overlay.
@@ -271,8 +271,8 @@ Fixes from an audit of the VR overlay.
 - `Results & Replays`, replay view: `Play / Pause` (and `Space`) pauses a replay played from the game at the first press.
 - `Results & Replays`: replay commands still waiting (lap search, jumps) are no longer sent to the game once the page is closed.
 - Relative, Standings and Rivals overlays, modern look: the Trend column is wide enough for its rate (it touched the DR/SR column) and its arrow and rate are centered.
-- Overlay Options: `visibility_context` (when an overlay is shown) has a help text.
-- Overlay Options: help texts of Laps and Position `warning_color_invalid_lap`, Pace Notes and Track Notes `show_debugging` and Tyre Wear `warning_threshold_wear` describe what these options do (they described another option or other values).
+- `Overlay Options`: `visibility_context` (when an overlay is shown) has a help text.
+- `Overlay Options`: help texts of Laps and Position `warning_color_invalid_lap`, Pace Notes and Track Notes `show_debugging` and Tyre Wear `warning_threshold_wear` describe what these options do (they described another option or other values).
 - Standings overlay: the help of `maximum_vehicles_combined_mode` tells it also applies in split mode when the session has one class.
 - Race Notifications overlay: `show_position_change` and `show_position_change_in_class` each have their own help.
 
