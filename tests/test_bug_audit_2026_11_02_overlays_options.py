@@ -1124,3 +1124,16 @@ def test_b053_modern_timing_no_last_lap_not_invalid(ui_env, bundled_fonts):
 
     color, negative = _with_preview_widget(cfg, "timing", values, 1.0, last_color)
     assert color != negative
+
+
+# B-089: Radar auto hide distances beyond 1.5 x radius ignored by the quick range check
+def test_b089_radar_quick_range_covers_auto_hide_distances(ui_env):
+    from neopedal.widget.radar import RadarMixin
+
+    class Radar(RadarMixin):
+        def __init__(self, wcfg):
+            self.wcfg = wcfg
+
+    radar = Radar(dict(cfg.user.setting["radar"], radar_radius=30, auto_hide_minimum_distance_ahead=100))
+    radar.setup_radar()
+    assert radar.straight_range >= 100

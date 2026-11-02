@@ -99,6 +99,8 @@ class RadarMixin:
         self.straight_range = self.radar_radius * 1.5
         self.visible_range = self.set_range_dimension("vehicle_maximum_visible_distance")
         self.radar_hide_range = self.set_range_dimension("auto_hide_minimum_distance")
+        # Cars checked one by one up to the largest auto hide distance too (B-089)
+        self.straight_range = max(self.straight_range, *self.radar_hide_range)
         self.radar_fade_in, self.radar_fade_out = self.set_radar_fade_range(self.radar_radius)
 
         # Overlap indicator
