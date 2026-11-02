@@ -48,6 +48,9 @@ PROGRESS_STEPS = 200  # copy progress told when it moved a step (0.5 %: bar & pe
 PROGRESS_INTERVAL = 0.05  # ...and this long (seconds) after the last one told (fast disks: 250 chunks a second)
 FREE_MARGIN = 200 << 20  # bytes left free on disk after copy
 INVALID_NAME = '<>:"/\\|?*'
+RESERVED_NAMES = frozenset(  # Windows device names, extension or not ("NUL.txt"): not usable as file names
+    ("CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$", *(f"{port}{number}" for port in ("COM", "LPT")
+                                                       for number in (*"123456789", "¹", "²", "³"))))
 
 
 class CopyResult(NamedTuple):
@@ -201,7 +204,10 @@ def remove_part(path: str):
 def rename_replay(folder: str, name: str, new_name: str) -> str:
     """Rename replay file, error text ("" if renamed)"""
     new_name = new_name.strip()
-    if not new_name or any(char in INVALID_NAME for char in new_name) or new_name.endswith("."):
+    if new_name.lower().endswith(REPLAY_EXTENSION.lower()):  # extension typed: never "name.Vcr.Vcr"
+        new_name = new_name[:-len(REPLAY_EXTENSION)].strip()
+    if (not new_name or any(char in INVALID_NAME or ord(char) < 32 for char in new_name) or new_name.endswith(".")
+            or new_name.split(".")[0].strip().upper() in RESERVED_NAMES):
         return "invalid name"
     if os.path.exists(replay_path(folder, new_name)) and not same_file(
             replay_path(folder, new_name), replay_path(folder, name)):
@@ -210,8 +216,8 @@ def rename_replay(folder: str, name: str, new_name: str) -> str:
         return "name already used"
     try:
         os.replace(replay_path(folder, name), replay_path(folder, new_name))
-    except OSError as error:
-        return str(error.strerror or error)
+    except (OSError, ValueError) as error:  # ValueError: name refused by the system (embedded NUL)
+        return str(getattr(error, "strerror", "") or error)
     return ""
 
 

@@ -504,3 +504,15 @@ def test_b014_rename_refuses_name_still_listed(replays_page, tmp_path):  # noqa:
     assert not backend.rename_replay("B", "a")
     assert backend.noticeError and "name already used" in backend.noticeText
     assert sorted(replay.name for replay in backend.replays) == ["A", "B", "C"]
+
+
+# B-015: rename accepted Windows device names (CON, NUL, COM1...), doubled a typed extension, and raised on a NUL
+def test_b015_rename_refuses_device_names_and_drops_typed_extension(tmp_path):
+    from neopedal.ui.quick import replay_files
+
+    (tmp_path / "A.Vcr").write_bytes(b"replay")
+    for name in ("CON", "nul", "COM1", "Lpt9", "NUL.txt", "conin$", "x\x00y", "tab\there"):
+        assert replay_files.rename_replay(str(tmp_path), "A", name) == "invalid name", name
+    assert replay_files.rename_replay(str(tmp_path), "A", "Best race.vcr") == ""
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["Best race.Vcr"]
+    assert replay_files.rename_replay(str(tmp_path), "Best race", "Console") == ""  # only the device names
