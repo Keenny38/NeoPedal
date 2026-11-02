@@ -1486,7 +1486,8 @@ class OverlayOptionsBackend(PageBackend):
             return
         text = (f"Reset all <b>{module_label(name)}</b> options to default?<br><br>"
                 "Changes are only saved after clicking Apply or Save Button.")
-        self._ask_then(trm(text), lambda backend: backend._reset_if_known(name, default_keys(name)))
+        keys = [key for key in default_keys(name) if key not in NOT_CUSTOMIZED]  # position kept (B-009)
+        self._ask_then(trm(text), lambda backend: backend._reset_if_known(name, keys))
 
     def _ask_then(self, text: str, then: Callable[[OverlayOptionsBackend], object]):
         """Reset asked in the page (host ask: dialog bridge, answered later), else answered now by host confirm;

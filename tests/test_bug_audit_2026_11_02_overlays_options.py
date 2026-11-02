@@ -389,3 +389,13 @@ def test_b025_trailing_classic_colors_of_trace_or_bar(ui_env):
     assert dimmed("trailing", "throttle_color", False, show_throttle=False, show_pedal_bars=False)
     assert not dimmed("trailing", "tc_activation_color", False, show_tc_activation=False, show_pedal_bars=True,
                       show_tc_activation_flash=True)
+
+
+# B-009: Reset Overlay put the overlay back to its default position too
+def test_b009_reset_overlay_keeps_position(options):
+    setting = cfg.user.setting["speedometer"]
+    setting.update(position_x=999, position_y=777, opacity=0.5)
+    options.selectOverlay("speedometer")
+    options.resetOverlay()
+    assert options._pending.get("speedometer/opacity") == cfg.default.setting["speedometer"]["opacity"]
+    assert "speedometer/position_x" not in options._pending and "speedometer/position_y" not in options._pending
