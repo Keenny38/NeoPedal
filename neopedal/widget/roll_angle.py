@@ -60,9 +60,9 @@ class Realtime(Overlay):
             prefix_just = max(
                 len(self.wcfg["prefix_roll_angle_front"]),
                 len(self.wcfg["prefix_roll_angle_rear"]),
-                len(self.wcfg["prefix_roll_angle_difference"]),
-                len(self.wcfg["prefix_roll_angle_ratio"]),
-            )
+                len(self.wcfg["prefix_roll_angle_difference"]) if self.wcfg["show_roll_angle_difference"] else 0,
+                len(self.wcfg["prefix_roll_angle_ratio"]) if self.wcfg["show_roll_angle_ratio"] else 0,
+            )  # prefixes of shown items only (B-045)
         else:
             prefix_just = 0
 

@@ -224,6 +224,7 @@ Fixes from an audit of the VR overlay.
 - Overlay Options, Standings overlay (classic look): its picture follows edited class order, maximum vehicles, top vehicles and modes before they are applied.
 - Rivals overlay (modern look): `show_player_highlighted` is removed; rivals never lists the player, the option did nothing (Relative and Standings keep it).
 - Gear overlay: the pit lane speed limiter reminder is one option for both looks, `show_speed_limiter_pit_reminder`, on by default (each look had its own, with opposite defaults: changing look switched the reminder on or off); presets keep the value of the look they use.
+- Roll Angle, Differential, Weight Distribution, Damage Stats and System Performance overlays, classic look: the prefix of a hidden item no longer widens the overlay.
 
 ## 0.28.1 (2026-11-01)
 

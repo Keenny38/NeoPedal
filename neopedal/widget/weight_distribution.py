@@ -57,10 +57,12 @@ class Realtime(Overlay):
 
         if self.wcfg["layout"] == 0:
             prefix_just = max(
-                len(self.wcfg["prefix_front_to_rear_distribution"]),
-                len(self.wcfg["prefix_left_to_right_distribution"]),
-                len(self.wcfg["prefix_cross_weight"]),
-            )
+                len(self.wcfg["prefix_front_to_rear_distribution"])
+                if self.wcfg["show_front_to_rear_distribution"] else 0,
+                len(self.wcfg["prefix_left_to_right_distribution"])
+                if self.wcfg["show_left_to_right_distribution"] else 0,
+                len(self.wcfg["prefix_cross_weight"]) if self.wcfg["show_cross_weight"] else 0,
+            )  # prefixes of shown items only (B-045)
         else:
             prefix_just = 0
 

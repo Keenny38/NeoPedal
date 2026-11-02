@@ -64,11 +64,11 @@ class Realtime(Overlay):
 
         if self.wcfg["layout"] == 0:
             width_aero = max(
-                len(self.wcfg["prefix_aero_integrity"]),
-                len(self.wcfg["prefix_body_integrity"]),
-                len(self.wcfg["prefix_suspension_integrity"]),
-                len(self.wcfg["prefix_tyre_integrity"]),
-            )
+                len(self.wcfg["prefix_aero_integrity"]) if self.wcfg["show_aero_integrity"] else 0,
+                len(self.wcfg["prefix_body_integrity"]) if self.wcfg["show_body_integrity"] else 0,
+                len(self.wcfg["prefix_suspension_integrity"]) if self.wcfg["show_suspension_integrity"] else 0,
+                len(self.wcfg["prefix_tyre_integrity"]) if self.wcfg["show_tyre_integrity"] else 0,
+            )  # prefixes of shown items only (B-045)
             width_body = width_aero
             width_susp = width_aero
             width_tyre = width_aero

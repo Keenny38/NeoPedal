@@ -1285,3 +1285,17 @@ def test_b069_gear_limiter_reminder_one_option(ui_env):
         preupdate_user_setting((2, 51, 8), preset)
         assert preset["gear"]["show_speed_limiter_pit_reminder"] is expected, (classic, pit, reminder)
         assert "show_speed_limiter_reminder" not in preset["gear"]
+
+
+# B-045: classic overlays padded every prefix to the longest one, of hidden items too
+@pytest.mark.parametrize("name, show, prefix", [
+    ("roll_angle", "show_roll_angle_ratio", "prefix_roll_angle_ratio"),
+    ("differential", "show_coast_locking_rear", "prefix_coast_rear"),
+    ("weight_distribution", "show_cross_weight", "prefix_cross_weight"),
+    ("damage_stats", "show_tyre_integrity", "prefix_tyre_integrity"),
+    ("system_performance", "show_neopedal_performance", "prefix_neopedal"),
+])
+def test_b045_hidden_item_prefix_never_widens(ui_env, bundled_fonts, name, show, prefix):
+    hidden = {show: False, "layout": 0}
+    assert picture_width(name, False, **hidden, **{prefix: "A very long prefix"}) == picture_width(
+        name, False, **hidden)

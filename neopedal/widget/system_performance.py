@@ -118,9 +118,9 @@ class Realtime(Overlay):
 
         if self.wcfg["layout"] == 0:
             prefix_just = max(
-                len(self.wcfg["prefix_system"]),
-                len(self.wcfg["prefix_neopedal"]),
-            )
+                len(self.wcfg["prefix_system"]) if self.wcfg["show_system_performance"] else 0,
+                len(self.wcfg["prefix_neopedal"]) if self.wcfg["show_neopedal_performance"] else 0,
+            )  # prefixes of shown items only (B-045)
         else:
             prefix_just = 0
 

@@ -57,11 +57,11 @@ class Realtime(Overlay):
 
         if self.wcfg["layout"] == 0:
             prefix_just = max(
-                len(self.wcfg["prefix_power_front"]),
-                len(self.wcfg["prefix_coast_front"]),
-                len(self.wcfg["prefix_power_rear"]),
-                len(self.wcfg["prefix_coast_rear"]),
-            )
+                len(self.wcfg["prefix_power_front"]) if self.wcfg["show_power_locking_front"] else 0,
+                len(self.wcfg["prefix_coast_front"]) if self.wcfg["show_coast_locking_front"] else 0,
+                len(self.wcfg["prefix_power_rear"]) if self.wcfg["show_power_locking_rear"] else 0,
+                len(self.wcfg["prefix_coast_rear"]) if self.wcfg["show_coast_locking_rear"] else 0,
+            )  # prefixes of shown items only (B-045)
         else:
             prefix_just = 0
 
