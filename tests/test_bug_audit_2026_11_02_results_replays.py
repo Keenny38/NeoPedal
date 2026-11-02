@@ -751,3 +751,18 @@ def test_b035_lap_saved_in_repeated_hour_linked(tmp_path, monkeypatch):
                         lambda seconds=None: real(seconds - 3600 if seconds is not None and seconds >= repeated
                                                   else seconds))
     assert recorded_laps(str(tmp_path), result, player) == {1: path}
+
+
+# B-036 (follow-up of BUG-032): an empty track map answer (track still loading) was taken as the map: never asked
+# again for that track, map panel empty; F5 did not ask it again either
+def test_b036_empty_track_map_asked_again(replays_page):  # noqa: F811
+    backend = replays_page.backend
+    backend.setPanel(2)
+    answered(replays_page, {**GAME_ANSWERS, "/rest/watch/trackmap": []})  # loading: empty list
+    assert not backend.map_center and backend.map_track is None  # not taken as the map
+    answered(replays_page, GAME_ANSWERS)
+    assert backend.map_center  # asked again, map shown
+    backend.map_track, backend.map_center = "Circuit de la Sarthe", []  # given up (MAP_TRIES answers missed)
+    backend.refresh()  # F5
+    wait_requests(backend.request_replays, backend.request_state)
+    assert backend.map_center

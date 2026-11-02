@@ -364,8 +364,10 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
     # Game requests
     @Slot()
     def refresh(self):
-        """Replays list & state asked again"""
+        """Replays list & state asked again (track map too: given up map asked again)"""
         self.ask_replays()
+        if not self.map_center:
+            self.map_track, self._map_misses = None, 0
         self._timer.stop()
         self.refresh_state()
 
@@ -461,7 +463,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.replayTimeChanged.emit()
             self.update_timeline_end()
         if "map" in state:
-            if state["map"] is not None:
+            if state["map"] is not None and len(state["map"][0]) >= 3:  # empty or no racing line: loading
                 self._map_misses = 0
                 self.set_map(state["track"], state["map"])
             else:  # not answered (REST still loading, timeout): asked again, given up after MAP_TRIES answers
