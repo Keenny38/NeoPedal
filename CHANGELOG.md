@@ -138,6 +138,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate: energy used per lap by drivers (Standings, Relative) no longer stays the one of a previous session while the game does not give it.
 - Le Mans Ultimate and rFactor 2: a long name cut by the game in the middle of an accented letter no longer ends with `�` (Standings, Relative, Driver Stats).
 - Spectate and Broadcast Director: following a car whose telemetry lags or is missing no longer resets the best sectors of every car and the class best sectors as if a new session had started (Standings, Sectors).
+- Relative: gaps of all cars are measured on one game sample, no longer sometimes shifted by the player's time of a newer sample (gaps and trend arrows jumping for a moment).
 
 ## 0.28.1 (2026-11-01)
 

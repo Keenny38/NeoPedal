@@ -138,6 +138,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate : l'énergie utilisée par tour par les pilotes (Classement, Relatif) ne reste plus celle d'une session précédente tant que le jeu ne la donne pas.
 - Le Mans Ultimate et rFactor 2 : un nom long coupé par le jeu au milieu d'une lettre accentuée ne se termine plus par `�` (Classement, Relatif, Statistiques du pilote).
 - Spectateur et Régie de course : suivre une voiture dont la télémétrie est en retard ou absente ne remet plus à zéro les meilleurs secteurs de chaque voiture et de chaque catégorie comme si une nouvelle session commençait (Classement, Secteurs).
+- Relatif : les écarts de toutes les voitures sont mesurés sur un seul échantillon du jeu, et plus parfois décalés par le temps du joueur d'un échantillon plus récent (écarts et flèches de tendance qui sautent un instant).
 
 ## 0.28.1 (2026-11-01)
 

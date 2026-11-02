@@ -1170,3 +1170,23 @@ def test_b038_followed_car_clock_never_a_new_session(ui_env, monkeypatch):
             session.close()
 
     assert play(430) == play(None)
+
+
+# --- B-039: relative gaps from one scoring sample: player time of the vehicles snapshot, as the other cars'
+def test_b039_relative_gaps_from_one_scoring_sample(monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal.api_control import api
+    from neopedal.module.module_relative import get_vehicles_info
+    from neopedal.module_info import DeltaTimeInterval
+
+    # Game sample newer than the snapshot: player 2 s further into the lap
+    timing = SimpleNamespace(estimated_laptime=lambda: 100.0, estimated_time_into=lambda index=None: 12.0)
+    monkeypatch.setattr(api, "read", SimpleNamespace(timing=timing, vehicle=SimpleNamespace()))
+    rows = (  # snapshot: (in garage, in pit lane, time into lap, class, place, best, last)
+        (False, False, 10.0, "GT3", 2, 90.0, 91.0),  # player
+        (False, False, 15.0, "GT3", 1, 89.0, 90.0),  # 5 s ahead on the same sample
+    )
+    deltas = tuple(DeltaTimeInterval() for _ in rows)
+    ahead, *_ = get_vehicles_info(2, 0, False, False, deltas, deltas, scoring_rows=rows)
+    assert {index: gap for gap, index in ahead}[1] == pytest.approx(5.0)  # not 3 s (newer player time)

@@ -192,6 +192,8 @@ def get_vehicles_info(
     draw_order = TEMP_DRAW_ORDER[:veh_total]
 
     rows = scoring_rows
+    if rows is not None and 0 <= plr_index < len(rows):
+        plr_time = rows[plr_index][2]  # player of the same scoring sample as other cars (game may be newer)
     for index in range(veh_total):
         if rows is None:
             in_garage = api.read.vehicle.in_garage(index)
