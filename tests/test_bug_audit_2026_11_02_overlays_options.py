@@ -618,3 +618,29 @@ def test_b017_line_width_limited(ui_env):
     cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
     values = dict(cfg.user.setting["trailing"], enable_classic_layout=True, throttle_line_width=4000)
     assert _with_preview_widget(cfg, "trailing", values, 1.0, lambda widget: widget.samples_offset) <= 51
+
+
+# B-034: Black Box options dimmed under one part while used by another one shown
+BLACK_BOX_SHARED = (
+    ("status_icon_scale", {"show_headlights_indicator": False, "show_wipers_indicator": True}),
+    ("status_icons_side", {"show_headlights_indicator": False, "show_engine_status": True}),
+    ("warning_outline_width", {"show_slip_warning": False, "show_tyre_status": True}),
+    ("tyre_temperature_warning_threshold", {"show_tyre_temperature": False, "show_tyre_surface_overheat": True}),
+    ("throttle_color", {"show_pedal_bars": False, "show_incident_recorder": True}),
+    ("pedal_input_source", {"show_pedal_bars": False, "show_incident_recorder": True}),
+    ("abs_active_color", {"show_abs_indicator": False, "show_incident_recorder": True}),
+    ("tc_active_color", {"show_tc_indicator": False, "show_incident_recorder": True}),
+    ("damage_panel_suspension_light_threshold", {"show_damage_panel": False, "show_suspension": True,
+                                                 "show_coilover_damage": True}),
+    ("gauge_refill_mark_color", {"show_gauge_refill_mark": False}),
+)
+
+
+@pytest.mark.parametrize(("key", "values"), BLACK_BOX_SHARED)
+def test_b034_black_box_shared_options_active_while_used(ui_env, key, values):
+    assert not dimmed("black_box", key, False, display_profile="Custom", **values)  # classic: every color shown
+
+
+def test_b034_black_box_shared_options_dimmed_when_unused(ui_env):
+    assert dimmed("black_box", "status_icon_scale", False, display_profile="Custom", show_headlights_indicator=False,
+                  show_wipers_indicator=False, show_engine_status=False)

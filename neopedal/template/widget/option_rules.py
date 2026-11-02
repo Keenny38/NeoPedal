@@ -348,6 +348,22 @@ ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
         "text_track_limits": ("show_track_limits_points", "show_penalty_events"),
         # Flash over shift point: of RPM LEDs (always) & of gear RPM color (if its shift flash is on)
         "shift_flash_interval": ("show_rpm_leds", "enable_shift_flash"),
+        # Status icon size & side: headlights, wipers & engine icons
+        **dict.fromkeys(("status_icon_scale", "status_icons_side"),
+                        ("show_headlights_indicator", "show_wipers_indicator", "show_engine_status")),
+        "warning_outline_width": ("show_slip_warning", "show_tyre_status"),  # detached wheel outline
+        "tyre_temperature_warning_threshold": ("show_tyre_temperature", "show_tyre_surface_overheat"),
+        # Pedals & ABS / TC of the incident recorder trace
+        **dict.fromkeys(("pedal_input_source", "throttle_color", "brake_color"),
+                        ("show_pedal_bars", "show_incident_recorder")),
+        "abs_active_color": ("show_abs_indicator", "show_incident_recorder"),
+        "tc_active_color": ("show_tc_indicator", "show_incident_recorder"),
+        # Suspension damage of damage panel & coilover damage of suspension view
+        **dict.fromkeys((
+            "damage_panel_suspension_color_light", "damage_panel_suspension_color_medium",
+            "damage_panel_suspension_color_heavy", "damage_panel_suspension_light_threshold",
+            "damage_panel_suspension_medium_threshold", "damage_panel_suspension_heavy_threshold",
+            "damage_panel_suspension_totaled_threshold"), ("show_damage_panel", "show_coilover_damage")),
     },
 }
 

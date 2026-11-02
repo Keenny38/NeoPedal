@@ -279,10 +279,9 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     "show_wheel_angle": ("maximum_wheel_angle",),
     "show_slip_warning": (
         "wheel_lock_threshold", "wheel_locked_threshold", "wheel_spin_threshold", "slip_warning_minimum_speed",
-        "warning_outline_width", "wheel_lock_color", "wheel_spin_color",
+        "wheel_lock_color", "wheel_spin_color",  # outline width: of detached wheel too (option_rules.ANY_OF)
     ),
-    "show_tyre_temperature": (  # warning color also used by surface overheat strip & bottoming: no control
-        "tyre_temperature_warning_threshold",
+    "show_tyre_temperature": (  # warning color & threshold also used by surface overheat strip: see ANY_OF
         "tyre_temperature_cold_threshold", "font_color_tyre_temperature_cold",
         "font_color_tyre_temperature_warming", "show_tyre_temperature_trend",
     ),
@@ -308,7 +307,7 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     "show_ride_height_minimum": ("ride_height_bottoming_threshold",),
     "show_brake_heat_balance": ("text_brake_heat",),
     "show_motor_map": ("motor_map_color",),  # label also used by setting change pop-up
-    "show_headlights_indicator": ("headlights_active_color", "status_icons_side", "status_icon_scale"),
+    "show_headlights_indicator": ("headlights_active_color",),  # icon size & side: of every status icon
     "show_wipers_indicator": ("wipers_active_color",),  # wipers labels also used by setting change pop-up
     "show_track_limits_points": ("track_limits_warning_color", "track_limits_penalty_color"),
     "show_gap_ahead_behind": ("text_gap",),
@@ -339,8 +338,7 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     ),
     "show_speed": ("font_scale_speed", "text_speed"),
     # Labels of ABS, TC, brake bias & migration, limiter also used by setting change pop-up: no control
-    "show_abs_indicator": ("abs_active_color",),
-    "show_tc_indicator": ("tc_active_color",),
+    # ABS & TC colors, pedal source & colors: of the incident recorder trace too (see ANY_OF)
     "show_brake_bias": ("brake_bias_color",),
     "show_brake_migration": ("enable_brake_bias_migration_merge",),
     "show_wheel_locking": ("text_locking",),
@@ -348,7 +346,7 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     "show_laptime": ("text_laptime",),
     "show_pit_limiter_indicator": ("pit_active_color", "limiter_active_color", "text_pit"),
     "show_rpm": ("font_scale_rpm", "rpm_bar_color", "rpm_redline_color", "text_rpm"),
-    "show_pedal_bars": ("pedal_input_source", "show_clutch_bar", "throttle_color", "brake_color"),
+    "show_pedal_bars": ("show_clutch_bar",),
     "show_setting_change_popup": (
         "setting_popup_duration", "setting_popup_position", "setting_popup_color", "font_color_setting_popup",
         "show_setting_popup_maximum", "enable_setting_popup_direction_color", "show_setting_popup_driving_events",
@@ -360,7 +358,6 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     "show_fuel_gauge": ("fuel_gauge_color", "text_fuel"),
     "show_energy_gauge": ("energy_gauge_color", "text_energy"),
     "show_gauge_start_mark": ("gauge_start_mark_color",),
-    "show_gauge_refill_mark": ("gauge_refill_mark_color",),
     "show_stint_comparison": ("text_stint_wear", "text_stint_pressure"),
     "show_battery_bar": (
         "show_battery_percentage", "battery_bar_position", "battery_bar_scale", "font_scale_battery",
@@ -376,10 +373,7 @@ _CONTROLS: dict[str, tuple[str, ...]] = {
     "show_damage_panel": (
         "damage_panel_position", "damage_panel_scale", "damage_panel_body_color", "damage_panel_body_color_light",
         "damage_panel_body_color_heavy", "damage_panel_body_color_detached", "damage_panel_suspension_color",
-        "damage_panel_suspension_color_light", "damage_panel_suspension_color_medium",
-        "damage_panel_suspension_color_heavy",  # totaled color also used by coilover damage of suspension view
-        "damage_panel_suspension_light_threshold", "damage_panel_suspension_medium_threshold",
-        "damage_panel_suspension_heavy_threshold", "damage_panel_suspension_totaled_threshold",
+        # suspension damage colors & thresholds: of coilover damage of suspension view too (see ANY_OF)
         "damage_panel_wheel_color_detached", "damage_panel_puncture_color", "show_damage_panel_impact_cone",
         "show_damage_panel_integrity",
     ),
