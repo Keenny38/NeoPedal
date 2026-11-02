@@ -133,6 +133,13 @@ def derived_stamp(delta: Any) -> tuple:
         return (derived_updates.sequence, realtime_state.resets)
     return (data_stamp(), delta.lapDistance)
 
+def own_car_data() -> bool:
+    """Data recorded from now on is the player's own: False while spectating another car (Spectate, Broadcast
+    Director), whose laps, consumption & track measures are shown but never saved as the player's.
+    Generators read it when they load data (reset), saves follow the car data was recorded with."""
+    return not realtime_state.spectating
+
+
 def followed_slot_id() -> int | None:
     """Slot id of car followed (player, or player index override), None if no car synced or unknown"""
     try:

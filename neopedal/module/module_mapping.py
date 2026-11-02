@@ -35,7 +35,7 @@ from ..userfile.track_info import load_track_info, save_track_info
 from ..userfile.track_map import load_track_map_file, save_track_map_file
 from ..userfile.track_map_official import OfficialMap, Point, fetch_official_points
 from ..validator import file_last_modified, generator_init
-from ._base import MODULE_STOP, WAIT_STATE_CHANGE, DataModule, data_stamp
+from ._base import MODULE_STOP, WAIT_STATE_CHANGE, DataModule, data_stamp, own_car_data
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +120,7 @@ def record_track_info(output: MappingInfo):
     last_reset = None  # reset check
     delayed_save = False
     measured: dict[str, float] = {}  # values measured since last reset, only ones saved
+    own_car = True  # measured with the player's own car, see _base.own_car_data
 
     track_name = ""
     pit_entry = 0.0
@@ -133,7 +134,8 @@ def record_track_info(output: MappingInfo):
         if last_reset != reset:
             # Save data: only measured values, never cached ones over values edited meanwhile (track info editor)
             if delayed_save:
-                if measured or track_name not in cfg.user.tracks:  # new track always added
+                # New track always added, never measures of another car followed (spectate)
+                if own_car and (measured or track_name not in cfg.user.tracks):
                     save_track_info(track_name, **measured)
                 measured = {}
                 delayed_save = False
@@ -142,6 +144,7 @@ def record_track_info(output: MappingInfo):
             if reset is MODULE_STOP or not realtime_state.active:
                 continue
             last_reset = reset
+            own_car = own_car_data()
 
             # Load track info
             track_name = api.read.session.track_name()
@@ -232,6 +235,7 @@ def record_track_map(output: MappingInfo, filepath: str, min_node_distance: floa
     """
     last_reset = None  # reset check
     delayed_save = False
+    own_car = True  # laps driven by the player's own car, see _base.own_car_data
 
     recording = False
     validating = False
@@ -285,6 +289,7 @@ def record_track_map(output: MappingInfo, filepath: str, min_node_distance: floa
             if not realtime_state.active:
                 continue
             last_reset = reset
+            own_car = own_car_data()
 
             # Check if same map loaded: same track & file time (maps of 2 tracks can share a file time)
             last_filename = filename
@@ -409,7 +414,7 @@ def record_track_map(output: MappingInfo, filepath: str, min_node_distance: floa
             pos_last = pos_recorded = 0.0
             is_pit_lap = False
             lap_gaps = 0
-            recording = True
+            recording = own_car  # laps of another car followed (spectate) never saved as track map
             #logger.info("map recording")
 
         # Validate map data after crossing finish line

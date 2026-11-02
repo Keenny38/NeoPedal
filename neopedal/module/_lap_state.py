@@ -55,6 +55,8 @@ class LapState:
         sync_save: save callbacks write synchronously: module stopping (MODULE_STOP, written before module
             reports stopped) or player inactive (PENDING_CHECK, nothing waits for module output); else
             (while driving) saves are queued to the data saver thread, see userfile.data_saver.
+        own_car: data loaded for the player's own car, False if loaded while spectating another car (never
+            saved, see _base.own_car_data).
     """
 
     __slots__ = (
@@ -62,6 +64,7 @@ class LapState:
         "delayed_save",
         "next_checkpoint",
         "sync_save",
+        "own_car",
         "_last_reset",
         "_sent_reset",
         "_on_resolved",
@@ -90,6 +93,7 @@ class LapState:
         self.delayed_save = False
         self.next_checkpoint = 0.0
         self.sync_save = False
+        self.own_car = True
         self._last_reset: Any = None  # reset of data loaded
         self._sent_reset: Any = None  # last reset value sent
         self._on_resolved = on_resolved
@@ -112,6 +116,9 @@ class LapState:
         """Save data (next checkpoint from now)"""
         if self._checkpoint:
             self.next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
+        if not self.own_car:  # data of another car followed: shown only, never saved as the player's
+            self.delayed_save = False
+            return
         if self._save is not None:
             self._save()
 
@@ -147,6 +154,7 @@ class LapState:
         if not wait_data_saver(SYNC_SAVE_TIMEOUT):
             logger.warning("data saving not finished before reload")
         self._last_reset = reset
+        self.own_car = _base.own_car_data()
         if self._checkpoint:
             self.delayed_save = False
             self.next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL

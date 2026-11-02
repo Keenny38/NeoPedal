@@ -167,3 +167,149 @@ def test_b002_pending_lap_still_waits_for_same_car(followed):
     followed["index"] = 0
     followed["last"] = 90.0  # back to garage just after the line: same car validates its lap
     assert state.receive(1) == LOAD and state.pending is None
+
+
+# --- B-003: laps, consumption & track measures of a car followed (spectate) never saved as the player's
+class Follow:
+    """Reader of the car followed: telemetry_sim cars sharing one clock, follow.car picks the one read"""
+
+    def __init__(self, sims):
+        from tests.telemetry_sim import fake_reader
+
+        self.sims = sims
+        self.car = 0
+        self.readers = [fake_reader(sim) for sim in sims]
+        for sim, reader in zip(sims, self.readers):
+            reader.session.identifier = lambda sim=sim: (1, int(sim.elapsed), sim.lap_index)
+
+    def __getattr__(self, name):
+        return getattr(self.readers[self.car], name)
+
+
+def run_delta(monkeypatch, tmp_path, switch_at: float, spectate: bool, seconds: float = 200.0):
+    """Delta module on car A (60 s laps), car B (58 s laps, 25 s into its lap) followed from switch_at,
+    returns delta output & seconds of each tick after the switch with (lapTimeSession, lapTimeStint)"""
+    from types import SimpleNamespace
+
+    from neopedal import validator
+    from neopedal.api_control import api
+    from neopedal.module import _base, module_delta
+    from neopedal.module_info import DeltaInfo
+    from tests.telemetry_sim import LapSim
+
+    now = {"t": 1000.0}
+    monkeypatch.setattr(validator, "time", SimpleNamespace(time=lambda: now["t"]))
+    monkeypatch.setattr(_base, "monotonic", lambda: now["t"])
+    monkeypatch.setattr(module_delta, "queue_save", lambda saver, *args, sync=False, **kwargs: saver(*args, **kwargs))
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "spectating", False)
+    step = 0.02
+    car_a = LapSim([60.0] * 20, step=step)
+    car_b = LapSim([58.0] * 20, step=step)
+    car_b.lap_start = -25.0
+    follow = Follow([car_a, car_b])
+    monkeypatch.setattr(api, "read", follow)
+    output = DeltaInfo()
+    gen_dist = module_delta.calc_delta_distance(output=output)
+    gen = module_delta.calc_delta_time(
+        output=output, filepath=f"{tmp_path.as_posix()}/", min_delta_distance=5, delta_smoothing_samples=1,
+        laptime_pace_samples=6, laptime_pace_margin=5)
+    resets = 1
+    after = []
+    for _ in range(int(seconds / step)):
+        car_a.tick()
+        car_b.tick()
+        now["t"] += step
+        if follow.car == 0 and car_a.elapsed >= switch_at:
+            follow.car = 1
+            resets += 1
+            realtime_state.spectating = spectate
+        gen_dist.send(resets)
+        gen.send(resets)
+        if follow.car == 1:
+            after.append((car_a.elapsed - switch_at, output.lapTimeSession, output.lapTimeStint))
+    return output, after
+
+
+def delta_best_laptime(tmp_path) -> float:
+    from neopedal.const_common import DELTA_DEFAULT, MAX_SECONDS
+    from neopedal.userfile.delta_best import read_delta_best_file
+
+    (_, laptime), _ = read_delta_best_file(f"{tmp_path.as_posix()}/", "SimTrack - SimCar", (DELTA_DEFAULT, MAX_SECONDS))
+    return laptime
+
+
+def test_b003_followed_car_laps_never_saved_as_delta_best(monkeypatch, tmp_path):
+    from neopedal.const_common import MAX_SECONDS
+
+    output, _ = run_delta(monkeypatch, tmp_path, switch_at=10.0, spectate=True)
+    assert output.lapTimeBest == pytest.approx(58.0, abs=0.05)  # car followed still shown
+    assert delta_best_laptime(tmp_path) == MAX_SECONDS  # never saved as the player's
+    assert not list(tmp_path.glob("*.session*"))
+
+
+def test_b003_own_laps_still_saved(monkeypatch, tmp_path):
+    run_delta(monkeypatch, tmp_path, switch_at=1000.0, spectate=False, seconds=130.0)  # car A only
+    assert delta_best_laptime(tmp_path) == pytest.approx(60.0, abs=0.05)
+
+
+def test_b003_lap_state_saves_only_data_loaded_for_own_car(monkeypatch):
+    from neopedal.module._lap_state import LapState
+
+    saves = []
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "spectating", True)
+    state = LapState(lambda lap, valid: None, lambda: saves.append(1))
+    state.receive(1)  # loaded while spectating another car
+    state.delayed_save = True
+    monkeypatch.setattr(realtime_state, "spectating", False)  # spectate off: reset, data of car followed
+    state.receive(2)
+    assert saves == [] and not state.delayed_save
+    state.delayed_save = True
+    state.receive(3)  # data loaded for own car: saved
+    assert saves == [1]
+
+
+def test_b003_stint_history_and_track_info_not_saved_while_spectating(tele, monkeypatch, tmp_path):  # noqa: F811
+    from neopedal.module import module_mapping as mapping
+    from neopedal.module import module_stint
+    from neopedal.module_info import HistoryInfo
+
+    saved = []
+    monkeypatch.setattr(mapping, "save_track_info", lambda name, **values: saved.append(("track", values)))
+    monkeypatch.setattr(module_stint, "queue_save", lambda *args, **kwargs: saved.append(("history",)))
+    monkeypatch.setattr(realtime_state, "spectating", True)
+    info = mapping.record_track_info(MappingInfo())
+    history = module_stint.record_consumption_history(HistoryInfo(), f"{tmp_path.as_posix()}/")
+    info.send(1)
+    history.send(1)
+    tele.update({"vehicle.in_pits": 0, "vehicle.speed": 30.0, "lap.distance": 100.0})
+    info.send(1)
+    tele.update({"vehicle.in_pits": 1, "lap.distance": 3900.0})  # car followed enters pit lane: measured
+    info.send(1)
+    monkeypatch.setattr(realtime_state, "spectating", False)
+    info.send(2)  # reset: measures of the car followed dropped
+    history.send(2)
+    info.send(3)  # own car: nothing measured (new track only added)
+    assert saved == [("track", {})]
+
+
+@pytest.mark.parametrize("spectating", [True, False])
+def test_b003_recorder_saves_laps_of_own_car_only(monkeypatch, spectating):
+    from neopedal.api_control import api
+    from neopedal.module import module_recorder
+    from tests.telemetry_sim import LapSim, fake_reader
+
+    monkeypatch.setattr(realtime_state, "active", True)
+    monkeypatch.setattr(realtime_state, "spectating", spectating)
+    monkeypatch.setattr(api, "_api", type("Api", (), {"NAME": "Le Mans Ultimate"})())
+    sim = LapSim([95.0, 90.0, 92.0])
+    monkeypatch.setattr(api, "read", fake_reader(sim))
+    saved = []
+    gen = module_recorder.record_telemetry(
+        filepath="", min_lap_fraction=0.9, max_saved_laps=10,
+        saver=lambda pending, options, valid: saved.append(pending.lap_time))
+    while not sim.finished:
+        gen.send(0)
+        sim.tick()
+    assert saved == ([] if spectating else [90.0])

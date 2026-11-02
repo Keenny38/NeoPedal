@@ -39,7 +39,7 @@ from ..userfile.consumption_history import (
 from ..userfile.data_saver import queue_save
 from ..userfile.heatmap import select_compound_symbol
 from ..validator import generator_init
-from ._base import CHECKPOINT_INTERVAL, MODULE_STOP, WAIT_STATE_CHANGE, DataModule
+from ._base import CHECKPOINT_INTERVAL, MODULE_STOP, WAIT_STATE_CHANGE, DataModule, own_car_data
 
 
 class Realtime(DataModule):
@@ -120,12 +120,16 @@ def record_consumption_history(output: HistoryInfo, filepath: str):
 
     combo_name = ""
     readable = True  # history file readable at load, False if not accessible (never saved over)
+    own_car = True  # history loaded for the player's own car, see _base.own_car_data
 
     def save_data(sync: bool = False):
         """History saved (on reset, module stop & every CHECKPOINT_INTERVAL while driving) on the data saver
         thread; sync: written before returning (module stop, reset: history loaded back from file at once)"""
         nonlocal delayed_save, readable, next_checkpoint
         next_checkpoint = monotonic() + CHECKPOINT_INTERVAL
+        if not own_car:  # laps of another car followed: never in the player's history
+            delayed_save = False
+            return
         if not readable:  # not accessible at load: laps of file kept, added to recorded laps
             # Read before taking the lock (a slow read never blocks Race Calculator deleting laps on UI thread)
             saved_laps, readable = read_consumption_history_file(filepath=filepath, filename=combo_name)
@@ -157,6 +161,7 @@ def record_consumption_history(output: HistoryInfo, filepath: str):
             last_reset = reset
 
             # Load data
+            own_car = own_car_data()
             combo_name = api.read.session.combo_name()
             dataset, readable = read_consumption_history_file(
                 filepath=filepath,

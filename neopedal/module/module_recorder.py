@@ -55,7 +55,7 @@ from ..userfile.lap_cache import load_cached_lap, remove_cached_lap
 from ..userfile.lap_marks import kept_laps
 from ..userfile.telemetry_lap import INFO_PREFIX, best_laps, lap_bounds, lap_files, lap_folder_name
 from ..validator import generator_init
-from ._base import MODULE_STOP, WAIT_STATE_CHANGE, DataModule
+from ._base import MODULE_STOP, WAIT_STATE_CHANGE, DataModule, own_car_data
 
 logger = logging.getLogger(__name__)
 
@@ -483,6 +483,7 @@ def record_telemetry(
     kept_elapsed = float("-inf")  # game time of last sample kept
     pending: PendingLap | None = None  # completed lap waiting for validation
     pending_deadline = 0.0  # clock time limit to validate pending lap left before validation delay, 0 if not
+    own_car = True  # laps recorded since last reset are the player's own, see _base.own_car_data
     options = SaveOptions(filepath, max_saved_laps, save_invalid, keep_best, compress)
 
     while True:
@@ -498,6 +499,7 @@ def record_telemetry(
                 # Left track before validation delay: game last lap time (scoring) may not be updated yet
                 pending_deadline = clock() + PENDING_WAIT
             last_reset = reset
+            own_car = own_car_data()
             last_lap_start = None
             last_elapsed = float("-inf")
             lap_complete_start = False
@@ -544,8 +546,9 @@ def record_telemetry(
             first, last = lap_bounds(distances)  # without samples of previous lap distance
             max_distance = max(distances[first:last], default=0.0)
             kind = OUT_LAP_KIND if started_in_pits else IN_LAP_KIND if in_pits else LAP_KIND
-            if (lap_complete_start and track_length > 0 and max_distance >= track_length * min_lap_fraction
-                    and (save_out_in or kind == LAP_KIND)):
+            # Laps of another car followed (spectate) never saved as the player's
+            if (own_car and lap_complete_start and track_length > 0
+                    and max_distance >= track_length * min_lap_fraction and (save_out_in or kind == LAP_KIND)):
                 if pending is not None:  # previous lap not verified in time
                     save_pending(pending, options, saver, False)
                     pending_deadline = 0.0

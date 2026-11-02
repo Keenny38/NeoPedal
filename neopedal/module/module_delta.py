@@ -252,6 +252,8 @@ def calc_delta_time(
         """Save delta best file (data saver thread, module keeps updating), never over a faster lap of
         file not accessible at load"""
         nonlocal best_readable, laptime_best, delta_array_best
+        if not lap_state.own_car:  # lap of another car followed: never the player's delta best
+            return
         if not best_readable:  # file kept unless lap faster than its lap
             (saved_array, saved_laptime), best_readable = read_delta_best_file(
                 filepath, combo_name, (DELTA_DEFAULT, MAX_SECONDS))
@@ -273,6 +275,8 @@ def calc_delta_time(
         """Save session & stint best file (data saver thread), faster laps of file not accessible at load kept"""
         nonlocal session_readable, laptime_session_best, delta_array_session
         nonlocal laptime_stint_best, delta_array_stint
+        if not lap_state.own_car:  # laps of another car followed: never the player's session file
+            return
         pitstops = api.read.vehicle.number_pitstops()
         if not session_readable:
             saved, session_readable = read_delta_session_file(filepath, combo_name, last_session_id, pitstops)
