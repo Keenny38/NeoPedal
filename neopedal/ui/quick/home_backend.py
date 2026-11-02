@@ -482,6 +482,7 @@ class HomeBackend(PageBackend):
     def refresh_debrief(self, record: SessionRecord | None):
         """Debrief of last session read in background, again once session or its lap time goal changed"""
         if record is None:
+            self.jobs.cancel("debrief")  # debrief of a session read meanwhile never shown
             self._debrief_key = self._debrief_data = None
             self.publish("debrief", {}, self.debriefChanged)
             self.set_loading("debrief", False)

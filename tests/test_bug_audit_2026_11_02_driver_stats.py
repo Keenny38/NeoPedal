@@ -815,3 +815,18 @@ def test_b035_debrief_never_compares_with_a_lap_slower_than_stint_best(tmp_path)
                                           seconds=400, vehicle_class="GT3")
     debrief = session_debrief.build_debrief(record, [record], str(tmp_path))
     assert debrief.reference_kind != "personal_best"
+
+
+# B-036
+def test_b036_history_emptied_drops_debrief_being_read():
+    from types import SimpleNamespace
+
+    from neopedal.ui.quick.home_backend import HomeBackend
+
+    cancelled = []
+    page = SimpleNamespace(
+        jobs=SimpleNamespace(cancel=cancelled.append), publish=lambda *args: None, debriefChanged=None,
+        set_loading=lambda *args: None, refresh_week=lambda: None, _debrief_key=("old",), _debrief_data=None,
+        _records=None)
+    HomeBackend.refresh_debrief(page, None)
+    assert cancelled == ["debrief"]
