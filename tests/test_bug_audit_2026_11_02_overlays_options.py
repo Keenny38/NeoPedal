@@ -399,3 +399,13 @@ def test_b009_reset_overlay_keeps_position(options):
     options.resetOverlay()
     assert options._pending.get("speedometer/opacity") == cfg.default.setting["speedometer"]["opacity"]
     assert "speedometer/position_x" not in options._pending and "speedometer/position_y" not in options._pending
+
+
+# B-011: Reset Overlay wiped the user profiles of the Black Box (options hidden from the page)
+def test_b011_reset_overlay_keeps_hidden_user_profiles(options):
+    cfg.user.setting["black_box"]["user_profile_3"] = "show_tyre_compound:1"
+    cfg.user.setting["black_box"]["opacity"] = 0.5
+    options.selectOverlay("black_box")
+    options.resetOverlay()
+    assert "black_box/opacity" in options._pending
+    assert not any(oid.startswith("black_box/user_profile_") for oid in options._pending)

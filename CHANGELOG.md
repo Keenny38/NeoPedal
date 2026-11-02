@@ -156,6 +156,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Navigation: the car size, offset, colors and outlines are no longer dimmed with the arrow shape (default); the place number colors follow `show_vehicle_class_standings`.
 - `Overlay Options`, Trailing: the pedal bar options are dimmed while `show_pedal_bars` is off and no longer by `show_ffb_bar` or the brake pressure switch, each alert flash is its own switch, and the colors and thresholds shared by traces and bars stay active while any of them is shown.
 - `Overlay Options`: `Reset Overlay` no longer moves the overlay to its default position; its place is kept, like its on/off state.
+- `Overlay Options`, Black Box: `Reset Overlay` no longer erases the user profiles saved with `Save as Profile`.
 
 ## 0.28.1 (2026-11-01)
 

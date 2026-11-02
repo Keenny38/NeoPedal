@@ -1486,7 +1486,9 @@ class OverlayOptionsBackend(PageBackend):
             return
         text = (f"Reset all <b>{module_label(name)}</b> options to default?<br><br>"
                 "Changes are only saved after clicking Apply or Save Button.")
-        keys = [key for key in default_keys(name) if key not in NOT_CUSTOMIZED]  # position kept (B-009)
+        ui = self.layout(name).option_ui
+        hidden = ui.hidden if ui is not None else frozenset()  # user profiles of black box (B-011)
+        keys = [key for key in default_keys(name) if key not in NOT_CUSTOMIZED and key not in hidden]  # position kept (B-009)
         self._ask_then(trm(text), lambda backend: backend._reset_if_known(name, keys))
 
     def _ask_then(self, text: str, then: Callable[[OverlayOptionsBackend], object]):
