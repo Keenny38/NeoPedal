@@ -684,3 +684,9 @@ def test_b041_damage_integrity_options_follow_reading(ui_env, modern):
 # B-042: Damage Stats (classic) prefixes active while prefixes hidden
 def test_b042_damage_stats_prefixes_follow_prefix_switch(ui_env):
     assert dimmed("damage_stats", "prefix_aero_integrity", False, show_integrity_prefix=False)
+
+
+# B-043: Force (classic) lift force color active without downforce rows
+def test_b043_force_lift_color_follows_downforce_rows(ui_env):
+    assert dimmed("force", "warning_color_liftforce", False, show_front_downforce=False, show_rear_downforce=False)
+    assert not dimmed("force", "warning_color_liftforce", False, show_front_downforce=False, show_rear_downforce=True)

@@ -175,6 +175,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Brake Temperature: `off_brake_duration` (modern look) is dimmed while the average is hidden, and the temperature font or background color (classic look) is dimmed when `swap_style` makes it unused.
 - `Overlay Options`, Damage: the integrity color is no longer dimmed by default, and the integrity options are dimmed while `show_integrity_reading` is off.
 - `Overlay Options`, Damage Stats (classic look): the integrity prefixes are dimmed while `show_integrity_prefix` is off.
+- `Overlay Options`, Force (classic look): `warning_color_liftforce` is dimmed while the front and rear downforce rows are hidden.
 
 ## 0.28.1 (2026-11-01)
 

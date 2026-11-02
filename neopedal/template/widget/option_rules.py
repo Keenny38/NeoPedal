@@ -354,6 +354,7 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "force": {"warning_color_liftforce": ("show_front_downforce", "show_rear_downforce")},
     "trailing": _TRAILING_SHARED,
     "steering_angle": {"manual_steering_range": ("show_steering_angle", "show_steering_ratio")},
     "tyre_overview": {
