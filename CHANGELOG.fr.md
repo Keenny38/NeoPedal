@@ -116,6 +116,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate : les événements du jeu de la mémoire partagée sont lus comme la file qu'ils sont (début et fin de session et conduite étaient toujours vus comme signalés) ; les copies des données du jeu n'en dépendent plus.
 - Résultats et replays, Le Mans Ultimate : l'ouverture d'un replay du jeu n'est jamais envoyée deux fois quand le jeu coupe la connexion juste après (replay chargé deux fois).
 - Le Mans Ultimate : les réponses du jeu partagées entre les pages et les overlays ne sont plus demandées deux fois en même temps quand le cache partagé est nettoyé entre-temps.
+- Le Mans Ultimate : pendant que le jeu tarde à répondre (chargement d'une session ou d'un circuit), les pages et les overlays ne reçoivent plus comme nouvelle une réponse gardée depuis des dizaines de secondes (classement ou consommation d'énergie de la session précédente).
 
 ## 0.28.1 (2026-11-01)
 

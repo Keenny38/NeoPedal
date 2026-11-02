@@ -854,3 +854,23 @@ def test_b024_route_pruned_before_its_request_stays_shared():
     first.join(5)
     second.join(5)
     assert game.calls == ["/rest/x"]  # one request for both callers
+
+
+def test_b025_waiter_never_gets_answer_of_long_ago():
+    import threading
+
+    from neopedal.game_rest_cache import NO_ANSWER, GameRestCache
+
+    game = HangingGame()
+    clock = [100.0]
+    cache = GameRestCache(game.fetch, clock=lambda: clock[0], timeout=0.01)
+    cache.store("/rest/standings", 200, b"previous session", ADDRESS)
+    clock[0] += 20.0  # 20 s later, game loading another session (answers dropped after STALE_AGE, 30 s)
+    asking = threading.Thread(target=cache.answer, args=("/rest/standings", 1.0, ADDRESS))
+    asking.start()
+    assert game.asked.wait(5)
+    try:
+        assert cache.answer("/rest/standings", 1.0, ADDRESS) is NO_ANSWER  # request hangs: kept answer too old
+    finally:
+        game.release.set()
+        asking.join(5)

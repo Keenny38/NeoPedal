@@ -208,12 +208,17 @@ class GameRestCache:
                 if pending is None:
                     pending = entry.pending = threading.Event()
                     break
-            # Other caller asking: its answer is fresh, kept one if it takes too long
-            done = pending.wait(self.timeout * 2 + 1)
+            # Other caller asking: its answer is fresh, kept one if it takes too long, unless older than the round
+            # before (answer of a previous session while the game loads another one, never served as new)
+            wait = self.timeout * 2 + 1
+            waited_from = self._clock()
+            done = pending.wait(wait)
             with self._lock:
                 answer = entry.answer
             if not done:
-                return answer or NO_ANSWER
+                if answer is not None and waited_from - answer.time <= max_age + wait:
+                    return answer
+                return NO_ANSWER
             if answer is not None:
                 return answer
         status, body = 0, b""
