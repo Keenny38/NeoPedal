@@ -55,6 +55,7 @@ from ...userfile.driver_stats import (
     load_stats_json_file,
     merge_stats_entry,
     merge_stats_since,
+    redo_stats_entry,
     save_stats_json_file,
     set_stats_entry,
     stats_entry,
@@ -292,14 +293,16 @@ class StatsEdits(StatsHost):
             stats_user = cls.load_fresh_stats()
             if stats_user is None:
                 return False
+            backup_stats_file(cfg.path.config)
             if not edit.path:  # whole file (backup restored, lap times completed): stats recorded since kept
                 since = stats_since(stats_user, edit.after if undo else edit.before)
                 stats_user = merge_stats_since(edit.before if undo else edit.after, since)
             elif undo:
                 current = stats_entry(stats_user, edit.path)
                 set_stats_entry(stats_user, edit.path, merge_stats_entry(current, edit.before, edit.path))
-            else:
-                set_stats_entry(stats_user, edit.path, edit.after)
+            else:  # redo: stats recorded since kept
+                current = stats_entry(stats_user, edit.path)
+                set_stats_entry(stats_user, edit.path, redo_stats_entry(current, edit.before, edit.after, edit.path))
             if undo:
                 return bool(cls.save_edit(stats_user, edit.history_after, edit.history_before))
             return bool(cls.save_edit(stats_user, edit.history_before, edit.history_after))
@@ -322,6 +325,7 @@ class StatsEdits(StatsHost):
 
     def edit_applied(self, done: bool, edit: StatsEdit, undo: bool):
         """Undo or redo saved (UI thread): moved to other stack (back to its stack if not saved), page reloaded"""
+        self._backups = None  # listed again (backup made before undo & redo)
         if done:
             (self._edits_redo if undo else self._edits_undo).append(edit)
         else:

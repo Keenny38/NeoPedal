@@ -229,6 +229,30 @@ def merge_stats_since(stats_user: dict, since: dict) -> dict:
     return merged
 
 
+def redo_stats_entry(current: Any, before: Any, after: Any, path: Sequence[str]) -> Any:
+    """Stats at path (track, vehicle or stat) of an edit applied again (redo, before: value the edit replaced),
+    stats recorded since the edit kept: a track or vehicle removed again keeps the stints driven since"""
+    if len(path) == 3:
+        if not DriverStats.is_lap_time(path[-1]):
+            return copy.deepcopy(after)
+        best = best_lap_time(current)
+        return best if best and best < (best_lap_time(before) or MAX_SECONDS) - 0.0005 else copy.deepcopy(after)
+    if len(path) not in (1, 2) or not isinstance(current, dict):
+        return copy.deepcopy(after)
+
+    def wrap(value: Any) -> dict:
+        """Vehicles of track (vehicle: as a track of one vehicle)"""
+        if not isinstance(value, dict):
+            return {}
+        return value if len(path) == 1 else {"": value}
+
+    since = stats_since({"": wrap(current)}, {"": wrap(before)}).get("", {})
+    merged = merge_stats_since({"": wrap(after)}, {"": since})[""] if since else wrap(after)
+    if len(path) == 2:
+        return merged.get("")
+    return merged or None
+
+
 def merge_stats_entry(current: Any, restored: Any, path: Sequence[str]) -> Any:
     """Restored stats at path (track, vehicle or stat) merged with current stats there
 
