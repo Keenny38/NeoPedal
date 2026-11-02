@@ -190,7 +190,8 @@ class ReplaysFolder(ReplaysBase):
         folder = self.replay_folder()
         if not folder or not name or name == key or self.replay_of(key) is None:  # gone meanwhile
             return True
-        error = replay_files.rename_replay(folder, key, name)
+        listed = any(replay.name.casefold() == name.casefold() and replay.name != key for replay in self.replays)
+        error = "name already used" if listed else replay_files.rename_replay(folder, key, name)  # listed: two rows
         if error:
             self.notify(trm(f"Unable to rename: {error}"), True)
             return False

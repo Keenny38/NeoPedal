@@ -494,3 +494,13 @@ def test_b013_renamed_replay_stays_selected(replays_page, tmp_path):  # noqa: F8
     assert backend.rename_replay("B", "B2")
     assert backend.checked == {"B2"} and backend.selectedReplay == "B2"
     assert [(row["key"], row["checked"]) for row in backend.replayRows.rows if row["checked"]] == [("B2", True)]
+
+
+# B-014: renaming to the name of a replay still listed (file deleted outside the app, list not asked again) made two
+# rows of the same name, actions on that row acting on both
+def test_b014_rename_refuses_name_still_listed(replays_page, tmp_path):  # noqa: F811
+    backend = page_of_replays(replays_page, tmp_path / "Replays", "ABC")
+    (tmp_path / "Replays" / "A.Vcr").unlink()  # deleted outside the app: still listed
+    assert not backend.rename_replay("B", "a")
+    assert backend.noticeError and "name already used" in backend.noticeText
+    assert sorted(replay.name for replay in backend.replays) == ["A", "B", "C"]
