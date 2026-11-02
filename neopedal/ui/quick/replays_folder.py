@@ -202,6 +202,8 @@ class ReplaysFolder(ReplaysBase):
         renamed = self.selected_replay == key
         if renamed:
             self.selected_replay = name  # row of new name made selected
+        if key in self.checked:  # still selected under its new name
+            self.checked = (self.checked - {key}) | {name}
         self.refresh_files()
         if renamed:
             self.update_selected_protected()

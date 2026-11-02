@@ -485,3 +485,12 @@ def test_b023_race_record_leaves_out_races_without_lap():
 
     record = ri.race_record([race(12), race(0, "None", 5), race(0, "DNF", 0)])
     assert record.races == 1 and record.clean == 1 and record.podiums == 1
+
+
+# B-013: replay renamed was no longer selected (selection kept its former name, dropped once the list was updated)
+def test_b013_renamed_replay_stays_selected(replays_page, tmp_path):  # noqa: F811
+    backend = page_of_replays(replays_page, tmp_path / "Replays", "ABC")
+    backend.selectReplay("B")
+    assert backend.rename_replay("B", "B2")
+    assert backend.checked == {"B2"} and backend.selectedReplay == "B2"
+    assert [(row["key"], row["checked"]) for row in backend.replayRows.rows if row["checked"]] == [("B2", True)]
