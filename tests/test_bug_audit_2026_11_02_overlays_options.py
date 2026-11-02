@@ -754,3 +754,12 @@ def test_b061_gear_limiter_options_follow_limiter(ui_env, modern):
     assert not dimmed("gear", "show_speed_limiter", modern, show_speed=False)
     assert not dimmed("gear", "speed_limiter_text", modern, show_speed=False, show_speed_limiter=True)
     assert dimmed("gear", "speed_limiter_text", modern, show_speed_limiter=False)
+
+
+# B-062: Gear RPM zones dimmed without the RPM bar, though they color the gear too
+@DESIGNS
+def test_b062_gear_rpm_zones_used_without_rpm_bar(ui_env, modern):
+    keys = shown_keys("gear", modern)
+    for key in ("rpm_multiplier_safe", "rpm_multiplier_redline", "rpm_multiplier_critical", "rpm_color_safe"):
+        if key in keys:
+            assert not dimmed("gear", key, modern, show_rpm_bar=False), key

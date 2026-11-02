@@ -184,6 +184,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Carburant et Énergie virtuelle (design classique) : les couleurs de carburant et d'énergie basses ne sont plus grisées avec le flash d'alerte désactivé.
 - `Options des overlays`, Instruments : les couleurs moteur coupé et calage et `stalling_rpm_threshold` sont grisées quand `show_ignition` est désactivée.
 - `Options des overlays`, Rapport : les options du limiteur de vitesse ne sont plus grisées quand la vitesse est masquée, car le limiteur reste affiché ; elles suivent `show_speed_limiter`.
+- `Options des overlays`, Rapport : les zones de régime (multiplicateurs, couleurs, clignotement) ne sont plus grisées quand la barre de régime est masquée, car elles colorent aussi le rapport.
 
 ## 0.28.1 (2026-11-01)
 

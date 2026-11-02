@@ -92,8 +92,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                   dependencies={key: "show_battery_reading" for key in (
                       "decimal_places_battery", "font_color_battery", "battery_reading_offset_x",
                       "battery_reading_text_alignment")}),
-        # RPM zones color the RPM bar, flickering or not
-        OptionFix(MODERN, dependencies=dict.fromkeys(_RPM_MULTIPLIERS[1:4], "show_rpm_bar")),
+        # RPM zones color the gear box (shift light) as well as the RPM bar: used without the bar
+        OptionFix(dependencies=dict.fromkeys((*_RPM_MULTIPLIERS[1:4], "show_rpm_flickering_above_critical",
+                                               "rpm_color_safe", "rpm_color_redline", "rpm_color_over_rev"), "")),
         # Speed limiter shown with or without the speed: its own options
         OptionFix(dependencies={
             "show_speed_limiter": "show_speed_limiter",
