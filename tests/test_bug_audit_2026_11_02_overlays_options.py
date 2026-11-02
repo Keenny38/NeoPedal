@@ -803,3 +803,14 @@ def test_b071_pedal_unused_options(ui_env, modern):
     assert dimmed("pedal", "show_brake_pressure", modern, show_brake_filtered=False)
     if not modern:
         assert dimmed("pedal", "font_size", modern, show_readings=False)
+
+
+# B-072: Steering Angle, Steering Meter (classic) & Telemetry Compare (classic) options active while unused
+def test_b072_steering_and_telemetry_unused_options(ui_env):
+    hidden = {"show_ackermann_percentage": False, "show_turning_radius": False,
+              "show_turning_radius_under_slip_angle": False}
+    assert dimmed("steering_angle", "wheelbase", True, **hidden)
+    assert not dimmed("steering_angle", "wheelbase", True, **dict(hidden, show_turning_radius=True))
+    assert dimmed("steering_angle", "wheel_track_front", True, show_ackermann_percentage=False)
+    assert dimmed("steering_meter", "font_size", False, show_steering_angle=False)
+    assert dimmed("telemetry_compare", "line_color_gear", False, show_gear=False)

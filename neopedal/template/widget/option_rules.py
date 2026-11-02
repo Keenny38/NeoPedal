@@ -183,6 +183,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "lap_time_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
     "stint_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
     "steering_meter": (OptionFix(MODERN, dependencies={"scale_mark_degree": "show_scale_mark"}),
+                       OptionFix(CLASSIC, dependencies=dict.fromkeys((  # angle text only
+                           "bar_padding_horizontal", "bar_padding_vertical", "font_name", "font_size", "font_weight",
+                           "enable_auto_font_offset"), "show_steering_angle")),
                        OptionFix(dependencies={"manual_steering_range": ""})),
     "tyre_overview": (OptionFix(dependencies={
         "flat_spot_threshold": "show_tyre_alerts",
@@ -229,7 +232,10 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                          "font_color_steering_angle"), "show_steering_angle"),
     }), OptionFix(CLASSIC, dependencies=dict.fromkeys(
         ("font_name", "font_size", "font_weight", "enable_auto_font_offset"), "show_steering_angle"))),
-    "steering_angle": (OptionFix(dependencies={"manual_steering_range": ""}),),
+    "steering_angle": (OptionFix(dependencies={
+        "manual_steering_range": "", "wheelbase": "",  # see ANY_OF
+        "wheel_track_front": "show_ackermann_percentage",
+    }),),
     "deltabest": (OptionFix(CLASSIC, dependencies={"background_color_deltabest": ""}),  # delta box, any source
                   # Range of the reading, animation & layout of the bar
                   OptionFix(dependencies={"delta_display_range": "", "enable_animated_deltabest": "show_delta_bar",
@@ -263,6 +269,9 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
                          "font_color_rate_loss"), ""),
     }), OptionFix(dependencies=dict.fromkeys(("rate_of_change_interval", "rate_of_change_smoothing_samples"),
                                               "show_rate_of_change"))),
+    "telemetry_compare": (OptionFix(CLASSIC, dependencies={
+        "zero_line_color": "show_steering", "line_color_steering": "show_steering", "line_color_gear": "show_gear",
+    }),),
 }
 # Trailing pedal bars (both designs): bar options under the pedal bars switch, each alert flash its own switch
 OPTION_FIXES["trailing"] += (OptionFix(dependencies={
@@ -417,6 +426,10 @@ _DRIVING_EVENTS = "show_setting_popup_driving_events"  # pop-up of limiter, head
 _ENGINE = ("show_engine_status", "show_engine_overheat_events")
 # Option -> on/off options of the parts using it (chains followed: event log events need the event log on)
 ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
+    "steering_angle": {
+        "manual_steering_range": ("show_steering_angle", "show_steering_ratio"),
+        "wheelbase": ("show_ackermann_percentage", "show_turning_radius", "show_turning_radius_under_slip_angle"),
+    },
     "engine_temperature": dict.fromkeys(
         ("font_color_rate_of_change", "background_color_rate_of_change", "font_color_rate_gain", "font_color_rate_loss"),
         ("show_rate_of_change", "show_net_change_per_lap")),
@@ -425,7 +438,6 @@ ANY_OF: dict[str, Mapping[str, tuple[str, ...]]] = {
                                  ("show_track_clock", "show_time_scale", "show_sunlight_phase_countdown")),
     "force": {"warning_color_liftforce": ("show_front_downforce", "show_rear_downforce")},
     "trailing": _TRAILING_SHARED,
-    "steering_angle": {"manual_steering_range": ("show_steering_angle", "show_steering_ratio")},
     "tyre_overview": {
         "show_layer_labels": ("show_carcass_temperature", "show_inner_layer_temperature"),
         # Tread left & tread gauge (modern design only: classic one follows show_wear, see OPTION_FIXES)

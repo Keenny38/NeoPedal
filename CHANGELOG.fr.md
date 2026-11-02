@@ -189,6 +189,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Rapport : les options de la barre de consommation sont grisées quand la barre est masquée (par défaut), et les polices de la vitesse et des valeurs (design classique) quand ce qu'elles dimensionnent est masqué.
 - `Options des overlays`, Volant : les options de la valeur d'angle (décimales, signe degré, décalages, couleur, police) sont grisées quand `show_steering_angle` est désactivée.
 - `Options des overlays`, Pédale : les options de police (design classique) sont grisées quand les valeurs sont masquées, et `show_brake_pressure` quand le frein filtré est masqué.
+- `Options des overlays`, Angle de braquage, Jauge de direction et Comparaison de télémétrie : la voie, l'empattement, les marges et la police du texte d'angle, la ligne zéro et les couleurs de direction et de rapport sont grisées quand les valeurs ou tracés qui les utilisent sont masqués.
 
 ## 0.28.1 (2026-11-01)
 

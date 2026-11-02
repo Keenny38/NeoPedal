@@ -189,6 +189,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`, Gear: the consumption bar options are dimmed while the bar is hidden (default), and the speed and reading fonts (classic look) while what they size is hidden.
 - `Overlay Options`, Steering Wheel: the angle reading options (decimal places, degree sign, offsets, color, font) are dimmed while `show_steering_angle` is off.
 - `Overlay Options`, Pedal: the font options (classic look) are dimmed while the readings are hidden, and `show_brake_pressure` while the filtered brake is hidden.
+- `Overlay Options`, Steering Angle, Steering Meter and Telemetry Compare: track width, wheelbase, angle text padding and font, zero line, steering and gear colors are dimmed while the readings or plots using them are hidden.
 
 ## 0.28.1 (2026-11-01)
 
