@@ -2059,6 +2059,8 @@ TRANSLATION = MappingProxyType({
     "Back to Live": "Retour au direct",
     "Leave the replay of this session, back to the live session": "Quitter le rejeu de cette session, retour à la session en direct",
     "Replay This Moment": "Revoir ce moment",
+    "You are in a session: the game shows the replay of this session at the incident (back to live from playback).<br><br>Watch this incident?":
+        "Vous êtes en session : le jeu affiche le replay de cette session à l'incident (retour au direct depuis la lecture).<br><br>Voir cet incident ?",
     "The replay of this session opens at the selected incident (back to live from playback)": "Le rejeu de cette session s'ouvre à l'incident sélectionné (retour au direct depuis la lecture)",
     "Game HUD": "Interface du jeu",
     "Show HUD": "Afficher le HUD",

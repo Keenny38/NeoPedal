@@ -33,7 +33,7 @@ from PySide6.QtWidgets import QFileDialog
 
 from ...i18n import tr, trm
 from ...process.game_info import IMMOVABLE, Incident
-from . import last_folder
+from . import dialogs, last_folder
 from .game_camera import Command
 from .models import DictListModel
 from .replays_base import ReplaysBase
@@ -203,6 +203,19 @@ class ReplaysIncidents(ReplaysBase):
         incident = next((incident for incident in self.incidents if incident_key(incident) == key), None)
         if incident is None or self.state not in (SESSION, REPLAY) or self.last_session:
             return
+        if self.state == SESSION:  # the game leaves the live view (driving: car left to itself): asked first
+
+            def confirmed(chosen: bool):
+                if chosen and self.state == SESSION and not self.last_session:
+                    self.jump_to(incident, key, driver)
+
+            dialogs.confirm(self._window, tr("Replay This Moment"), tr(
+                "You are in a session: the game shows the replay of this session at the incident (back to live from "
+                "playback).<br><br>Watch this incident?"), tr("Replay This Moment"), confirmed)
+            return
+        self.jump_to(incident, key, driver)
+
+    def jump_to(self, incident: Incident, key: str, driver: str):
         self.selectIncident(key)
         if not driver:
             player = self.player_name()

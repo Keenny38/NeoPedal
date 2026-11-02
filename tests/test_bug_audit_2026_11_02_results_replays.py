@@ -221,3 +221,28 @@ def test_b006_replay_map_never_uses_shared_memory(replays_page, monkeypatch):  #
     assert backend.gameState == "replay" and backend.map_center and backend._shown
     backend.read_live_positions()
     assert not backend.live_wanted() and backend.mapLive == {}
+
+
+# B-007: one click on an incident in a live session sent the game to its replay, without confirmation
+def test_b007_jump_in_live_session_asks_first(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui.quick import dialogs
+
+    backend = answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": False})
+    assert backend.gameState == "session"
+    answers: list[bool] = [False]
+    asked: list[str] = []
+
+    def confirm(parent, title, text, action, on_result, **kwargs):
+        asked.append(text)
+        on_result(answers[0])
+
+    monkeypatch.setattr(dialogs, "confirm", confirm)
+    key = backend.incidentRows.rows[1]["key"]
+    replays_page.sent.clear()
+    backend.jumpTo(key, "")  # cancelled: the game stays live
+    wait_commands(backend)
+    assert asked and "session" in asked[0] and replays_page.sent == []
+    answers[0] = True
+    backend.jumpTo(key, "")
+    wait_commands(backend)
+    assert ("POST", "/rest/replay/toggleactive") in replays_page.sent
