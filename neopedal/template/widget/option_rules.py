@@ -130,7 +130,12 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
     "fuel_energy_saver": (OptionFix(dependencies={"remaining_pitstop_threshold": "enable_pit_entry_bias"}),),
     "race_plan": (OptionFix(dependencies={"pit_window_laps": "show_next_stop",
                                           "warning_color_pit_window": "show_next_stop"}),),
-    "track_clock": (OptionFix(dependencies={"enable_time_scaled_countdown": "show_sunlight_phase_countdown"}),),
+    "track_clock": (OptionFix(dependencies={
+        "enable_time_scaled_countdown": "show_sunlight_phase_countdown",
+        # Colors of the countdown & its arrow, time scaled or not
+        **dict.fromkeys(("font_color_sunlight_phase_countdown", "background_color_sunlight_phase_countdown",
+                         "font_color_phase_day", "font_color_phase_night"), "show_sunlight_phase_countdown"),
+    }),),
     "lap_time_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
     "stint_history": (OptionFix(dependencies={"caption_text_virtual_energy": "show_virtual_energy_if_available"}),),
     "steering_meter": (OptionFix(MODERN, dependencies={"scale_mark_degree": "show_scale_mark"}),

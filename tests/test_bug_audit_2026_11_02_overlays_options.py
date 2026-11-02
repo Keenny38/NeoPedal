@@ -311,3 +311,15 @@ def test_b024_steering_angle_range_used_by_steering_ratio(ui_env, modern):
                       show_steering_ratio=True)
     assert dimmed("steering_angle", "manual_steering_range", modern, show_steering_angle=False,
                   show_steering_ratio=False)
+
+
+# B-026: countdown colors of Track Clock (classic) under enable_time_scaled_countdown (off by default)
+COUNTDOWN_COLORS = ("font_color_sunlight_phase_countdown", "background_color_sunlight_phase_countdown",
+                    "font_color_phase_day", "font_color_phase_night")
+
+
+@DESIGNS
+def test_b026_track_clock_countdown_colors_follow_countdown(ui_env, modern):
+    for key in (key for key in COUNTDOWN_COLORS if key in shown_keys("track_clock", modern)):
+        assert not dimmed("track_clock", key, modern, enable_time_scaled_countdown=False), key
+        assert dimmed("track_clock", key, modern, show_sunlight_phase_countdown=False), key
