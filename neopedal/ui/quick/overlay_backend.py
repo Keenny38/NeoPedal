@@ -786,8 +786,8 @@ class OverlayBackend(PageBackend):
         self._safe_mode = safe_mode.state.enabled
         self._positions_locked = positions_locked()
         self._background: dict[str, Any] = {}  # screenshot under the screen view: url & desktop rect
-        # Page undo history (Ctrl+Z, toasts): (kind, overlay name or "", undo action), last change last
-        self._undo: list[tuple[str, str, Callable[[], object]]] = []
+        # Page undo history (Ctrl+Z, toasts): (kind, overlay name or "", undo action, preset), last change last
+        self._undo: list[tuple[str, str, Callable[[], object], str]] = []
         self._inputs_changed = False  # setting refreshed while hidden: previews checked once shown
         self._shown_once = False  # page shown at least once: a refresh while hidden waits for the next show
         self._refresh_pending = (False, False)  # states & marks changed by refreshes not yet shown (see refresh)
@@ -960,6 +960,7 @@ class OverlayBackend(PageBackend):
         if preset != self._preset:
             self._preset = preset
             self.presetChanged.emit()
+        self._forget_other_presets()
         self._read_lock()
         self._screen_changed()
 
@@ -1203,9 +1204,14 @@ class OverlayBackend(PageBackend):
     def _push_undo(self, kind: str, name: str, action: Callable[[], object], merge: bool = False
                    ) -> Callable[[], object]:
         """Reversible change put on the page undo history (merge: same change as the last one, kept as one step:
-        arrow key presses in a row), returns the Undo of its toast (that change only, once)"""
-        entry = (kind, name, action)
-        if merge and self._undo and self._undo[-1][:2] == (kind, name):
+        arrow key presses in a row), returns the Undo of its toast (that change only, once)
+
+        Each change is kept with the preset it was made in: never undone in another preset (was: Ctrl+Z after a
+        preset load switched the overlays of the new preset, B-003).
+        """
+        preset = cfg.filename.setting
+        entry = (kind, name, action, preset)
+        if merge and self._undo and self._undo[-1][:2] == (kind, name) and self._undo[-1][3] == preset:
             entry = self._undo[-1]
         else:
             self._undo.append(entry)
@@ -1213,20 +1219,29 @@ class OverlayBackend(PageBackend):
             self.undoChanged.emit()
         return lambda: self._run_undo(entry)
 
-    def _run_undo(self, entry: tuple[str, str, Callable[[], object]]):
-        """Change of a toast undone, once (undone by Ctrl+Z already: nothing)"""
+    def _run_undo(self, entry: tuple[str, str, Callable[[], object], str]):
+        """Change of a toast undone, once (undone by Ctrl+Z already, or made in another preset: nothing)"""
         if any(item is entry for item in self._undo):
             self._undo = [item for item in self._undo if item is not entry]
             self.undoChanged.emit()
-            entry[2]()
+            if entry[3] == cfg.filename.setting:
+                entry[2]()
+
+    def _forget_other_presets(self):
+        """Changes made in another preset dropped from the page undo history (preset loaded)"""
+        undo = [item for item in self._undo if item[3] == cfg.filename.setting]
+        if len(undo) != len(self._undo):
+            self._undo = undo
+            self.undoChanged.emit()
 
     @Property(bool, notify=undoChanged)
     def canUndo(self) -> bool:
-        return bool(self._undo)
+        return any(item[3] == cfg.filename.setting for item in self._undo)
 
     @Slot()
     def undo(self):
         """Ctrl+Z: last change of the page undone (switch, batch switch, move)"""
+        self._forget_other_presets()
         if self._undo:
             self._run_undo(self._undo[-1])
 
@@ -1235,12 +1250,14 @@ class OverlayBackend(PageBackend):
     def toggle(self, name: str):
         """Overlay switched on or off, undone by Ctrl+Z (no toast: the switch shows it)"""
         if name in self.source.index_of:
+            enabled = bool(cfg.user.setting[name]["enable"])
             self._control.toggle(name)
             self.update_overlay(name)
-            self._push_undo("toggle", name, lambda: self.toggle_back(name))
+            self._push_undo("toggle", name, lambda: self.toggle_back(name, enabled))
 
-    def toggle_back(self, name: str):
-        if name in self.source.index_of:
+    def toggle_back(self, name: str, enabled: bool):
+        """Overlay put back on or off as it was (already so, switched elsewhere since: nothing, B-003)"""
+        if name in self.source.index_of and bool(cfg.user.setting[name]["enable"]) != enabled:
             self._control.toggle(name)
             self.update_overlay(name)
 

@@ -139,6 +139,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - Le Mans Ultimate et rFactor 2 : un nom long coupé par le jeu au milieu d'une lettre accentuée ne se termine plus par `�` (Classement, Relatif, Statistiques pilote).
 - Spectateur et Régie de course : suivre une voiture dont la télémétrie est en retard ou absente ne remet plus à zéro les meilleurs secteurs de chaque voiture et de chaque catégorie comme si une nouvelle session commençait (Classement, Secteurs).
 - Relatif : les écarts de toutes les voitures sont mesurés sur un seul échantillon du jeu, et plus parfois décalés par le temps du joueur d'un échantillon plus récent (écarts et flèches de tendance qui sautent un instant).
+- Page `Overlays` : `Ctrl+Z` (ou `Annuler` d'une notification) après le chargement d'un autre preset n'active ou ne désactive plus les overlays du nouveau preset, et annuler l'activation d'un overlay le remet comme il était au lieu de l'inverser s'il a été changé ailleurs entre-temps.
 
 ## 0.28.1 (2026-11-01)
 

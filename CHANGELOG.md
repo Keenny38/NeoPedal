@@ -139,6 +139,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate and rFactor 2: a long name cut by the game in the middle of an accented letter no longer ends with `�` (Standings, Relative, Driver Stats).
 - Spectate and Broadcast Director: following a car whose telemetry lags or is missing no longer resets the best sectors of every car and the class best sectors as if a new session had started (Standings, Sectors).
 - Relative: gaps of all cars are measured on one game sample, no longer sometimes shifted by the player's time of a newer sample (gaps and trend arrows jumping for a moment).
+- `Overlays` page: `Ctrl+Z` (or `Undo` of a notice) after another preset was loaded no longer switches the overlays of the new preset on or off, and undoing an overlay switch puts it back as it was instead of switching it again when it was switched elsewhere meanwhile.
 
 ## 0.28.1 (2026-11-01)
 
