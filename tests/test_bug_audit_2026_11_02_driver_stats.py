@@ -248,3 +248,56 @@ def test_b004_module_restart_during_race_counts_one_start(tele, tmp_path, clock)
     gen.send(MODULE_STOP)
     assert driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath).starts == 1
     assert [record.start_position for record in driver_history.read_records(filepath)] == [5, 0]
+
+
+# B-014
+def test_b014_teammate_stint_not_recorded(tele, tmp_path, clock, monkeypatch):  # noqa: F811
+    """Team race driver swap (LMU): laps, distance & time of teammate at the wheel never recorded as player's"""
+    monkeypatch.setattr(module_stats, "player_profile_names", lambda: frozenset(), raising=False)
+    filepath = f"{tmp_path}/"
+    tele.update(STINT_TELE)
+    tele["vehicle.driver_name"] = "Me"
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    loop.update()
+    drive_stats_lap(tele, loop, 0.0, 90.0)
+    tele["timing.elapsed"] = 93.0
+    loop.update()
+    loop.update()
+    tele["vehicle.driver_name"] = "Mate"  # driver swap: teammate drives 2 laps
+    drive_stats_lap(tele, loop, 90.0, 85.0)
+    drive_stats_lap(tele, loop, 175.0, 85.0)
+    tele["timing.elapsed"] = 263.0
+    loop.update()
+    tele["vehicle.driver_name"] = "Me"  # back to player
+    loop.update()
+    drive_stats_lap(tele, loop, 260.0, 91.0)
+    tele["timing.elapsed"] = 354.0
+    loop.update()
+    loop.update()
+    gen.send(MODULE_STOP)
+    stats = driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath)
+    assert stats.valid == 2 and stats.pb == 90.0
+    assert stats.seconds < 200
+
+
+def test_b014_stint_loaded_while_teammate_drove(tele, tmp_path, clock, monkeypatch):  # noqa: F811
+    """Profile name known: the player taking the wheel becomes the stint driver, teammate laps after not counted"""
+    monkeypatch.setattr(module_stats, "player_profile_names", lambda: frozenset({"me"}), raising=False)
+    filepath = f"{tmp_path}/"
+    tele.update(STINT_TELE)
+    tele["vehicle.driver_name"] = "Mate"
+    gen = module_stats.record_driver_stats(StatsInfo(), filepath, "Class", 1500, False)
+    loop = ModuleLoop(gen, resets=1)
+    loop.update()
+    tele["vehicle.driver_name"] = "Me"
+    loop.update()
+    drive_stats_lap(tele, loop, 0.0, 90.0)
+    tele["timing.elapsed"] = 93.0
+    loop.update()
+    tele["vehicle.driver_name"] = "Mate"
+    drive_stats_lap(tele, loop, 90.0, 85.0)
+    tele["timing.elapsed"] = 178.0
+    loop.update()
+    gen.send(MODULE_STOP)
+    assert driver_stats.load_driver_stats(("SimTrack", "GT3"), filepath).valid == 1

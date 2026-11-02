@@ -69,6 +69,7 @@ Fixes from an audit of the VR overlay.
 - Driver Stats: the Stats module also saves your stats every 5 minutes while you drive, so a crash of the app or a power cut no longer loses the whole stint (laps, distance, personal best); the session history still gets one line per stint.
 - Driver Stats (Le Mans Ultimate): a lap invalidated by the game for track limits no longer counts as a valid lap nor becomes your personal, qualifying or race best (stats and session history), like delta best and best sectors already did.
 - Driver Stats: applying an option or loading a preset during a race (overlays and modules reloaded) no longer counts a second race start, nor records your position at that moment as your start position (places gained). A start is counted when you drive at the green flag.
+- Driver Stats (Le Mans Ultimate team races): while a teammate drives your car after a driver swap, their laps, distance and driving time are no longer recorded as yours.
 - Spectate and Broadcast Director (`Overlays follow the car on air`), Le Mans Ultimate and rFactor 2: overlays switch to the car you follow at once, instead of mixing it for a moment with the car followed before (lap times, fuel and laps of the former car taken for the new one's, a pit lane entry measured at the new car's place, part of a lap saved as the track map).
 
 ## 0.28.1 (2026-11-01)

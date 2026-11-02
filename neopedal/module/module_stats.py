@@ -179,6 +179,26 @@ class OnlineCheck:
         threading.Thread(target=ask, daemon=True, name="Stats online check").start()
 
 
+def player_profile_names() -> frozenset[str]:
+    """Driver names of game profiles found (LMU, lower case), empty if unknown"""
+    if api.name != API_LMU_NAME:
+        return frozenset()
+    try:
+        from ..process import results_file as rf
+
+        names = [name for folder in rf.find_results_folders().values() for name in rf.profile_player_names(folder)]
+    except Exception:  # any error: unknown, stint driver only
+        logger.debug("STATS: game profile names not read", exc_info=True)
+        return frozenset()
+    return frozenset(name.strip().casefold() for name in names if isinstance(name, str) and name.strip())
+
+
+def driver_at_wheel() -> str:
+    """Name of driver in player vehicle (lower case), changes on a driver swap (team race), empty if unknown"""
+    name = api.read.vehicle.driver_name()
+    return name.strip().casefold() if isinstance(name, str) else ""
+
+
 def compound_text() -> str:
     """Tyre compound of the car as recorded laps write it: name, front & rear names if they differ"""
     names = api.read.tyre.compound_name()
@@ -248,6 +268,8 @@ def record_driver_stats(
     stopping = False  # module stopping: last save
     stint_saved = DriverStats()  # stats of stint saved at checkpoints (driver_stats: since last checkpoint)
     next_checkpoint = FLOAT_INF
+    own_names: frozenset[str] = frozenset()  # names of game profile
+    stint_driver = ""  # driver of stint (player): another one at the wheel is a teammate (driver swap)
 
     def best_laptime(laptime_valid: float, lap_session_type: int):
         """Personal, qualifying & race best lap times"""
@@ -316,6 +338,17 @@ def record_driver_stats(
             ))
         lap_state.delayed_save = False
 
+    def teammate_driving() -> bool:
+        """Teammate drives player vehicle (team race driver swap): nothing recorded"""
+        nonlocal stint_driver
+        name = driver_at_wheel()
+        if not name or name == stint_driver:
+            return False
+        if not stint_driver or (name in own_names and stint_driver not in own_names):
+            stint_driver = name  # first known (or stint loaded while teammate drove: player now)
+            return False
+        return True
+
     def save_part():
         """Stats recorded since last checkpoint saved (kept if not saved, see save_unsaved)"""
         if all(key_list):
@@ -358,6 +391,8 @@ def record_driver_stats(
             driver_stats = DriverStats()
             stint_saved = DriverStats()
             next_checkpoint = monotonic() + _base.CHECKPOINT_INTERVAL
+            own_names = player_profile_names()
+            stint_driver = ""
             key_list = stats_keys(vehicle_classification)
             vehicle_class = api.read.vehicle.class_name()
             game_version = live_game_version()
@@ -387,6 +422,17 @@ def record_driver_stats(
             stint_wetness = -1.0
             track_temp = 0.0
             online.start()
+
+        # Teammate driving (LMU driver swap): not recorded, references taken again once player drives
+        if teammate_driving():
+            lap_state.pending = None
+            last_lap_stime = last_lap_etime = FLOAT_INF
+            gps_last = (FLOAT_INF, FLOAT_INF, FLOAT_INF)
+            fuel_last = 0.0
+            last_num_penalties = last_finish_state = 99999
+            is_pit_lap = 1
+            lap_invalid = False
+            continue
 
         # General
         lap_stime = api.read.timing.start()

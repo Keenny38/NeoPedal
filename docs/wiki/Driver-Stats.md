@@ -27,7 +27,8 @@ The **Stats** module (`Module` page) records your stats and saves them when you 
 Stats are **not** recorded while:
 
 - `enable_player_index_override` or `enable_active_state_override` is on in the API options (spectating, overrides);
-- the app runs with several instances allowed (`--single-instance 0`).
+- the app runs with several instances allowed (`--single-instance 0`);
+- a teammate drives your car in a team race (Le Mans Ultimate, driver at the wheel other than the one of the stint).
 
 With each session, the Stats module also records the **road conditions of your best lap** (road wetness, track temperature, tyre compound; the wettest road of the session when it has no lap time), your **start position** in races (class or overall, like the finish position) and whether you drove on an **online server** (Le Mans Ultimate: asked once per session to the game, never waiting for it). Sessions recorded before 0.27.0 have none of these: online or offline and the start position are then taken from the game results file of the session when there is one.
 
