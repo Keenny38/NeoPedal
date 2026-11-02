@@ -186,6 +186,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, Rapport : les options du limiteur de vitesse ne sont plus grisées quand la vitesse est masquée, car le limiteur reste affiché ; elles suivent `show_speed_limiter`.
 - `Options des overlays`, Rapport : les zones de régime (multiplicateurs, couleurs, clignotement) ne sont plus grisées quand la barre de régime est masquée, car elles colorent aussi le rapport.
 - `Options des overlays`, Température moteur : les préfixes ne suivent plus la température d'eau, l'intervalle et le lissage du taux de variation suivent `show_rate_of_change` au lieu de la variation nette, et les couleurs du taux restent actives tant que l'une des deux valeurs est affichée.
+- `Options des overlays`, Rapport : les options de la barre de consommation sont grisées quand la barre est masquée (par défaut), et les polices de la vitesse et des valeurs (design classique) quand ce qu'elles dimensionnent est masqué.
 
 ## 0.28.1 (2026-11-01)
 

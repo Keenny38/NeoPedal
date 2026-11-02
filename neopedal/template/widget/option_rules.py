@@ -95,6 +95,18 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         # RPM zones color the gear box (shift light) as well as the RPM bar: used without the bar
         OptionFix(dependencies=dict.fromkeys((*_RPM_MULTIPLIERS[1:4], "show_rpm_flickering_above_critical",
                                                "rpm_color_safe", "rpm_color_redline", "rpm_color_over_rev"), "")),
+        # Consumption bar (off by default) & its reading; fonts of readings & of speed under gear (classic)
+        OptionFix(dependencies=dict.fromkeys((
+            "show_inverted_consumption", "consumption_bar_height", "consumption_progression_exponential_scale",
+            "high_consumption_threshold", "maximum_average_consumption_samples", "consumption_color_normal",
+            "consumption_color_high", "background_color_consumption_bar", "show_consumption_reading"),
+            "show_consumption_bar")),
+        OptionFix(CLASSIC, dependencies={
+            "font_scale_speed": "show_speed_below_gear",
+            **dict.fromkeys(("font_size_battery", "font_weight_battery"), "show_battery_reading"),
+            **dict.fromkeys(("font_size_rpm", "font_weight_rpm"), "show_rpm_reading"),
+            **dict.fromkeys(("font_size_consumption", "font_weight_consumption"), "show_consumption_reading"),
+        }),
         # Speed limiter shown with or without the speed: its own options
         OptionFix(dependencies={
             "show_speed_limiter": "show_speed_limiter",

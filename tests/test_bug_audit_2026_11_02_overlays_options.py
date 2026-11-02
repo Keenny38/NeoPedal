@@ -776,3 +776,13 @@ def test_b063_engine_temperature_options(ui_env, modern):
     assert not dimmed("engine_temperature", "rate_of_change_interval", modern, show_net_change_per_lap=False,
                       show_rate_of_change=True)
     assert dimmed("engine_temperature", "rate_of_change_interval", modern, show_rate_of_change=False)
+
+
+# B-064: Gear consumption bar options & reading fonts active while unused
+@DESIGNS
+def test_b064_gear_consumption_and_fonts(ui_env, modern):
+    for key in ("high_consumption_threshold", "show_consumption_reading"):
+        assert dimmed("gear", key, modern, show_consumption_bar=False), key
+    if not modern:
+        assert dimmed("gear", "font_scale_speed", modern, show_speed_below_gear=False)
+        assert dimmed("gear", "font_size_rpm", modern, show_rpm_reading=False)
