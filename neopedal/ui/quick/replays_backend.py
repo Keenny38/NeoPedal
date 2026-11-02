@@ -103,6 +103,7 @@ from .replays_common import (  # noqa: F401  (re-exported: replays_backend.size_
     PLAY,
     PLAYBACK,
     PLAYBACK_COMMANDS,
+    PROTECTIONS_LOST,
     REFRESH_MS,
     REPLAY,
     REPLAY_REFRESH_MS,
@@ -144,6 +145,7 @@ from .replays_common import (  # noqa: F401  (re-exported: replays_backend.size_
     load_page_settings,
     move_selection,
     play_replay,
+    read_protected,
     send_commands,
     session_text,
     size_text,
@@ -187,7 +189,9 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.results_links: dict[str, str] = {}  # replay name: results file of its session (race results page)
         self.folder = ""  # replay folder of game, kept when game closes
         self.temp: list[str] = []  # temporary files of game in replay folder
-        self.protected: set[str] = {str(name) for name in settings.get("protected", []) if isinstance(name, str)}
+        protected = read_protected()  # None: settings file unreadable (kept aside), protections lost
+        self.protected: set[str] = protected if protected is not None else set()
+        self.protections_lost = protected is None  # bulk deletions off until protections are set again (told)
         self.state = OFFLINE
         self.updated = ""
         self.last_session = False  # incidents & standings of a session left (game in menus)
@@ -308,6 +312,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
     def page_shown(self):
         """Asked to game at once (replays list if old), then state again every few seconds while shown"""
         self._shown = True
+        if self.protections_lost and not self.notice:
+            self.notify(tr(PROTECTIONS_LOST), True)
         if not self.replays_answered or time.monotonic() - self.replays_time > REPLAYS_MAX_AGE:
             self.ask_replays()
         self.refresh_state()

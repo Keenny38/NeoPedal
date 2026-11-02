@@ -348,3 +348,27 @@ def test_b011_page_kept_while_replays_are_copied(replays_page, monkeypatch):  # 
         assert kept_when_hidden(replays_page.page)
     finally:
         backend.request_copy.busy = False
+
+
+# B-012: protected replays of an unreadable settings file were lost without a word (written over by the next settings
+# saved: bulk deletions could then trash them); "protected": null stopped the page from opening
+def test_b012_unreadable_protections_kept_and_bulk_deletion_off(window, monkeypatch, tmp_path):  # noqa: F811
+    from neopedal.ui.quick import dialogs, page_settings, replays_backend, replays_common
+
+    monkeypatch.setattr(page_settings, "settings_path", lambda name: str(tmp_path / name))
+    path = tmp_path / replays_common.SETTINGS_FILE
+    path.write_text('{"protected": null}', encoding="utf-8")
+    assert replays_common.read_protected() is None and (tmp_path / "game_replays.json.bad").exists()
+    path.write_text('{"protected": ["A"', encoding="utf-8")  # cut while written
+    assert replays_common.read_protected() is None and not path.exists()
+    path.write_text('{"protected": ["A", 3]}', encoding="utf-8")
+    assert replays_common.read_protected() == {"A"}
+    path.write_text("{oops", encoding="utf-8")
+    backend = replays_backend.GameReplaysBackend(window)
+    assert backend.protections_lost and backend.protected == set()
+    asked: list[str] = []
+    monkeypatch.setattr(dialogs, "ask_number", lambda *args, **kwargs: asked.append(args[1]))
+    backend.deleteOlderThan()
+    backend.keepLatest()
+    assert asked == [] and backend.noticeError and "game_replays.json.bad" in backend.noticeText
+    backend.release_resources()

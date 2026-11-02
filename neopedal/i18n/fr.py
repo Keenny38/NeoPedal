@@ -2059,6 +2059,8 @@ TRANSLATION = MappingProxyType({
     "Back to Live": "Retour au direct",
     "Leave the replay of this session, back to the live session": "Quitter le rejeu de cette session, retour à la session en direct",
     "Replay This Moment": "Revoir ce moment",
+    "Protected replays could not be read (file kept as game_replays.json.bad): deleting old replays and keeping only the latest ones are off until you protect a replay again":
+        "Les replays protégés n'ont pas pu être lus (fichier gardé sous game_replays.json.bad) : la suppression des anciens replays et la conservation des derniers seulement sont désactivées jusqu'à ce que vous protégiez à nouveau un replay",
     "Laps of the replay of a live session are unknown: use the timeline":
         "Les tours du replay d'une session en direct sont inconnus : utilisez la frise",
     "You are in a session: the game shows the replay of this session at the incident (back to live from playback).<br><br>Watch this incident?":

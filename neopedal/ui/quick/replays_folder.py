@@ -34,7 +34,7 @@ from ...i18n import tr, trm
 from ...process.game_info import GameReplay
 from . import dialogs, last_folder, replay_files
 from .replays_base import ReplaysBase
-from .replays_common import OFFLINE, copy_reporter, size_text
+from .replays_common import OFFLINE, PROTECTIONS_LOST, copy_reporter, size_text
 
 
 class ReplaysFolder(ReplaysBase):
@@ -215,6 +215,7 @@ class ReplaysFolder(ReplaysBase):
         if not names:
             return
         self.protected = self.protected - names if key in self.protected else self.protected | names
+        self.protections_lost = False  # protections set again (saved below)
         self._replays_model.update_rows(lambda row: {"isProtected": row["key"] in self.protected})
         self.update_selected_protected()
         self.filesChanged.emit()
@@ -309,6 +310,10 @@ class ReplaysFolder(ReplaysBase):
     @Slot()
     def deleteOlderThan(self):
         """Replays older than a number of days (asked in the page) moved to the recycle bin, protected ones kept"""
+        if self.protections_lost:  # protected replays unknown: never deleted in bulk
+            self.notify(tr(PROTECTIONS_LOST), True)
+            return
+
         def older_than(days: int):
             limit = time.time() - days * 86400
             self.delete_replays([replay for replay in self.replays if 0 < replay.time < limit], "Delete Old Replays")
@@ -319,6 +324,10 @@ class ReplaysFolder(ReplaysBase):
     @Slot()
     def keepLatest(self):
         """Replays but the latest ones (number asked in the page) moved to the recycle bin, protected ones kept"""
+        if self.protections_lost:  # protected replays unknown: never deleted in bulk
+            self.notify(tr(PROTECTIONS_LOST), True)
+            return
+
         def keep(count: int):
             # Replays of unknown time (0) kept, as Delete Older Than does: their age is unknown
             dated = [replay for replay in self.replays if replay.time > 0]

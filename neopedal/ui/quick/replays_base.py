@@ -106,6 +106,7 @@ class ReplaysBase(_HostBase):
         folder: str
         temp: list[str]
         protected: set[str]
+        protections_lost: bool
         state: str
         last_session: bool
         incidents: tuple[Incident, ...]

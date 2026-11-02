@@ -24,6 +24,7 @@ actions)
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import time
@@ -230,6 +231,30 @@ def lap_seconds(car: Standing) -> float:
 def load_page_settings() -> dict[str, Any]:
     """Page settings (changes of an open page written first)"""
     return page_settings.load_settings(SETTINGS_FILE)
+
+
+PROTECTIONS_LOST = ("Protected replays could not be read (file kept as game_replays.json.bad): deleting old replays "
+                    "and keeping only the latest ones are off until you protect a replay again")
+
+
+def read_protected() -> set[str] | None:
+    """Replays protected from deletion & clean up, None if the settings file could not be read (kept as
+    game_replays.json.bad: never written over by the next settings saved)"""
+    page_settings.flush_all(SETTINGS_FILE)
+    path = page_settings.settings_path(SETTINGS_FILE)
+    if not os.path.exists(path):
+        return set()
+    try:
+        with open(path, encoding="utf-8-sig") as file:
+            data = json.load(file)
+        protected = data.get("protected", []) if isinstance(data, dict) else None
+        if not isinstance(protected, list):
+            raise ValueError("protected replays not a list")
+        return {name for name in protected if isinstance(name, str)}
+    except (OSError, ValueError, RecursionError):
+        with suppress(OSError):
+            os.replace(path, f"{path}.bad")
+        return None
 
 
 class _CopyProgress(QObject):
