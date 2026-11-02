@@ -158,9 +158,8 @@ def standings_inactive(values: Mapping) -> dict[str, tuple[str, str]]:
                     "maximum_vehicles_per_split_player", "maximum_vehicles_per_split_others",
                     "maximum_vehicles_combined_mode"):
             inactive[key] = ("off", "enable_single_class_exclusive_mode")
-    elif split:
-        inactive["maximum_vehicles_combined_mode"] = ("off", "enable_multi_class_split_mode")
-    else:  # cars of every class in one list: no class group
+    elif not split:  # cars of every class in one list: no class group
+        # (split mode with one class in session: combined list too, its car count used, B-013)
         for key in ("show_class_header", "show_class_column_with_class_header", "show_class_sof",
                     "show_time_gap_from_same_class", "show_time_interval_from_same_class"):
             inactive[key] = ("on", "enable_multi_class_split_mode")

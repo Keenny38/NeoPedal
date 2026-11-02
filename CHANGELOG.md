@@ -158,6 +158,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`: `Reset Overlay` no longer moves the overlay to its default position; its place is kept, like its on/off state.
 - `Overlay Options`, Black Box: `Reset Overlay` no longer erases the user profiles saved with `Save as Profile`.
 - `Overlay Options`, Black Box: `Save shown items as` no longer saves the items hidden by the automatic compact mode (small overlay) as hidden in the user profile.
+- `Overlay Options`, Standings: `maximum_vehicles_combined_mode` is no longer dimmed in split mode, as it sets the number of cars of sessions with one class.
 
 ## 0.28.1 (2026-11-01)
 

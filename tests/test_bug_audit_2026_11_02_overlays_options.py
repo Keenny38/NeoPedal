@@ -423,3 +423,10 @@ def test_b010_user_profile_saved_in_compact_mode_keeps_shown_items(options):
     saved = parse_user_profile(options._pending["black_box/user_profile_1"])
     assert "show_tyre_compound" in COMPACT_HIDDEN and saved.get("show_tyre_compound", True)
 
+
+
+# B-013: split mode on: combined mode car count dimmed, though it is the limit of single class sessions
+def test_b013_combined_car_count_active_in_split_mode(ui_env):
+    assert not dimmed("standings", "maximum_vehicles_combined_mode", True, enable_multi_class_split_mode=True,
+                      enable_single_class_exclusive_mode=False)
+    assert dimmed("standings", "maximum_vehicles_combined_mode", True, enable_single_class_exclusive_mode=True)

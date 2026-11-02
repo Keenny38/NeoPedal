@@ -1045,7 +1045,7 @@ def test_standings_options_unused_in_class_mode_told(options):
     class_order = row(options, "standings/class_order")
     assert class_order["dimmed"]
     options.setBool("standings/enable_single_class_exclusive_mode", False)
-    assert row(options, "standings/maximum_vehicles_combined_mode")["dimmed"]
+    assert not row(options, "standings/maximum_vehicles_combined_mode")["dimmed"]  # one class sessions (B-013)
     assert not row(options, "standings/maximum_vehicles_per_split_player")["dimmed"]
     options.setBool("standings/show_class_header", True)
     columns = options._order_row("standings", options._order_section("standings"))["orders"]
