@@ -897,3 +897,39 @@ def test_b026_vehicles_output_reset_on_error_exit(ui_env, monkeypatch):
         assert not _base.vehicles_updates.active  # relative module follows game data again
     finally:
         _base.vehicles_updates.set_active(False)
+
+
+# --- B-027: class gaps measured to the car ahead in class of the same sample (recorded session, multiclass)
+def test_b027_class_gaps_follow_class_order_of_same_sample(ui_env, monkeypatch):
+    from neopedal.api_control import api
+    from neopedal.module import module_vehicles
+    from neopedal.module_info import VehiclesInfo, minfo
+    from neopedal.setting import cfg
+    from tests.recorded_session import RecordedSession, lockstep_modules
+
+    for name in ("active", "paused", "resets", "shown", "session_type", "in_pits"):
+        monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
+    realtime_state.active = realtime_state.paused = realtime_state.shown = False
+    monkeypatch.setattr(minfo, "vehicles", VehiclesInfo())
+    monkeypatch.setattr(module_vehicles, "_index_slot_ids", {})
+    monkeypatch.setattr(module_vehicles, "_point_times", {})
+    session = RecordedSession("lmu_lusail_practice_pit", dict(cfg.api))
+    monkeypatch.setattr(api, "_api", session.connector)
+    monkeypatch.setattr(api, "read", session.reader)
+    wrong = []
+    try:
+        with lockstep_modules(monkeypatch, ["module_vehicles", "module_relative"], cfg) as lockstep:
+            for frame in range(len(session)):
+                lockstep.step(lambda frame=frame: session.load(frame))
+                output = minfo.vehicles
+                cars = output.dataSet[:output.totalVehicles]
+                for index, data in enumerate(cars):  # class order set by relative module on the same sample
+                    ahead = data.classAheadIndex
+                    expected = (module_vehicles.best_lap_gap(data.bestLapTime, cars[ahead].bestLapTime)
+                                if 0 <= ahead < len(cars) else 0.0)
+                    if frame > 1 and abs(expected - data.gapBehindNextInClass) > 1e-6:
+                        wrong.append((frame, index))
+            lockstep.finish()
+    finally:
+        session.close()
+    assert not wrong

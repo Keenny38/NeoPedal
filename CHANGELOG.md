@@ -120,6 +120,7 @@ Fixes from an audit of the VR overlay.
 - Le Mans Ultimate: game answers shared between pages and overlays are no longer asked twice at the same time when the shared cache is cleaned meanwhile.
 - Le Mans Ultimate: while the game is slow to answer (loading a session or track), pages and overlays no longer get an answer kept from tens of seconds before (standings or energy use of the previous session) as a new one.
 - Relative and Standings: an error of the vehicles data module (restarted on its own) no longer leaves their order frozen on the last cars data until the car count changes.
+- Class gaps and intervals (Standings, Rivals, Gap Trend): after a place change in a class, they are no longer measured for a moment to the car that was ahead before.
 
 ## 0.28.1 (2026-11-01)
 

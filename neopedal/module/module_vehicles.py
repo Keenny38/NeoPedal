@@ -22,6 +22,7 @@ Vehicles module
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from time import monotonic
 
 from .. import calculation as calc
@@ -777,6 +778,7 @@ def update_race_gaps(output: VehiclesInfo, now: float) -> None:
     cars = output.dataSet
     index_of_place = {cars[index].positionOverall: index for index in range(total)}
     leader_index = output.leaderIndex
+    class_ahead, class_leader = class_order(cars, total)
     # Place order: gap of car ahead (overall & in class, better place) set before the car behind
     for index in sorted(range(total), key=lambda index: cars[index].positionOverall):
         data = cars[index]
@@ -790,7 +792,7 @@ def update_race_gaps(output: VehiclesInfo, now: float) -> None:
             data.gapsFrozen = False
         for interval_key, gap_key, ahead_index, leader in (
             ("gapBehindNext", "gapBehindLeader", index_of_place.get(data.positionOverall - 1, -1), leader_index),
-            ("gapBehindNextInClass", "gapBehindLeaderInClass", data.classAheadIndex, data.classLeaderIndex),
+            ("gapBehindNextInClass", "gapBehindLeaderInClass", class_ahead[index], class_leader[index]),
         ):
             interval = race_gap(cars, total, ahead_index, index, now)
             setattr(data, interval_key, interval)
@@ -854,13 +856,29 @@ def update_best_lap_gaps(output: VehiclesInfo) -> None:
     cars = output.dataSet[:total]
     best_of_place = {data.positionOverall: data.bestLapTime for data in cars}
     leader_best = best_of_place.get(1, 0.0)
-    for data in cars:
+    class_ahead, class_leader = class_order(cars, total)
+    for index, data in enumerate(cars):
         best = data.bestLapTime
         data.gapBehindNext = best_lap_gap(best, best_of_place.get(data.positionOverall - 1, 0.0))
         data.gapBehindLeader = best_lap_gap(best, leader_best)
-        ahead, leader = data.classAheadIndex, data.classLeaderIndex
+        ahead, leader = class_ahead[index], class_leader[index]
         data.gapBehindNextInClass = best_lap_gap(best, cars[ahead].bestLapTime) if 0 <= ahead < total else 0.0
         data.gapBehindLeaderInClass = best_lap_gap(best, cars[leader].bestLapTime) if 0 <= leader < total else 0.0
+
+
+def class_order(cars: Sequence[VehicleDataSet], total: int) -> tuple[list[int], list[int]]:
+    """(car ahead in class, class leader) index of each car, by place, from the sample gaps are measured on
+    (class order of relative module is set after this pass: a class place change would be one update late)"""
+    ahead = [-1] * total
+    leader = [-1] * total
+    last: dict[str, int] = {}
+    first: dict[str, int] = {}
+    for index in sorted(range(total), key=lambda index: cars[index].positionOverall):
+        class_name = cars[index].vehicleClass
+        ahead[index] = last.get(class_name, -1)
+        leader[index] = first.setdefault(class_name, index)
+        last[class_name] = index
+    return ahead, leader
 
 
 def best_lap_gap(best: float, ahead_best: float) -> float:
