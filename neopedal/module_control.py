@@ -314,6 +314,7 @@ class ModuleControl:
         "_stop_timeout",
         "_start_pending",
         "_held",
+        "_started_held",
         "_polling",
         "_on_demand",
         "_needed",
@@ -337,6 +338,7 @@ class ModuleControl:
         self._stop_timeout = STOP_TIMEOUT
         self._start_pending: set[str] = set()  # started while previous instance stopping: started once stopped
         self._held = False  # stop_all (reload) until start of all: pending starts left to it
+        self._started_held: set[str] = set()  # started during reload: options of the preset left (B-007)
         self._polling = False  # stopping polled by timer, see __poll_stopping
         self._on_demand = {name: tuple(fields) for name, fields in (on_demand or {}).items() if name in self._module_pack}
         self._needed: frozenset[str] = frozenset()  # on demand modules needed
@@ -567,6 +569,10 @@ class ModuleControl:
         """Start all enabled module (on demand ones if needed)"""
         self._held = False
         self._start_pending.clear()
+        started_held, self._started_held = self._started_held, set()
+        for _name in started_held:  # started during the reload with the preset left: again from loaded one
+            if _name in self._active_modules:
+                self.__close_selected(_name, wait=not event_loop_running())
         self._demand_ready = True
         self._needed = self.__find_needed()
         self._batch += 1
@@ -607,6 +613,8 @@ class ModuleControl:
                 self.__start_failed(name, error)
                 return
             self._active_modules[name] = instance
+            if self._held:
+                self._started_held.add(name)
             try:
                 instance.start()
             except Exception as error:

@@ -162,6 +162,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays`, HUD tableau de bord : les thèmes de couleurs ne sont proposés qu'en design classique ; en design moderne, ils écrivaient des couleurs masquées, qui ne suivaient alors plus le thème des overlays (Modern Light, couleurs pour daltoniens).
 - `Options des overlays`, Classement (design classique) : désactiver le mode scindé ne grise plus le mode exclusif, le nombre de voitures du mode combiné, le minimum de voitures de tête ni l'écart des places sautées ; ce sont les options des modes non utilisés qui sont grisées.
 - Page `Overlays`, vue `Écran` : un overlay glissé ou déplacé avec les flèches ne peut plus être déposé là où il n'y a aucun écran (écrans de tailles différentes), où il devenait invisible.
+- Un overlay activé pendant le chargement d'un preset (page Overlays, raccourci, menu de la zone de notification) ne tourne plus avec les options du preset précédent : il est relancé avec le preset chargé, ou fermé s'il y est désactivé.
 
 ## 0.28.1 (2026-11-01)
 

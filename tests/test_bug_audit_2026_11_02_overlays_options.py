@@ -470,3 +470,48 @@ def test_b008_screen_view_keeps_overlay_on_a_screen(page, monkeypatch):
     assert any(rect.contains(widget.rect) for _, rect, _ in screens), widget.rect
     place = page.snapOverlay("speedometer", 3500, 1300, 8, False)
     assert any(rect.contains(QRect(place["x"], place["y"], 200, 100)) for _, rect, _ in screens), place
+
+
+# B-007: overlay switched on while a preset reload stopped the modules: ran with the old preset, off in the new one
+def test_b007_module_switched_on_during_reload_follows_loaded_preset(ui_env, monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal.const_file import ConfigType
+    from neopedal.module_control import ModuleControl
+
+    class Module:
+        def __init__(self, config, name):
+            self.setting = config.user.setting[name]  # as overlays: options of the preset at start
+            self.closed = False
+
+        def start(self):
+            pass
+
+        def stop(self, discard=False):
+            self.closed = True
+
+    names = ["module_force", "module_fuel"]
+    control = ModuleControl(SimpleNamespace(__all__=names, **{name: SimpleNamespace(Realtime=Module) for name in names}),
+                            ConfigType.MODULE)
+    monkeypatch.setitem(cfg.user.setting["module_force"], "enable", True)
+    monkeypatch.setitem(cfg.user.setting["module_fuel"], "enable", False)
+    control.start()
+    control.stop_all()  # reload: modules stopping, GUI running
+    control.toggle("module_fuel", wait=True)  # switched on meanwhile
+    loaded = copy.deepcopy(cfg.user.setting)  # preset loaded: fuel off there
+    loaded["module_fuel"]["enable"] = False
+    monkeypatch.setattr(cfg.user, "setting", loaded)
+    control.wait_stopping()
+    control.start()
+    assert "module_fuel" not in control.active_modules  # was: kept running with the preset left
+    control.toggle("module_fuel", wait=True)  # on in the loaded preset
+    control.stop_all()
+    control.toggle("module_force", wait=True)
+    control.toggle("module_force", wait=True)  # off & on during reload: started with the preset left
+    reloaded = copy.deepcopy(cfg.user.setting)  # same preset loaded again
+    monkeypatch.setattr(cfg.user, "setting", reloaded)
+    control.wait_stopping()
+    control.start()
+    assert control.active_modules["module_force"].setting is reloaded["module_force"]
+    assert control.active_modules["module_fuel"].setting is reloaded["module_fuel"]
+    control.close(wait=True)
