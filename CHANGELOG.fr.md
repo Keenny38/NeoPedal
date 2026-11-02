@@ -148,6 +148,7 @@ Des corrections issues d'un audit de l'overlay VR.
 - `Options des overlays` : `Annuler` et `Rétablir` ne ramènent plus, après le chargement d'un autre preset, une modification faite pour le preset précédent, que `Appliquer` enregistrait alors dans le nouveau preset sans demander.
 - `Options des overlays`, overlays Température des freins et températures des pneus : `heatmap_name` n'est plus grisée quand elle sert (heatmap automatique désactivée), et elle est grisée quand la heatmap automatique la choisit.
 - `Options des overlays`, Pincement : désactiver `enable_symmetric_toe_angle` ne grise plus les options des valeurs, et les options du pincement total sont grisées quand `show_total_toe_angle` est désactivée.
+- `Options des overlays`, LED de régime et LED lever-pied : le nombre, la taille et le contour des LED ne sont plus grisés avec les LED d'un seul côté (par défaut), ni les couleurs des LED par `show_rpm_flickering_above_critical` ou `show_lift_and_coast`.
 
 ## 0.28.1 (2026-11-01)
 

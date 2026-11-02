@@ -148,6 +148,7 @@ Fixes from an audit of the VR overlay.
 - `Overlay Options`: `Undo` and `Redo` no longer bring back, after another preset was loaded, an edit made for the previous preset, which `Apply` then saved into the new preset without asking.
 - `Overlay Options`, Brake Temperature and tyre temperature overlays: `heatmap_name` is no longer dimmed while it is used (automatic heatmap off), and is dimmed while the automatic heatmap picks it.
 - `Overlay Options`, Wheel Toe: turning `enable_symmetric_toe_angle` off no longer dims the reading options, and the total toe options are dimmed while `show_total_toe_angle` is off instead.
+- `Overlay Options`, RPM LED and Lift and Coast LED: the LED count, size and outline are no longer dimmed with single side LEDs (default), nor the LED colors by `show_rpm_flickering_above_critical` or `show_lift_and_coast`.
 
 ## 0.28.1 (2026-11-01)
 

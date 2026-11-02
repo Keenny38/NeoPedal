@@ -71,6 +71,7 @@ _EARLY_PITSTOPS = {
     **{f"{prefix}_early_pitstop_count": "show_early_pitstop_count"
        for prefix in ("decimal_places", "font_color", "background_color")},
 }
+_LED_SIZE = ("number_of_led", "led_width", "led_height", "led_radius", "led_outline_color", "led_outline_width")  # LEDs of one side or both
 _RPM_MULTIPLIERS = ("rpm_multiplier_low", "rpm_multiplier_safe", "rpm_multiplier_redline", "rpm_multiplier_critical",
                     "rpm_multiplier_over_rev")
 
@@ -84,7 +85,11 @@ OPTION_FIXES: dict[str, tuple[OptionFix, ...]] = {
         # RPM zones color the RPM bar, flickering or not
         OptionFix(MODERN, dependencies=dict.fromkeys(_RPM_MULTIPLIERS[1:4], "show_rpm_bar")),
     ),
-    "rpm_led": (OptionFix(dependencies=dict.fromkeys(_RPM_MULTIPLIERS, "")),),  # zones of every LED
+    "rpm_led": (OptionFix(dependencies={  # zones & colors of every LED, size of single or double side LEDs
+        **dict.fromkeys(_RPM_MULTIPLIERS, ""), **dict.fromkeys(_LED_SIZE, ""),
+        **dict.fromkeys(("rpm_color_off", "rpm_color_low", "rpm_color_safe", "rpm_color_redline",
+                         "rpm_color_critical", "rpm_color_over_rev"), "")}),),
+    "lift_and_coast_led": (OptionFix(dependencies={**dict.fromkeys(_LED_SIZE, ""), "lift_and_coast_color_off": ""}),),
     "pedal": (OptionFix(dependencies=_PEDAL_ALERTS),),
     "elevation": (OptionFix(dependencies={
         "show_zero_elevation_line": "",  # drawn without elevation line

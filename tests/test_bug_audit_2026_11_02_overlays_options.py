@@ -277,3 +277,22 @@ def test_b022_wheel_toe_options_follow_their_own_switch(ui_env, modern):
     for key in (key for key in TOE_TOTAL if key in keys):
         assert not dimmed("wheel_toe", key, modern, enable_symmetric_toe_angle=False, show_total_toe_angle=True), key
         assert dimmed("wheel_toe", key, modern, show_total_toe_angle=False), key
+
+
+# B-023: LED count & size dimmed while single side LEDs (default), RPM colors & off color by unrelated switches
+LED_SIZE = ("number_of_led", "led_width", "led_height", "led_radius", "led_outline_color", "led_outline_width")
+
+
+@DESIGNS
+@pytest.mark.parametrize("name", ["rpm_led", "lift_and_coast_led"])
+def test_b023_led_size_used_with_single_side_leds(ui_env, name, modern):
+    for key in (key for key in LED_SIZE if key in shown_keys(name, modern)):
+        assert not dimmed(name, key, modern, enable_double_side_led=False), key
+
+
+@DESIGNS
+def test_b023_led_colors_used_whatever_flicker_and_lift_and_coast(ui_env, modern):
+    for key in (key for key in shown_keys("rpm_led", modern) if key.startswith("rpm_color_")):
+        assert not dimmed("rpm_led", key, modern, show_rpm_flickering_above_critical=False), key
+    if "lift_and_coast_color_off" in shown_keys("lift_and_coast_led", modern):
+        assert not dimmed("lift_and_coast_led", "lift_and_coast_color_off", modern, show_lift_and_coast=False)
