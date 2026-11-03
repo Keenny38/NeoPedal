@@ -585,7 +585,7 @@ class Theme(QObject):
     @Property(QColor, notify=changed)
     def strokeStrong(self) -> QColor:
         """Border of a hovered control, outlines that must show (3:1 kind of use)"""
-        mid = self.controlBorder
+        mid = control_border(QApplication.palette())
         if self._is_dark():
             return mid.lighter(150 if legacy_style() else 125)
         return mid.darker(135 if legacy_style() else 118)

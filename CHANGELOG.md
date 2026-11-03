@@ -25,6 +25,8 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 - **Community lap times** (Driver Stats): after a failed download of the sheet, opening the page no longer tries again (3 attempts each time) for an hour, even after a restart.
 - When RaceControl does not answer (error or no answer on three routes in a row), the Upcoming Races read stops after those three requests instead of asking every route, and tries again after 5 minutes, then 10, 20, 40 and at most every hour, instead of every 5 minutes (up to 57 requests an hour with the page shown, now about 10).
 - **Console log**: with Le Mans Ultimate closed, a read of the race schedule (Home, race watch, Upcoming Races) no longer writes `race schedule took 3.0 s` every 5 minutes: that wait is the game not answering, not a slow job (still in the log at debug level).
+- **Game closed**: the game status of Home and of the bar said the game was running when Le Mans Ultimate was closed but the plugin had left an `unknown` version in shared memory; it now tells `not running`, like the checks.
+- **Navigation bar**: when every page is in the bar, `More` and its divider no longer show empty, nor the `Show pages not in the bar` entry of its menu.
 
 ## 0.29.0 (2026-11-03)
 

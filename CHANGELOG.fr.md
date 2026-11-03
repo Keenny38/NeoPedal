@@ -25,6 +25,8 @@ Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en p
 - **Temps de la communauté** (Driver Stats) : après un téléchargement raté de la feuille, ouvrir la page ne retente plus (3 essais à chaque fois) pendant une heure, même après un redémarrage.
 - Quand RaceControl ne répond pas (erreur ou aucune réponse sur trois routes de suite), la lecture de Courses à venir s'arrête après ces trois requêtes au lieu de demander toutes les routes, puis réessaie au bout de 5 minutes, puis 10, 20, 40 et au plus toutes les heures, au lieu de toutes les 5 minutes (jusqu'à 57 requêtes par heure avec la page affichée, environ 10 maintenant).
 - **Journal de la console** : avec Le Mans Ultimate fermé, une lecture du calendrier des courses (Accueil, suivi des courses, Courses à venir) n'écrit plus `race schedule took 3.0 s` toutes les 5 minutes : cette attente est le jeu qui ne répond pas, pas une tâche lente (toujours dans le journal au niveau debug).
+- **Jeu fermé** : l'état du jeu de l'Accueil et de la barre indiquait le jeu lancé quand Le Mans Ultimate était fermé mais que le plugin laissait une version `unknown` en mémoire partagée ; il indique maintenant `non lancé`, comme les vérifications.
+- **Barre de navigation** : quand toutes les pages sont dans la barre, `Plus` et son séparateur ne s'affichent plus vides, ni l'entrée `Afficher les pages absentes de la barre` de son menu.
 
 ## 0.29.0 (2026-11-03)
 
