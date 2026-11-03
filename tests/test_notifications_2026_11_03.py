@@ -329,6 +329,7 @@ def test_reminder_told_everywhere_and_timer_only_while_set(ui_env, monkeypatch):
     tray, sounds = [], []
     monkeypatch.setattr(notification, "tray_message", lambda *args, **kwargs: tray.append((args, kwargs)) or True)
     monkeypatch.setattr(sr, "play_reminder_sound", lambda: sounds.append(1))
+    monkeypatch.setattr(sr, "windows_hides_notifications", lambda: False)  # CI runners have no desktop: hidden
     store = notification.notification_store()
     store.clear()
     reminders = sr.RaceReminders(clock=lambda: now[0])
