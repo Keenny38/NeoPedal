@@ -1448,7 +1448,7 @@ background:linear-gradient(90deg,rgba(229,56,59,.95),rgba(229,56,59,.55) 40%,rgb
 #cls i{display:inline-block;width:1.4vh;height:1.4vh;border-radius:50%}
 #flag{padding:.3vh 1vh;border-radius:.6vh;background:rgba(251,146,60,.2);color:#fb923c;font-weight:700;
 font-size:calc(var(--row)*.4);display:none}
-.grid{display:grid;grid-template-columns:5.2vh .6vh 6vh minmax(0,1.5fr) minmax(0,1fr) 6vh var(--gapw,14vh) 13vh 10vh;
+.grid{display:grid;grid-template-columns:5.2vh .6vh 6vh minmax(0,1.5fr) minmax(0,1fr) var(--lapw,6vh) var(--gapw,14vh) var(--bestw,13vh) var(--pitw,10vh);
 align-items:center;column-gap:1.4vh;padding:0 2.4vh}
 .head{height:3.6vh;color:var(--dim);font-size:calc(var(--row)*.4);letter-spacing:.12em;text-transform:uppercase;
 border-bottom:1px solid var(--line)}
@@ -1463,7 +1463,7 @@ transition:opacity .35s ease,transform .35s ease}
 .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
 .team{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
 .car{display:flex;align-items:center;gap:1vh;min-width:0}
-.logo{height:58%;width:5.2vh;object-fit:contain;flex:none}
+.logo{height:calc(var(--row)*.58);width:5.2vh;object-fit:contain;flex:none}  /* % of an undefined height: tall crests overflowed the row */
 #tlogo{height:calc(var(--row)*1.45);max-width:16vh;object-fit:contain;display:none}
 .r{text-align:right}.row .r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dim{color:var(--dim)}.loss{color:var(--loss)}
@@ -1502,6 +1502,17 @@ function carCell(row){
   const box=document.createElement("div");box.className="car";
   if(row.logo){const logo=document.createElement("img");logo.className="logo";logo.alt="";logo.src=picture(row.logo);box.append(logo)}
   box.append(cell("team",row.team||row.car));return box}
+// Number columns at least as wide as their header ("LAPS", "PIT STOPS" cut with few rows: header font grows with the
+// row, these columns kept their width), measured once laps, best & pits labels are set (never narrower than before)
+const HEAD_COLUMNS=[["llaps","--lapw",6],["lbest","--bestw",13],["lpits","--pitw",10]];
+function fitHead(){
+  if(typeof document.createRange!=="function"||!innerHeight)return;
+  for(const [id,name,base] of HEAD_COLUMNS){
+    const range=document.createRange();range.selectNodeContents($(id));
+    const width=Math.max(base,Math.ceil(range.getBoundingClientRect().width/innerHeight*1000+3)/10).toFixed(1)+"vh";
+    if(document.documentElement.style.getPropertyValue(name)!==width)document.documentElement.style.setProperty(name,width);
+  }
+}
 function buildViews(){
   views=[];
   if(!data||!data.available)return;
@@ -1562,6 +1573,7 @@ async function load(){
       $("lpos").textContent=labels.pos||"";$("ldriver").textContent=labels.driver||"";$("lcar").textContent=labels.car||"";
       $("llaps").textContent=labels.laps||"";$("lgap").textContent=labels.gap||"";$("lbest").textContent=labels.best||"";
       $("lpits").textContent=next.race?(labels.pits||""):"";$("wait").textContent=labels.waiting||"";
+      fitHead();
       if(!data||next.id!==data.id||next.available!==data.available){
         data=next;
         if(data.available){

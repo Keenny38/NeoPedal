@@ -269,7 +269,7 @@ def test_results_page_script_colors_and_gap_width(tmp_path):
 
 def test_results_page_time_cells_never_spill():
     page = stream_overlay.RESULTS_HTML
-    assert "6vh var(--gapw,14vh) 13vh 10vh;" in page
+    assert "var(--lapw,6vh) var(--gapw,14vh) var(--bestw,13vh) var(--pitw,10vh);" in page
     assert ".row .r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" in page
 
 
@@ -284,3 +284,28 @@ def test_results_page_script_valid(tmp_path):
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+# Real OBS check 2026-11-03: with rows=10 at 1080p "LAPS" & "PIT STOPS" headers were cut ("LA…", "PIT ST…")
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js not installed")
+def test_results_number_columns_fit_their_headers(tmp_path):
+    answer = {"available": True, "id": "r", "kind": "Race", "title": "Le Mans", "subtitle": "", "trackLogo": "",
+              "race": True, "partial": False, "classes": [], "status": "", "rows": [],
+              "labels": {"laps": "Laps", "best": "Best", "pits": "Pit Stops"}}
+    layout = r"""
+globalThis.innerHeight=1000;  // 1 vh = 10 px; each header letter 20 px wide
+document.createRange=()=>({selectNodeContents(node){this.node=node},
+  getBoundingClientRect(){return {width:String(this.node.textContent||"").length*20}}});
+document.documentElement.style.getPropertyValue=name=>props[name]||"";
+"""
+    path = os.path.join(tmp_path, "results.js")
+    with open(path, "w", encoding="utf-8") as file:
+        file.write(HARNESS + layout + results_script() + HARNESS_END)
+    result = subprocess.run(["node", path, json.dumps([answer])], capture_output=True, text=True, timeout=60,
+                            check=False)
+    assert result.returncode == 0, result.stderr
+    props = json.loads(result.stdout)["second"]
+    assert props["--lapw"] == "8.3vh"  # "Laps": 8 vh + margin, wider than 6 vh
+    assert props["--bestw"] == "13.0vh"  # "Best" fits: width kept
+    assert props["--pitw"] == "18.3vh"
+
