@@ -1071,8 +1071,10 @@ class TrayRelay(QObject):
     @Slot()
     def clicked(self):
         """Tray message clicked: window shown, its action run (several told meanwhile: notification center)"""
-        actions, self._actions = self._actions, []
-        run_notification_action(self._window, actions[0] if len(set(actions)) == 1 else CENTER_ACTION)
+        actions, self._actions = set(self._actions), []
+        if len(actions) > 1:
+            actions.discard("")  # window shown only (app kept in the tray...): never hides the action of another
+        run_notification_action(self._window, actions.pop() if len(actions) == 1 else CENTER_ACTION)
 
     @Slot(bool)
     def driving_changed(self, driving: bool):

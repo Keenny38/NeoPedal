@@ -230,6 +230,11 @@ def test_tray_message_click_runs_its_action(relay, monkeypatch):
     assert actions[-1] == notification.CENTER_ACTION
     made.clicked()  # clicked again: nothing told since, the center
     assert actions[-1] == notification.CENTER_ACTION
+    # First close to the tray told (window shown only) before a reminder: the click still opens Upcoming Races
+    made.show("NeoPedal keeps running in the notification area")
+    made.show("LMP2 Fixed starts in 10 min", action="tool:race_schedule_viewer.RaceScheduleViewer")
+    made.clicked()
+    assert actions[-1] == "tool:race_schedule_viewer.RaceScheduleViewer"
 
 
 # --- Notification center: filter, days, copy, undo, translated labels
