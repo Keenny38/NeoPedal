@@ -429,6 +429,21 @@ def close():
     cfg.flush()
 
 
+def end_process(code: int) -> None:
+    """Process ended at once, nothing more run (log flushed, settings written, new instance started)
+
+    Windows: TerminateProcess, without the DLL detach of os._exit: Qt & PySide unloading while their threads and
+    objects were alive crashed every restart (access violation in pyside6.abi3.dll, Windows event log), exit code
+    0xC0000005 instead of 0.
+    """
+    if sys.platform == "win32":
+        import ctypes
+
+        kernel32 = ctypes.windll.kernel32
+        kernel32.TerminateProcess(kernel32.GetCurrentProcess(), code)
+    os._exit(code)
+
+
 def restart():
     """Restart APP"""
     global _closed
@@ -452,8 +467,8 @@ def restart():
             logger.exception("RESTARTING: closing failed")
         finally:
             logging.shutdown()
-            os._exit(0)
-        return  # replaced os._exit (tests)
+            end_process(0)
+        return  # replaced end_process (tests)
     close_for_restart()
     # Restart env for skipping single instance check
     os.environ[RESTART_ENVIRONMENT] = "TRUE"
