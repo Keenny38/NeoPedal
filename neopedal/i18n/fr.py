@@ -2037,6 +2037,9 @@ TRANSLATION = MappingProxyType({
     "Replay starts this long before the contact": "Le replay démarre ce temps avant le contact",
     "Seconds Before": "Secondes avant",
     "Game did not accept the command": "Le jeu n'a pas accepté la commande",
+    "Le Mans Ultimate opens a replay only from its menus: leave the replay or session open in the game first": (
+        "Le Mans Ultimate n'ouvre un replay que depuis ses menus : quittez d'abord le replay ou la session ouverts "
+        "dans le jeu"),
     "Replay open in game": "Replay ouvert dans le jeu",
     "Wall": "Mur",
     # Game replays page, Qt Quick version: game state, replays list, playback, incidents

@@ -586,7 +586,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.update_timeline_end()
 
     def command_done(self, accepted: bool):
-        if self.play_sent is not None and self.play_sent in self.sending:
+        opening = self.play_sent is not None and self.play_sent in self.sending  # replay asked to open
+        if opening:
             self.play_sent = None
             if not accepted:  # replay not opened: never taken as open by a later action (done without asking)
                 self.playing = ""
@@ -604,7 +605,10 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
                                            for command in self.sending)  # time moved: next answer after it
         self.sending = ()
         if not accepted:
-            self.notify(tr("Game did not accept the command"), True)
+            # LMU opens a replay only in its menus (live 2026-11-03: 400 "not in SETUP state" from a replay)
+            self.notify(tr("Le Mans Ultimate opens a replay only from its menus: leave the replay or session open "
+                           "in the game first") if opening and self.state in (REPLAY, SESSION)
+                        else tr("Game did not accept the command"), True)
         if self.command_queue:
             self.send()
         elif self._shown:

@@ -871,3 +871,23 @@ def test_b043_queued_commands_dropped_when_page_closed(replays_page):  # noqa: F
     backend.release_resources()
     backend.request_command.busy = False
     assert backend.command_queue == []
+
+
+# B-010 checked live 2026-11-03: LMU refuses to open a replay while one is open (400 "Unable to process the request when
+# not in SETUP state"), it never answers the former one after accepting another: the page tells what to do instead of
+# "Game did not accept the command"
+def test_b010_replay_refused_while_another_is_open_tells_why(replays_page, monkeypatch):  # noqa: F811
+    from neopedal.ui.quick import dialogs
+
+    backend = answered(replays_page, GAME_ANSWERS)  # a replay open in game
+    monkeypatch.setattr(dialogs, "confirm", lambda parent, title, text, action, on_result, **kwargs: on_result(True))
+    replays_page.game.refused.add("/rest/watch/play/1")
+    backend.watch("Bahrain R1")
+    wait_commands(backend)
+    assert backend.noticeError and backend.noticeText.startswith("Le Mans Ultimate opens a replay only from its menus")
+    assert backend.openingReplay == ""
+    replays_page.game.refused.clear()
+    answered(replays_page, {**GAME_ANSWERS, "/rest/replay/isActive": None})  # back in the menus
+    backend.watch("Bahrain R1")
+    wait_commands(backend)
+    assert backend.openingReplay == "Bahrain R1"
