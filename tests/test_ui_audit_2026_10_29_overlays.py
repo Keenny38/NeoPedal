@@ -690,6 +690,9 @@ def test_view_selector_and_page_toast_with_undo(overlays_page, control, monkeypa
     undone = []
     from neopedal.widget import _edit_mode
 
+    # Fresh edit mode: a step left in the shared history by an earlier test of the worker made the toast Undo move
+    # the overlay back itself (undo_move, B-004) instead of undoing that step (CI preflight, Windows 3.13 & Linux)
+    monkeypatch.setattr(_edit_mode, "_edit_mode", None)
     monkeypatch.setattr(_edit_mode.edit_mode(), "undo", lambda: undone.append(1) or True)
     backend.nudgeOverlay("speedometer", 1, 0)
     settle(3)
@@ -699,7 +702,7 @@ def test_view_selector_and_page_toast_with_undo(overlays_page, control, monkeypa
     from neopedal.ui.quick.dialogs import page_bridge
 
     page_bridge(quick).toastAction()  # Undo of the toast (queued: run once the toast is hidden)
-    assert wait_until(lambda: undone == [1], 2.0)  # 3 rounds of events were not enough on CI Linux 3.11
+    assert wait_until(lambda: undone == [1], 2.0)  # queued: run once the toast is hidden
 
 
 def test_error_badges_are_pills(overlays_page, control):
