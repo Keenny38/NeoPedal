@@ -304,6 +304,12 @@ def test_tracks_tab_map_marks_and_set_from_map(window, monkeypatch):
     row[track_info_editor.PIT_ENTRY] = 50.0
     tracks.update_marks()
     assert [mark["text"] for mark in viewer.marks][:1] == ["Pit entry"]
+    monkeypatch.setattr(viewer, "map_name", "Other track")  # map of the track not read yet (read in background)
+    tracks.update_marks()
+    assert viewer.marks == []  # never on the map of another track
+    monkeypatch.setattr(viewer, "map_name", name)
+    viewer.mapChanged.emit()  # map read: marks of the selected track shown
+    assert [mark["text"] for mark in viewer.marks][:1] == ["Pit entry"]
     asked = []
     monkeypatch.setattr(backend, "ask", lambda *args: asked.append(args))
     backend.mapAction(backend.currentKey, track_info_editor.PIT_EXIT)

@@ -281,11 +281,12 @@ class TrackInfoEditor(TableEditorPage):
         if viewer is None:
             return
         row = self.backend.current_row()  # type: ignore[attr-defined]
-        marks = []
-        if row is not None and row[0] == viewer.backend.map_name:
-            marks = [(row[column], tr(text), color) for column, text, color in MARKS
-                     if isinstance(row[column], (int, float)) and row[column] > 0]
-        viewer.backend.set_marks(marks)
+        if row is None:
+            viewer.backend.set_marks([])
+            return
+        marks = [(row[column], tr(text), color) for column, text, color in MARKS
+                 if isinstance(row[column], (int, float)) and row[column] > 0]
+        viewer.backend.set_marks(marks, str(row[0]))  # shown once its map is read (not on the map of another track)
 
     def eventFilter(self, watched, event):
         # Esc in the map (QDialog would hide it alone): sent to this page, closed like the table

@@ -237,6 +237,7 @@ class TrackMapBackend(PageBackend):
         self._tracks: list[dict] = []  # track maps of app folder (picker)
         self._tracks_loading = False
         self._mark_places: list[tuple[float, str, str]] = []  # (distance, text, color), see set_marks
+        self._mark_track = ""  # track of the marks, shown on its map only
         self._marks: list[dict] = []
         self.mapChanged.connect(self.update_marks)
         self.logos = LogoCache()  # circuit logos looked for once per name
@@ -346,15 +347,21 @@ class TrackMapBackend(PageBackend):
             self.tracksChanged.emit()
 
     # Marks: places along the track (Tracks tab of Data Editors)
-    def set_marks(self, places: list[tuple[float, str, str]]):
-        """Places marked on the map: (distance in meters, text, color), shown once a map is loaded"""
+    def set_marks(self, places: list[tuple[float, str, str]], track: str = ""):
+        """Places marked on the map: (distance in meters, text, color), shown once the map of track is loaded
+
+        Args:
+            places: Places along the track.
+            track: Track name of the places (map read in background: marks shown once it is read), any map if empty.
+        """
         self._mark_places = list(places)
+        self._mark_track = track
         self.update_marks()
 
     def update_marks(self):
         """Places of marks on the map shown, told only if changed"""
         marks = []
-        if self.raw_coords:
+        if self.raw_coords and self._mark_track in ("", self.map_name):
             for distance, text, color in self._mark_places:
                 if 0 <= distance <= self.map_length:
                     x, y = self.raw_coords[node_at(self.raw_dists, distance)]
