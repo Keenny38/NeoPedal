@@ -33,6 +33,9 @@ def qml_warnings(monkeypatch):
     """
     from PySide6.QtQuickWidgets import QQuickWidget
 
+    # Pages of earlier tests waiting for deletion go first: the engine is shared, their "of null" binding
+    # errors while torn down would land in this test's list (CI: Home & Settings in an editor test)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     warnings: list[str] = []
     set_source = QQuickWidget.setSource
 
