@@ -43,6 +43,9 @@ READ_SECONDS = 1800.0  # read again this often (Home card, race watch: no page n
 LIVE_READ_SECONDS = 600.0  # this often while the Upcoming Races page shows (live; reads every 2 min got this
 # connection refused by RaceControl for hours, the game's too, 2026-11-02)
 RETRY_SECONDS = 300.0  # read failed (game closed, no answer): tried again this late
+FAILED_MAX_SECONDS = 3600.0  # signed in but nothing answered (RaceControl down): the wait doubles each time up to this
+FAIL_STREAK = 3  # routes in a row not answered after which the rest of a read is not asked (RaceControl down: 5xx or
+# no answer on every route; a single route may answer 500, special events when there are none)
 GAME_LISTS_AGE = 3600.0  # cars & tracks of the game asked again this late (owned DLC)
 KEEP_ANSWER_SECONDS = 7200.0  # route not answered (500, no answer, read cut by a 429): its last answer kept this long
 # Routes that rarely change: read again only this late (a refresh asked on the page reads them all), hosted servers
@@ -69,6 +72,7 @@ class State(NamedTuple):
     tried: float  # monotonic time of last read try, -1 if none
     serial: int  # changed when schedule or status changed
     disk_tried: float = -1.0  # monotonic time the disk copy was read from RaceControl, -1 if none
+    failures: int = 0  # reads in a row signed in but nothing answered (FAILED)
 
 
 _state = State(rs.EMPTY, "", -1.0, 0)
@@ -93,11 +97,12 @@ def state() -> State:
     return _state
 
 
-def _set(schedule: rs.Schedule, status: str, tried: float) -> None:
+def _set(schedule: rs.Schedule, status: str, tried: float, failures: int | None = None) -> None:
+    """State replaced (failures: kept when None)"""
     global _state
     old = _state
     serial = old.serial + (schedule is not old.schedule or status != old.status)
-    _state = State(schedule, status, tried, serial)
+    _state = State(schedule, status, tried, serial, failures=old.failures if failures is None else failures)
 
 
 def _kept_answers(answers: dict, now: float) -> dict:
@@ -160,7 +165,12 @@ def due(now: float | None = None, live: bool = False) -> bool:
         return False
     if current.tried < 0:  # not read in this run: read unless the disk copy is recent
         return current.disk_tried < 0 or now - current.disk_tried >= (LIVE_READ_SECONDS if live else READ_SECONDS)
-    wait = (LIVE_READ_SECONDS if live else READ_SECONDS) if current.status == READ else RETRY_SECONDS
+    if current.status == READ:
+        wait = LIVE_READ_SECONDS if live else READ_SECONDS
+    elif current.status == FAILED:  # RaceControl signed in, nothing answered: asked less and less often
+        wait = min(RETRY_SECONDS * 2 ** min(max(current.failures, 1) - 1, 8), FAILED_MAX_SECONDS)
+    else:
+        wait = RETRY_SECONDS
     return now - current.tried >= wait
 
 
@@ -207,7 +217,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
             return _state
         now = time.monotonic()
         if not enabled():
-            _set(_state.schedule, OFF, now)
+            _set(_state.schedule, OFF, now, 0)
             return _state
         from .rank_info import online_client, ranks
 
@@ -219,12 +229,13 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
         if not set(rs.ROUTES) - fresh:  # every answer recent: nothing asked
             _set(_state.schedule, _state.status, now)
             return _state
-        answers = rs.read_answers(lambda path: client.get(path, account), fresh)  # rest not asked after a 429
+        # rest not asked after a 429, nor once FAIL_STREAK routes in a row gave nothing (RaceControl down)
+        answers = rs.read_answers(lambda path: client.get(path, account), fresh, FAIL_STREAK)
         player = getattr(client, "player", ("", ""))[0]  # races the player is registered to marked (names dropped)
         answers = {key: rs.mark_registered(answer, player) for key, answer in answers.items()}
         if all(answer is None for answer in answers.values()):
             status = NO_ACCOUNT if client.no_account else NO_GAME if not _game_running() else FAILED
-            _set(_state.schedule, status, now)
+            _set(_state.schedule, status, now, _state.failures + 1 if status == FAILED else 0)
             return _state
         cars, tracks = _game_lists()
         old = _state.schedule
@@ -234,7 +245,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
             schedule = rs.parse_schedule({**answers, **kept}, cars or old.cars, tracks or old.tracks, read_time)
         except Exception as error:  # answer the parser cannot read: old schedule kept, tried again like a failure
             logger.info("RACE SCHEDULE: answers unreadable: %r", error)
-            _set(old, FAILED, now)
+            _set(old, FAILED, now, _state.failures + 1)
             return _state
         # Routes not answered now told missing, even shown from a kept answer (reminders never judged on them);
         # routes not asked (recent answer) are not missing
@@ -243,7 +254,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
         # Registered or left from the page: told until RaceControl lists agree
         schedule = rs.with_registered(schedule, _registered_now(schedule))
         _remember(schedule, answers, read_time, kept)
-        _set(schedule, READ, now)
+        _set(schedule, READ, now, 0)
         # disk copy: answers of this read & recent ones not asked again (one read time)
         _save({**answers, **{key: kept[key] for key in fresh if key in kept}}, schedule)
         return _state

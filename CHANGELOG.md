@@ -3,6 +3,14 @@
 All notable changes to **NeoPedal** (formerly Modern Tiny Pedals), newest version first. Version française : [CHANGELOG.fr.md](CHANGELOG.fr.md).
 The full list of commits of each version is on the [Releases](https://github.com/Keenny38/NeoPedal/releases) page.
 
+## 0.29.1 (2026-11-03)
+
+Fewer requests to RaceControl when it is down.
+
+### Fixes
+
+- When RaceControl does not answer (error or no answer on three routes in a row), the Upcoming Races read stops after those three requests instead of asking every route, and tries again after 5 minutes, then 10, 20, 40 and at most every hour, instead of every 5 minutes (up to 57 requests an hour with the page shown, now about 10).
+
 ## 0.29.0 (2026-11-03)
 
 An Upcoming Races page and your online races in Results & Replays, a modern title bar on Windows, a reviewed French translation, and fixes from bug audits of the whole app and of the VR overlay.

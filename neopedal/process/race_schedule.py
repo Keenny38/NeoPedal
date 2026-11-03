@@ -981,10 +981,21 @@ def parse_result(item: Any) -> OnlineResult | None:
                         tuple(rows), tuple(DriverResult(name, *changes[name], *ranks[name]) for name in changes))
 
 
-def read_answers(get: Callable[[str], Any], skip: Iterable[str] = ()) -> dict[str, Any]:
-    """Answers of every request (get: RaceControl GET path -> JSON, None if not read), blocking (worker thread)"""
+def read_answers(get: Callable[[str], Any], skip: Iterable[str] = (), stop_after: int = 0) -> dict[str, Any]:
+    """Answers of every request (get: RaceControl GET path -> JSON, None if not read), blocking (worker thread);
+    stop_after: routes in a row not answered after which the rest is not asked (None), 0 never"""
     skipped = set(skip)
-    return {key: get(path) for key, path in ROUTES.items() if key not in skipped}
+    answers: dict[str, Any] = {}
+    streak = 0
+    for key, path in ROUTES.items():
+        if key in skipped:
+            continue
+        if stop_after and streak >= stop_after:
+            answers[key] = None
+            continue
+        answers[key] = get(path)
+        streak = 0 if answers[key] is not None else streak + 1
+    return answers
 
 
 # Disk copy
