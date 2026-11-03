@@ -148,7 +148,7 @@ def test_other_403_after_sign_in_still_blocks():
 def source_script() -> str:
     from neopedal.stream_overlay import SOURCE_HTML
 
-    return re.search(r"<script>(.*)</script>", SOURCE_HTML, re.S).group(1)
+    return re.search(r"<script>(.*)</script>", SOURCE_HTML, re.S | re.I).group(1)
 
 
 def test_stream_sources_hidden_once_server_lost():
