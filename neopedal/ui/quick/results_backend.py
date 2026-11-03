@@ -94,7 +94,9 @@ SETTINGS_FILE = rf.PAGE_SETTINGS_FILE  # page settings, user config folder
 KIND_FILTERS = ("", *SESSION_FILTER_LABELS[1:])  # "" = every session, then practice, qualifying, race
 OLD_KIND_FILTERS = ("", "Race", "Qualifying", "Practice")  # order of index saved by 0.27.0 and older ("kind")
 KIND_CODES = {"Race": "R", "Qualifying": "Q", "Practice": "P", "Warmup": "W"}
-LIST_MODES = ("sessions", "replays")  # left list: sessions of results files, replays saved by game (LMU)
+# Left list: sessions of results files, replays saved by game (LMU), races driven online (LMU, RaceControl: see
+# online_results.py)
+LIST_MODES = ("sessions", "replays", "online")
 TABS = ("classification", "positions", "laps", "events", "replay")  # replay: game replay & live session (LMU)
 REPLAY_TAB = TABS.index("replay")
 LAP_LEAD = 1.0  # seconds: lap watched in replay starts this long before lap start
@@ -709,6 +711,7 @@ class RaceResultsBackend(PageBackend):
     loadingChanged = Signal()
     sessionsChanged = Signal()  # list rows, counts, folders
     filterChanged = Signal()
+    searchCleared = Signal()  # search cleared here (not typed): search field emptied too
     selectionChanged = Signal()  # session picked: header, tiles, classes
     classificationChanged = Signal()
     driverChanged = Signal()  # car picked for laps (and highlighted): key & info
@@ -1092,8 +1095,11 @@ class RaceResultsBackend(PageBackend):
     def clearFilters(self):
         """Every session listed again: kind, search & sessions without laps filters cleared"""
         if self.kind_filter or self.search or self.hide_empty:
+            searched = bool(self.search)
             self.kind_filter, self.search, self.hide_empty = 0, "", False
             self.filter_changed()
+            if searched:
+                self.searchCleared.emit()
 
     def filter_changed(self, save: bool = True):
         if save:  # changed by the user: saved as they are
@@ -1162,10 +1168,13 @@ class RaceResultsBackend(PageBackend):
         if info is None:
             return False
         if info not in self.shown_sessions():
+            searched = bool(self.search)
             if self._user_filters is None:  # saved instead of the cleared ones until the user changes them
                 self._user_filters = (self.kind_filter, self.hide_empty)
             self.kind_filter, self.search, self.hide_empty = 0, "", False
             self.filter_changed(save=False)  # filters of user kept for next time
+            if searched:
+                self.searchCleared.emit()
         self.select(info.path)
         return True
 
@@ -1737,7 +1746,7 @@ class RaceResultsBackend(PageBackend):
 
     @Property(int, notify=listModeChanged)
     def listMode(self) -> int:
-        """Left list: 0 sessions of results files, 1 replays saved by game"""
+        """Left list: 0 sessions of results files, 1 replays saved by game, 2 races driven online"""
         return self.list_mode
 
     @Slot(int)

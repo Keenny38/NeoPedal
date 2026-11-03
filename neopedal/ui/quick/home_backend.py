@@ -58,6 +58,7 @@ LIVE_MS = 1000  # game, overlay & checks
 SLOW_TICKS = 5  # live ticks between reads of session history, driver ranks & game window
 DRIVER_DATA_SECONDS = 600.0  # profile & results files read again this often while the page shows
 PRESET_MENU_COUNT = 10  # presets in the preset card menu (newest first)
+HOME_RACES = 3  # next online races on the card
 SESSION_NAMES = ("Test day", "Practice", "Qualify", "Warmup", "Race")  # game session type index
 FINISH_STATES = ("", "Finished", "DNF", "DQ")  # driver history finish state
 
@@ -169,6 +170,7 @@ class HomeBackend(PageBackend):
     statusChanged = Signal()
     loadingChanged = Signal()
     weekChanged = Signal()
+    racesChanged = Signal()
 
     def __init__(self, parent: QObject | None, window: Any, select_page: Callable[[str], object]):
         super().__init__(parent, "Home")
@@ -177,7 +179,7 @@ class HomeBackend(PageBackend):
         self.logos = LogoCache()
         self._values: dict[str, Any] = {
             "header": {}, "game": {}, "overlay": {}, "preset": {}, "counts": {}, "lastSession": {}, "debrief": {},
-            "driver": {}, "checks": [], "quick": [], "status": {}, "week": {},
+            "driver": {}, "checks": [], "quick": [], "status": {}, "week": {}, "races": {},
             # read in background: card place kept meanwhile
             "loading": {"debrief": False, "driver": True, "week": True},
         }
@@ -196,6 +198,9 @@ class HomeBackend(PageBackend):
         self._timer = self.page_timer(self.poll, LIVE_MS)
         notifier().changed.connect(self.pictures_changed)  # logos fetched from game meanwhile
         app_signal.updates.connect(self.updates_changed)
+        from .schedule_reminders import reminders
+
+        reminders()  # race reminders set before the app restarted told on time (Home made at start)
 
     # Publishing
     def publish(self, name: str, value: Any, signal: Any):
@@ -267,6 +272,11 @@ class HomeBackend(PageBackend):
         """Progress of the last 7 days (see week_card): summary & highlights, empty when nothing was driven"""
         return self._values["week"]
 
+    @Property(dict, notify=racesChanged)
+    def races(self) -> dict:
+        """Next online races the player may enter (see schedule_view.home_card): rows, empty if none known"""
+        return self._values["races"]
+
     def set_loading(self, name: str, value: bool):
         loading = self._values["loading"]
         if loading.get(name) != value:
@@ -314,6 +324,7 @@ class HomeBackend(PageBackend):
         self.refresh_last_session()
         self.refresh_week()
         self.refresh_driver()
+        self.refresh_races()
         self.check_game_window()
 
     # Header, preset, counts, quick access
@@ -463,6 +474,8 @@ class HomeBackend(PageBackend):
             return
         if self._record is not None:
             self.publish("lastSession", last_session_card(self._record, self.logos), self.lastSessionChanged)
+        if self._values["races"]:
+            self.publish_races()
         self.refresh_live()
 
     # Last session & debrief
@@ -531,10 +544,12 @@ class HomeBackend(PageBackend):
         records = self._records
         if records is None:  # read with the debrief: card place kept meanwhile
             return
-        from .stats_analysis import parse_goals, personal_bests, weekly_progress
+        from .stats_analysis import next_level_goals, parse_goals, personal_bests, reference_table, weekly_progress
         from .stats_common import CONFIG_NAME
 
-        goals = parse_goals(cfg.user.config.get(CONFIG_NAME, {}).get("goals"))
+        viewer = cfg.user.config.get(CONFIG_NAME, {})
+        goals = parse_goals(viewer.get("goals"))
+        compared = bool(viewer.get("enable_lap_reference", True))
         now = time.time()
         key = (id(records), len(records), int(now // 3600), tuple(sorted(goals.items())), current_language())
         if key == self._week_key:
@@ -549,7 +564,9 @@ class HomeBackend(PageBackend):
 
             stats_user = read_json(f"{cfg.path.config}{StatsFile.DRIVER}{FileExt.STATS}", strict=False, dict_only=True)
             bests = personal_bests(stats_user) if stats_user is not None else None
-            return weekly_progress(records, goals, now, bests=bests)
+            # Goals set, else automatic ones of next level (community lap times), as the driver stats page
+            automatic = next_level_goals(stats_user or {}, reference_table(cfg.path.config, compared))
+            return weekly_progress(records, {**automatic, **goals}, now, bests=bests)
 
         self.jobs.run("weekly progress", progress, self.week_read, self.week_failed, key="week")
 
@@ -560,6 +577,36 @@ class HomeBackend(PageBackend):
     def week_failed(self, error: BaseException):
         logger.warning("HOME: weekly progress not made: %s", error)
         self.week_read([])
+
+    # Next online races
+    def refresh_races(self):
+        """Next races of RaceControl (read in background when due, shared with the Upcoming Races page; last
+        read of the disk shown meanwhile), none while online reading is off"""
+        from ... import race_schedule_info as info
+
+        if not info.enabled():
+            self.publish("races", {}, self.racesChanged)
+            return
+        if info.due() and not self.jobs.is_busy("races"):
+            self.jobs.run("race schedule", info.read, lambda _state: self.publish_races(),
+                          self.races_failed, key="races")
+        self.publish_races()
+
+    def publish_races(self):
+        from ... import race_schedule_info as info
+        from .schedule_backend import player_safety
+        from .schedule_reminders import reminders
+        from .schedule_view import home_card
+
+        schedule = info.state().schedule
+        rows = home_card(schedule, player_safety(), time.time(),
+                         lambda track: self.logos.track(track) if track else "", HOME_RACES, info.places())
+        for row in rows:  # reminder set on the Upcoming Races page (minutes before the start, 0 none)
+            row["reminder"] = reminders().minutes_of(row["startKey"]) if row["startKey"] else 0
+        self.publish("races", {"rows": rows} if rows else {}, self.racesChanged)
+
+    def races_failed(self, error: BaseException):
+        logger.warning("HOME: online races not read: %s", error)
 
     # Driver
     def read_driver_data(self):
@@ -724,6 +771,10 @@ class HomeBackend(PageBackend):
     def openDirector(self):
         """Broadcast Director (Le Mans Ultimate)"""
         self.open_tool("broadcast_director.BroadcastDirector")
+
+    @Slot()
+    def openRaces(self):
+        self.open_tool("race_schedule_viewer.RaceScheduleViewer")
 
     @Slot()
     def openDriverStats(self):

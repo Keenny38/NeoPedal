@@ -67,6 +67,7 @@ from ..setting import cfg
 from ..template.page_registry import PAGE_MAIN, page_spec, page_wiki, tool_pages
 from . import (
     draw_focus_ring,
+    legacy_style,
     status_color,
 )
 from ._common import MODIFIED_MARKER, BaseDialog, UIScaler
@@ -76,6 +77,8 @@ from .nav_rail import NAV_PAGES, PAGE_INDEX, RailEditor, current_rail_items, pag
 from .notification import NotifyBar, notification_store
 from .ordered_picker import icon_font_family
 from .pace_notes_view import PaceNotesControl, PaceNotesPlayback
+from .title_bar import page_title_in_bar
+from .tokens import hover_fill, radius_px, selected_fill
 from .tools_view import LISTED_TOOL_SECTIONS, RENAMED_TOOLS, TOOL_SECTIONS, ToolsView, open_tool
 from .window_geometry import (
     keep_on_screen,
@@ -150,8 +153,28 @@ PAGE_SWITCHES = tuple(
 )
 
 
+def rail_buttons(button: QWidget, shown_only: bool = True) -> list["NavButton"]:
+    """Entries of the rail of a button (pages, history, quick actions), top to bottom then left to right: the order
+    arrow keys follow. shown_only: shown & enabled ones (arrow keys), else every entry (Tab stop set before showing).
+    A button out of the rail (title bar: Menu, Back & Forward, app tools) is alone: never the entries of the window"""
+    root = button.parentWidget()
+    while root is not None and root.objectName() != "navRail" and root.parentWidget() is not None:
+        root = root.parentWidget()
+    if root is None or root.objectName() != "navRail":
+        return [button] if isinstance(button, NavButton) else []
+    found = [item for item in root.findChildren(NavButton)
+             if not shown_only or (item.isVisible() and item.isEnabled())]
+    return sorted(found, key=lambda item: (item.mapTo(root, QPoint(0, 0)).y(), item.mapTo(root, QPoint(0, 0)).x()))
+
+
 class NavButton(QAbstractButton):
-    """Navigation rail entry: icon over a short label, accent pill when selected"""
+    """Navigation rail entry: icon over a short label, accent tint when selected, drawn with the tokens of QML pages
+    (ui/tokens.py: em, corner radius halved on Legacy themes, hover & selected fills)
+
+    Keyboard: the rail is one Tab stop (the entry last focused, else the page shown); arrow keys, Home & End move
+    between entries, Space or Enter activates. A switch on (Lock, Auto Hide...) shows a bar under its icon, not color
+    alone.
+    """
 
     def __init__(self, text: str, glyph: str, letter: str, icon_family: str, parent=None, compact: bool = False):
         super().__init__(parent)
@@ -171,10 +194,44 @@ class NavButton(QAbstractButton):
             self.icon_font.setBold(True)
 
     def sizeHint(self) -> QSize:
-        line = self.fontMetrics().height()
+        em = UIScaler.FONT_PIXEL_SCALED  # em of QML pages (ui/tokens.py), never the line height of a font
         if self.compact:
-            return QSize(round(line * 2.2), round(line * 2.2))
-        return QSize(round(line * 4.4), round(line * 3.4))
+            return QSize(round(em * 2.95), round(em * 2.95))
+        return QSize(round(em * 5.9), round(em * 4.55))
+
+    @staticmethod
+    def set_tab_stop(button: QAbstractButton | None):
+        """Button (a rail entry) made the one Tab stop of its rail (others: click & arrow keys only)"""
+        if not isinstance(button, NavButton):
+            return
+        for item in rail_buttons(button, shown_only=False):
+            item.setFocusPolicy(Qt.FocusPolicy.StrongFocus if item is button else Qt.FocusPolicy.ClickFocus)
+        button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def focusInEvent(self, event):
+        self.set_tab_stop(self)  # Tab back into the rail lands here
+        super().focusInEvent(event)
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        step = {Qt.Key.Key_Up: -1, Qt.Key.Key_Left: -1, Qt.Key.Key_Down: 1, Qt.Key.Key_Right: 1}.get(key)
+        if step is None and key not in (Qt.Key.Key_Home, Qt.Key.Key_End):
+            super().keyPressEvent(event)
+            return
+        buttons = rail_buttons(self)
+        if buttons:
+            if key == Qt.Key.Key_Home:
+                target = buttons[0]
+            elif key == Qt.Key.Key_End:
+                target = buttons[-1]
+            else:
+                index = buttons.index(self) if self in buttons else 0
+                target = buttons[max(0, min(len(buttons) - 1, index + (step or 0)))]
+            window = self.window()
+            if window is not None:  # ring shown as for Tab (has_keyboard_focus)
+                window.setAttribute(Qt.WidgetAttribute.WA_KeyboardFocusChange, True)
+            target.setFocus(Qt.FocusReason.TabFocusReason)
+        event.accept()
 
     def set_modified(self, modified: bool):
         """Page of entry has unsaved changes: marker before label, noted in tooltip"""
@@ -201,23 +258,25 @@ class NavButton(QAbstractButton):
         accent = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight)
         text = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.WindowText)
         muted = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.PlaceholderText)  # 4.5:1 on window
-        area = QRectF(self.rect()).adjusted(4, 2, -4, -2)
-        radius = area.height() * 0.22
+        em = UIScaler.FONT_PIXEL_SCALED
+        area = QRectF(self.rect()).adjusted(em * 0.3, em * 0.15, -em * 0.3, -em * 0.15)
+        radius = radius_px("radiusMd", em, legacy_style())  # as QML rows: half as round on Legacy themes
+        hovered = self.underMouse()
+        painter.setPen(Qt.PenStyle.NoPen)
         if self.isChecked():
-            fill = QColor(accent)
-            fill.setAlphaF(0.18)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(fill)
+            painter.setBrush(selected_fill(palette, hovered))  # theme.rowColor(hovered, true)
             painter.drawRoundedRect(area, radius, radius)
-            if not self.compact:  # page marker, toggles only use the fill
-                bar_h = area.height() * 0.42
-                painter.setBrush(accent)
-                painter.drawRoundedRect(QRectF(area.left() - 3, area.center().y() - bar_h / 2, 3, bar_h), 1.5, 1.5)
-        elif self.underMouse():
-            fill = QColor(text)
-            fill.setAlphaF(0.07)
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(fill)
+            painter.setBrush(accent)
+            if not self.compact:  # page shown: marker at left, as the selected entry of QML navigation lists
+                bar_w, bar_h = em * 0.22, area.height() * 0.42
+                painter.drawRoundedRect(QRectF(area.left() + em * 0.12, area.center().y() - bar_h / 2, bar_w, bar_h),
+                                        bar_w / 2, bar_w / 2)
+            else:  # switch on (Lock, Auto Hide, VR): bar under the icon, state never told by color alone
+                bar_w, bar_h = area.width() * 0.36, max(2.0, em * 0.16)
+                painter.drawRoundedRect(QRectF(area.center().x() - bar_w / 2, area.bottom() - em * 0.3, bar_w, bar_h),
+                                        bar_h / 2, bar_h / 2)
+        elif hovered:
+            painter.setBrush(hover_fill(palette))  # theme.hover: hover of every control
             painter.drawRoundedRect(area, radius, radius)
         draw_focus_ring(painter, self, area, radius)
         color = accent if self.isChecked() else (text if self.underMouse() else muted)
@@ -474,7 +533,9 @@ class DialogPage(QWidget):
         scroll.setWidget(dialog)
         dialog.installEventFilter(self)
         dialog.destroyed.connect(self._dialog_destroyed)
-        dialog.show()
+        # Made visible only: BaseDialog.show of a page dialog shows its page, not in the stack yet ("widget not
+        # contained in stack" warning, page left remembered in history)
+        QWidget.show(dialog)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -511,7 +572,7 @@ class DialogPage(QWidget):
         """Breadcrumb parts shown (see crumb), then title unless page shows its own; header left out when empty
         (rail tool showing its own title)"""
         crumb = self.crumb()[1]
-        owns_title = self.owns_title()
+        owns_title = self.owns_title() or page_title_in_bar()  # page name shown in the window title bar
         self._button_crumb.setText(crumb)
         self._button_crumb.setToolTip(trm(f"Go to {crumb}") if crumb else "")
         self._button_crumb.setVisible(bool(crumb))
@@ -705,6 +766,7 @@ class TabView(QWidget):
         layout_list.setContentsMargins(0, 0, 0, 0)
         layout_list.setSpacing(0)
         self._rail_items = QVBoxLayout()
+        self._rail_buttons: list[NavButton] = []  # entries of _rail_items in order, see build_rail_items
         self._rail_items.setSpacing(UIScaler.pixel(2))
         layout_list.addLayout(self._rail_items)
         layout_list.addStretch(1)
@@ -759,6 +821,7 @@ class TabView(QWidget):
         button_config.setCheckable(False)
         button_config.clicked.connect(lambda: open_config_application(parent, ""))  # page as left
         layout_quick.addWidget(button_config, 1, 1)
+        self._button_settings = button_config
         self._button_api = NavButton(tr("API"), "\ue968", "A", icon_family, rail, compact=True)  # network
         self._button_api.setCheckable(False)
         self._button_api.clicked.connect(self.show_api_menu)
@@ -769,6 +832,7 @@ class TabView(QWidget):
         button_search.setCheckable(False)
         button_search.clicked.connect(parent.open_command_palette)
         layout_quick.addWidget(button_search, 2, 0)
+        self._button_search = button_search
         # Notification center: unread count badge, see notification.NotificationStore
         self._button_notices = NavButton(tr("Notifications"), "\uea8f", "!", icon_family, rail, compact=True)  # bell
         self._button_notices.setObjectName("railNotifications")
@@ -796,6 +860,17 @@ class TabView(QWidget):
         for button in (button_config, self._button_api, button_search, self._button_notices, self._button_more,
                        self._button_help, self._button_pages):
             button.setAccessibleName(button.toolTip().split(" (")[0])
+        NavButton.set_tab_stop(self._nav.checkedButton() or next(iter(self._nav.buttons()), button_config))
+        if getattr(parent, "title_bar", None) is not None:
+            # App tools in the title bar drawn by the app (see tool_buttons), More in its menu button (pages &
+            # tools in Tools menu, rail customization): overlay toggles, API & open pages left in the rail, two by two
+            for button in (*self.tool_buttons(), self._button_more):
+                layout_quick.removeWidget(button)
+            self._button_more.hide()
+            kept = (*self._toggles.values(), self._button_api, self._button_pages)
+            for index, button in enumerate(kept):
+                layout_quick.removeWidget(button)
+                layout_quick.addWidget(button, index // 2, index % 2)
         layout_rail.addLayout(layout_quick)
         notification_store().changed.connect(self.refresh_notification_badge)
         self.refresh_notification_badge()
@@ -826,7 +901,14 @@ class TabView(QWidget):
         layout_body.setContentsMargins(0, 0, 0, 0)
         layout_body.setSpacing(0)
         layout_body.addWidget(rail)
-        layout_body.addWidget(self._pages, stretch=1)
+        if getattr(parent, "title_bar", None) is not None:
+            # Title bar drawn by the app: rail & title bar one piece, page area framed inside them
+            from .title_bar import PageFrame
+
+            rail.setProperty("merged", True)  # no border line, see style sheet
+            layout_body.addWidget(PageFrame(self, self._pages), stretch=1)
+        else:
+            layout_body.addWidget(self._pages, stretch=1)
         # Page change fades in (window background fading out over the new page), see PageFade
         self._page_fade = PageFade(self._pages)
         self._pages.currentChanged.connect(self._page_fade.start)
@@ -837,7 +919,9 @@ class TabView(QWidget):
         layout_main.setSpacing(0)
         layout_main.addLayout(layout_body, stretch=1)
         status_bar = getattr(parent, "statusBar", None)
-        if callable(status_bar) and isinstance(status_bar(), QStatusBar):
+        if getattr(parent, "title_bar", None) is not None:
+            pass  # in the title bar drawn by the app, see AppWindow.dock_in_title_bar
+        elif callable(status_bar) and isinstance(status_bar(), QStatusBar):
             status_bar().addWidget(notify_bar, 1)  # one band: status chips, then saving state on the right
         else:
             layout_main.addWidget(notify_bar)
@@ -871,11 +955,12 @@ class TabView(QWidget):
         """(Re)create rail entries from setting, Ctrl+1..9 open the first 9 entries"""
         for button in self._nav.buttons():
             self._nav.removeButton(button)
-        while self._rail_items.count():
-            item = self._rail_items.takeAt(0)
-            widget = item.widget() if item is not None else None
-            if widget is not None:
-                widget.deleteLater()
+        # Entries kept in a list, never read back from the layout: Python wrappers of its items outlive them (deleted by
+        # Qt), and a window later made at the same address came back as one of them (QWidgetItem, see title_bar)
+        for button in self._rail_buttons:
+            self._rail_items.removeWidget(button)
+            button.deleteLater()
+        self._rail_buttons = []
         for shortcut in self._rail_shortcuts:
             shortcut.setEnabled(False)
             shortcut.deleteLater()
@@ -896,6 +981,7 @@ class TabView(QWidget):
                 action = (lambda path=entry.dialog: self.open_rail_tool(path))
                 button.clicked.connect(lambda _=False, run=action: (run(), self.sync_rail_selection()))
             self._rail_items.addWidget(button)
+            self._rail_buttons.append(button)
             if position <= 9:
                 shortcut = QShortcut(QKeySequence(f"Ctrl+{position}"), self)
                 shortcut.activated.connect(action)
@@ -903,6 +989,7 @@ class TabView(QWidget):
         button = self._nav.button(self._pages.currentIndex())
         if button is not None:
             button.setChecked(True)
+        NavButton.set_tab_stop(button or next(iter(self._nav.buttons()), None))  # rail: one Tab stop
         # Rail keeps its width when scroll bar shows (entries never squeezed)
         scroll_bar = self._rail_scroll.verticalScrollBar().sizeHint().width()
         self._rail_scroll.setMinimumWidth(self._rail_list.sizeHint().width() + scroll_bar)
@@ -1107,10 +1194,8 @@ class TabView(QWidget):
 
     def scroll_to_selected_entry(self):
         """Selected rail entry (page or tool) scrolled into view when rail is too short for every entry"""
-        for index in range(self._rail_items.count()):
-            item = self._rail_items.itemAt(index)
-            button = item.widget() if item is not None else None
-            if isinstance(button, NavButton) and button.isChecked():
+        for button in self._rail_buttons:
+            if button.isChecked():
                 self._rail_scroll.ensureWidgetVisible(button, 0, self.rail_fade_height())
                 return
 
@@ -1144,10 +1229,8 @@ class TabView(QWidget):
     def rail_tool_buttons(self) -> dict[str, NavButton]:
         """Rail tool entries by dialog class name"""
         buttons = {}
-        for index in range(self._rail_items.count()):
-            item = self._rail_items.itemAt(index)
-            button = item.widget() if item is not None else None
-            if isinstance(button, NavButton) and button.objectName().startswith("railTool:"):
+        for button in self._rail_buttons:
+            if button.objectName().startswith("railTool:"):
                 buttons[button.objectName().rsplit(".", 1)[-1]] = button
         return buttons
 
@@ -1669,6 +1752,19 @@ class TabView(QWidget):
         current = self._pages.currentWidget()
         return any(page is not current and self._pages.indexOf(page) >= 0 for page in self._page_history)
 
+    def notify_bar(self) -> NotifyBar:
+        """Status chips (in the window status band, or in the title bar drawn by the app if shown)"""
+        return self._notify_bar
+
+    def tool_buttons(self) -> tuple[NavButton, ...]:
+        """App tools of the rail: command palette, notifications, settings, help of the page (moved to the title
+        bar drawn by the app if shown)"""
+        return self._button_search, self._button_notices, self._button_settings, self._button_help
+
+    def history_buttons(self) -> tuple[NavButton, NavButton]:
+        """Back & Forward buttons (top of the rail, moved to the title bar drawn by the app if shown)"""
+        return self._button_back, self._button_forward
+
     def can_go_forward(self) -> bool:
         current = self._pages.currentWidget()
         return any(isinstance(entry, str) or (entry is not current and self._pages.indexOf(entry) >= 0)
@@ -1827,11 +1923,8 @@ class TabView(QWidget):
     def rail_shortcut_labels(self) -> list[tuple[str, str]]:
         """Ctrl+1..9 of rail entries: (keys, entry name), keyboard shortcuts sheet"""
         labels = []
-        for index in range(min(self._rail_items.count(), 9)):
-            item = self._rail_items.itemAt(index)
-            button = item.widget() if item is not None else None
-            if isinstance(button, NavButton):
-                labels.append((f"Ctrl+{index + 1}", button.accessibleName() or button.text()))
+        for index, button in enumerate(self._rail_buttons[:9]):
+            labels.append((f"Ctrl+{index + 1}", button.accessibleName() or button.text()))
         return labels
 
     def page_changed(self, index: int):

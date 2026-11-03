@@ -422,13 +422,23 @@ TpPage {
                 readonly property real lastY: originY + contentHeight - height
                 Keys.onUpPressed: flick.contentY = Math.max(flick.originY, flick.contentY - theme.em * 3)
                 Keys.onDownPressed: flick.contentY = Math.max(flick.originY, Math.min(flick.lastY, flick.contentY + theme.em * 3))
+                // Focus came by Tab / Backtab (focusReason is a property of controls only): the key release
+                // reaches the list (or its current row) once focused. Cleared when focus leaves the list.
+                property bool keyboardFocus: false
+                onActiveFocusChanged: if (!activeFocus) flick.keyboardFocus = false
+                Keys.onReleased: function(event) {
+                    if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+                        flick.keyboardFocus = flick.activeFocus
+                    event.accepted = false
+                }
                 // Keyboard focus on the list (Up / Down scroll): ring inside its edges (list clips)
                 FocusRing {
+                    objectName: "settingsFocusRing"
                     parent: flick
                     target: flick
                     anchors.margins: gap
                     z: 2
-                    visible: flick.activeFocus && (flick.focusReason === Qt.TabFocusReason || flick.focusReason === Qt.BacktabFocusReason)
+                    visible: flick.activeFocus && flick.keyboardFocus
                 }
 
                 header: Column {

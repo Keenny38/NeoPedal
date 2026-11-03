@@ -183,7 +183,7 @@ class PalettePopup(ShellPopup):
 
     @classmethod
     def open_for(cls, window: QWidget) -> PalettePopup:
-        size = popup_size(window, 40, 28)
+        size = popup_size(window, 54, 38)  # em of QML pages
         popup = cls(window, KIND, "CommandPalette.qml", PaletteBackend(window), size)
         popup.popup(centered_top(window, size))
         return popup

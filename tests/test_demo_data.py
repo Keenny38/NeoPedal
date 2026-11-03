@@ -139,3 +139,29 @@ def test_zoomed_preview_drawn_bigger(ui_env, bundled_fonts):
         backend.close()
         backend.deleteLater()
         flush()
+
+
+def test_sessions_of_other_situations_kept_until_released(ui_env, monkeypatch):
+    """Previews going back & forth between situations make no session again (each built a game API, logged when
+    released: "RestAPI: GC" bursts while browsing overlays)"""
+    real_class = demo_data.DemoSession
+    made = []
+    monkeypatch.setattr(demo_data, "DemoSession",
+                        lambda standings, scenario="": made.append(scenario) or real_class(standings, scenario))
+    demo_data.release_session()
+    standings = cfg.user.setting["standings"]
+    racing = demo_data.demo_session(standings)
+    flags = demo_data.demo_session(standings, "flags")
+    assert demo_data.demo_session(standings) is racing
+    assert demo_data.demo_session(standings, "flags") is flags
+    assert demo_data.demo_session(standings, "unknown") is racing
+    assert made == ["", "flags"]
+    edited = dict(standings, minimum_top_vehicles=standings["minimum_top_vehicles"] + 1)
+    assert demo_data.demo_session(edited) is not racing  # other standings setting: own session
+    for scenario in demo_data.SCENARIOS:  # oldest dropped past SESSIONS_KEPT
+        for count in range(demo_data.SESSIONS_KEPT):
+            demo_data.demo_session(dict(standings, minimum_top_vehicles=count), scenario)
+    assert len(demo_data._kept) == demo_data.SESSIONS_KEPT
+    demo_data.release_session()
+    assert demo_data._session is None and not demo_data._kept
+    assert demo_data.demo_session(standings) is not racing

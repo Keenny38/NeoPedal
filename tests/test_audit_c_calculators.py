@@ -313,7 +313,7 @@ def test_tyre_planner_texts_translated(french):
     assert view["rows"][0]["change"] == "—" and view["rows"][1]["change"] == "+4,5 s"  # missing value, spaced unit
     status = view["status"]
     assert i18n.trm(f"Stock: {status['stock']} / {status['maximum']} ({i18n.tr('invalid')})") == (
-        "Stock : 6 / 4 (invalide)")
+        "Stock\u00a0: 6 / 4 (invalide)")
     assert plan.assign(1, 1, "Medium #2").startswith("<b>Medium #2</b>")
     assert "already" not in plan.assign(1, 1, "Medium #2")  # message translated
 
@@ -323,13 +323,13 @@ def test_calculator_messages_translated(french):
     assert trm("Cannot open selected file.<br><br>Invalid tyre strategy file.") == (
         "Impossible d'ouvrir le fichier sélectionné.<br><br>Fichier de stratégie pneus invalide.")
     assert trm("Unable to save race plan:<br><b>C:/plans/Spa.race-plan</b>") == (
-        "Impossible d'enregistrer le plan de course :<br><b>C:/plans/Spa.race-plan</b>")
+        "Impossible d'enregistrer le plan de course\u00a0:<br><b>C:/plans/Spa.race-plan</b>")
     assert trm("Unable to save consumption history: Spa - GT3.consumption") == (
-        "Impossible d'enregistrer l'historique de consommation : Spa - GT3.consumption")
+        "Impossible d'enregistrer l'historique de consommation\u00a0: Spa - GT3.consumption")
     assert trm("Unable to save tyre strategy file:<br><br>[Errno 13] Permission denied: 'x.tyres'") == (
-        "Impossible d'enregistrer la stratégie pneus :<br><br>[Errno 13] Permission denied: 'x.tyres'")
+        "Impossible d'enregistrer la stratégie pneus\u00a0:<br><br>[Errno 13] Permission denied: 'x.tyres'")
     assert trm("Unable to export: [Errno 13] Permission denied: 'C:/plan.csv'") == (
-        "Impossible d'exporter : [Errno 13] Permission denied: 'C:/plan.csv'")
-    assert trm("Unable to save picture: C:/plan.png") == "Impossible d'enregistrer l'image : C:/plan.png"
+        "Impossible d'exporter\u00a0: [Errno 13] Permission denied: 'C:/plan.csv'")
+    assert trm("Unable to save picture: C:/plan.png") == "Impossible d'enregistrer l'image\u00a0: C:/plan.png"
     assert trm("New-100%") == "Neuf-100%"
     assert i18n.tr("N/A") == "N/D" and i18n.tr("Blowout") == "Éclaté"

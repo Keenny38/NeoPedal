@@ -7,17 +7,19 @@ thread these slots took 0.15 s to 1 s on a fast machine.
 """
 
 import time
+from functools import partial
 
 import pytest
 
 from neopedal.setting import cfg
 from neopedal.userfile import driver_history
 from neopedal.userfile.driver_history import SessionRecord, record_line
+from tests._speed import budget
 from tests.test_driver_stats_viewer import backend, dialogs, settle, window  # noqa: F401  (fixtures)
 from tests.test_lap_viewer import wait_loaded
 from tests.test_lap_viewer_e2 import START, write_lap
 
-UI_BUDGET = 0.05  # seconds a slot may hold the UI thread
+UI_BUDGET = budget(0.05)  # seconds a slot may hold the UI thread (fast desktop, scaled by this machine's speed)
 HISTORY_RECORDS = driver_history.MAX_RECORDS - 1  # one appended stays under the limit
 LAP_SAMPLES = 20000
 
@@ -85,17 +87,24 @@ def long_laps(ui_env):
 def test_lap_viewer_settings_within_budget(long_laps):
     page = long_laps
     assert len(page.data.laps) == 4
+    # Each setting changed 3 times (to, back, to again), best time asserted: one pause of a busy machine (a full
+    # garbage collection over the long laps, 70 ms once on Python 3.11, 5 ms the other times) is not the slot's
     changes = (
-        lambda: page.setTimeAxis(True),
-        lambda: page.setSmoothing(2),
-        lambda: page.setEnvelope(True),
-        lambda: page.setChannelVisible("rpm", True),
-        lambda: page.setDeltaWindow(80),
+        (page.setTimeAxis, True, False),
+        (page.setSmoothing, 2, 1),
+        (page.setEnvelope, True, False),
+        (lambda shown: page.setChannelVisible("rpm", shown), True, False),
+        (page.setDeltaWindow, 80, 40),
     )
-    for change in changes:
-        assert timed(change) < UI_BUDGET
+    for change, value, other in changes:
+        change(other)  # from a known value: every timed call changes the setting
         page.wait_jobs()
-        assert not page.is_loading()
+        times = []
+        for setting in (value, other, value):
+            times.append(timed(partial(change, setting)))
+            page.wait_jobs()
+            assert not page.is_loading()
+        assert min(times) < UI_BUDGET, (change, times)
 
 
 def test_overlay_preview_within_budget(ui_env, bundled_fonts):

@@ -103,7 +103,7 @@ Item {
                     color: theme.dimOn(surface.color)
                     MouseArea { id: iconArea; anchors.fill: parent; hoverEnabled: true }
                     ToolTip.visible: iconArea.containsMouse
-                    ToolTip.text: modelData.text + ": " + modelData.tip
+                    ToolTip.text: modelData.text + i18n.colon() + modelData.tip
                     ToolTip.delay: theme.tipDelay
                 }
             }

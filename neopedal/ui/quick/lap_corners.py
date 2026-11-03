@@ -29,7 +29,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
-from ...i18n import tr, trm
+from ...i18n import percent_sign, tr, trm
 from ...setting import cfg
 from ...userfile.corner_analysis import (
     SPEED_HYSTERESIS,
@@ -319,7 +319,7 @@ class CornerTable(PagePart):
                     "overlap": f"{number_text(ref.overlap, 1)} s", "coastColor": "", "overlapColor": "",
                     "entry": f"{speed(ref.entry_speed):.0f}", "exit": f"{speed(ref.exit_speed):.0f}",
                     "entryColor": "", "exitColor": "",
-                    "gear": str(ref.apex_gear) if ref.apex_gear else "—", "peakBrake": f"{ref.peak_brake * 100:.0f}%",
+                    "gear": str(ref.apex_gear) if ref.apex_gear else "—", "peakBrake": f"{ref.peak_brake * 100:.0f}{percent_sign()}",
                 })
             else:
                 delta = comp.time - ref.time

@@ -232,6 +232,17 @@ def test_compound_badges_same_as_overlays():
             "TpCombo.qml", "DriverStats.qml", "ResultsLaps.qml", "RaceLiveTab.qml"} <= set(users)
 
 
+def test_letter_badges_shared():
+    """Level letters (round) & tyre compounds (square) are one TpLetterBadge: whole even pixel size, letter
+    sized from the badge & centered on its ink (no tiny letter sitting low on a blurry circle)"""
+    badge = "\n".join(qml_files()["TpLetterBadge.qml"])
+    assert "Math.round(size / 2) * 2" in badge and "caps.tightBoundingRect.y" in badge and "baselineOffset" in badge
+    assert "TpLetterBadge {" in "\n".join(qml_files()["TpCompound.qml"])
+    for name in ("StatsTable.qml", "StatsLevelsCard.qml", "TpStatTile.qml"):
+        text = "\n".join(qml_files()[name])
+        assert "TpLetterBadge {" in text and "theme.inkOn(" not in text, name
+
+
 # --- Keyboard: Tab reaches buttons & switches (ring shown), Enter / Space press, arrows choose a segment
 def test_keyboard_focus_and_press(ui_env, tmp_path):
     from PySide6.QtCore import QCoreApplication, QEvent, Qt, QUrl
@@ -414,7 +425,7 @@ RAW_BREAKPOINTS = 0
 RAW_TINTS = 11
 BUTTON_HEIGHT_OVERRIDES = 0
 PIXEL_FONT_SIZES = 0
-EM_SPACINGS = 96
+EM_SPACINGS = 93
 # 2026-10-29 audit (V3): colors, sizes & delays that went around the ratchets above
 LIGHTER_DARKER = 4
 DARK_CHECKS = 10
@@ -859,3 +870,10 @@ def test_toolbar_menu_and_shared_drop_zone():
         assert 'level: "popup"' in text and "closable: true" in text, name
     for name in ("RaceQuickSetup.qml", "RaceTimeline.qml", "RaceHistory.qml"):
         assert qml_text(name).startswith(("import", "//")) and "TpSectionCard {" in qml_text(name), name
+
+
+def test_conditional_focus_on_tab_kept_while_focused():
+    """activeFocusOnTab bound to a condition also holds while the item has active focus: Qt refuses to turn it off
+    on the active focus item ("Cannot set activeFocusOnTab to false once item is the active focus item" in the app
+    log: chart focused, then a filter left it without points)"""
+    assert matches(r"activeFocusOnTab:\s*(?=\S)(?!true\b|false\b)(?!.*\|\|\s*activeFocus\s*$)") == []

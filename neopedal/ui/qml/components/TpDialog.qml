@@ -45,9 +45,8 @@ TpPopup {
             (cancelFirst ? cancelButton : acceptButton).forceActiveFocus(Qt.TabFocusReason)
     }
 
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width: Math.min(parent ? parent.width - theme.em * 2 : theme.em * 28, theme.em * 28)
+    anchors.centerIn: overlayItem  // in the middle of the window, parent: the item it is declared in (TpPopup)
+    width: Math.min(overlayItem ? overlayItem.width - theme.em * 2 : theme.em * 28, theme.em * 28)
     modal: true
     focus: true
     property bool acceptedNow: false
@@ -57,15 +56,12 @@ TpPopup {
 
     contentItem: ColumnLayout {
         spacing: theme.space5
-        Text {
+        TpText {  // title role: heading size & display face, told to screen readers as a heading
+            role: "title"
+            wrap: true
             Layout.fillWidth: true
             text: dialog.title
-            textFormat: Text.PlainText
             visible: text !== ""
-            color: theme.text
-            wrapMode: Text.WordWrap
-            font.pointSize: theme.fontHeading
-            font.weight: Font.DemiBold
         }
         ColumnLayout {
             id: body

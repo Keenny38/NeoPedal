@@ -423,7 +423,7 @@ Item {
                         var details = []
                         if (lap.fuel >= 0) details.push(i18n.tr("Fuel") + " " + root.num(lap.fuel * (root.session.fuelScale || 1), 2) + " " + (root.session.fuelUnit || ""))
                         if (lap.wear >= 0) details.push(i18n.tr("Tyre wear") + " " + root.num(lap.wear, 2) + " %")
-                        if (lap.temp !== null) details.push(i18n.tr("Track Temp") + " " + root.num(lap.temp, 1) + (root.session.temperatureUnit || "°C"))
+                        if (typeof lap.temp === "number") details.push(i18n.tr("Track Temp") + " " + root.num(lap.temp, 1) + (root.session.temperatureUnit || "°C"))
                         if (details.length) lines.push(details.join(" · "))
                         var events = []
                         if (lap.limits >= 0) events.push("✕ " + i18n.tr("Track limits exceeded") + " " + lap.limits)

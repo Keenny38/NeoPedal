@@ -37,7 +37,7 @@ from .base import CENTER, DASH, LEFT, RIGHT
 from .draw import accent_edge, readable_on, rounded, triangle
 
 # Cell kinds
-TEXT = 0  # text: role, color
+TEXT = 0  # text: role, color; extra = smaller text after it (team name after driver name), None if none
 BADGE = 1  # text on filled rounded box: color = text, fill = box
 CLASS = 2  # class pill: text = alias, fill = class color, extra = position in class text
 CHANGE = 3  # position change: extra = signed number of places gained
@@ -56,6 +56,8 @@ CLASS_HEADER_SCALE = 0.82  # class header strip height, in row height
 CHANGE_ARROW = 0.42  # position change arrow size, in row height
 COMPOUND_SIZE = 0.62  # tyre compound square, in row height
 COMPOUND_GRID = 0.9  # per wheel compounds 2x2 grid height, in row height
+TEAM_GAP = 0.45  # space between driver name & team name, in units
+TEAM_MIN_WIDTH = 1.5  # team name left out with less room after driver name, in units
 LOGO_CHECK_MS = 150  # waited logo checked for at this interval (update timer may be stopped)
 # Layered overlay window uploads bounding rect of each repaint: far apart changed parts repainted one by one
 MAX_FLUSHES = 4  # at most, else one repaint of all
@@ -335,7 +337,10 @@ class TableMixin:
         kind = cell.kind
         theme = self.theme
         if kind == TEXT:
-            self.draw_text(painter, rect, cell.text, cell.role, cell.color, column.align)
+            if cell.extra:
+                self.draw_name_and_team(painter, rect, cell)
+            else:
+                self.draw_text(painter, rect, cell.text, cell.role, cell.color, column.align)
         elif kind == BADGE:
             box = rect.adjusted(0, rect.height() * 0.14, 0, -rect.height() * 0.14)
             rounded(painter, box, self.radius(0.25), cell.fill or theme.surface_raised)
@@ -370,6 +375,15 @@ class TableMixin:
             box = rect.adjusted(0, rect.height() * 0.2, 0, -rect.height() * 0.2)
             rounded(painter, box, box.height() / 2 * min(self.corner, 1.0), cell.fill or theme.surface_raised)
             self.draw_text(painter, box, cell.text, "label", cell.color, CENTER, elide=False)
+
+    def draw_name_and_team(self: Any, painter: QPainter, rect: QRectF, cell: Cell):
+        """Driver name, then team name (extra) smaller & dimmer right after it in the room left (cut to fit)"""
+        self.draw_text(painter, rect, cell.text, cell.role, cell.color, LEFT)
+        left = rect.left() + self.text_width(cell.role, cell.text) + self.unit * TEAM_GAP
+        room = rect.right() - left
+        if room >= self.unit * TEAM_MIN_WIDTH:
+            self.draw_text(painter, QRectF(left, rect.top(), room, rect.height()), cell.extra, "small",
+                           self.theme.text_dim, LEFT)
 
     def draw_class_header(self: Any, painter: QPainter, rect: QRectF, header: ClassHeader):
         """Class name on a pill of class color, then a thin line of class color to the right edge"""

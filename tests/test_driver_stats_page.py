@@ -38,7 +38,7 @@ def test_level_scale_marks(backend):  # noqa: F811
     assert 4 / 6 <= markers["PB"]["pos"] <= 5 / 6  # inside Competitive, 5th level from the left
     assert markers["Race"]["short"] == "R" and markers["PB"]["time"] == "2:01.500"
     assert reference["level"] == "Competitive" and reference["letter"] == "C" and reference["percent"].endswith(" %")
-    assert reference["nextLevel"]["name"] == "Alien" and reference["nextLevel"]["toFind"] == chr(0x2212) + "0.42 s"
+    assert reference["nextLevel"]["name"] == "Alien" and reference["nextLevel"]["toFind"] == chr(0x2212) + "0.420 s"
     assert reference["gapTime"].startswith("+") and reference["referenceTime"]
     ladder = {row["name"]: row for row in reference["ladder"]}
     assert ladder["Competitive"]["pills"] == ["PB"] and ladder["Competitive"]["letter"] == "C"
@@ -111,13 +111,12 @@ def test_header_line_and_tiles(backend):  # noqa: F811
 def test_cells_dimmed_and_level_pill(backend):  # noqa: F811
     columns = [column["key"] for column in backend.columns]
     row = backend.rows.rows[backend.row_keys().index(OREGA)]["cells"]
-    theory = row[columns.index("theory")]
+    assert "theory" not in columns  # no sector best for any car: empty column left out
     level = row[columns.index("level")]
-    assert theory["dim"] and not theory["pill"]  # no sector best: unknown
     assert level["pill"] and not level["dim"] and level["color"]
     assert row[columns.index("pb")]["bold"]
     extras = {column["key"]: column["extras"] for column in backend.columns}
-    assert extras["level"] and not extras["pb"] and not extras["theory"]  # decorations made only where any
+    assert extras["level"] and not extras["pb"] and not extras["meters"]  # decorations made only where any
 
 
 def test_history_read_only_when_changed(backend, monkeypatch):  # noqa: F811

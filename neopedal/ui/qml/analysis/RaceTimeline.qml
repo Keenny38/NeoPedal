@@ -138,7 +138,7 @@ TpSectionCard {
         }
 
         // Keyboard: Tab reaches the strategy, Left / Right show stint after stint (details in tooltip)
-        activeFocusOnTab: card.ready
+        activeFocusOnTab: card.ready || activeFocus
         Accessible.role: Accessible.Graphic
         Accessible.name: i18n.tr("Strategy")
         Accessible.description: keyStint >= 0 && card.ready ? (card.timeline.stints[keyStint].tip || "")

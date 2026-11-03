@@ -20,6 +20,7 @@ EXPECTED_VALIDATORS = {
     bool: {"boolean"},
     int: {"integer", "numeric"},
     float: {"numeric"},
+    list: {"string_list"},
 }
 
 

@@ -306,34 +306,45 @@ class StatsSelection(StatsHost):
         return parse_goals(self.viewer_config().get("goals", {}))
 
     def goal_of(self, track: str, vehicle: str) -> float:
+        """Goal set by the driver, 0 if none (automatic goal then, see goal_for)"""
         return self.goals().get(f"{track}|{vehicle}", 0.0)
 
-    def suggested_goal(self, vehicle: str) -> tuple[float, str]:
-        """Goal to propose: limit of next level of community lap times, else personal best minus a few tenths"""
-        best = valid_laptime(self.selected_stats_dict.get(vehicle, {}).get("pb", 0))
-        reference = self.reference_of(vehicle)
+    def auto_goal(self, track: str, vehicle: str) -> tuple[float, str]:
+        """Automatic goal & what it is: limit of next level of community lap times (community reference without a
+        personal best), else personal best minus GOAL_STEP (best level reached or no community lap time); 0 if none"""
+        vehicles = self.stats_temp.get(track)
+        data = vehicles.get(vehicle) if isinstance(vehicles, dict) else None
+        best = valid_laptime(data.get("pb", 0)) if isinstance(data, dict) else 0.0
+        reference = self.reference_for(track, vehicle)
         if reference is not None and best > 0:
-            level, to_find = reference.next_level(best)
+            level, _ = reference.next_level(best)
             if level >= 0:
-                return best - to_find, tr(LEVELS[level])
+                return reference.level_limit(level), f"{tr('Automatic goal: next level')} {tr(LEVELS[level])}"
         if reference is not None and best <= 0 and reference.reference > 0:
-            return reference.reference, tr("Reference")
-        return (round(best - GOAL_STEP, 1), "") if best > GOAL_STEP else (0.0, "")
+            return reference.reference, tr("Automatic goal: community reference")
+        if best > GOAL_STEP:
+            return round(best - GOAL_STEP, 1), tr("Automatic goal: personal best - 0.5 s")
+        return 0.0, ""
+
+    def goal_for(self, track: str, vehicle: str) -> tuple[float, bool, str]:
+        """Goal of a track & vehicle: lap time (0 if none), automatic, what the automatic goal is"""
+        goal = self.goal_of(track, vehicle)
+        if goal:
+            return goal, False, ""
+        goal, source = self.auto_goal(track, vehicle)
+        return goal, goal > 0, source
 
     def goal_data(self) -> dict:
-        """Goal card of selected vehicle: goal, gap of personal best, reached, suggestion (none: hidden)"""
+        """Goal card of selected vehicle: goal (set by the driver, else automatic), gap of personal best, reached
+        (none: hidden)"""
         vehicle = self._selected["vehicles"] if self.selected_stats_key else ""
         if not vehicle or vehicle not in self.selected_stats_dict:
             return {"visible": False}
-        goal = self.goal_of(self.selected_stats_key, vehicle)
+        goal, auto, source = self.goal_for(self.selected_stats_key, vehicle)
         best = valid_laptime(self.selected_stats_dict[vehicle].get("pb", 0))
-        suggested, level = self.suggested_goal(vehicle)
-        data = {"visible": True, "set": goal > 0, "time": calc.sec2laptime_full(goal) if goal else "",
-                "best": laptime_text(best), "reached": False, "gap": "", "gapColor": "",
-                "suggestion": "", "ratio": -1.0}
-        if suggested > 0:
-            text = calc.sec2laptime_full(suggested)
-            data["suggestion"] = trm(f"Suggested: {text} ({level})") if level else trm(f"Suggested: {text}")
+        data = {"visible": True, "set": goal > 0, "auto": auto, "source": source,
+                "time": calc.sec2laptime_full(goal) if goal else "",
+                "best": laptime_text(best), "reached": False, "gap": "", "gapColor": "", "ratio": -1.0}
         if goal and best:
             gap = best - goal
             data["reached"] = gap <= 0.0005
@@ -349,17 +360,18 @@ class StatsSelection(StatsHost):
 
     @Property(dict, notify=StatsCore.goalChanged)
     def goal(self) -> dict:
-        """Goal of selected vehicle: visible, set, time, best, reached, gap, gapColor, suggestion, ratio"""
+        """Goal of selected vehicle: visible, set, auto, source (what an automatic goal is), time, best, reached, gap,
+        gapColor, ratio"""
         return self._goal
 
     @Slot()
     def editGoal(self):
-        """Ask the goal lap time of selected vehicle (empty: removed), suggested one proposed"""
+        """Ask the goal lap time of selected vehicle (empty: automatic goal), goal shown now proposed"""
         key = self.goal_key()
         if not key:
             return
         vehicle = key.split("|", 1)[1]
-        goal = self.goal_of(self.selected_stats_key, vehicle) or self.suggested_goal(vehicle)[0]
+        goal = self.goal_for(self.selected_stats_key, vehicle)[0]
         self.ask_goal(key, calc.sec2laptime_full(goal) if goal else "")
 
     def ask_goal(self, key: str, text: str):
@@ -385,6 +397,7 @@ class StatsSelection(StatsHost):
 
     @Slot()
     def clearGoal(self):
+        """Goal set by the driver removed: automatic goal again"""
         key = self.goal_key()
         if key:
             self.set_goal(key, 0.0)
@@ -412,8 +425,6 @@ class StatsSelection(StatsHost):
         if self.defer_while_hidden(self.check_goals):
             return
         goals = self.goals()
-        if not goals:
-            return
         reached = self.reached_goals()
         beaten = []
         for key, goal in goals.items():
@@ -426,16 +437,44 @@ class StatsSelection(StatsHost):
             if best and best <= goal + 0.0005:
                 beaten.append((track, vehicle, best))
                 reached.append(key)
-        if not beaten:
+        lines = [trm(f"Goal reached: <b>{track}</b> · {vehicle} · {calc.sec2laptime_full(best)}")
+                 for track, vehicle, best in beaten]
+        # Automatic goals (no goal set): level of community lap times reached by a new personal best
+        levels = self.goal_levels()
+        seen = dict(levels)
+        for track, vehicles in self.stats_temp.items():
+            if not isinstance(vehicles, dict):
+                continue
+            for vehicle, data in vehicles.items():
+                key = f"{track}|{vehicle}"
+                best = valid_laptime(data.get("pb", 0)) if isinstance(data, dict) else 0.0
+                reference = self.reference_for(track, vehicle) if best and key not in goals else None
+                level = reference.level(best) if reference is not None else -1
+                if level < 0:
+                    continue  # community lap times not read yet, off or unknown: level kept
+                if key in seen and level < seen[key]:
+                    lines.append(trm(f"Level reached: <b>{track}</b> · {vehicle} · {tr(LEVELS[level])} "
+                                     f"{calc.sec2laptime_full(best)}"))
+                seen[key] = level  # first seen (told from the next level on), or slower after a sheet update
+        if beaten:
+            self.save_viewer_config(goals_reached=reached)
+        if seen != levels:
+            self.save_viewer_config(goal_levels=seen)
+        if not lines:
             return
-        self.save_viewer_config(goals_reached=reached)
         from ..toast import show_toast
 
-        # Every goal beaten told (all marked as told), one line each
-        text = "<br>".join(trm(f"Goal reached: <b>{track}</b> · {vehicle} · {calc.sec2laptime_full(best)}")
-                           for track, vehicle, best in beaten)
+        # Every goal beaten & level reached told (all marked as told), one line each
         with suppress(RuntimeError):  # page window closing
-            show_toast(self._window, text)
+            show_toast(self._window, "<br>".join(lines))
+
+    def goal_levels(self) -> dict[str, int]:
+        """Level of personal best last seen by "track|vehicle" (automatic goals: level reached told once)"""
+        levels = self.viewer_config().get("goal_levels", {})
+        if not isinstance(levels, dict):
+            return {}
+        return {str(key): value for key, value in levels.items()
+                if isinstance(value, int) and not isinstance(value, bool) and 0 <= value < len(LEVELS)}
 
     # Stints & consistency of selected vehicle: recorded laps of its track & class folder
     def update_stints(self, background: bool = True):
@@ -589,14 +628,14 @@ class StatsSelection(StatsHost):
         next_level = {}
         if best > 0:
             gap = best - reference.reference
-            gap_text = trm(f"Personal best {calc.sec2laptime_full(best)}: {signed(gap, 2)} s "
+            gap_text = trm(f"Personal best {calc.sec2laptime_full(best)}: {signed(gap, 3)} s "
                            f"({number_text(reference.percent(best), 2)} %) "
                            f"to reference {calc.sec2laptime_full(reference.reference)}")
             level, to_find = reference.next_level(best)
             if level >= 0:
-                next_text = trm(f"Next level {tr(LEVELS[level])}: {number_text(to_find, 2)} s to find")
+                next_text = trm(f"Next level {tr(LEVELS[level])}: {number_text(to_find, 3)} s to find")
                 next_level = {"name": tr(LEVELS[level]), "color": self.level_color(level), "letter": level_letter(level),
-                              "toFind": signed(-to_find, 2, " s")}
+                              "toFind": signed(-to_find, 3, " s")}  # milliseconds, as the level limits
             else:
                 next_text = tr("Top level reached") if reference.level(best) == 0 else ""
         else:
@@ -675,7 +714,7 @@ class StatsSelection(StatsHost):
             records = [record for record in records if self.record_kept(record)]
         progression = best_progression(records, best)
         reference = self.reference_of(vehicle)
-        chart = self.chart_data(progression, reference, self.goal_of(self.selected_stats_key, vehicle))
+        chart = self.chart_data(progression, reference, self.goal_for(self.selected_stats_key, vehicle)[0])
         lines = []
         if filters:  # best of the sessions kept, filters named
             kept = [record.best for record in records if record.best > 0 and not (best and record.best < best - 0.0005)]

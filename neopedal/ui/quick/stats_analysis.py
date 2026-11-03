@@ -19,29 +19,27 @@
 """
 Driver stats viewer figures of All Tracks (no Qt, no page state): race record of results files (clean streak,
 places gained), people met in online races, rank history chart, driving time by track & class of a period,
-official races to come (RaceControl daily races) & tracks of driver stats they are on, progress of the last
-days (weekly_progress: records, goals reached or near, shared with the Home page)
+names of game tracks, progress of the last days (weekly_progress: records, goals reached or near, shared with the Home page)
 """
 
 from __future__ import annotations
 
+import math
 import re
-import time
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any, NamedTuple
 
-from ...const_common import MAX_SECONDS
+from ...const_common import MAX_LAPTIME
 from ...process import driver_ranks as dr
 from ...process import results_file as rf
 from ...process import results_index as ri
 from ...userfile.driver_history import SessionRecord
+from ...userfile.lap_reference import LapReferenceTable
 
 MIN_MEETINGS = 2  # races together before someone is a rival
 MAX_RIVALS = 8
 TOP_TRACKS = 6  # tracks of driving time distribution (others summed)
-DAILY_TIERS = ("beginner", "intermediate", "advanced")  # RaceControl daily race levels (game menu order)
-MAX_UPCOMING = 6
 TRACK_VERSION = re.compile(r"\s+v?\d+(\.\d+)+$")  # "Algarve International Circuit 1.27" -> version at end
 
 
@@ -125,15 +123,19 @@ def rivals(summaries: Iterable[ri.ResultSummary]) -> list[Rival]:
 
 # Rank history
 def rank_chart(history: Sequence[dr.HistoryEntry], field: str) -> list[dict]:
-    """Points of a rank ("driver" or "safety") over time: x (0-1, time), y (0-1, Bronze 1 at bottom, top of
-    Platinum 3 at top), rank text; empty under 2 points of different times"""
+    """Points of a rank ("driver" or "safety") over time: x (0-1, time), y (0-1 over the tiers reached: bottom of
+    the lowest one at bottom, top of the highest one at top, a progress of a few percent visible), rank text; empty
+    under 2 points of different times"""
     values = [(entry.time, rank.level, rank.text) for entry in history
               if (rank := getattr(entry, field)) is not None and rank.level >= 0]
     if len(values) < 2 or values[0][0] == values[-1][0]:
         return []
     first, last = values[0][0], values[-1][0]
     top = len(dr.RANK_ORDER) * 3
-    return [{"x": (when - first) / (last - first), "y": min(max(value / top, 0.0), 1.0), "text": text}
+    low = math.floor(min(value for _, value, _ in values))
+    high = min(max(math.ceil(max(value for _, value, _ in values)), low + 1), top)
+    low = min(low, high - 1)  # top of Platinum 3 reached: one tier below it
+    return [{"x": (when - first) / (last - first), "y": min(max((value - low) / (high - low), 0.0), 1.0), "text": text}
             for when, value, text in values]
 
 
@@ -179,76 +181,9 @@ def history_years(records: Iterable[SessionRecord]) -> list[int]:
     return sorted({day.year for day in days if day is not None}, reverse=True)
 
 
-# Official races to come (RaceControl daily races, as the game menu lists them)
-class Upcoming(NamedTuple):
-    """Daily race to come: tier (beginner...), title, start (Unix time), track name & scene (game track key),
-    classes registered so far"""
-
-    tier: str
-    title: str
-    start: float
-    track: str
-    scene: str
-    classes: tuple[str, ...]
-
-
-def parse_start(value: Any) -> float:
-    """ISO time of RaceControl (UTC when no zone) to Unix time, 0 if unreadable or before 1970 (empty date of the
-    service: 0001-01-01)"""
-    if not isinstance(value, str) or not value:
-        return 0.0
-    try:
-        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return 0.0
-    if moment.tzinfo is None:
-        moment = moment.replace(tzinfo=UTC)
-    stamp = moment.timestamp()
-    return stamp if stamp > 0 else 0.0
-
-
+# Names of game tracks (personal bests of the Upcoming Races page, schedule_personal)
 def _text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
-
-
-def parse_events(tier: str, data: Any) -> list[Upcoming]:
-    """Daily races of a tier answer (list of events, see game web UI Event class), unreadable entries skipped"""
-    events = []
-    for event in data if isinstance(data, list) else ():
-        if not isinstance(event, dict):
-            continue
-        config = event.get("configuration")
-        config = config if isinstance(config, dict) else {}
-        content = config.get("content")
-        content = content if isinstance(content, dict) else {}
-        track = content.get("track")
-        track = track if isinstance(track, dict) else {}
-        layouts = track.get("subItems")
-        layout = layouts[0] if isinstance(layouts, list) and layouts and isinstance(layouts[0], dict) else {}
-        registered = event.get("registered")
-        classes = registered.get("class") if isinstance(registered, dict) else None
-        start = parse_start(config.get("starts")) or parse_start(event.get("raceStartsAt"))
-        name = _text(track.get("friendly")) or _text(layout.get("name")) or _text(track.get("name"))
-        if not start or not name:
-            continue
-        events.append(Upcoming(
-            tier=tier, title=_text(config.get("title")) or _text(event.get("title")), start=start,
-            track=name.replace("_", " "), scene=_text(layout.get("scn")) or _text(layout.get("sceneDesc")),
-            classes=tuple(sorted(str(key) for key in classes)) if isinstance(classes, dict) else (),
-        ))
-    return events
-
-
-def read_upcoming(get, now: float | None = None) -> list[Upcoming]:
-    """Next races of every tier (get: RaceControl GET path -> JSON, None if not read), soonest first, races
-    started already left out (worker thread)"""
-    events: list[Upcoming] = []
-    for tier in DAILY_TIERS:
-        events.extend(parse_events(tier, get(f"api/v1/daily/list/{tier}?take=2")))
-    started = time.time() if now is None else now
-    events = [event for event in events if event.start >= started]
-    events.sort(key=lambda event: event.start)
-    return events[:MAX_UPCOMING]
 
 
 def track_names(game_tracks: Any) -> dict[str, tuple[str, ...]]:
@@ -276,12 +211,6 @@ def scene_names(scene: str, names: dict[str, tuple[str, ...]]) -> set[str]:
     return {layout.casefold()} if layout else {name.casefold() for name in names.get(scene.casefold(), ())}
 
 
-def stats_track(event: Upcoming, keys: Iterable[str], names: dict[str, tuple[str, ...]]) -> str:
-    """Driver stats track of an event ("" if never driven there): layout of its scene, else its own name"""
-    wanted = scene_names(event.scene, names) | {event.track.casefold()}
-    return next((key for key in keys if key.casefold() in wanted), "")
-
-
 # Weekly progress (Driver Stats All Tracks card, Home page feed): plain numbers, the caller words them
 WEEK_DAYS = 7
 NEAR_GOAL = 0.5  # s: goal shown as near once the personal best is this close to it
@@ -289,8 +218,8 @@ SAME_TIME = 0.0005  # s: lap times this close are the same
 
 
 def _laptime(value: Any) -> float:
-    """Lap time in seconds, 0 if none (same limit as stats files: under MAX_SECONDS)"""
-    return float(value) if isinstance(value, (int, float)) and 0 < value < MAX_SECONDS else 0.0
+    """Lap time in seconds, 0 if none (same limit as stats files: under MAX_LAPTIME)"""
+    return float(value) if isinstance(value, (int, float)) and 0 < value < MAX_LAPTIME else 0.0
 
 
 def parse_goals(value: Any) -> dict[str, float]:
@@ -309,9 +238,40 @@ def personal_bests(stats_user: Mapping) -> dict[tuple[str, str], float]:
         for vehicle, data in vehicles.items():
             if isinstance(data, dict):
                 best = data.get("pb", 0)
-                valid = isinstance(best, (int, float)) and not isinstance(best, bool) and 0 < best < MAX_SECONDS
+                valid = isinstance(best, (int, float)) and not isinstance(best, bool) and 0 < best < MAX_LAPTIME
                 bests[(str(track), str(vehicle))] = float(best) if valid else 0.0
     return bests
+
+
+def next_level_goals(stats_user: Mapping, references: LapReferenceTable | None,
+                     classes: Mapping[str, str] | None = None) -> dict[str, float]:
+    """Automatic lap time goals by "track|vehicle": limit of the next level of community lap times above each
+    personal best (best level reached, no community lap time: none); classes: game class of vehicle keys without one"""
+    goals: dict[str, float] = {}
+    if references is None or not references.entries:
+        return goals
+    for track, vehicles in stats_user.items():
+        if not track or not isinstance(vehicles, dict):
+            continue
+        for vehicle, data in vehicles.items():
+            best = _laptime(data.get("pb", 0)) if isinstance(data, dict) else 0.0
+            reference = references.find(str(track), str(vehicle), (classes or {}).get(str(vehicle), "")) if best else None
+            if reference is None:
+                continue
+            level, _ = reference.next_level(best)
+            if level >= 0:
+                goals[f"{track}|{vehicle}"] = reference.level_limit(level)
+    return goals
+
+
+def reference_table(config_folder: str, enabled: bool = True) -> LapReferenceTable | None:
+    """Community lap times kept from the last download (no download here), None if off or none (worker thread)"""
+    from ...userfile import lap_reference
+
+    if not enabled:
+        return None
+    text, _ = lap_reference.load_cache(config_folder)
+    return lap_reference.parse_lap_references(text) if text else None
 
 
 def weekly_progress(records: Iterable[SessionRecord], goals: Mapping[str, float], now: float,

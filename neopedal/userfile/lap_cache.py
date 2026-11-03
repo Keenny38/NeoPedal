@@ -111,6 +111,17 @@ def file_stamp(path: str) -> tuple[int, int]:
     return stat.st_size, stat.st_mtime_ns
 
 
+def cache_signature(path: str) -> tuple[int, bytes]:
+    """Size & header of a cache file (CachedColumns tells the same file by them), raises OSError or ValueError"""
+    with open(path, "rb") as file:
+        size = os.fstat(file.fileno()).st_size
+        head = file.read(ARRAYS_HEAD.size)
+        if len(head) < ARRAYS_HEAD.size:
+            raise ValueError("cache file cut short")
+        length = ARRAYS_HEAD.unpack(head)[2]
+        return size, head + file.read(length)
+
+
 def write_arrays_file(target: str, values: dict, arrays: Mapping[str, array]) -> dict[str, tuple[int, str, int]]:
     """Write values (JSON) & packed arrays to file atomically (temporary file renamed), raises OSError
 
@@ -189,10 +200,12 @@ class CachedColumns(Mapping[str, Column]):
 
     __slots__ = ("_target", "_file", "_lap_path", "_entries", "_loaded", "_lock")
 
-    def __init__(self, target: str, file: tuple[int, int], lap_path: str,
+    def __init__(self, target: str, file: tuple[int, bytes], lap_path: str,
                  entries: dict[str, tuple[int, str, int]], loaded: dict[str, Column]):
         self._target = target  # cache file
-        self._file = file  # cache file size & modification time when entries were read
+        # Cache file size & header (lap stamp, name, columns) when entries were read: the same file whatever its
+        # modification time (touched by each reader, see read_cached_lap), another one once written again
+        self._file = file
         self._lap_path = lap_path
         self._entries = entries  # column name: offset in file, array type code, value count
         self._loaded = loaded
@@ -215,7 +228,9 @@ class CachedColumns(Mapping[str, Column]):
         return name in self._entries
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self._entries)
+        # Names as they are now: a column dropped meanwhile (read_from_lap) raises KeyError when reached, never
+        # "dictionary changed size during iteration" in items() / values()
+        return iter(tuple(self._entries))
 
     def __len__(self) -> int:
         return len(self._entries)
@@ -229,8 +244,8 @@ class CachedColumns(Mapping[str, Column]):
         """Read columns from cache file (lock held), from lap file if cache file changed"""
         try:
             with open(self._target, "rb") as file:
-                stat = os.fstat(file.fileno())
-                if (stat.st_size, stat.st_mtime_ns) == self._file:
+                size, header = self._file
+                if os.fstat(file.fileno()).st_size == size and file.read(len(header)) == header:
                     for name in names:
                         offset, typecode, count = self._entries[name]
                         column = array(typecode)
@@ -276,7 +291,7 @@ class CachedColumns(Mapping[str, Column]):
 def read_cached_lap(target: str, stamp: tuple[int, int], lap_path: str) -> LapData | None:
     """Lap of cache file if made from lap file of stamp (columns read when used, EAGER_COLUMNS now), else None"""
     with suppress(OSError):
-        os.utime(target)  # recently used: kept when pruning (before stamp taken: lazy columns read from cache)
+        os.utime(target)  # recently used: kept when pruning (laps already read tell the file by its header)
     try:
         with open(target, "rb") as file:
             stat = os.fstat(file.fileno())
@@ -286,7 +301,8 @@ def read_cached_lap(target: str, stamp: tuple[int, int], lap_path: str) -> LapDa
             magic, version, size = ARRAYS_HEAD.unpack(head)
             if magic != ARRAYS_MAGIC or version != ARRAYS_FORMAT or size > min(MAX_HEADER, stat.st_size):
                 return None
-            header = load_json_strict(file.read(size).decode("utf-8"), allow_nan=True)
+            raw_header = file.read(size)
+            header = load_json_strict(raw_header.decode("utf-8"), allow_nan=True)
             values, listed = header["values"], header["arrays"]
             info = values.get("info")
             if (not isinstance(values, dict) or values.get("version") != CACHE_VERSION
@@ -302,7 +318,7 @@ def read_cached_lap(target: str, stamp: tuple[int, int], lap_path: str) -> LapDa
                 offset += count * array(typecode).itemsize
             if offset > stat.st_size:
                 return None
-            columns = CachedColumns(target, (stat.st_size, stat.st_mtime_ns), lap_path, entries, {})
+            columns = CachedColumns(target, (stat.st_size, head + raw_header), lap_path, entries, {})
             eager = [name for name in EAGER_COLUMNS if name in entries]
             columns.read_columns(eager)
     except (OSError, ValueError, TypeError, KeyError, AttributeError):  # UnicodeDecodeError & JSON errors: ValueError
@@ -338,7 +354,7 @@ def save_cached_lap(target: str, stamp: tuple[int, int], lap: LapData, lap_path:
                   else array(column_type(name), values) for name, values in lap.columns.items()}
         entries = write_arrays_file(target, {"version": CACHE_VERSION, "stamp": list(stamp), "name": lap.name,
                                              "info": lap.info}, arrays)
-        file = file_stamp(target)
+        file = cache_signature(target)
     except (OSError, OverflowError, TypeError, ValueError) as error:
         logger.debug("LAP CACHE: unable to save %s: %s", target, error)
         return None

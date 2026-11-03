@@ -97,6 +97,10 @@ class SettingsHostMixin:
     def toast(self, text: str):
         show_toast(self, text)  # type: ignore[arg-type]
 
+    def toast_undo(self, text: str, undo):
+        """Toast with an Undo button (a change made without asking first)"""
+        show_toast(self, text, action_text=tr("Undo"), action=undo)  # type: ignore[arg-type]
+
     def applied_preset(self, sections: set[str], config_sections: set[str], font_sections: int, undo):
         """Settings of the loaded preset saved: the parts reading them restarted (none if the whole app
         reloads for config.json settings saved at the same time), Undo offered for a global font override

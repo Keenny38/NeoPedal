@@ -32,6 +32,7 @@ Scene graph notes (PySide6):
 from __future__ import annotations
 
 import ctypes
+import logging
 import math
 import struct
 import sys
@@ -56,6 +57,7 @@ from PySide6.QtQuick import (
 
 POINT2D = QSGGeometry.defaultAttributes_Point2D()
 COLORED_POINT2D = QSGGeometry.defaultAttributes_ColoredPoint2D()
+logger = logging.getLogger(__name__)
 COLORED_VERTEX = struct.Struct("<ff4B")  # x, y, premultiplied rgba
 COLORED_VERTEX_BYTES = struct.Struct("<ff4s")  # same record, rgba packed as 4 bytes
 
@@ -207,7 +209,8 @@ class GpuShape(QQuickItem):
 
     def updatePaintNode(self, old: QSGNode | None, _data) -> QSGNode | None:  # type: ignore[override]
         vertices = VertexStore.get(self._key) if self._key else None
-        if vertices is None or vertices.vertex_count < 2:
+        count = drawable_count(vertices, self._key) if vertices is not None else 0
+        if vertices is None or count < 2:
             self._uploaded = ()
             if old is None:
                 return None
@@ -226,10 +229,10 @@ class GpuShape(QQuickItem):
         if state == self._uploaded:
             return node
         geometry = node.geometry()
-        if geometry.vertexCount() != vertices.vertex_count:
-            geometry.allocate(vertices.vertex_count)
+        if geometry.vertexCount() != count:
+            geometry.allocate(count)
         geometry.setDrawingMode(vertices.mode)
-        size = vertices.vertex_count * (COLORED_VERTEX.size if vertices.colored else 8)
+        size = count * (COLORED_VERTEX.size if vertices.colored else 8)
         ctypes.memmove(int(geometry.vertexData()), _address(vertices.data), size)
         node.markDirty(QSGNode.DirtyStateBit.DirtyGeometry)
         if not vertices.colored:
@@ -435,6 +438,21 @@ def smooth_arc_vertices(center_x: float, center_y: float, radius: float, sweep: 
                             + pack(cap_x + cos1 * core, cap_y + sin1 * core, solid))
             band(cap_rings, cap_x, cap_y, cos0, sin0, cos1, sin1)
     return data
+
+
+_SHORT_DATA_TOLD: set[str] = set()  # shapes whose short data was logged (once each)
+
+
+def drawable_count(vertices: Vertices, key: str) -> int:
+    """Vertices really in the data (never read past it: copied to the GPU by address), vertex_count if all there;
+    short data logged once per shape"""
+    size = len(vertices.data) * (vertices.data.itemsize if isinstance(vertices.data, array) else 1)
+    count = min(vertices.vertex_count, size // (COLORED_VERTEX.size if vertices.colored else 8))
+    if count < vertices.vertex_count and key not in _SHORT_DATA_TOLD:
+        _SHORT_DATA_TOLD.add(key)
+        logger.warning("GPU SHAPE: %s has data of %s vertices, %s announced: drawn cut", key, count,
+                       vertices.vertex_count)
+    return count
 
 
 def _address(data: array | bytearray) -> int:

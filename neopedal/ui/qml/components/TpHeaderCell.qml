@@ -47,7 +47,7 @@ AbstractButton {
             // From the texts' natural widths (Row's own implicit width follows the cut label: loop), 1 px more: a short
             // caption given exactly its fractional width is elided ("PB" shown "...")
             width: Math.min(label.implicitWidth + 1 + (cell.sorted ? arrow.implicitWidth + spacing : 0), parent.width - theme.space2)
-            Text {
+            TpText {
                 id: label
                 text: cell.text
                 textFormat: Text.PlainText
@@ -60,7 +60,7 @@ AbstractButton {
                 font.letterSpacing: theme.letterSpacingOverline  // capitals, as overline texts
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Text {
+            TpText {
                 id: arrow
                 visible: cell.sorted
                 text: cell.descending ? "▼" : "▲"

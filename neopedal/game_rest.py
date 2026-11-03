@@ -38,7 +38,7 @@ from typing import Any
 
 from PySide6.QtCore import QObject
 
-from .async_request import forget_hostname, resolve_hostname
+from .async_request import forget_hostname, host_unreachable, resolve_hostname
 from .game_rest_cache import lmu_address, rest_cache
 from .http_limits import MAX_BODY, BodyTooLarge, deadline_response_class, read_body
 from .jobs import Job, WorkerPool, get_courier, weak_callback
@@ -86,8 +86,10 @@ def game_command(method: str, resource: str, body: str | None = None) -> bool:
     host, port = address
     connection = None
     try:
-        connection = http.client.HTTPConnection(resolve_hostname(host, port, COMMAND_TIMEOUT), port,
-                                                timeout=COMMAND_TIMEOUT)
+        resolved = resolve_hostname(host, port, COMMAND_TIMEOUT)
+        if host_unreachable(host, port):  # game not running: no connection waited for
+            return False
+        connection = http.client.HTTPConnection(resolved, port, timeout=COMMAND_TIMEOUT)
         connection.response_class = deadline_response_class(REQUEST_SECONDS)  # type: ignore[assignment]
         if body is None and method == "PUT":
             body = "{}"
@@ -150,8 +152,10 @@ class GameConnection:
             sent = False
             try:
                 if self.connection is None:
-                    self.connection = http.client.HTTPConnection(
-                        resolve_hostname(host, port, self.timeout), port, timeout=self.timeout)
+                    resolved = resolve_hostname(host, port, self.timeout)
+                    if host_unreachable(host, port):  # game not running: no connection waited for
+                        break
+                    self.connection = http.client.HTTPConnection(resolved, port, timeout=self.timeout)
                 # Answer read in REQUEST_SECONDS at most (a request of a job: connection kept)
                 self.connection.response_class = deadline_response_class(  # type: ignore[assignment]
                     max(REQUEST_SECONDS, self.timeout * 3))

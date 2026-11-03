@@ -23,21 +23,61 @@ frameless, closed by a click outside, Esc or the page itself, deleted once close
 
 from __future__ import annotations
 
+import logging
+import sys
 import time
 
-from PySide6.QtCore import QObject, QPoint, QRect, QSize, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QFontMetrics
-from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget
+from PySide6.QtCore import Property, QObject, QPoint, QRect, QSize, Qt, QTimer, QUrl, Signal
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
+from .. import UIScaler, legacy_style
 from . import create_quick_view
 
+logger = logging.getLogger(__name__)
+
 REOPEN_GUARD = 0.3  # seconds: click on the button that opened it closes it (no reopening at once)
+# Windows 11 window corners (DwmSetWindowAttribute): rounded like the page's radiusLg, small on Legacy themes
+DWMWA_WINDOW_CORNER_PREFERENCE = 33
+DWMWCP_ROUND = 2
+DWMWCP_ROUNDSMALL = 3
+
+
+def round_window_corners(widget: QWidget) -> bool:
+    """Windows 11: corners of a frameless popup window rounded by the system (with its shadow), as the popups
+    inside pages; True if asked. Only a style of this app's own window: Windows 10 & other systems keep square
+    corners (the call is refused there, nothing changes)"""
+    if sys.platform != "win32":
+        return False
+    import ctypes
+
+    try:
+        value = ctypes.c_int(DWMWCP_ROUNDSMALL if legacy_style() else DWMWCP_ROUND)
+        result = ctypes.windll.dwmapi.DwmSetWindowAttribute(  # type: ignore[attr-defined]
+            ctypes.c_void_p(int(widget.winId())), DWMWA_WINDOW_CORNER_PREFERENCE, ctypes.byref(value),
+            ctypes.sizeof(value))
+    except (AttributeError, OSError) as error:  # no dwmapi
+        logger.debug("GUI: popup corners not rounded: %s", error)
+        return False
+    return result == 0  # S_OK (Windows 10: E_INVALIDARG, square corners kept)
 
 
 class ShellBackend(QObject):
     """Base of shell popup backends: closeRequested asks the popup to close (after the QML handler is done)"""
 
     closeRequested = Signal()
+    roundedCornersChanged = Signal()
+    _rounded_corners = False
+
+    @Property(bool, notify=roundedCornersChanged)
+    def roundedCorners(self) -> bool:
+        """Window corners rounded by the system (Windows 11): page drawn with rounded corners, else square (Windows
+        10 keeps a square window, rounded page corners would show the view background)"""
+        return self._rounded_corners
+
+    def set_rounded_corners(self, rounded: bool):
+        if rounded != self._rounded_corners:
+            self._rounded_corners = rounded
+            self.roundedCornersChanged.emit()
 
     def popup_closed(self):
         """Popup closed (by click outside, Esc or close request): override to save state"""
@@ -91,6 +131,7 @@ class ShellPopup(QWidget):
         y = max(area.top(), min(position.y(), area.bottom() - self.height() + 1))
         self.move(x, y)
         self.show()
+        self.backend.set_rounded_corners(round_window_corners(self))
         self.activateWindow()
         self.view.setFocus(Qt.FocusReason.PopupFocusReason)
 
@@ -119,8 +160,8 @@ def centered_top(window: QWidget, size: QSize, top_ratio: float = 0.12) -> QPoin
 
 
 def popup_size(window: QWidget, width_em: float, height_em: float) -> QSize:
-    """Popup size in em of the app font, at most 90% of the window"""
-    em = QFontMetrics(QApplication.font()).height()
+    """Popup size in em (base font size in pixels, as QML pages: ui/tokens.py), at most 90% of the window"""
+    em = UIScaler.FONT_PIXEL_SCALED
     frame = window.geometry()
     return QSize(min(round(width_em * em), round(frame.width() * 0.9)),
                  min(round(height_em * em), round(frame.height() * 0.9)))

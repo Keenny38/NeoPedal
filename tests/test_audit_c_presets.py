@@ -206,23 +206,23 @@ def test_french_preset_access_error(ui_env, warnings, monkeypatch, french):
 
 
 @pytest.mark.parametrize(("message", "expected"), [
-    ("Unable to delete preset:<br>error", "Impossible de supprimer le preset :<br>error"),
-    ("Unable to delete backup file:<br>error", "Impossible de supprimer la sauvegarde :<br>error"),
-    ("Unable to restore backup file:<br>error", "Impossible de restaurer la sauvegarde :<br>error"),
+    ("Unable to delete preset:<br>error", "Impossible de supprimer le preset\u00a0:<br>error"),
+    ("Unable to delete backup file:<br>error", "Impossible de supprimer la sauvegarde\u00a0:<br>error"),
+    ("Unable to restore backup file:<br>error", "Impossible de restaurer la sauvegarde\u00a0:<br>error"),
     ("Unable to save preset shared.json", "Impossible d'enregistrer le preset shared.json"),
     ("No backup file selected.", "Aucune sauvegarde sélectionnée."),
     ("Selected backup file is invalid and cannot be restored.",
      "La sauvegarde sélectionnée est invalide et ne peut pas être restaurée."),
     ("No destination preset selected or found.", "Aucun preset de destination sélectionné ou trouvé."),
     ("No preset setting selected.<br><br>Select at least one setting and try again.",
-     "Aucun réglage de preset sélectionné.<br><br>Sélectionnez au moins un réglage et réessayez."),
+     "Aucun paramètre de preset sélectionné.<br><br>Sélectionnez au moins un paramètre et réessayez."),
     ("No option type selected.<br><br>Select at least one option type and try again.",
      "Aucun type d'option sélectionné.<br><br>Sélectionnez au moins un type d'option et réessayez."),
-    ("Unable to read plugin:<br>error", "Impossible de lire le plugin :<br>error"),
-    ("Unable to save plugin trust:<br>error", "Impossible d'enregistrer la confiance accordée au plugin :<br>error"),
-    ("Plugin loaded with error:<br>error", "Plugin chargé avec une erreur :<br>error"),
-    ("Plugin reloaded with error:<br>error", "Plugin rechargé avec une erreur :<br>error"),
-    ("Loaded: <b>race (locked)</b>", "Chargé : <b>race (locked)</b>"),
+    ("Unable to read plugin:<br>error", "Impossible de lire le plugin\u00a0:<br>error"),
+    ("Unable to save plugin trust:<br>error", "Impossible d'enregistrer la confiance accordée au plugin\u00a0:<br>error"),
+    ("Plugin loaded with error:<br>error", "Plugin chargé avec une erreur\u00a0:<br>error"),
+    ("Plugin reloaded with error:<br>error", "Plugin rechargé avec une erreur\u00a0:<br>error"),
+    ("Loaded: <b>race (locked)</b>", "Chargé\u00a0: <b>race (locked)</b>"),
 ])
 def test_french_preset_and_plugin_messages(french, message, expected):
     assert i18n.trm(message) == expected
@@ -253,7 +253,7 @@ def test_french_plugin_trust_prompt(ui_env, monkeypatch, french, tmp_path):
         title, message = asked[0]
         assert title == "Approuver le plugin…"
         assert "accès complet à votre ordinateur" in message and "vous faites confiance à son auteur" in message
-        assert "Fichiers de code :" in message and "SHA-256 : <code>" in message
+        assert "Fichiers de code\u00a0:" in message and "SHA-256\u00a0: <code>" in message
         for english in ("Python code", "Only trust", "Code files", "Trust this plugin", "requires trusting"):
             assert english not in message
     finally:

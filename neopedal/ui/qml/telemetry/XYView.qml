@@ -245,6 +245,33 @@ Item {
                 width: scatterArea.width - scatterArea.padLeft - theme.em * 0.4
                 height: scatterArea.height - scatterArea.padBottom
                 clip: true
+                // Keyboard (Tab reaches the plot): + / - zoom at the center, arrows move, 0 whole plot
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Graphic
+                Accessible.name: i18n.tr("Scatter plot")
+                Accessible.description: i18n.tr("+ / -: zoom · arrows: move · 0: whole plot")
+                Keys.onPressed: function(event) {
+                    var span = 1 / root.zoom
+                    var step = span * 0.1
+                    if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal)
+                        root.zoomAt(1.25, plot.width / 2, plot.height / 2)
+                    else if (event.key === Qt.Key_Minus)
+                        root.zoomAt(0.8, plot.width / 2, plot.height / 2)
+                    else if (event.key === Qt.Key_0)
+                        root.resetZoom()
+                    else if (event.key === Qt.Key_Left && root.zoomed)
+                        root.viewX = Math.max(0, root.viewX - step)
+                    else if (event.key === Qt.Key_Right && root.zoomed)
+                        root.viewX = Math.min(1 - span, root.viewX + step)
+                    else if (event.key === Qt.Key_Up && root.zoomed)
+                        root.viewY = Math.min(1 - span, root.viewY + step)
+                    else if (event.key === Qt.Key_Down && root.zoomed)
+                        root.viewY = Math.max(0, root.viewY - step)
+                    else
+                        return
+                    event.accepted = true
+                }
+                FocusRing { anchors.margins: gap; z: 3; visible: plot.activeFocus }  // inside: plot clips
                 Rectangle {
                     anchors.fill: parent
                     radius: theme.radiusSm
@@ -255,7 +282,7 @@ Item {
                 // Wheel: zoom at mouse, drag: move, double-click: whole plot (told by tooltip while not zoomed)
                 HoverHandler { id: plotHover }
                 ToolTip.visible: plotHover.hovered && !root.zoomed
-                ToolTip.text: i18n.tr("Wheel: zoom · drag: move · double-click: whole plot")
+                ToolTip.text: i18n.tr("Wheel or + / -: zoom · drag or arrows: move · double-click or 0: whole plot")
                 ToolTip.delay: theme.tipDelay * 2
                 MouseArea {
                     anchors.fill: parent
@@ -434,7 +461,7 @@ Item {
                         y: -height / 2
                         width: histogramArea.padLeft - theme.em * 0.3
                         horizontalAlignment: Text.AlignRight
-                        text: parent.share.toFixed(0) + "%"
+                        text: parent.share.toFixed(0) + i18n.percentSign()
                         textFormat: Text.PlainText
                         color: theme.dimText
                         font.pointSize: theme.fontTiny
@@ -492,7 +519,7 @@ Item {
                 height: lap ? histogramArea.barHeight(binIndex, lapIndex) : 0
                 ToolTip.visible: lap !== undefined
                 ToolTip.text: !lap ? "" : lap.label + " · " + histogramArea.bins[binIndex] + " " + (root.histogramData.unit || "")
-                                          + " · " + value.toFixed(1).replace(".", theme.decimalPoint) + "%"
+                                          + " · " + value.toFixed(1).replace(".", theme.decimalPoint) + i18n.percentSign()
                 ToolTip.delay: theme.tipDelay
             }
             MouseArea {

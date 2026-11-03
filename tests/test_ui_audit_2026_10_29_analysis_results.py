@@ -218,8 +218,8 @@ def test_empty_states_use_tp_state_view():
 def test_watch_replay_french_label_fixed():
     from neopedal.i18n.fr import TRANSLATION
 
-    assert TRANSLATION["Watch Replay"] == "Regarder le rejeu"
-    assert "Revoir le rejeu" not in TRANSLATION.values()
+    assert TRANSLATION["Watch Replay"] == "Regarder le replay"
+    assert "Revoir le replay" not in TRANSLATION.values()
 
 
 # --- Replay tab of a session (T5) & links (T9) on the page

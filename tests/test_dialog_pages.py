@@ -3,6 +3,7 @@
 from contextlib import suppress
 
 import pytest
+import shiboken6
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
 
@@ -39,14 +40,10 @@ def settle():
 
 
 def rail_keys(main) -> list[str]:
-    from neopedal.ui.app import NavButton
-
     view = main.centralWidget()
     keys = []
-    for index in range(view._rail_items.count()):
-        button = view._rail_items.itemAt(index).widget()
-        if isinstance(button, NavButton):
-            keys.append(button.objectName() or f"page:{view._nav.id(button)}")
+    for button in view._rail_buttons:  # never read from the layout (wrappers of its items outlive them)
+        keys.append(button.objectName() or f"page:{view._nav.id(button)}")
     return keys
 
 
@@ -60,7 +57,7 @@ def test_rail_items_setting():
     # Former game replays entry: results & replays, once
     assert parse_rail_items("game_replays,race_results_viewer") == ["race_results_viewer"]
     assert default_rail_items() == [
-        "home", "widget", "driver_stats_viewer", "race_results_viewer",
+        "home", "widget", "driver_stats_viewer", "race_results_viewer", "race_schedule_viewer",
         "broadcast_director", "stream_overlay_view", "lap_viewer", "race_calculator", "preset",
     ]
 
@@ -663,7 +660,7 @@ def test_rail_entries_keep_size_and_scroll(window):
     window.resize(700, 900)
     window.show()
     QApplication.processEvents()
-    buttons = [view._rail_items.itemAt(index).widget() for index in range(view._rail_items.count())]
+    buttons = view._rail_buttons
     heights = {button.height() for button in buttons if isinstance(button, NavButton)}
     width = view._rail.width()
     window.resize(700, 420)  # too short for every entry
@@ -965,7 +962,11 @@ def test_quit_unloads_qml_views(window, monkeypatch):
     views = window.findChildren(QQuickWidget)
     assert any(not view.source().isEmpty() for view in views)
     window.quit_app()
-    assert all(view.source().isEmpty() for view in window.findChildren(QQuickWidget))
+    # Hidden at once, deleted by the event loop (never torn down by setSource(QUrl()) from Python: Qt's image
+    # thread may wait for the GIL in the preview provider, B-001), before the window and the backends
+    assert all(view.isHidden() for view in window.findChildren(QQuickWidget))
+    QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert shiboken6.isValid(window) and not window.findChildren(QQuickWidget)
 
 
 def test_language_change_closes_reopened_tool_pages(window):
@@ -1244,16 +1245,40 @@ def test_stream_page_added_to_navigation_bar_once():
 
     bar = {"application": {"rail_items": "home,broadcast_director,preset"}}
     preupdate_global_setting((2, 51, 2), bar)
-    assert bar["application"]["rail_items"] == "home,broadcast_director,stream_overlay_view,preset"
+    # Upcoming Races added last too (2.51.8: no Results & Replays in this bar)
+    assert bar["application"]["rail_items"] == "home,broadcast_director,stream_overlay_view,preset,race_schedule_viewer"
     bar = {"application": {"rail_items": "home, tools"}}  # no Broadcast Director: last
     preupdate_global_setting((2, 51, 2), bar)
-    assert bar["application"]["rail_items"] == "home,tools,stream_overlay_view"
+    assert bar["application"]["rail_items"] == "home,tools,stream_overlay_view,race_schedule_viewer"
     bar = {"application": {"rail_items": "stream_overlay_view,home"}}  # already there: kept
     preupdate_global_setting((2, 51, 2), bar)
-    assert bar["application"]["rail_items"] == "stream_overlay_view,home"
+    assert bar["application"]["rail_items"] == "stream_overlay_view,home,race_schedule_viewer"
     bar = {"application": {"rail_items": "home,tools"}}  # bar changed after update: kept
-    preupdate_global_setting((2, 51, 3), bar)
+    preupdate_global_setting((2, 51, 8), bar)
     assert bar["application"]["rail_items"] == "home,tools"
     empty: dict = {"application": {}}  # default bar (has the page)
     preupdate_global_setting((2, 51, 2), empty)
     assert empty == {"application": {}}
+
+
+def test_page_dialog_shown_without_stack_warning(window):
+    """DialogPage made its dialog visible through BaseDialog.show, which showed the page before it was in the stack:
+    "QStackedWidget::setCurrentWidget: widget not contained in stack" at each page opened (startup page too)"""
+    from PySide6.QtCore import qInstallMessageHandler
+
+    from neopedal.ui.nav_rail import PAGE_INDEX
+    from neopedal.ui.tools_view import open_tool
+
+    view = window.centralWidget()
+    view.set_current_index(PAGE_INDEX["preset"])
+    messages = []
+    old = qInstallMessageHandler(lambda mode, context, message: messages.append(message))
+    try:
+        open_tool("race_calculator.RaceCalculator", window)
+        view.restore_pages(["*brake_editor.BrakeEditor"])
+    finally:
+        qInstallMessageHandler(old)
+    assert not [message for message in messages if "not contained in stack" in message]
+    assert type(view._pages.currentWidget().dialog).__name__ == "BrakeEditor"
+    assert view.go_back() and type(view._pages.currentWidget().dialog).__name__ == "RaceCalculator"
+    assert view.go_back() and view.current_index() == PAGE_INDEX["preset"]

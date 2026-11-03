@@ -1,0 +1,95 @@
+name: Nightly
+
+# Tests of master in random order, every night (0.28.0 post-mortem, item 7): order dependent tests and flakes
+# show up the days nobody pushes, with the seed to replay them. A failed scheduled run is notified by GitHub
+# (Actions notifications of the account that last edited this file).
+# Replay a failure locally (pytest-randomly installed, same seed):
+#   pip install pytest-randomly==5.0.0
+#   pytest --timeout=300 -n auto --randomly-seed=<seed printed by the run>
+# or run this workflow by hand with that seed ("Run workflow", seed input).
+on:
+  schedule:
+    # 01:23 UTC: 02:23 in Paris in winter, 03:23 in summer (cron of GitHub is UTC); scheduled runs use master
+    - cron: "23 1 * * *"
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: "Seed of the test order (empty: a new one per run)"
+        default: ""
+        type: string
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  random-order:
+    name: random order (${{ matrix.os }}, ${{ matrix.python-version }}, run ${{ matrix.run }})
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        run: [1, 2, 3]
+        include:
+          # Python 3.14 on Linux (newest, xdist crashes of 0.28.0), 3.13 on Windows (release build Python)
+          - os: ubuntu-latest
+            python-version: "3.14"
+          - os: windows-latest
+            python-version: "3.13"
+    runs-on: ${{ matrix.os }}
+    env:
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Qt system libraries (Linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libgl1 libpulse0
+
+    # Same exact versions as Checks (requirements-dev-lock.txt), plus pytest-randomly for this workflow only:
+    # pinned with the sha256 of its wheel, installed alone without dependencies (it needs only pytest)
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev-lock.txt
+        printf '%s\n' "pytest-randomly==5.0.0 --hash=sha256:8a0d4703115c0c25b38b6e129fc16b1947b9643ff26a41bc1d185d7e5a7689c1" \
+          > "$RUNNER_TEMP/randomly.txt"
+        pip install --require-hashes --no-deps --only-binary :all: -r "$RUNNER_TEMP/randomly.txt"
+      shell: bash
+
+    - name: Seed
+      id: seed
+      env:
+        INPUT_SEED: ${{ inputs.seed }}
+        RUN: ${{ matrix.run }}
+      run: |
+        case "$INPUT_SEED" in
+          '') seed=$(python -c "import secrets; print(secrets.randbelow(2**32))") ;;
+          *[!0-9]*) echo "::error::seed must be a number"; exit 1 ;;
+          *) seed=$INPUT_SEED ;;
+        esac
+        echo "seed=$seed" >> "$GITHUB_OUTPUT"
+        echo "Test order seed: $seed"
+        echo "Run $RUN: seed $seed (replay: pytest -n auto --randomly-seed=$seed)" >> "$GITHUB_STEP_SUMMARY"
+      shell: bash
+
+    # No coverage (crashes of its C tracer, slower), tests spread over every CPU as on Checks. pytest-randomly
+    # (loaded once installed) shuffles the order and reseeds random for each test, the same seed on every worker
+    - name: Tests in random order
+      env:
+        SEED: ${{ steps.seed.outputs.seed }}
+      run: pytest -v --timeout=300 -n auto --randomly-seed="$SEED"
+      shell: bash

@@ -9,12 +9,10 @@ import "../components"
 TpPopup {
     id: popup
 
-    parent: Overlay.overlay  // centered on page, wherever it is declared
+    anchors.centerIn: overlayItem  // in the middle of the window, wherever it is declared (TpPopup)
     modal: true
-    width: Math.min((parent ? parent.width : theme.em * 40) - theme.em * 4, theme.em * 34)
-    height: Math.min((parent ? parent.height : theme.em * 34) - theme.em * 4, theme.em * 30)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 40) - theme.em * 4, theme.em * 34)
+    height: Math.min((overlayItem ? overlayItem.height : theme.em * 34) - theme.em * 4, theme.em * 30)
     onAboutToShow: backend.openTrash()
     onOpened: list.forceActiveFocus()
 

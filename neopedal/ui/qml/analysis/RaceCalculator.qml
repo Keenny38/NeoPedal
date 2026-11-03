@@ -17,6 +17,11 @@ TpPage {
     readonly property var calc: backend.calc
     readonly property var tiles: backend.tiles
     readonly property bool compact: width < theme.bpWide  // tiles on two rows, no circuit logo, no race status
+    // Key figures & strategy timeline: folded by room on short pages (the inputs of the tabs keep the height, the
+    // tabs scroll on their own), or as the user chose (0 by room, 1 shown, 2 folded); folded: strategy line only
+    property int overviewMode: 0
+    readonly property bool shortPage: height < theme.em * 40
+    readonly property bool overviewShown: overviewMode === 1 || (overviewMode === 0 && !shortPage)
     readonly property bool hasRecentFiles: (backend.recentFiles.history || []).length > 0
     readonly property color tyreColor: theme.seriesTyre
 
@@ -166,22 +171,21 @@ TpPage {
                     glyph: theme.glyphs.reset
                     fallback: i18n.tr("Reset to Zero")
                     // Done at once, Undo in the toast (and Ctrl+Z)
-                    tip: i18n.tr("Reset to Zero") + ": " + i18n.tr("Clear every input")
+                    tip: i18n.tr("Reset to Zero") + i18n.colon() + i18n.tr("Clear every input")
                     priority: 2
                     onTriggered: backend.resetValues()
                 }
-                TpAction {  // calculator on / off: never in the "..." menu, its text kept longest
-                    name: "gameDataSwitch"
-                    text: page.header.gameData ? i18n.tr("Enabled") : i18n.tr("Disabled")
-                    glyph: ""  // power
-                    fallback: page.header.gameData ? i18n.tr("Enabled") : i18n.tr("Disabled")
-                    tip: i18n.tr("Race Calculator on or off")
-                    checkable: true
-                    checked: page.header.gameData
-                    pinned: true
-                    priority: 4
-                    onTriggered: backend.setGameData(!page.header.gameData)
-                }
+            }
+            // Calculator on / off, last of the header: a switch as on Stream Overlays & the Broadcast Director (knob &
+            // label tell the state), outside the toolbar so it never goes into the "⋯" menu
+            TpSwitch {
+                objectName: "gameDataSwitch"
+                text: page.header.gameData ? i18n.tr("Enabled") : i18n.tr("Disabled")
+                tip: i18n.tr("Race Calculator on or off")
+                checkable: false  // follows backend
+                checked: page.header.gameData
+                onClicked: backend.setGameData(!page.header.gameData)
+                Accessible.name: i18n.tr("Race Calculator on or off")
             }
         }
         // Menus of the header (outside the toolbar: shown under the button or "..." button they come from)
@@ -287,7 +291,9 @@ TpPage {
 
             // Key figures
             GridLayout {
+                objectName: "keyFigures"
                 Layout.fillWidth: true
+                visible: page.overviewShown
                 columns: page.compact ? 3 : 6
                 columnSpacing: theme.space4
                 rowSpacing: theme.space4
@@ -310,9 +316,21 @@ TpPage {
 
             RaceTimeline {
                 Layout.fillWidth: true
+                visible: page.overviewShown
                 timeline: backend.timeline
                 levels: backend.fuelLevels
                 summary: backend.summary
+            }
+
+            // Overview folded: the strategy line of the timeline stays (stints, stops, problem)
+            TpText {
+                objectName: "foldedSummary"
+                Layout.fillWidth: true
+                visible: !page.overviewShown && (backend.summary.text || "") !== ""
+                role: "caption"
+                text: backend.summary.text || ""
+                color: backend.summary.warning ? theme.loss : theme.dimText
+                elide: Text.ElideRight
             }
 
             // Tabs: Tab reaches them, Left / Right choose
@@ -327,6 +345,19 @@ TpPage {
                 ]
                 currentIndex: page.header.tab
                 onActivated: function(index) { backend.setTab(index) }
+                TpButton {  // key figures & timeline shown or folded (folded by room on short pages)
+                    objectName: "overviewToggle"
+                    flat: true
+                    size: "sm"
+                    checked: page.overviewShown
+                    glyph: page.overviewShown ? "\uE70E" : "\uE70D"  // chevron up, down
+                    fallback: page.overviewShown ? "▴" : "▾"
+                    text: page.compact ? "" : i18n.tr("Key Figures")
+                    tip: page.overviewShown ? i18n.tr("Fold key figures & strategy (more room for the inputs)")
+                                            : i18n.tr("Show key figures & strategy")
+                    onClicked: page.overviewMode = page.overviewShown ? 2 : 1
+                    Accessible.name: tip
+                }
                 TpButton {
                     visible: page.header.tab === 0
                     flat: true

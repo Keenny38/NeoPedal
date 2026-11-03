@@ -32,10 +32,11 @@ from typing import Any, NamedTuple
 from PySide6.QtCore import QUrl
 
 from ... import units
-from ...const_common import MAX_SECONDS
+from ...const_common import MAX_LAPTIME, MAX_SECONDS
 from ...const_file import FileExt
 from ...formatter import strip_invalid_char
-from ...i18n import current_language, tr, trm
+from ...i18n import plural as plural_word
+from ...i18n import tr, trm
 from ...process import driver_ranks as dr
 from ...process import results_index as ri
 from ...process.results_text import (
@@ -115,12 +116,13 @@ HEADER_TOOLTIPS = {
     "starts": "Race starts (recorded since this version)",
     "dnf": "Races not finished or disqualified (recorded since this version)",
     "avg_finish": "Average finish position (recorded since this version)",
-    "last": "Last session on this track (recorded since this version)",
+    "last": "Last session on this track (recorded since this version), amber after 30 days without driving",
     "wet_pb": "Best lap on a damp or wet road (road conditions recorded since this version)",
     "version_pb": "Best lap driven with the latest game version of your session history",
     "gained": "Average places gained from start to finish in races (start position recorded since this version, "
               "else from race results)",
     "clean_rate": "Races without contact nor penalty, in percent of races found in race results",
+    "consumption": "Fuel consumption (sessions imported from game results left out: no fuel in them)",
 }
 RAW_UNITS = {"pb": "s", "qb": "s", "rb": "s", "theory": "s", "potential": "s", "meters": "m", "seconds": "s",
              "liters": "L", "speed": "m/s", "consumption": "L/100 km", "gap": "%", "wet_pb": "s", "version_pb": "s",
@@ -134,7 +136,6 @@ CONDITION_FILTERS = ("All Conditions", "Dry Road", "Wet Road")  # road of sessio
 ONLINE_FILTERS = ("Online & Offline", "Online Only", "Offline Only")
 RUST_DAYS = 30  # combos not driven for this many days marked in Last Driven column
 RUST_COLOR = "#D9902F"  # Last Driven of those combos (amber, darker on light theme)
-UPCOMING_EVERY = 600.0  # seconds between reads of official races to come (page shown on All Tracks)
 GAME_TRACKS_AGE = 60.0  # seconds a game track list read for another page is used again
 GOAL_STEP = 0.5  # seconds under personal best of the suggested goal (no community lap time)
 GOAL_RANGE = 0.03  # goal faster than personal best by up to this share of it: chart made taller to show it
@@ -142,6 +143,7 @@ FINISH_TEXTS = {2: "DNF", 3: "DQ"}  # race result codes, same in every language
 MAX_FIX_LINES = 12  # lap times from results listed in confirmation
 MAX_STINTS = 12  # stints & sessions listed with their consistency, newest first
 ACTIVITY_WEEKS = 53  # weeks of daily driving activity (All Tracks), page shows the last ones that fit
+ACTIVITY_MIN_WEEKS = 26  # last 12 months: weeks shown at least (history started later: from its first week)
 ACTIVITY_STEPS = (1800, 3600, 7200)  # driving time (seconds) of activity levels 1 to 4 (above last)
 RECENT_SESSIONS = 8  # latest sessions of every track (All Tracks)
 STATS_TABS = 3  # page tabs: overview, progression, compare
@@ -163,8 +165,7 @@ def stat_number(data: dict, key: str) -> float:
 def plural(count: float, one: str, many: str) -> str:
     """Count with translated noun: singular for 1 (and 0 in French)"""
     number = round(count)
-    singular = number == 1 or (number == 0 and current_language() == "fr")
-    return f"{number} {tr(one) if singular else tr(many)}"
+    return f"{number} {plural_word(number, one, many)}"
 
 
 def format_duration(seconds: float) -> str:
@@ -306,8 +307,9 @@ def rank_info_text(player: dr.DriverRanks | None) -> str:
     """Where ranks come from & when game menu updated them"""
     if player is None or not ranks.updated:
         return ""
-    if ranks.remembered:  # game emptied its menu cache: last ranks seen
-        return trm(f"Last ranks seen in game menu, {format_date(ranks.updated)}")
+    if ranks.remembered:  # game emptied its menu cache: last ranks seen, RaceControl read while the game runs
+        return trm(f"Last ranks seen in game menu, {format_date(ranks.updated)}") + " · " + tr(
+            "updated from RaceControl while the game runs")
     if ranks.online:
         return trm(f"Ranks of RaceControl, updated {format_date(ranks.updated)}")
     return trm(f"Ranks of game menu, updated {format_date(ranks.updated)}")
@@ -342,19 +344,19 @@ def result_tone(record: SessionRecord) -> str:
 def parse_display_value(key: str, value: float) -> str | float:
     """Parse stats display value"""
     if DriverStats.is_lap_time(key) or key == "theory":
-        return laptime_text(value) if value < MAX_SECONDS else MISSING
+        return laptime_text(value) if value < MAX_LAPTIME else MISSING
     if key == "meters":
         if cfg.units["odometer_unit"] == "Kilometer":
-            return round(units.meter_to_kilometer(value), 1)
+            return number_text(units.meter_to_kilometer(value), 1)
         if cfg.units["odometer_unit"] == "Mile":
-            return round(units.meter_to_mile(value), 1)
+            return number_text(units.meter_to_mile(value), 1)
         return int(value)
     if key == "seconds":
         return format_duration(value)
     if key == "liters":
         if cfg.units["fuel_unit"] == "Gallon":
             value = units.liter_to_gallon(value)
-        return round(value, 2)
+        return number_text(value, 2)
     if isinstance(value, float) and value.is_integer():
         return int(value)
     return value
@@ -390,8 +392,8 @@ def header_label(key: str) -> str:
     label = tr(format_header_key(key))
     if key == "speed":
         return f"{label} ({speed_unit_text()})"
-    if key == "consumption":
-        return f"{label} ({consumption_unit_text()})"
+    if key == "consumption":  # unit only: narrow column (consumption told by its tooltip)
+        return consumption_unit_text()
     return label
 
 
@@ -458,8 +460,42 @@ def chart_ticks(low: float, high: float, wanted: int = 4) -> list[float]:
 
 
 def valid_laptime(value) -> float:
-    """Lap time in seconds, 0 if none"""
-    return value if isinstance(value, (int, float)) and 0 < value < MAX_SECONDS else 0.0
+    """Lap time in seconds, 0 if none (or longer than any real lap: game clock jump)"""
+    return value if isinstance(value, (int, float)) and 0 < value < MAX_LAPTIME else 0.0
+
+
+def empty_vehicle(data: object) -> bool:
+    """Vehicle stats without anything to show: no lap time, no lap, under 1 km (car loaded then left, class not
+    known yet by older versions: " - Brand"); hidden from the table, removed by Clean Up"""
+    if not isinstance(data, dict):
+        return True
+    return (not any(valid_laptime(data.get(key, 0)) for key in ("pb", "qb", "rb"))
+            and stat_number(data, "valid") + stat_number(data, "invalid") <= 0 and stat_number(data, "meters") < 1000)
+
+
+def clean_up_stats(stats: dict) -> tuple[set[tuple[str, str]], int]:
+    """Empty vehicles removed (track left without any too), lap times longer than any real lap reset (game clock
+    jump); (track, vehicle) removed & lap times reset"""
+    removed: set[tuple[str, str]] = set()
+    resets = 0
+    for track in list(stats):
+        vehicles = stats[track]
+        if not isinstance(vehicles, dict):
+            continue
+        for vehicle in list(vehicles):
+            data = vehicles[vehicle]
+            if empty_vehicle(data):
+                del vehicles[vehicle]
+                removed.add((track, vehicle))
+                continue
+            for key in ("pb", "qb", "rb"):
+                value = data.get(key)
+                if isinstance(value, (int, float)) and not isinstance(value, bool) and MAX_LAPTIME <= value < MAX_SECONDS:
+                    data[key] = MAX_SECONDS
+                    resets += 1
+        if not vehicles:
+            del stats[track]
+    return removed, resets
 
 
 def level_text(level: int) -> str:

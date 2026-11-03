@@ -32,7 +32,7 @@ VERSION_LINE = re.compile(r'^__version__ = "(\d+)\.(\d+)\.(\d+)"$', re.MULTILINE
 DOCS_ONLY = re.compile(
     r"^(?:docs/wiki/|docs/changes/|docs/changelog/|\.github/ISSUE_TEMPLATE/"
     r"|(?:README|CHANGELOG(?:\.[\w-]+)?|CONTRIBUTING|SECURITY)\.md$"
-    r"|docs/AUDIT\.md$|images/readme_preview\.png$)"
+    r"|docs/AUDIT\.md$|images/readme_preview(?:_wide)?\.png$)"
 )
 
 

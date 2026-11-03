@@ -117,7 +117,7 @@ AbstractButton {
     Keys.onReturnPressed: openSearch()
     Keys.onEnterPressed: openSearch()
     Accessible.role: Accessible.ComboBox
-    Accessible.name: i18n.tr("Track") + ": " + picker.currentLabel
+    Accessible.name: i18n.tr("Track") + i18n.colon() + picker.currentLabel
 
     background: Rectangle {
         radius: theme.radiusLg

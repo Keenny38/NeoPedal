@@ -459,8 +459,8 @@ def test_labels_translated_without_key_lookup(editor, monkeypatch):
         assert backend.namePlaceholder == "Nom des notes de pilotage"
         assert [column["label"] for column in backend.textColumns] == ["Note de pilotage", "Commentaire"]
         assert [column["key"] for column in backend.textColumns] == ["note", "comment"]  # keys, never untr
-        assert {field["label"] for field in backend.metadataFields} == {"Titre :", "Auteur :", "Date :",
-                                                                        "Description :"}
+        assert {field["label"] for field in backend.metadataFields} == {"Titre\u00a0:", "Auteur\u00a0:", "Date\u00a0:",
+                                                                        "Description\u00a0:"}
     finally:
         i18n.set_language("English")
     from neopedal.ui import track_notes_editor

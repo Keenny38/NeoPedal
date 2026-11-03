@@ -264,12 +264,8 @@ def test_reset_option_and_category(settings):
     settings.resetOption("application/snap_gap")
     assert settings.pendingCount == 1 and row(settings, "application/snap_gap")["number"] == 0
     cfg.application["grid_move_size"] = 3
-    settings.host.answer = False
-    settings.resetCategory()
-    assert settings.pendingCount == 1 and settings.host.questions  # cancelled
-    settings.host.answer = True
-    settings.resetCategory()
-    assert settings.pendingCount == 2
+    settings.resetCategory()  # pending & undoable: done at once, no question
+    assert settings.pendingCount == 2 and not settings.host.questions
     settings.apply()
     assert cfg.application["snap_gap"] == 0 and cfg.application["grid_move_size"] == 8
 

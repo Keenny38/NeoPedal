@@ -35,9 +35,8 @@ TpPopup {
             (applyButton.enabled ? applyButton : cancelButton).forceActiveFocus(Qt.TabFocusReason)
     }
 
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width: Math.min(parent ? parent.width - theme.em * 2 : theme.em * 30, theme.em * 30)
+    anchors.centerIn: overlayItem  // in the middle of the window (TpPopup)
+    width: Math.min(overlayItem ? overlayItem.width - theme.em * 2 : theme.em * 30, theme.em * 30)
     modal: true
     focus: true
     onAboutToShow: answer = ""
@@ -55,7 +54,8 @@ TpPopup {
 
     contentItem: ColumnLayout {
         spacing: theme.space5
-        Text {
+        TpText {
+            elide: Text.ElideNone
             Layout.fillWidth: true
             text: dialog.title
             textFormat: Text.PlainText
@@ -65,7 +65,8 @@ TpPopup {
             font.pointSize: theme.fontHeading
             font.weight: Font.DemiBold
         }
-        Text {
+        TpText {
+            elide: Text.ElideNone
             Layout.fillWidth: true
             visible: text !== ""
             text: dialog.text

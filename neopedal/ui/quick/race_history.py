@@ -37,7 +37,7 @@ from ...const_file import FileExt
 from ...fuel_strategy import (
     history_laps,
 )
-from ...i18n import tr, trm
+from ...i18n import plural, tr, trm
 from ...module_info import ConsumptionDataSet, minfo
 from ...process.team_usage import StintUsage, combine_usage, driver_usage, parse_usage, stint_usage, tank_capacity
 from ...setting import cfg
@@ -206,9 +206,11 @@ class HistoryTeam(RaceBase):
         tank = self.unit_fuel(lap.capacityFuel)
         values = (lap.lapNumber, lap.lapTimeLast, fuel, lap.lastLapUsedEnergy, ratio, lap.batteryDrainLast,
                   lap.batteryRegenLast, net, lap.tyreAvgWearLast, tank)
-        cells = [f"{lap.lapNumber}", calc.sec2laptime_full(lap.lapTimeLast), f"{fuel:.3f}",
-                 f"{lap.lastLapUsedEnergy:.3f}", f"{ratio:.3f}", f"{lap.batteryDrainLast:.3f}",
-                 f"{lap.batteryRegenLast:.3f}", f"{net:+.3f}", f"{lap.tyreAvgWearLast:.3f}", f"{tank:.3f}"]
+        number = results.number_text
+        cells = [f"{lap.lapNumber}", calc.sec2laptime_full(lap.lapTimeLast), number(fuel, 3),
+                 number(lap.lastLapUsedEnergy, 3), number(ratio, 3), number(lap.batteryDrainLast, 3),
+                 number(lap.batteryRegenLast, 3), results.signed_text(net, 3), number(lap.tyreAvgWearLast, 3),
+                 number(tank, 3)]
         return {"serial": serial, "valid": bool(lap.isValidLap), "cells": cells, "values": values}
 
     def history_rows(self) -> list[dict]:
@@ -415,6 +417,8 @@ class HistoryTeam(RaceBase):
     def received_team(self, answer: tuple[list[StintUsage] | None, float]):
         """Game answers read in background (read_team_usage): stints, tank capacity (liters)"""
         self.team_request.busy = False
+        if not self.game_data:  # turned off while asked: driver names left as they are
+            return
         stints, capacity = answer
         if stints is None:
             self.team_status = tr("No data from game: LMU not running or not in a session")
@@ -465,9 +469,9 @@ class HistoryTeam(RaceBase):
         for index, usage in enumerate(self.team_stints):
             fuel = usage.fuel * capacity
             cells = [usage.driver, f"{usage.stint}", f"{usage.first_lap}-{usage.last_lap}", f"{usage.laps}",
-                     f"{fuel:.3f}" if usage.laps and capacity else results.DASH,
-                     f"{usage.energy * 100:.3f}" if usage.laps else results.DASH,
-                     f"{usage.wear:.3f}" if usage.laps else results.DASH]
+                     results.number_text(fuel, 3) if usage.laps and capacity else results.DASH,
+                     results.number_text(usage.energy * 100, 3) if usage.laps else results.DASH,
+                     results.number_text(usage.wear, 3) if usage.laps else results.DASH]
             rows.append({"key": f"{usage.driver}|{usage.stint}", "number": index, "enabled": usage.laps > 0,
                          "selected": index in self.team_selection, "cells": cells})
         drivers = []
@@ -475,12 +479,12 @@ class HistoryTeam(RaceBase):
             if not usage.laps:
                 drivers.append({"name": usage.driver, "text": tr("No lap counted")})
                 continue
-            parts = [f"{usage.laps} {tr('laps')}"]
+            parts = [f"{usage.laps} {plural(usage.laps, 'lap', 'laps')}"]
             if capacity:
-                parts.append(f"{usage.fuel * capacity:.2f} {self.symbol_fuel}")
+                parts.append(f"{results.number_text(usage.fuel * capacity, 2)} {self.symbol_fuel}")
             if usage.energy:
-                parts.append(f"{usage.energy * 100:.2f} % {tr('Energy').lower()}")
-            parts.append(f"{usage.wear:.2f} % {tr('Tyre').lower()}")
+                parts.append(f"{results.number_text(usage.energy * 100, 2)} % {tr('energy')}")
+            parts.append(f"{results.number_text(usage.wear, 2)} % {tr('tyre wear')}")
             drivers.append({"name": usage.driver, "text": " · ".join(parts)})
         columns = [tr(name) for name in TEAM_COLUMNS]
         columns[4] += f" ({self.symbol_fuel})"

@@ -317,10 +317,10 @@ def test_reset_option_section_and_overlay(options):
     options.resetOption("speedometer/opacity")
     assert options.value("speedometer", "opacity") == cfg.default.setting["speedometer"]["opacity"]
     options.undo()
-    options.host.answer = False
-    options.resetSection("speedometer#layout")
-    assert options.pendingCount == 0 and options.host.questions
-    options.host.answer = True
+    options.resetSection("speedometer#layout")  # pending & undoable: no question, a notice instead
+    assert not options.host.questions and "reset to default" in options.host.notices[-1]
+    options.undo()
+    assert options.pendingCount == 0
     options.resetOverlay()
     assert options.value("speedometer", "font_size") == cfg.default.setting["speedometer"]["font_size"]
     assert options.value("speedometer", "enable") is True  # kept

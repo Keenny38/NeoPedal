@@ -106,8 +106,8 @@ class GameImages:
         self._loaded_folder = ""
         self._catalog_read = False  # game lists read from game during this run
         self._catalog_dirty = False  # pictures found missing while more fetches are queued: catalog saved once after
-        self._game_retry = 0.0  # time game may be asked again (did not answer)
-        self._catalog_retry = 0.0  # time game lists may be asked again (empty outside a session)
+        self._game_retry = 0.0  # time.monotonic() game may be asked again (did not answer)
+        self._catalog_retry = 0.0  # time.monotonic() game lists may be asked again (empty outside a session)
         self.vehicles: dict[str, gi.VehicleInfo] = {}  # vehicle name (lower case) -> car
         self.brands: dict[str, str] = {}  # brand (normalized) -> brand as game names it
         self.tracks: dict[str, str] = {}  # circuit name (lower case) -> circuit picture name
@@ -334,11 +334,11 @@ class GameImages:
     def request(self, kind: str, key: str) -> None:
         """Fetch picture in background, unless queued, game has none or game did not answer lately"""
         path = gi.image_path(kind, key)
-        now = time.time()
         with self._lock:
-            if (kind, key) in self._queued or now < self._game_retry:
+            if (kind, key) in self._queued or time.monotonic() < self._game_retry:
                 return
-            if now - self.missing.get(path, -RETRY_MISSING) < RETRY_MISSING:
+            # missing: dates (kept in the catalog file from one run to the next)
+            if time.time() - self.missing.get(path, -RETRY_MISSING) < RETRY_MISSING:
                 return
             self._queued.add((kind, key))
         self._jobs.put((kind, key))
@@ -354,7 +354,7 @@ class GameImages:
             except queue.Empty:
                 job = None
             try:
-                if not self._catalog_read and time.time() >= max(self._game_retry, self._catalog_retry):
+                if not self._catalog_read and time.monotonic() >= max(self._game_retry, self._catalog_retry):
                     self.read_game_lists()
                 if job is not None:
                     self.fetch_picture(*job)
@@ -372,7 +372,7 @@ class GameImages:
         if status:
             return True
         with self._lock:
-            self._game_retry = time.time() + RETRY_GAME
+            self._game_retry = time.monotonic() + RETRY_GAME
         return False
 
     def read_game_lists(self) -> bool:
@@ -396,7 +396,7 @@ class GameImages:
             else:
                 vehicles.extend(gi.parse_vehicles(data))
         if not vehicles and not tracks:  # lists empty (null outside a session): read again later
-            self._catalog_retry = time.time() + RETRY_GAME
+            self._catalog_retry = time.monotonic() + RETRY_GAME
             return False
         self._catalog_read = True
         with self._lock:

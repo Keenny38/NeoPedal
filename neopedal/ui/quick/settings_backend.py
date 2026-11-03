@@ -38,8 +38,8 @@ from __future__ import annotations
 
 import os
 import time
+import weakref
 from collections.abc import Callable
-from functools import partial
 from typing import Any, NamedTuple, Protocol
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
@@ -47,7 +47,7 @@ from PySide6.QtGui import QGuiApplication
 
 from ... import app_signal
 from ...const_file import ConfigType
-from ...i18n import current_language, tr, trm
+from ...i18n import colon, current_language, tr, trm
 from ...i18n.options import option_help_specific, option_label
 from ...setting import cfg
 from ..config import HIDDEN_OPTIONS
@@ -90,6 +90,7 @@ APPLIES_RESTART = "restart"
 APPLIES_NEXT_START = "next_start"
 APPLIES_AT = {
     "application/enable_high_dpi_scaling": APPLIES_RESTART,
+    "application/enable_modern_title_bar": APPLIES_RESTART,
     "compatibility/enable_x11_platform_plugin_override": APPLIES_RESTART,
     "application/show_at_startup": APPLIES_NEXT_START,
     "application/show_setup_wizard_at_startup": APPLIES_NEXT_START,
@@ -170,8 +171,8 @@ class Category(NamedTuple):
 CATEGORIES = (
     Category("application", "Application", "", "Interface, startup, updates, presets & backups", (
         ("Interface", (
-            "language", "window_color_theme", "enable_high_dpi_scaling", "show_overlay_previews",
-            "show_option_group_title",
+            "language", "window_color_theme", "enable_modern_title_bar", "enable_high_dpi_scaling",
+            "show_overlay_previews", "show_option_group_title",
         )),
         ("Startup & Window", (
             "show_at_startup", "minimize_to_tray", "remember_position", "remember_size", "remember_open_pages",
@@ -258,7 +259,7 @@ NOTICE_COLORS = {
 class SettingsHost(Protocol):
     """Page hosting the backend: dialogs & applying saved settings
 
-    Optional: toast, applied_preset (preset settings saved), pick_file, test_sound.
+    Optional: toast, toast_undo, applied_preset (preset settings saved), pick_file, test_sound.
     """
 
     def confirm(self, text: str) -> bool: ...
@@ -269,6 +270,7 @@ class SettingsHost(Protocol):
     def applied(self, sections: set[str], restart: list[str]) -> None: ...
     def open_link(self, name: str) -> None: ...
     def toast(self, text: str) -> None: ...  # short notice at bottom of page (optional)
+    def toast_undo(self, text: str, undo: Callable[[], object]) -> None: ...  # with an Undo button (optional)
 
 
 class OptionInfo(NamedTuple):
@@ -711,7 +713,7 @@ class SettingsBackend(QObject):
         """First invalid option: label & reason"""
         for info in self._infos.values():
             if info.id in self._invalid:
-                return f"{self.label(info)}: {trm(tr(self._invalid[info.id][1]))}"
+                return f"{self.label(info)}{colon()}{trm(tr(self._invalid[info.id][1]))}"
         return ""
 
     @Property(bool, notify=historyChanged)
@@ -1055,20 +1057,23 @@ class SettingsBackend(QObject):
 
     @Slot()
     def resetCategory(self):
-        """Every option of shown category back to default, after confirmation"""
+        """Every option of shown category back to default: pending & undoable, so no question (Development.md,
+        Feedback), a toast with Undo instead"""
         category = self.category_of(self._category)
-        text = trm(f"Reset all <b>{category_label(category)}</b> options to default?<br><br>"
-                   "Changes are only saved after clicking Apply or Save Button.")
-        ask = getattr(self._host, "ask", None)  # over the page, answer by callback
-        if callable(ask):
-            ask(text, tr("Reset Section"), partial(self._reset_category, category.key))
-        else:
-            self._reset_category(category.key, self._host.confirm(text))
-
-    def _reset_category(self, key: str, confirmed: bool):
-        """Every option of category back to default (pending) once confirmed"""
-        if not confirmed:
+        if not self._reset_category(category.key):
             return
+        after = self._snapshot()
+        page = weakref.ref(self)  # the toast never keeps the backend (no QObject freed by the collector)
+
+        def undo():
+            backend = page()
+            if backend is not None and backend._snapshot() == after:  # nothing edited since: last undo step
+                backend.undo()
+
+        self._toast(trm(f"<b>{category_label(category)}</b> options reset to default, saved with Apply"), undo)
+
+    def _reset_category(self, key: str) -> bool:
+        """Every option of category back to default (pending), True if something changed"""
         category = self.category_of(key)
         before = self._snapshot()
         for info in self._infos.values():
@@ -1082,11 +1087,13 @@ class SettingsBackend(QObject):
                 self._pending.pop(info.id, None)
             else:
                 self._pending[info.id] = default
-        if self._snapshot() != before:
+        reset = self._snapshot() != before
+        if reset:
             self._undo.append(before)
             del self._undo[:-100]
             self._redo.clear()
         self.changed()
+        return reset
 
     def _rebased(self, state: tuple[dict, dict], replaced: dict[str, Any]) -> tuple[dict, dict]:
         """Undo or redo state on newly saved values: same values shown, pending where they differ
@@ -1369,7 +1376,12 @@ class SettingsBackend(QObject):
         if message:
             self._toast(message)
 
-    def _toast(self, text: str):
+    def _toast(self, text: str, undo: Callable[[], object] | None = None):
+        """Short notice at the bottom of the page, with an Undo button if undo is set (and the host offers it)"""
+        toast_undo = getattr(self._host, "toast_undo", None)
+        if undo is not None and callable(toast_undo):
+            toast_undo(text, undo)
+            return
         toast = getattr(self._host, "toast", None)
         if callable(toast):
             toast(text)

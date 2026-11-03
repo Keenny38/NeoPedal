@@ -4,6 +4,7 @@ pytest>=8
 pytest-cov>=6
 pytest-timeout>=2
 pytest-xdist>=3
+pytest-rerunfailures>=15  # reruns of tests marked runner_flaky, on CI only (tests/FLAKY.md)
 ruff>=0.6
 mypy>=1.10
 pre-commit>=3

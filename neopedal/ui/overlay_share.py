@@ -284,7 +284,7 @@ def import_overlay_file(parent, zip_filename: str, page=None) -> bool:
         package = read_overlay_package(zip_filename, {name: cfg.default.setting[name] for name in names})
     except (OSError, ValueError, zipfile.BadZipFile) as error:
         alert(parent, tr("Error"), trm(
-            f"Unable to import overlay settings:<br>{html.escape(tr(str(error)))}"))
+            f"Unable to import overlay settings:<br>{html.escape(trm(tr(str(error))))}"))
         return False
     if not package.overlays:
         alert(parent, tr("Error"), tr("No overlay of this file is available in this version."))

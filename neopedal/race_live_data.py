@@ -53,6 +53,7 @@ from typing import Any, NamedTuple
 from . import calculation as calc
 from .api_control import api
 from .fuel_strategy import MAX_DRIVERS, estimate_pace, history_laps, representative_laps
+from .i18n import localized
 from .module_info import ConsumptionDataSet, minfo
 
 RACE_SESSION = 4
@@ -357,7 +358,7 @@ def laptime_text(seconds: float) -> str:
 
 
 def _amount(value: float, decimals: int, unit: str) -> str:
-    return f"{value:.{decimals}f} {unit}".strip()
+    return localized(f"{value:.{decimals}f} {unit}".strip())
 
 
 # Values of now
@@ -503,14 +504,14 @@ def collect(history: Sequence[ConsumptionDataSet], garage: GarageData, unit_fuel
     estimate_stops = estimate_pace(laps, unit_fuel)
     if estimate_stops.pit_stops:
         add("input_pit_seconds", "pit", "Pit Stop Time", round(estimate_stops.pit_seconds, 1),
-            f"{estimate_stops.pit_seconds:.1f} s", f"Stops of the session ({estimate_stops.pit_stops})")
+            localized(f"{estimate_stops.pit_seconds:.1f} s"), f"Stops of the session ({estimate_stops.pit_stops})")
     else:
         lane = minfo.mapping.pitPassTime
         lane_length = minfo.mapping.pitLaneLength
         track_length = read.lap.track_length()
         loss = lane - lane_length / track_length * laptime if lane > 0 and track_length > 0 and laptime else 0.0
         add("input_pit_seconds", "pit", "Pit Stop Time", round(loss, 1) if loss > 0 else None,
-            f"{loss:.1f} s" if loss > 0 else "", "Pit lane at speed limit (braking & pulling away not counted)"
+            localized(f"{loss:.1f} s") if loss > 0 else "", "Pit lane at speed limit (braking & pulling away not counted)"
             if loss > 0 else "No stop in the session yet", follow=False)
     if garage.fuel_rate > 0:
         add("input_refuel_rate", "pit", "Refuel Rate", unit_fuel(garage.fuel_rate),
@@ -521,7 +522,7 @@ def collect(history: Sequence[ConsumptionDataSet], garage: GarageData, unit_fuel
         _amount(garage.energy_rate, 2, "%/s") if garage.energy_rate > 0 else "", "Pit stop times (LMU)")
     change = garage.driver_change
     add("input_driver_change_seconds", "pit", "Driver Change Time", change if change >= 0 else None,
-        f"{change:.1f} s" if change >= 0 else "", "Pit stop times (LMU)")
+        localized(f"{change:.1f} s") if change >= 0 else "", "Pit stop times (LMU)")
     add("enable_driver_change_during_refuel", "pit", "Driver Change While Refuelling", garage.driver_during_refuel,
         ("On" if garage.driver_during_refuel else "Off") if garage.driver_during_refuel is not None else "",
         "Pit stop times (LMU)")
@@ -530,7 +531,7 @@ def collect(history: Sequence[ConsumptionDataSet], garage: GarageData, unit_fuel
         "Pit stop times (LMU)")
     known = garage.two_tyres >= 0 and garage.four_tyres >= 0
     add("tyre_change_times", "pit", "Tyre Change Time", (garage.two_tyres, garage.four_tyres) if known else None,
-        f"{garage.two_tyres:.1f} s / {garage.four_tyres:.1f} s" if known else "", "Pit stop times (LMU)",
+        localized(f"{garage.two_tyres:.1f} s / {garage.four_tyres:.1f} s") if known else "", "Pit stop times (LMU)",
         tip="1-2 tyres / 3-4 tyres")
 
     # Tyres & weather
@@ -564,7 +565,7 @@ def collect_temperature() -> LiveValue:
         return LiveValue("input_temp_slope", "weather", "Temperature Trend", None, "-", "No forecast", True, "")
     first, last, slope = trend
     return LiveValue("input_temp_slope", "weather", "Temperature Trend", round(slope, 2),
-                     f"{first:.0f} → {last:.0f} °C ({slope:+.2f} °C/h)", "Weather Forecast", True, "")
+                     localized(f"{first:.0f} → {last:.0f} °C ({slope:+.2f} °C/h)"), "Weather Forecast", True, "")
 
 
 def collect_rain(garage: GarageData, plan_laps: int) -> LiveValue:

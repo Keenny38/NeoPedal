@@ -4,11 +4,12 @@ about 30 times a second). Budgets generous for slow CI machines (a fast machine 
 
 import time
 
+from tests._speed import budget
 from tests.test_ui_thread_budget import long_laps  # noqa: F401  (fixture)
 
 FRAMES = 120
-LIGHT_BUDGET = 0.012  # seconds per playback frame moving cars only (average; ~1 ms on a desktop, 6-8 ms on CI)
-FULL_BUDGET = 0.025  # seconds per playback frame with full cursor state (average)
+LIGHT_BUDGET = budget(0.012)  # seconds per playback frame moving cars only (average; ~1 ms on a desktop, 6-8 ms on CI)
+FULL_BUDGET = budget(0.025)  # seconds per playback frame with full cursor state (average)
 
 
 def average(call, count: int) -> float:

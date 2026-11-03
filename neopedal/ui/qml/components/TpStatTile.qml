@@ -53,7 +53,7 @@ Card {
             spacing: theme.space3
             Layout.fillWidth: true
             Icon { glyph: tile.glyph; size: theme.iconSm; color: tile.stripColor }
-            Text {
+            TpText {
                 text: tile.title
                 textFormat: Text.PlainText
                 color: theme.dimText
@@ -65,21 +65,12 @@ Card {
         RowLayout {
             spacing: theme.space3
             Layout.fillWidth: true
-            Rectangle {  // level letter: level told without color
+            TpLetterBadge {  // level letter: level told without color
                 visible: tile.letter !== ""
-                Layout.preferredWidth: theme.em * 1.45
-                Layout.preferredHeight: theme.em * 1.45
-                radius: width / 2
-                color: tile.tint
+                letter: tile.letter
+                fill: tile.tint
+                size: theme.em * 1.45
                 Behavior on color { ColorAnimation { duration: theme.motionSlow } }
-                Text {
-                    anchors.centerIn: parent
-                    text: tile.letter
-                    textFormat: Text.PlainText
-                    color: theme.inkOn(tile.tint)  // readable on level color
-                    font.pointSize: theme.fontSmall
-                    font.weight: Font.Bold
-                }
             }
             Icon {  // out of range: shape, not only color
                 visible: tile.warning
@@ -88,7 +79,7 @@ Card {
                 color: theme.loss
                 size: theme.iconMd
             }
-            Text {
+            TpText {
                 id: valueText
                 text: tile.value !== "" ? tile.value : "—"
                 textFormat: Text.PlainText
@@ -103,7 +94,7 @@ Card {
                 NumberAnimation { id: valueFade; target: valueText; property: "opacity"; from: 0.25; to: 1; duration: theme.motionSlow }
             }
         }
-        Text {
+        TpText {
             text: tile.detail !== "" ? tile.detail : " "
             textFormat: Text.PlainText
             color: theme.dimText

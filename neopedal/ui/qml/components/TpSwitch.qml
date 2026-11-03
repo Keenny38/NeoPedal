@@ -52,7 +52,7 @@ AbstractButton {
                 Behavior on x { NumberAnimation { duration: theme.motionBase; easing.type: Easing.OutCubic } }
             }
         }
-        Text {
+        TpText {
             id: label
             text: control.text
             textFormat: Text.PlainText

@@ -177,3 +177,19 @@ def test_upcoming_race_matches_layout_not_venue(ui_env, monkeypatch):
     assert stats_analysis.scene_names("BahrainWEC_Outer", venue_names) == {
         "bahrain outer circuit", "bahrain international circuit"}
 
+
+def test_upcoming_races_page_shows_layout_name(ui_env, monkeypatch):
+    from neopedal.process import race_schedule as rs
+    from neopedal.ui.quick import schedule_view
+    from neopedal.userfile import game_images
+
+    schedule = rs.parse_schedule({}, {}, {"bahrainwec_outer": rs.TrackInfo("Bahrain International Circuit", True)},
+                                 0.0)
+    # Game lists never read: name /rest/race/track gives the scene (as before)
+    assert schedule_view.track_of("BahrainWEC_Outer", "Bahrain Outer Circuit", schedule) == (
+        "Bahrain International Circuit", True)
+    monkeypatch.setattr(game_images.images, "track_names", dict(NAMES))
+    monkeypatch.setattr(game_images.images, "_loaded_folder", game_images.images.folder)
+    assert schedule_view.track_of("BahrainWEC_Outer", "Bahrain Outer Circuit", schedule) == (
+        "Bahrain Outer Circuit", True)
+    assert schedule_view.track_of("LeMansWEC", "24 Heures du Mans", schedule) == ("Circuit de la Sarthe", None)

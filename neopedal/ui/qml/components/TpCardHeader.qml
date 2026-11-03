@@ -32,7 +32,7 @@ RowLayout {
         size: theme.iconMd
         Layout.alignment: Qt.AlignVCenter
     }
-    Text {
+    TpText {
         id: titleText
         text: header.title
         textFormat: Text.PlainText

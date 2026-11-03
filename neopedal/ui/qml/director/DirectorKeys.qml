@@ -9,8 +9,8 @@ import "../components"
 TpPopup {
     id: popup
     objectName: "keysSheet"
-    width: Math.min(theme.em * 30, (Overlay.overlay ? Overlay.overlay.width : theme.em * 32) - theme.em * 2)
-    readonly property real maxContentHeight: Math.max(theme.em * 12, (Overlay.overlay ? Overlay.overlay.height : theme.em * 40) - theme.em * 8)
+    width: Math.min(theme.em * 30, (overlayItem ? overlayItem.width : theme.em * 32) - theme.em * 2)
+    readonly property real maxContentHeight: Math.max(theme.em * 12, (overlayItem ? overlayItem.height : theme.em * 40) - theme.em * 8)
 
     // Key cap(s) & what the key does
     component KeyRow: RowLayout {

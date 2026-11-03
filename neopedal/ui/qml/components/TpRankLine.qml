@@ -21,7 +21,7 @@ Item {
     onPointsChanged: lineCanvas.requestPaint()
     onTintChanged: lineCanvas.requestPaint()
 
-    Text {
+    TpText {
         id: lineLabel
         visible: rankLine.labelShown
         text: rankLine.label

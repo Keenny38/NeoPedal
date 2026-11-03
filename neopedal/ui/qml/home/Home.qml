@@ -7,9 +7,10 @@ import "../components"
 // release notes & update told once), then cards: game (in a session only, whole row: place, lap & time left in
 // big type, live calculator, director & overlay lock at hand; off track the banner tells the game), overlays (lock,
 // overlays & modules on), preset, this week, driver (ranks over time), last session with its debrief (each corner
-// opens the telemetry viewer on it), quick access. Cards open their page: click, or Tab then Enter / Space. Cards
-// read in background keep their place (loading) until read: the grid never jumps. Cards follow page width in 1 to 3
-// columns, spans fill each row whichever cards are shown (no hole), the page scrolls when taller than the window.
+// opens the telemetry viewer on it), next online races your Safety Rank opens (whole row), quick access. Cards
+// open their page: click, or Tab then Enter / Space. Cards read in background keep their place (loading) until
+// read: the grid never jumps. Cards follow page width in 1 to 3 columns, spans fill each row whichever cards are
+// shown (no hole), the page scrolls when taller than the window.
 TpPage {
     id: page
 
@@ -26,6 +27,7 @@ TpPage {
     readonly property var driver: backend.driver
     readonly property var loading: backend.loading
     readonly property var week: backend.week
+    readonly property var races: backend.races
     readonly property bool inSession: (game.track || "") !== ""
     property bool debriefOpen: false  // corners to work on & goal shown
     // Cards shown (from data, never from .visible): spans fill each row of the grid
@@ -239,7 +241,8 @@ TpPage {
                         Layout.fillWidth: true
                         spacing: theme.space3
                         TpPulseDot {
-                            width: Math.round(theme.em * 0.6)
+                            Layout.preferredWidth: Math.round(theme.em * 0.6)
+                            Layout.preferredHeight: Layout.preferredWidth
                             color: page.game.running ? theme.gain : theme.dimText
                             pulsing: page.game.running === true
                             Layout.alignment: Qt.AlignVCenter
@@ -521,7 +524,8 @@ TpPage {
                                     visible: rankHover.hovered && (modelData.tip || "") !== ""
                                     text: modelData.tip || ""
                                     delay: theme.tipDelay
-                                    y: rankRow.height + theme.space1
+                                    // A popup (not an item of the layout): placed in rankRow, below it
+                                    y: rankRow.height + theme.space1  // qmllint disable Quick.layout-positioning
                                 }
                                 Text {
                                     text: modelData.label
@@ -635,7 +639,7 @@ TpPage {
                         Text {
                             required property var modelData
                             Layout.fillWidth: true
-                            text: modelData.name + ": " + page.joined(modelData.ranks.map(function(rank) {
+                            text: modelData.name + i18n.colon() + page.joined(modelData.ranks.map(function(rank) {
                                 return rank.label + " " + rank.value
                             }).concat([modelData.badge.name || ""])) + " (" + modelData.when + ")"
                             color: theme.dimText
@@ -819,6 +823,145 @@ TpPage {
                         glyph: ""  // area chart
                         size: "sm"
                         onClicked: backend.openDebrief()
+                    }
+                }
+
+                TpSectionCard {  // next online races your Safety Rank opens (RaceControl): whole row
+                    objectName: "racesCard"
+                    fillContent: false
+                    Layout.fillWidth: true
+                    Layout.columnSpan: page.columns
+                    visible: (page.races.rows || []).length > 0
+                    glyph: ""  // calendar
+                    fallback: "R"
+                    title: i18n.tr("Next Races")
+                    clickable: true
+                    tip: i18n.tr("Open upcoming races")
+                    onOpened: backend.openRaces()
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: page.columns
+                        columnSpacing: theme.space5
+                        rowSpacing: theme.space3
+                        uniformCellWidths: true
+                        Repeater {
+                            model: page.races.rows || []
+                            // One race: start & time to it, reminder; title; track logo & name; classes, tier &
+                            // length; your place this week, registered
+                            Rectangle {
+                                id: raceItem
+                                objectName: "nextRace"
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                implicitHeight: raceColumn.implicitHeight + theme.space3 * 2
+                                radius: theme.radiusMd
+                                color: theme.surfaceSunken
+                                ColumnLayout {
+                                    id: raceColumn
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.margins: theme.space3
+                                    spacing: theme.space1
+                                    RowLayout {  // start, title & track; track logo on the right
+                                        Layout.fillWidth: true
+                                        spacing: theme.space3
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: theme.space1
+                                            RowLayout {  // start, time to it, reminder set
+                                                Layout.fillWidth: true
+                                                spacing: theme.space2
+                                                TpText {
+                                                    role: "title"
+                                                    tabular: true
+                                                    text: raceItem.modelData.start
+                                                }
+                                                Pill {
+                                                    visible: raceItem.modelData.until !== ""
+                                                    size: "sm"
+                                                    text: raceItem.modelData.until
+                                                    dot: raceItem.modelData.running === true || raceItem.modelData.imminent === true
+                                                    pulsing: dot
+                                                    tint: raceItem.modelData.running === true ? theme.gain
+                                                          : raceItem.modelData.soon === true ? theme.accent : theme.dimText
+                                                }
+                                                Pill {
+                                                    visible: (raceItem.modelData.reminder || 0) > 0
+                                                    size: "sm"
+                                                    glyph: ""  // bell
+                                                    fallback: "!"
+                                                    text: i18n.tr("%1 min").replace("%1", raceItem.modelData.reminder || 0)
+                                                    tint: theme.accent
+                                                    tip: i18n.tr("Reminder set")
+                                                }
+                                                Item { Layout.fillWidth: true }
+                                            }
+                                            TpText {
+                                                Layout.fillWidth: true
+                                                role: "subtitle"
+                                                text: raceItem.modelData.title
+                                            }
+                                            TpText {
+                                                Layout.fillWidth: true
+                                                text: raceItem.modelData.track
+                                            }
+                                        }
+                                        GameLogo {
+                                            Layout.alignment: Qt.AlignTop | Qt.AlignRight
+                                            source: raceItem.modelData.trackLogo || ""
+                                            boxWidth: theme.em * 5
+                                            boxHeight: theme.em * 2.6
+                                        }
+                                    }
+                                    Flow {  // classes, tier & race length
+                                        Layout.fillWidth: true
+                                        spacing: theme.space2
+                                        Repeater {
+                                            id: classBadges
+                                            model: raceItem.modelData.classes || []
+                                            TpClassBadge {
+                                                required property var modelData
+                                                label: modelData.label
+                                                fullName: modelData.full
+                                                fill: modelData.color
+                                            }
+                                        }
+                                        TpText {  // centered on the badges
+                                            role: "caption"
+                                            height: Math.max(implicitHeight, classBadges.count > 0 && classBadges.itemAt(0)
+                                                                             ? classBadges.itemAt(0).height : 0)
+                                            verticalAlignment: Text.AlignVCenter
+                                            text: page.joined([raceItem.modelData.tierText, raceItem.modelData.length])
+                                        }
+                                    }
+                                    Flow {  // your place in the weekly leaderboard, registered
+                                        Layout.fillWidth: true
+                                        Layout.topMargin: theme.space1
+                                        visible: (raceItem.modelData.place || "") !== "" || raceItem.modelData.registeredMe === true
+                                        spacing: theme.space2
+                                        Pill {
+                                            visible: (raceItem.modelData.place || "") !== ""
+                                            size: "sm"
+                                            glyph: ""  // flag
+                                            fallback: "#"
+                                            text: raceItem.modelData.place || ""
+                                            tint: theme.accent
+                                            tip: i18n.tr("Your place in the weekly leaderboard")
+                                        }
+                                        Pill {
+                                            visible: raceItem.modelData.registeredMe === true
+                                            size: "sm"
+                                            glyph: ""  // check
+                                            fallback: "✓"
+                                            text: i18n.tr("Registered")
+                                            tint: theme.gain
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

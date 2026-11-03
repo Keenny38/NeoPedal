@@ -527,7 +527,10 @@ function draw(){
 }
 setInterval(()=>{if(state.quali&&state.quali.running)qualiTime();if(state.countdown)countdownTime();
   if(lastTrain&&trainUntil&&Date.now()>trainUntil&&!state.train){trainUntil=0;train();battle()}},100);
+// Pause before asking again: answer not OK (403 once the access token changed: longer), or unchanged answer given at
+// once (server of an older version): never asked again and again at full speed
 async function poll(){
+  let pause=0;const started=Date.now();
   try{
     const asked=edit&&chosenPreset!==null?chosenPreset:sourcePreset;
     const response=await fetch("/api/director?v="+version+(edit?"&demo=1":"")+(asked!==null?"&preset="+encodeURIComponent(asked):"")
@@ -546,10 +549,11 @@ async function poll(){
         if(state.countdown&&state.countdown.endsIn!=null&&(data.full||first||"countdown" in (data.state||{})))
           countdownEnd=Date.now()+state.countdown.endsIn*1000;
         if(first)for(const event of state.events||[])if(!event.fresh)shownBanners.add(event.id);
-        draw();if(first)cycleTower()}}
-    else serverLost(true);
-  }catch(error){serverLost(true);await new Promise(done=>setTimeout(done,1000))}
-  if(!once)setTimeout(poll,0);
+        draw();if(first)cycleTower()}
+      else if(Date.now()-started<500)pause=1000}
+    else{pause=response.status===403?5000:1000;serverLost(true)}
+  }catch(error){pause=1000;serverLost(true)}
+  if(!once)setTimeout(poll,pause);
   else if(edit&&chosenPreset===null)setTimeout(poll,1000);  // editor: asked until its first answer
 }
 // App closed, stream server turned off or access token changed: graphics hidden after a few seconds of failed
@@ -566,11 +570,14 @@ function liveWanted(){const g=state.graphics||{};
   return (g.onboard&&(!only.length||only.includes("onboard")))||(g.map&&(!only.length||only.includes("map")))}
 async function pollLive(){
   if(!liveWanted()){setTimeout(pollLive,2000);return}
+  let pause=0;const started=Date.now();
   try{
     const response=await fetch("/api/director/live?v="+liveVersion+"&token="+encodeURIComponent(token),{cache:"no-store"});
-    if(response.ok){const data=await response.json();if(data.v!==liveVersion){liveVersion=data.v;live=data.live||{};onboardLive();mapCars()}}
-  }catch(error){await new Promise(done=>setTimeout(done,1000))}
-  if(!once)setTimeout(pollLive,0);
+    if(response.ok){const data=await response.json();if(data.v!==liveVersion){liveVersion=data.v;live=data.live||{};onboardLive();mapCars()}
+      else if(Date.now()-started<500)pause=1000}
+    else pause=response.status===403?5000:1000;
+  }catch(error){pause=1000}
+  if(!once)setTimeout(pollLive,pause);
 }
 // Layout editor: graphics dragged (snapped to the others & the middle), resized with the wheel, moved with the arrows,
 // undone with Ctrl+Z, saved for a layout preset

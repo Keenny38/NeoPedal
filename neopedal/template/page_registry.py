@@ -85,7 +85,7 @@ PAGES: tuple[PageSpec, ...] = (
              description="Turn overlays on or off and open their options", wiki="Overlays"),  # all apps grid
     PageSpec("module", "Module", "", PAGE_MAIN, short_label="Modules", letter="M",
              description="Data modules recording what overlays and tools need", wiki="Getting-Started#data-modules"),  # diagnostic
-    PageSpec("preset", "Preset", "", PAGE_MAIN, short_label="Presets", letter="P", rail=8,
+    PageSpec("preset", "Preset", "", PAGE_MAIN, short_label="Presets", letter="P", rail=9,
              description="Load, create, share and restore presets", wiki="Presets-and-Settings#presets"),  # library
     PageSpec("spectate", "Spectate", "", PAGE_MAIN, letter="S",
              description="Choose the driver overlays show while spectating", wiki="Getting-Started#spectate"),  # view
@@ -98,7 +98,7 @@ PAGES: tuple[PageSpec, ...] = (
     # Utilities
     PageSpec(
         "race_calculator", "Race Calculator", "", "Utilities",  # calculator
-        "race_calculator.RaceCalculator", short_label="Calculator", rail=7,
+        "race_calculator.RaceCalculator", short_label="Calculator", rail=8,
         keywords=(
             "fuel calculator tyre tire strategy planner energy pit stop stint "
             "carburant calculateur pneus strategie energie arret relais"
@@ -121,13 +121,13 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         "lap_viewer", "Lap Telemetry Viewer", "", "Utilities",  # area chart
-        "lap_viewer.LapViewer", short_label="Telemetry", rail=6,
+        "lap_viewer.LapViewer", short_label="Telemetry", rail=7,
         description="Compare recorded laps on charts and on the track map",
         wiki="Telemetry-Viewer",
     ),
     PageSpec(
         "broadcast_director", "Broadcast Director", "", "Utilities",  # sliders (mixing desk)
-        "broadcast_director.BroadcastDirector", short_label="Broadcast", rail=4,
+        "broadcast_director.BroadcastDirector", short_label="Broadcast", rail=5,
         keywords=(
             "lmu broadcast director cast casting camera cameras spectator stream commentator commentary battle "
             "auto director tv production regie realisateur spectateur commentateur commentaires bagarre diffusion"
@@ -148,8 +148,20 @@ PAGES: tuple[PageSpec, ...] = (
         wiki="Race-Results",
     ),
     PageSpec(
+        "race_schedule_viewer", "Upcoming Races", "", "Utilities",  # calendar
+        "race_schedule_viewer.RaceScheduleViewer", short_label="Races", rail=4,
+        keywords=(
+            "lmu racecontrol online daily race weekly special event championship coop co-op hosted server "
+            "schedule calendar upcoming next safety rank sr "
+            "course quotidienne hebdomadaire evenement special championnat serveur heberge planning calendrier "
+            "prochaines courses a venir en ligne"
+        ),
+        description="Online races to come: daily, weekly, special, championships, co-op & hosted servers",
+        wiki="Upcoming-Races",
+    ),
+    PageSpec(
         "stream_overlay_view", "Stream Overlays", "", "Utilities",  # streaming
-        "stream_overlay_view.StreamOverlaysView", short_label="Stream", rail=5,
+        "stream_overlay_view.StreamOverlaysView", short_label="Stream", rail=6,
         keywords=(
             "obs streamlabs xsplit vmix twitch youtube stream streaming browser source broadcast layout "
             "diffusion direct source navigateur streamer"

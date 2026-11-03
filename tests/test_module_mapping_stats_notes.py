@@ -1,5 +1,6 @@
 """Module tests: track map & pit lane mapping, driver stats, car setup backup, track & pace notes"""
 
+import json
 from itertools import pairwise
 from types import SimpleNamespace
 
@@ -370,6 +371,28 @@ def test_stats_keys_by_classification(tele, monkeypatch):
     assert module_stats.stats_keys("Vehicle") == ("SimTrack", "SimCar #1")
     monkeypatch.setattr(module_stats, "select_brand_name", lambda vehicle_name: "")
     assert module_stats.stats_keys("Class - Brand") == ("SimTrack", "GT3")
+    # Class not known yet (car loading): no " - Brand" key
+    monkeypatch.setattr(module_stats, "select_brand_name", lambda vehicle_name: "Brand")
+    tele["vehicle.class_name"] = ""
+    assert module_stats.stats_keys("Class - Brand") == ("SimTrack", "")
+
+
+def test_driver_stats_class_known_after_load(stats_env, monkeypatch):
+    """Class empty while car loads: stint saved under class key once known, never " - Brand"."""
+    tele, filepath = stats_env
+    monkeypatch.setattr(module_stats, "select_brand_name", lambda vehicle_name: "Brand")
+    tele["vehicle.class_name"] = ""
+    output = StatsInfo()
+    gen = module_stats.record_driver_stats(output, filepath, "Class - Brand", max_moved_distance=1500,
+                                           podium_by_class=False)
+    gen.send(1)
+    tele["vehicle.class_name"] = "GT3"
+    tele["vehicle.position_xyz"] = (0.0, 0.0, 0.0)
+    drive_stats_lap(tele, gen, 0.0, 90.0)
+    gen.send(2)
+    assert driver_stats.load_driver_stats(("SimTrack", "GT3 - Brand"), filepath).valid == 1
+    with open(f"{filepath}driver.stats", encoding="utf-8") as file:
+        assert " - Brand" not in json.load(file)["SimTrack"]
 
 
 def test_finish_position_in_class(tele):

@@ -40,11 +40,24 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QApplication, QWidget
 from shiboken6 import isValid
 
-from ...i18n import tr, trm
+from ...i18n import colon, percent_sign, plural, tr, trm
 from ...regex_pattern import COMMON_TYRE_COMPOUNDS
 from ...template.setting_compounds import COMPOUND_COLORS, COMPOUND_SYMBOLS, compound_letter
 from ...template.setting_status_colors import COLORBLIND_STATUS_COLORS, STATUS_COLORS
 from .. import UIScaler, colorblind_state, legacy_style, set_colorblind  # noqa: F401  # set_colorblind: tests & pages
+
+# Tokens shared with the Qt Widgets shell (rail, menus): one source, see ui/tokens.py
+from ..tokens import (  # also read from here by tests & pages
+    LEGACY_RADIUS,
+    MOTION,
+    RADIUS_SCALE,
+    SIZE_SCALE,
+    SURFACE_LIFT,
+    TINT_LEVELS,
+    TINT_SELECTED_LIGHT,
+    blended,
+    luminance,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,8 +84,7 @@ FONT_SCALE = {
     "fontTitle": 1.5,  # key figures, status headlines
     "fontDisplay": 1.75,
 }
-# Corner radius: factor of em
-RADIUS_SCALE = {"radiusXs": 0.2, "radiusSm": 0.3, "radiusMd": 0.45, "radiusLg": 0.6, "radiusXl": 0.75}
+# Corner radius: RADIUS_SCALE (ui/tokens.py)
 # Page width breakpoints: factor of em (pages with content-tuned widths keep their own, commented)
 BREAKPOINTS = {"bpCompact": 40, "bpNarrow": 56, "bpWide": 70}
 # Spacing: factor of em. space1..6 for gaps inside a block, pad* for the margins of a page, card, popup
@@ -82,17 +94,7 @@ SPACE_SCALE = {
     "padCard": 0.7,  # card & panel padding
     "padPopup": 1.0,  # popup & dialog padding
 }
-# Control & row heights: factor of em
-SIZE_SCALE = {
-    "controlHeight": 2.3,  # buttons, switches, segmented controls, search fields
-    "controlHeightSm": 1.85,  # compact toolbars, buttons inside rows
-    "controlHeightXs": 1.5,  # buttons inside chips & tags
-    "fieldHeight": 2.05,  # text & number fields, combo boxes
-    "rowCompact": 2.1,  # dense tables, menus
-    "row": 2.8,  # lists
-    "rowTall": 3.4,  # lists with two text lines
-    "headerHeight": 1.9,  # column header row of tables
-}
+# Control & row heights: SIZE_SCALE (ui/tokens.py)
 # Icon (glyph) sizes: factor of em
 ICON_SCALE = {
     "iconXs": 0.7,  # inside chips, tags, menu checks & chevrons
@@ -101,13 +103,7 @@ ICON_SCALE = {
     "iconLg": 1.6,  # compact empty states, section badges
     "iconHero": 2.6,  # empty states, drop zones, page badges
 }
-# Animation durations (ms), 0 when Windows animations are off
-MOTION = {"motionFast": 120, "motionBase": 180, "motionSlow": 250}
-# Tint alpha (color over a surface): named levels of theme.tint(color, level)
-TINT_LEVELS = {"subtle": 0.1, "selected": 0.18, "strong": 0.28,
-               "outline": 0.5,  # border of a tinted chip or notice
-               "stripe": 0.03}  # odd rows of dense tables (theme.text tint)
-TINT_SELECTED_LIGHT = 0.12  # selected rows of light themes (dim text stays 4.5:1 on them)
+# Animation durations, tint levels: MOTION, TINT_LEVELS, TINT_SELECTED_LIGHT (ui/tokens.py)
 INK_DARK = "#111111"  # text on light fills
 # Colorblind safe status colors (Okabe-Ito like overlays: green -> blue, red -> vermillion, purple -> reddish
 # purple), (on dark background, on light background): app pages follow the overlay style option
@@ -119,13 +115,11 @@ STAGE_SCRIM = (0, 0, 0, 0.45)  # backdrop of buttons & badges over an overlay pr
 # Session kind colors: race, qualifying, practice (theme color names), others dim
 SESSION_TONES = {"R": "warning", "RACE": "warning", "Q": "purple", "QUALIFY": "purple", "P": "accent",
                  "PRACTICE": "accent"}
-# Surfaces (elevation): share of white (dark themes) or text color (light themes) mixed into the card color
-SURFACE_LIFT = {"card": 0.035, "flyout": 0.05, "hover": 0.04, "sunken": 0.05}
+# Surfaces (elevation): SURFACE_LIFT (ui/tokens.py)
 SUNKEN_DARK = 130  # darker() factor of sunken surfaces (fields, segmented tracks) on dark themes
 # Drop shadow strength (TpShadow) per theme kind, Legacy themes flatter
 SHADOW_OPACITY = {"dark": 0.55, "light": 0.22}
-LEGACY_RADIUS = 0.5  # Legacy themes: corners half as round (classic look)
-LEGACY_SHADOW = 0.6
+LEGACY_SHADOW = 0.6  # Legacy themes: flatter shadows (corners: LEGACY_RADIUS, ui/tokens.py)
 # Display face of titles & key figures (named instance of the variable font of Windows 11), else the app font
 DISPLAY_FONT_FAMILIES = ("Segoe UI Variable Display",)
 WINDOWS_VARIABLE_FONT = "SegUIVar.ttf"  # Segoe UI Variable file (Windows 11), in the Windows fonts folder
@@ -195,15 +189,6 @@ def ink_on(color: QColor) -> QColor:
     return QColor(INK_DARK if luma > 0.6 else "white")
 
 
-def luminance(color: QColor) -> float:
-    """WCAG relative luminance of a color (0 black to 1 white)"""
-    channels = [
-        value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
-        for value in (color.redF(), color.greenF(), color.blueF())
-    ]
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-
-
 def contrast_ratio(first: QColor, second: QColor) -> float:
     """WCAG contrast ratio of two colors"""
     high, low = sorted((luminance(first), luminance(second)), reverse=True)
@@ -222,12 +207,6 @@ def readable_on(color: QColor, background: QColor, toward: QColor, minimum: floa
         if contrast_ratio(mixed, background) >= minimum:
             return mixed
     return QColor(toward)
-
-
-def blended(color: QColor, background: QColor, alpha: float) -> QColor:
-    """Opaque color of a translucent color over a background"""
-    return QColor.fromRgbF(*(top * alpha + bottom * (1 - alpha) for top, bottom in (
-        (color.redF(), background.redF()), (color.greenF(), background.greenF()), (color.blueF(), background.blueF()))))
 
 
 def fill_for_white_text(color: QColor, minimum: float = 4.5) -> QColor:
@@ -353,6 +332,14 @@ class Theme(QObject):
     def colorblind(self) -> bool:
         """Colorblind safe status colors (overlay style option): gain blue, loss orange..."""
         return colorblind_state().enabled
+
+    @Property(bool, constant=True)
+    def pageTitleInBar(self) -> bool:
+        """Page name shown in the title bar drawn by the app: page headers leave it out (TpPageHeader). Constant: set
+        with the main window, before any page is built"""
+        from ..title_bar import page_title_in_bar
+
+        return page_title_in_bar()
 
     @Property(bool, notify=changed)
     def dark(self) -> bool:
@@ -750,6 +737,7 @@ class Theme(QObject):
     row = _size_token(SIZE_SCALE, "row")
     rowTall = _size_token(SIZE_SCALE, "rowTall")
     headerHeight = _size_token(SIZE_SCALE, "headerHeight")
+    minTarget = _size_token(SIZE_SCALE, "minTarget")  # smallest click area (24 px at 100 %)
     iconXs = _size_token(ICON_SCALE, "iconXs")
     iconSm = _size_token(ICON_SCALE, "iconSm")
     iconMd = _size_token(ICON_SCALE, "iconMd")
@@ -917,12 +905,28 @@ class Translator(QObject):
     """
 
     @Slot(str, result=str)
-    def tr(self, text: str) -> str:  # type: ignore[override]  # replaces QObject.tr for QML
-        return tr(text)
+    @Slot(str, str, result=str)
+    def tr(self, text: str, context: str = "") -> str:  # type: ignore[override]  # replaces QObject.tr for QML
+        return tr(text, context)
 
     @Slot(str, result=str)
     def trm(self, text: str) -> str:
         return trm(text)
+
+    @Slot(result=str)
+    def percentSign(self) -> str:
+        """Percent sign after a number: value + i18n.percentSign()"""
+        return percent_sign()
+
+    @Slot(result=str)
+    def colon(self) -> str:
+        """Label & value separator: i18n.tr("Drivers") + i18n.colon() + names"""
+        return colon()
+
+    @Slot(float, str, str, result=str)
+    def plural(self, count: float, one: str, many: str) -> str:
+        """Translated noun for count: i18n.plural(cars, "car", "cars")"""
+        return plural(count, one, many)
 
 
 # i18n.tr in JavaScript: same lookup as i18n.tr (table of current language, text itself if missing).
@@ -932,12 +936,23 @@ _TRANSLATOR_QML = """import QtQuick
 QtObject {
     required property QtObject source
     required property var table
-    function tr(text) {
+    property bool singularBelowTwo: false  // French: "0 tour", "1 tour" (see i18n.SINGULAR_BELOW_TWO)
+    property string colonText: ": "  // label & value separator (see i18n.colon)
+    property string percentText: "%"  // percent sign after a number (see i18n.percent_sign)
+    function tr(text, context) {
         var key = typeof text === "string" ? text : (text === undefined || text === null ? "" : String(text))
-        var value = table[key]
+        var value = typeof context === "string" && context !== "" ? table[context + "\\x04" + key] : undefined
+        if (typeof value !== "string")
+            value = table[key]
         return typeof value === "string" ? value : key
     }
     function trm(text) { return source.trm(text) }
+    function colon() { return colonText }
+    function percentSign() { return percentText }
+    function plural(count, one, many) {
+        var singular = singularBelowTwo ? Math.abs(count) < 2 : count === 1
+        return tr(singular ? one : many)
+    }
 }
 """
 
@@ -950,14 +965,16 @@ def translator_copy(engine: QQmlEngine, translator: Translator) -> QObject:
     created: app language change rebuilds pages (MainWindow.retranslate), like Translator before
     (no notify, bindings never read texts again). trm (regex rules) stays in Python, rarely used.
     """
-    from ...i18n import current_language, load_translation
+    from ...i18n import SINGULAR_BELOW_TWO, colon, current_language, load_translation, percent_sign
 
     component = QQmlComponent(engine)
     component.setData(_TRANSLATOR_QML.encode(), QUrl("translator_copy.qml"))
     copy = None
     if component.isReady():
         table = load_translation(current_language())
-        copy = component.createWithInitialProperties({"source": translator, "table": table})
+        copy = component.createWithInitialProperties({
+            "source": translator, "table": table, "singularBelowTwo": current_language() in SINGULAR_BELOW_TWO,
+            "colonText": colon(), "percentText": percent_sign()})
     if copy is None:
         logger.error("QML: translator copy: %s", component.errorString())
         return translator
@@ -965,21 +982,31 @@ def translator_copy(engine: QQmlEngine, translator: Translator) -> QObject:
     return copy
 
 
-def reload_in_language(view: QQuickWidget) -> None:
-    """QML page loaded again in current app language (backend & pending edits kept)
+def reload_in_language(view: QQuickWidget, qml_name: str, context: dict[str, QObject],
+                       samples: int = 0) -> QQuickWidget:
+    """QML page built again in current app language (backend & pending edits kept): new view in place of view
+    (its i18n made in the current language), returned
 
-    i18n holds the translation table of the language when it was made: replaced by a new one first,
-    old one (& its translator) deleted.
+    Old view hidden & deleted by the event loop, never unloaded by setSource(QUrl()) here: Qt's image reader thread
+    may be in the Python preview provider (async overlay pictures) waiting for the GIL this call holds while Qt
+    waits for that thread (app frozen, see lazy_page.release_view).
     """
-    source = view.source()
-    view.setSource(QUrl())
-    context = view.rootContext()
-    old = context.contextProperty("i18n")
-    context.setContextProperty("i18n", translator_copy(view.engine(), Translator(view)))
-    owner = old if isinstance(old, Translator) else old.parent() if isinstance(old, QObject) else None
-    if isinstance(owner, Translator):
-        owner.deleteLater()
-    view.setSource(source)
+    from ..lazy_page import release_view
+
+    parent = view.parentWidget()
+    if parent is None:  # never: views of pages are children of their page
+        raise ValueError("view without parent page")
+    new_view = create_quick_view(parent, qml_name, context, samples)
+    layout = parent.layout()
+    if layout is not None and layout.indexOf(view) >= 0:
+        layout.replaceWidget(view, new_view)
+    if parent.focusProxy() is view:
+        parent.setFocusProxy(new_view)
+    focused = view.hasFocus()
+    release_view(view)
+    if focused:
+        new_view.setFocus()
+    return new_view
 
 
 class PageState(QObject):

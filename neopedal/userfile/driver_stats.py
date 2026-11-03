@@ -38,7 +38,7 @@ from math import isfinite
 from time import sleep
 from typing import Any, get_type_hints
 
-from ..const_common import MAX_SECONDS
+from ..const_common import MAX_LAPTIME, MAX_SECONDS
 from ..const_file import FileExt, StatsFile
 from ..validator import convert_value_type, purge_data_key
 from . import read_json
@@ -141,6 +141,8 @@ def validate_stats_file(stats_user: dict) -> dict:
                     value = vehicle_stats[name] = convert_value_type(value, default_dict[name], value_type)
                 if value_type is not None and isinstance(value, float) and not isfinite(value):
                     vehicle_stats[name] = default_dict[name]
+                elif DriverStats.is_lap_time(name) and is_clock_jump(vehicle_stats[name]):
+                    vehicle_stats[name] = default_dict[name]
     return stats_user
 
 
@@ -171,9 +173,15 @@ def is_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def is_clock_jump(value: Any) -> bool:
+    """Lap time saved from a game clock jump (LMU DQ: 10 h "valid" lap, versions until 0.28.1): no lap time,
+    MAX_SECONDS (none) left as is"""
+    return is_number(value) and MAX_LAPTIME <= value < MAX_SECONDS
+
+
 def best_lap_time(*values: Any) -> float:
     """Fastest valid lap time of values, 0 if none"""
-    times = [float(value) for value in values if is_number(value) and 0 < value < MAX_SECONDS]
+    times = [float(value) for value in values if is_number(value) and 0 < value < MAX_LAPTIME]
     return min(times) if times else 0.0
 
 
@@ -391,6 +399,8 @@ def load_driver_stats(
             # "nan", "inf" text or NaN/Infinity literal: a best (nan) never improved, default
             if isinstance(value, float) and not isfinite(value):
                 stats[key] = default_dict[key]
+            elif DriverStats.is_lap_time(key) and is_clock_jump(value):
+                stats[key] = default_dict[key]
         return DriverStats(**stats)
     except (AttributeError, TypeError, KeyError, ValueError):
         return DriverStats()
@@ -477,7 +487,7 @@ def add_driver_stats(
             loaded_dict[key] = default_dict[key]
         # Update laptime value faster than old value
         if DriverStats.is_lap_time(key):
-            if loaded_dict[key] <= 0:  # reset invalid time
+            if loaded_dict[key] <= 0 or is_clock_jump(loaded_dict[key]):  # reset invalid time
                 loaded_dict[key] = MAX_SECONDS
             if loaded_dict[key] > value > 0:
                 loaded_dict[key] = value

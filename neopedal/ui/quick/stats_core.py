@@ -44,12 +44,15 @@ from ... import app_signal
 from ...api_control import api
 from ...const_file import ConfigType
 from ...i18n import tr
+from ...process import results_import
 from ...process import results_index as ri
 from ...rank_info import ranks
 from ...setting import cfg
 from ...userfile import lap_reference
 from ...userfile.driver_history import (
     SessionRecord,
+    checkpoint_path,
+    checkpoint_times,
     forget_records,
     history_path,
 )
@@ -57,8 +60,9 @@ from ...userfile.driver_stats import (
     STATS_LOCK,
 )
 from ...userfile.lap_reference import LEVEL_COLORS, LapReference, LapReferenceTable
+from .. import colorblind_state
 from . import open_web_link
-from .formatting import format_date
+from .formatting import format_date, sheet_date_text
 from .stats_common import (
     ALL_TRACKS,
     COLORBLIND_LEVEL_COLORS,
@@ -133,7 +137,6 @@ class StatsCore(StatsHost):
     filtersChanged = Signal()  # conditions, online & game version filters of the selected vehicle sessions
     tableFilterChanged = Signal()  # table search, class filter & classes, grouping by class
     rivalsChanged = Signal()  # people met in online races (All Tracks)
-    upcomingChanged = Signal()  # official races to come (All Tracks, RaceControl)
     goalChanged = Signal()  # lap time goal of selected vehicle
     weeklyChanged = Signal()  # progress of the last days (All Tracks)
     _wanted_combo: tuple[str, str] | None = None  # track & vehicle shown once stats are read (see show_combo)
@@ -169,7 +172,15 @@ class StatsCore(StatsHost):
 
     @property
     def colorblind_colors(self) -> bool:
-        return bool(self.viewer_config().get("enable_colorblind_colors", False))
+        """Colorblind safe level colors: the app setting (Settings, Overlay Style, as every page & overlay), or the
+        former page-only option still on"""
+        return colorblind_state().enabled or bool(self.viewer_config().get("enable_colorblind_colors", False))
+
+    def colorblind_changed(self):
+        """App colorblind setting changed: level colors of the table & cards shown again"""
+        if not self._released:
+            self.optionsChanged.emit()
+            self.refresh_table()
 
     def level_color(self, level: int) -> str:
         """Level color of setting, darker on light theme for contrast"""
@@ -191,6 +202,12 @@ class StatsCore(StatsHost):
         self.referenceChanged.emit()
         if self._loaded and not self._released:
             self.refresh_table()
+            self.publish_selection()  # reference card & automatic goal (next level) of selected vehicle
+            self.check_goals()  # level reached since last time: told once
+        # Cache of an older version (CSV export: lap times to the hundredth): downloaded again once, to the millisecond
+        if references.entries and not references.precise and not self._precise_asked and not self._released:
+            self._precise_asked = True
+            self.download_reference(force=True)
 
     def download_reference(self, force: bool = False):
         """Download lap time reference in background, when older than a day (or asked)"""
@@ -238,8 +255,10 @@ class StatsCore(StatsHost):
             return tr("Downloading community lap times…")
         if self.references.entries:
             # Date cell of the sheet (anyone's sheet: its address can be changed): text, never markup
-            updated = f" · {tr('updated')} {html.escape(self.references.updated)}" if self.references.updated else ""
-            return f"{tr('Community lap times')} ({source}){updated}"
+            updated = (f" · {tr('updated')} {html.escape(sheet_date_text(self.references.updated))}"
+                       if self.references.updated else "")
+            failed = f" · {tr('update failed (offline?)')}" if self.reference_error else ""
+            return f"{tr('Community lap times')} ({source}){updated}{failed}"
         if self.reference_error:
             return tr("Community lap times unavailable (offline?)")
         return ""
@@ -355,6 +374,9 @@ class StatsCore(StatsHost):
         # Running job finishes (edit saved), waiting reloads dropped, waiting edits still saved: page not updated
         self.save_after_release([job for job in self._locked_jobs if job.kind == "edit"])
         self._locked_jobs.clear()
+        # Running job left to its worker thread (done callback skipped once released): page no longer holds it, its
+        # done callback (method of the page) would keep page <-> page in a reference cycle, see jobs.weak_callback
+        self._running_job = None
         self._laps_job = None
         self._lap_infos = OrderedDict()  # a read running fills the former one
         forget_records(cfg.path.config)  # session history kept for next read: memory freed
@@ -369,6 +391,8 @@ class StatsCore(StatsHost):
             self._settings_connected = False
             with suppress(RuntimeError, TypeError):
                 app_signal.refresh.disconnect(self.settings_changed)
+            with suppress(RuntimeError, TypeError):
+                colorblind_state().changed.disconnect(self.colorblind_changed)
 
     @Slot()
     def reload(self):
@@ -455,6 +479,21 @@ class StatsCore(StatsHost):
                     linked[result.path] = record.vehicle
         self._fixes_key = key
         return ri.best_lap_fixes(self.results, self.stats_temp, linked, self.classification(), brands)
+
+    def results_to_import(self) -> list[ri.ResultSummary]:
+        """Sessions of results files never recorded (see results_import), found again only when results or
+        session history changed"""
+        marks = checkpoint_path(cfg.path.config)
+        try:
+            marks_stamp = os.stat(marks).st_mtime_ns
+        except OSError:
+            marks_stamp = 0
+        key = (self._results_serial, self._history_stamp, marks_stamp)
+        if key != self._imports_key:
+            self._imports_key = key
+            self._imports = results_import.import_candidates(self.results, self.history, (self._linked or {}).keys(),
+                                                             checkpoint_times(cfg.path.config))
+        return self._imports
 
     def check_ranks(self):
         """Game ranks file checked in background, driver card made again once ranks or badge icon changed"""

@@ -24,6 +24,8 @@ Check, in this order:
 
 Overlays on the desktop are not visible in a VR headset. Use the SteamVR overlay or the VR mirror window: see [Connections](Connections.md#vr).
 
+VR overlay turned on but nothing in the headset: the overlay only shows what is visible on your desktop (test on track, not in the game menus), SteamVR must run before the app looks for it (started within 5 seconds while you drive), and `enable_attach_to_headset` tells apart an overlay placed out of view (it then follows your head) from one not shown at all. `Help` > `Show Log` says whether SteamVR was found (`ENABLED: VR overlay (SteamVR)`), is awaited (`waiting for SteamVR`) or refused the connection (`VR overlay unavailable`). Headsets running through SteamVR (Valve Index, HTC Vive, PlayStation VR2...) need no OpenXR layer. Details in [Connections](Connections.md#vr-overlay-experimental).
+
 ### Stream overlay sources empty
 
 The `Stream Overlays` page tells why its sources are empty when no overlay is shown: auto hide outside sessions, or the visibility options of the overlays. To stream a session you spectate or a replay, keep `Show overlays while spectating` on. On an ultrawide or triple screen, the `Layout` source shows the centre of the screen in 16:9 by default: move side overlays into the frame with `Edit Layout`, or choose `Whole screen` in `Format`. See [Connections](Connections.md#stream-overlays-obs-streamlabs-xsplit-vmix).
@@ -34,8 +36,8 @@ The `Stream Overlays` page tells why its sources are empty when no overlay is sh
 - **Le Mans Ultimate**: `Settings` > `Gameplay` > `Enable Plugins` must be on in the game.
 - **rFactor 2**: the shared memory plugin must be in `Bin64\Plugins`, turned on in the game, and the game restarted. If it does not appear in the game, install the `Visual C++ 2013` runtime from the game's `Support\Runtimes` folder.
 - **Linux**: see the plugin notes of [Game Setup](Game-Setup.md#summary).
-- **Overrides**: `enable_active_state_override` and `enable_player_index_override` (`API` > `Options`) change what is shown; turn them off unless you need them. Spectate mode also sets the player index.
-- **LMU REST data missing** (chat, team stints, official delta...): `url_port` in `API` > `Options` must match `WebUI port` in the game file `UserData\player\Settings.JSON` (default `6397`). See [LMU REST API](Game-Setup.md#lmu-rest-api-automatic).
+- **Overrides**: `enable_active_state_override` and `enable_player_index_override` (`API` > `API Options`) change what is shown; turn them off unless you need them. Spectate mode also sets the player index.
+- **LMU REST data missing** (chat, team stints, official delta...): `url_port` in `API` > `API Options` must match `WebUI port` in the game file `UserData\player\Settings.JSON` (default `6397`). See [LMU REST API](Game-Setup.md#lmu-rest-api-automatic).
 
 `Tools` > `Overlay Performance` > `Game data` shows the age of the shared memory data and the state of each REST data group: useful to see what the app receives.
 
@@ -49,7 +51,7 @@ The `Stream Overlays` page tells why its sources are empty when no overlay is sh
 
 If a start did not finish (crash, or app killed before the window and overlays were up for a few seconds), the next start asks whether to start in **safe mode**: plugins are not loaded and overlays are not started, so you can fix the settings that caused the problem (turn off an overlay or a plugin, for example).
 
-- The window title shows `Safe Mode`. Click `Restart Normally` in the notice, or `Window` > `Restart NeoPedal`, to start normally again.
+- The window title shows `Safe Mode`. Click `Restart Normally` in the notice, or `Restart NeoPedal` at the end of the `☰` menu (`Window` menu with the Windows title bar), to start normally again.
 - You can force safe mode from the command line:
 
 ```bash
@@ -81,7 +83,7 @@ If another program (antivirus, OneDrive or another sync tool, a backup tool) hol
 ## Report a bug
 
 1. `Help` > `Create Bug Report…`, describe what you did, what happened and what you expected, then `Save Report…`. The ZIP contains logs, settings and system info; your user folder name, access codes, stream overlay access token and repository names are removed.
-2. Open an [issue](https://github.com/Keenny38/NeoPedal/issues/new): one problem per issue, with the app version (`Help` > `About`), the game, your system, the steps, and the report attached. `Open GitHub Issue…` of the bug report page opens a new issue in your browser with the app version, your system and your description already filled in (nothing is sent until you submit it there): attach the report to it.
+2. Open an [issue](https://github.com/Keenny38/NeoPedal/issues/new): one problem per issue, with the app version (`Help` > `About NeoPedal`), the game, your system, the steps, and the report attached. `Open GitHub Issue…` of the bug report page opens a new issue in your browser with the app version, your system and your description already filled in (nothing is sent until you submit it there): attach the report to it.
 
 Many problems come from other apps or plugins: turn them off to rule them out first. Security problems must be reported privately: see [Updates and Security](Updates-and-Security.md#reporting-a-vulnerability).
 
@@ -116,7 +118,7 @@ Memory: overlays turned off and pages you have not opened take no memory (their 
 
 ## Reset the app
 
-- **Setup**: run `Help` > `Setup Wizard` again.
+- **Setup**: run `Help` > `Setup Wizard…` again.
 - **One preset**: create a default preset with `New` on the `Preset` page and load it, or restore a backup with `Restore`.
 - **Recorded data** of the current track and class: `Overlay` > `Reset Data`.
 - **A deleted preset**: `Trash` on the `Preset` page.

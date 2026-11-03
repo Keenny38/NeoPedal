@@ -169,7 +169,7 @@ class Realtime(NavigationMixin, ModernOverlay):
         """Opponents in view range"""
         veh_info = minfo.vehicles.dataSet
         painter.setPen(self.pen_car)
-        total = len(veh_info)
+        total = min(minfo.vehicles.totalVehicles, len(veh_info))  # vehicles data longer than the field
         for index in minfo.relative.drawOrder:
             if index >= total:  # car left since relative order made
                 continue

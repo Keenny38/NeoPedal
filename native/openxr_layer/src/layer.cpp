@@ -670,9 +670,11 @@ XRAPI_ATTR XrResult XRAPI_CALL hook_xrEndFrame(XrSession session, const XrFrameE
     }
     // Other error (runtime failure...): frame never submitted again (runtime may have ended it), returned to the
     // game; overlay stopped after a few frames in a row, else the game would get the error on every frame.
-    // Session state errors come from the game.
+    // Session state errors and a display time refused (the game's, while it loads) come from the game, a lost
+    // instance from the runtime: never the overlay's.
     if (result != XR_ERROR_SESSION_LOST && result != XR_ERROR_SESSION_NOT_RUNNING &&
-        result != XR_ERROR_CALL_ORDER_INVALID && ++data->overlay_failures >= kOverlayFailures) {
+        result != XR_ERROR_CALL_ORDER_INVALID && result != XR_ERROR_TIME_INVALID &&
+        result != XR_ERROR_INSTANCE_LOST && ++data->overlay_failures >= kOverlayFailures) {
         data->failed = true;
         data->last_result = static_cast<int32_t>(result);
         log_result("xrEndFrame with overlay (frames in a row)", result);

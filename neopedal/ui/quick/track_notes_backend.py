@@ -151,7 +151,7 @@ class TrackNotesBackend(PageBackend):
         self._window = parent
         self._map = TrackMapBackend(parent)  # map of the track, as Track Map Viewer
         self._map.mapChanged.connect(self.update_marks)
-        self._map.configChanged.connect(self.update_marks)
+        self._map.configChanged.connect(self.config_changed)
         self._notes_model = DictListModel(NOTE_ROLES, self)
         self.notes_type = NOTESTYPE_PACE
         self.header: tuple[str, ...] = ()
@@ -604,6 +604,10 @@ class TrackNotesBackend(PageBackend):
             self._map.ecfg[MARKED_KEY] = shown
             cfg.save(config_type=ConfigType.CONFIG)
             self.update_marks(force=True)
+
+    def config_changed(self):
+        """Map config applied: marks told again (color or shown changed with the same places)"""
+        self.update_marks(force=True)
 
     def update_marks(self, force: bool = False):
         """Places of notes on map (marks shown & map loaded), told only if changed"""

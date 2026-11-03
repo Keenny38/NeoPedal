@@ -126,6 +126,19 @@ def format_day(day: date) -> str:
     return date_locale().toString(QDate(day.year, day.month, day.day), QLocale.FormatType.ShortFormat)
 
 
+def sheet_date_text(text: str) -> str:
+    """Date written by a sheet ("2026.10.30. 08:48 CEST", "2026-10-30 08:48") as the app writes dates: short date
+    in language format, time & zone kept; other text as is"""
+    found = re.fullmatch(r"\s*(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\.?(?:\s+(\d{1,2}:\d{2})(.*))?", text or "")
+    if found is None:
+        return text
+    day = QDate(int(found[1]), int(found[2]), int(found[3]))
+    if not day.isValid():
+        return text
+    when = " ".join(part.strip() for part in (found[4] or "", found[5] or "") if part.strip())
+    return f"{date_locale().toString(day, QLocale.FormatType.ShortFormat)} {when}".strip()
+
+
 def day_text(timestamp: float, today: QDate) -> str:
     """Day of a replay: Today, Yesterday, or long date in app language ("Samedi 3 octobre 2026")"""
     if timestamp <= 0:

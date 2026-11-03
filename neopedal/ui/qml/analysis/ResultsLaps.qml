@@ -15,7 +15,8 @@ Item {
     readonly property bool usage: backend.lapColumns.usage === true
     readonly property bool wear: backend.lapColumns.wear === true
     readonly property real pad: theme.space4
-    readonly property real scrollWidth: list.ScrollBar.vertical.visible ? list.ScrollBar.vertical.width : 0
+    readonly property real scrollWidth: grid.scrollWidth
+    readonly property alias list: grid.list  // the rows' ListView (current row, keyboard focus)
     readonly property real wLap: theme.em * 3.0
     readonly property real wPos: theme.em * 3.0
     readonly property real wTime: theme.em * 7.0
@@ -97,7 +98,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: [laps.info.team || "", laps.info.car || "", laps.info.drivers ? i18n.tr("Drivers") + ": " + laps.info.drivers : ""]
+                text: [laps.info.team || "", laps.info.car || "", laps.info.drivers ? i18n.tr("Drivers") + i18n.colon() + laps.info.drivers : ""]
                       .filter(function(part) { return part !== "" }).join(" · ")
                 textFormat: Text.PlainText
                 color: theme.dimText
@@ -135,191 +136,160 @@ Item {
             Layout.fillHeight: true
             clip: true
 
-            Flickable {  // wide table scrolls sideways on narrow pages
+            // Columns & rows of the page, scroll, titles & keyboard of every table (TpTable)
+            TpTable {
+                id: grid
                 anchors.fill: parent
-                contentWidth: Math.max(width, tableColumn.implicitWidth)
-                contentHeight: height
-                boundsBehavior: Flickable.StopAtBounds
-                flickableDirection: Flickable.HorizontalFlick
-                interactive: contentWidth > width
-                ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
-
-                ColumnLayout {
-                    id: tableColumn
-                    width: Math.max(parent.width, implicitWidth)
-                    height: parent.height
-                    spacing: 0
-
-                    Row {
-                        Layout.leftMargin: laps.pad
-                        Layout.bottomMargin: theme.space2
-                        Header { cellWidth: laps.wLap; text: i18n.tr("Lap") }
-                        Header { cellWidth: laps.wPos; text: i18n.tr("Pos") }
-                        Header { cellWidth: laps.wTime; text: i18n.tr("Time"); rightPadding: laps.markRoom - theme.space1 }
-                        Header { cellWidth: laps.wDelta; text: i18n.tr("Gap") }
-                        Header { cellWidth: laps.wSector; text: "S1"; rightPadding: laps.markRoom - theme.space1 }
-                        Header { cellWidth: laps.wSector; text: "S2"; rightPadding: laps.markRoom - theme.space1 }
-                        Header { cellWidth: laps.wSector; text: "S3"; rightPadding: laps.markRoom - theme.space1 }
-                        Header { cellWidth: laps.wSpeed; text: backend.speedUnit }
-                        Header { cellWidth: laps.wTyre; text: i18n.tr("Tyre") }
-                        Header { cellWidth: laps.wPit; text: i18n.tr("Pit") }
-                        Header { cellWidth: laps.wUsage; text: i18n.tr("Used") }
-                        Header { cellWidth: laps.wWear; text: i18n.tr("Tread") }
-                        Header { cellWidth: laps.wWatch; text: "" }
-                        Header { cellWidth: laps.wTelemetry; text: "" }
+                listName: "lapList"
+                name: i18n.tr("Laps")
+                model: backend.lapModel
+                pad: laps.pad
+                rowWidth: laps.pad + laps.wLap + laps.wPos + laps.wTime + laps.wDelta + laps.wSector * 3 + laps.wSpeed
+                          + laps.wTyre + laps.wPit + laps.wUsage + laps.wWear + laps.wWatch + laps.wTelemetry
+                currentOnFocus: true
+                // Enter: watch the lap in the game's replay, T: telemetry of the current lap (recorded)
+                onActivated: if (laps.replay && list.currentItem) backend.watchLap(list.currentItem.lap)
+                Keys.onPressed: function(event) {
+                    if (event.key === Qt.Key_T && event.modifiers === Qt.NoModifier && list.currentItem
+                            && list.currentItem.telemetry) {
+                        backend.openLapTelemetry(list.currentItem.lap)
+                        event.accepted = true
                     }
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: theme.border }
+                }
 
-                    ListView {
-                        id: list
-                        objectName: "lapList"
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.preferredWidth: laps.pad + laps.wLap + laps.wPos + laps.wTime + laps.wDelta + laps.wSector * 3
-                                               + laps.wSpeed + laps.wTyre + laps.wPit + laps.wUsage + laps.wWear + laps.wWatch
-                                               + laps.wTelemetry + laps.scrollWidth
-                        clip: true
-                        model: backend.lapModel
-                        reuseItems: true  // rows scrolled out fed again with other laps (see delegate onPooled)
-                        boundsBehavior: Flickable.StopAtBounds
-                        activeFocusOnTab: count > 0
-                        currentIndex: -1
-                        keyNavigationEnabled: true
-                        highlightFollowsCurrentItem: false
-                        Accessible.role: Accessible.Table
-                        Accessible.name: i18n.tr("Laps")
-                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-                        onActiveFocusChanged: if (activeFocus && currentIndex < 0 && count > 0) currentIndex = 0
-                        Keys.onReturnPressed: if (laps.replay && currentItem) backend.watchLap(currentItem.lap)
-                        Keys.onEnterPressed: if (laps.replay && currentItem) backend.watchLap(currentItem.lap)
-                        Keys.onPressed: function(event) {  // T: telemetry of current lap (recorded)
-                            if (event.key === Qt.Key_T && event.modifiers === Qt.NoModifier && currentItem
-                                    && currentItem.telemetry) {
-                                backend.openLapTelemetry(currentItem.lap)
-                                event.accepted = true
+                Header { cellWidth: laps.wLap; text: i18n.tr("Lap") }
+                Header { cellWidth: laps.wPos; text: i18n.tr("Pos") }
+                Header { cellWidth: laps.wTime; text: i18n.tr("Time"); rightPadding: laps.markRoom - theme.space1 }
+                Header { cellWidth: laps.wDelta; text: i18n.tr("Gap") }
+                Header { cellWidth: laps.wSector; text: "S1"; rightPadding: laps.markRoom - theme.space1 }
+                Header { cellWidth: laps.wSector; text: "S2"; rightPadding: laps.markRoom - theme.space1 }
+                Header { cellWidth: laps.wSector; text: "S3"; rightPadding: laps.markRoom - theme.space1 }
+                Header { cellWidth: laps.wSpeed; text: backend.speedUnit }
+                Header { cellWidth: laps.wTyre; text: i18n.tr("Tyre") }
+                Header { cellWidth: laps.wPit; text: i18n.tr("Pit") }
+                Header { cellWidth: laps.wUsage; text: i18n.tr("Used") }
+                Header { cellWidth: laps.wWear; text: i18n.tr("Tread") }
+                Header { cellWidth: laps.wWatch; text: "" }
+                Header { cellWidth: laps.wTelemetry; text: "" }
+
+                delegate: Item {
+                    id: row
+                    required property int index
+                    required property int lap
+                    required property string posText
+                    required property string timeText
+                    required property string timeTone
+                    required property string deltaText
+                    required property string s1
+                    required property string s2
+                    required property string s3
+                    required property string s1Tone
+                    required property string s2Tone
+                    required property string s3Tone
+                    required property string speedText
+                    required property string compound
+                    required property bool pit
+                    required property string usageText
+                    required property string wearText
+                    required property string accessibleText  // lap, time, record & pit (backend)
+                    required property bool telemetry  // lap recorded (lap viewer)
+                    // Reused row: fed other lap values at once, no color animation from the old lap
+                    property bool live: true
+                    ListView.onPooled: live = false
+                    ListView.onReused: live = true
+
+                    width: ListView.view.width - laps.scrollWidth
+                    height: Math.round(theme.rowCompact)
+                    Accessible.role: Accessible.Row
+                    Accessible.name: row.accessibleText
+
+                    TpListRow {
+                        id: surface
+                        anchors.fill: parent
+                        animate: row.live
+                        radius: theme.radiusSm
+                        hovered: rowHover.hovered
+                        striped: row.index % 2 === 1
+                    }
+                    HoverHandler { id: rowHover }
+                    FocusRing {
+                        target: surface
+                        anchors.margins: 0
+                        visible: list.activeFocus && row.ListView.isCurrentItem
+                    }
+                    Row {
+                        anchors.fill: parent
+                        anchors.leftMargin: laps.pad
+                        Cell { cellWidth: laps.wLap; text: row.lap; tone: "dim" }
+                        Cell { cellWidth: laps.wPos; text: row.posText }
+                        TimeCell { cellWidth: laps.wTime; text: row.timeText; tone: row.timeTone }
+                        Cell { cellWidth: laps.wDelta; text: row.deltaText; tone: "dim" }
+                        TimeCell { cellWidth: laps.wSector; text: row.s1; tone: row.s1Tone }
+                        TimeCell { cellWidth: laps.wSector; text: row.s2; tone: row.s2Tone }
+                        TimeCell { cellWidth: laps.wSector; text: row.s3; tone: row.s3Tone }
+                        Cell { cellWidth: laps.wSpeed; text: row.speedText }
+                        Item {  // compound badge (as overlays) & name, right aligned
+                            width: laps.wTyre
+                            height: parent.height
+                            Row {
+                                anchors.right: parent.right
+                                anchors.rightMargin: theme.space4
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: theme.space2
+                                TpCompound { name: row.compound; anchors.verticalCenter: parent.verticalCenter }
+                                Text {
+                                    text: row.compound
+                                    textFormat: Text.PlainText
+                                    color: theme.dimOn(surface.color)
+                                    width: Math.min(implicitWidth, laps.wTyre - theme.em * 2)
+                                    elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
                             }
                         }
-
-                        delegate: Item {
-                            id: row
-                            required property int index
-                            required property int lap
-                            required property string posText
-                            required property string timeText
-                            required property string timeTone
-                            required property string deltaText
-                            required property string s1
-                            required property string s2
-                            required property string s3
-                            required property string s1Tone
-                            required property string s2Tone
-                            required property string s3Tone
-                            required property string speedText
-                            required property string compound
-                            required property bool pit
-                            required property string usageText
-                            required property string wearText
-                            required property string accessibleText  // lap, time, record & pit (backend)
-                            required property bool telemetry  // lap recorded (lap viewer)
-                            // Reused row: fed other lap values at once, no color animation from the old lap
-                            property bool live: true
-                            ListView.onPooled: live = false
-                            ListView.onReused: live = true
-
-                            width: ListView.view.width - laps.scrollWidth
-                            height: Math.round(theme.rowCompact)
-                            Accessible.role: Accessible.Row
-                            Accessible.name: row.accessibleText
-
-                            TpListRow {
-                                id: surface
-                                anchors.fill: parent
-                                animate: row.live
-                                radius: theme.radiusSm
-                                hovered: rowHover.hovered
-                                striped: row.index % 2 === 1
+                        Item {
+                            width: laps.wPit
+                            height: parent.height
+                            Pill {
+                                visible: row.pit
+                                anchors.right: parent.right
+                                anchors.rightMargin: theme.space4
+                                anchors.verticalCenter: parent.verticalCenter
+                                size: "sm"
+                                text: i18n.tr("PIT")
+                                tint: theme.warning
                             }
-                            HoverHandler { id: rowHover }
-                            FocusRing {
-                                target: surface
-                                anchors.margins: 0
-                                visible: list.activeFocus && row.ListView.isCurrentItem
+                        }
+                        Cell { cellWidth: laps.wUsage; text: row.usageText }
+                        Cell { cellWidth: laps.wWear; text: row.wearText }
+                        Item {
+                            width: laps.wWatch
+                            height: parent.height
+                            visible: laps.replay
+                            TpButton {  // replay of session at start of this lap, camera on car
+                                anchors.centerIn: parent
+                                flat: true
+                                size: "sm"
+                                glyph: ""  // play
+                                fallback: "▶"
+                                tip: i18n.tr("Watch lap in replay")
+                                onClicked: backend.watchLap(row.lap)
                             }
-                            Row {
-                                anchors.fill: parent
-                                anchors.leftMargin: laps.pad
-                                Cell { cellWidth: laps.wLap; text: row.lap; tone: "dim" }
-                                Cell { cellWidth: laps.wPos; text: row.posText }
-                                TimeCell { cellWidth: laps.wTime; text: row.timeText; tone: row.timeTone }
-                                Cell { cellWidth: laps.wDelta; text: row.deltaText; tone: "dim" }
-                                TimeCell { cellWidth: laps.wSector; text: row.s1; tone: row.s1Tone }
-                                TimeCell { cellWidth: laps.wSector; text: row.s2; tone: row.s2Tone }
-                                TimeCell { cellWidth: laps.wSector; text: row.s3; tone: row.s3Tone }
-                                Cell { cellWidth: laps.wSpeed; text: row.speedText }
-                                Item {  // compound badge (as overlays) & name, right aligned
-                                    width: laps.wTyre
-                                    height: parent.height
-                                    Row {
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: theme.space4
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: theme.space2
-                                        TpCompound { name: row.compound; anchors.verticalCenter: parent.verticalCenter }
-                                        Text {
-                                            text: row.compound
-                                            textFormat: Text.PlainText
-                                            color: theme.dimOn(surface.color)
-                                            width: Math.min(implicitWidth, laps.wTyre - theme.em * 2)
-                                            elide: Text.ElideRight
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                    }
-                                }
-                                Item {
-                                    width: laps.wPit
-                                    height: parent.height
-                                    Pill {
-                                        visible: row.pit
-                                        anchors.right: parent.right
-                                        anchors.rightMargin: theme.space4
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        size: "sm"
-                                        text: i18n.tr("PIT")
-                                        tint: theme.warning
-                                    }
-                                }
-                                Cell { cellWidth: laps.wUsage; text: row.usageText }
-                                Cell { cellWidth: laps.wWear; text: row.wearText }
-                                Item {
-                                    width: laps.wWatch
-                                    height: parent.height
-                                    visible: laps.replay
-                                    TpButton {  // replay of session at start of this lap, camera on car
-                                        anchors.centerIn: parent
-                                        flat: true
-                                        size: "sm"
-                                        glyph: ""  // play
-                                        fallback: "▶"
-                                        tip: i18n.tr("Watch lap in replay")
-                                        onClicked: backend.watchLap(row.lap)
-                                    }
-                                }
-                                Item {
-                                    width: laps.wTelemetry
-                                    height: parent.height
-                                    visible: laps.telemetry
-                                    TpButton {  // recorded lap of player's car opened in the lap viewer
-                                        objectName: "lapTelemetryButton"
-                                        anchors.centerIn: parent
-                                        visible: row.telemetry
-                                        flat: true
-                                        size: "sm"
-                                        glyph: ""  // chart
-                                        fallback: "~"
-                                        tip: i18n.tr("Telemetry of this lap") + " (T)"
-                                        onClicked: backend.openLapTelemetry(row.lap)
-                                    }
-                                }
+                        }
+                        Item {
+                            width: laps.wTelemetry
+                            height: parent.height
+                            visible: laps.telemetry
+                            TpButton {  // recorded lap of player's car opened in the lap viewer
+                                objectName: "lapTelemetryButton"
+                                anchors.centerIn: parent
+                                visible: row.telemetry
+                                flat: true
+                                size: "sm"
+                                glyph: ""  // chart
+                                fallback: "~"
+                                tip: i18n.tr("Telemetry of this lap") + " (T)"
+                                onClicked: backend.openLapTelemetry(row.lap)
                             }
                         }
                     }

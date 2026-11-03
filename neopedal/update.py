@@ -852,6 +852,34 @@ def discard_installer(path: str) -> None:
             os.rmdir(folder)
 
 
+OLD_DOWNLOAD_SECONDS = 3600.0  # private download folder older than this: installer done (or never run), removed
+
+
+def remove_old_downloads() -> int:
+    """Private download folders of earlier updates removed from the temporary folder (the installer can't delete
+    itself once run), folders of the last hour kept (download or installer going on). Returns folders removed."""
+    removed = 0
+    limit = time.time() - OLD_DOWNLOAD_SECONDS  # file times are wall clock times
+    try:
+        entries = list(os.scandir(tempfile.gettempdir()))
+    except OSError:
+        return 0
+    for entry in entries:
+        if not entry.name.startswith(DOWNLOAD_FOLDER_PREFIX):
+            continue
+        try:
+            if not entry.is_dir(follow_symlinks=False) or entry.stat(follow_symlinks=False).st_mtime > limit:
+                continue
+        except OSError:
+            continue
+        shutil.rmtree(entry.path, ignore_errors=True)  # an installer still open keeps its file
+        if not os.path.exists(entry.path):
+            removed += 1
+    if removed:
+        logger.info("UPDATES: %s old installer download(s) removed", removed)
+    return removed
+
+
 MAX_INSTALLER_SIZE = 1 << 30  # extracted installer size limit
 
 

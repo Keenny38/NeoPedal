@@ -19,7 +19,8 @@ Column {
         anchors.horizontalCenter: parent.horizontalCenter
         size: state.compact ? "md" : "lg"
     }
-    Text {
+    TpText {
+        elide: Text.ElideNone
         width: parent.width
         visible: text !== ""
         horizontalAlignment: Text.AlignHCenter

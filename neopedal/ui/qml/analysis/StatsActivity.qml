@@ -5,6 +5,7 @@ import "../components"
 
 // Driving activity of each day: one column per week (Monday on top), the last weeks that fit the width,
 // month names above, day color by driving time (accent, stronger for longer), summary & legend below.
+// Every week fits: days as wide as the room allows (whole width used), never taller than 1.15 em.
 // Activity from backend: weeks, days (level -1 future, 0 none, 1-4; tip), months (week, text), dayNames.
 Item {
     id: activity
@@ -14,12 +15,15 @@ Item {
     readonly property int weeks: activityData.weeks || 0
     readonly property real gap: Math.max(2, Math.round(theme.em * 0.2))
     readonly property real labelWidth: theme.em * 2.4
-    // Day size: every week when it fits (up to 1.15 em), else the last weeks at 0.75 em
-    readonly property real cell: Math.max(Math.round(theme.em * 0.75),
-                                          Math.min(Math.floor((width - labelWidth) / Math.max(weeks, 1) - gap), Math.round(theme.em * 1.15)))
+    // Day width: every week when it fits (wider days fill the width), else the last weeks at 0.75 em; day height
+    // as the width, up to 1.15 em (a year of days stays as tall on a wide page)
+    readonly property real cellWidth: Math.max(Math.round(theme.em * 0.75),
+                                               Math.min(Math.floor((width - labelWidth) / Math.max(weeks, 1) - gap), Math.round(theme.em * 6)))
+    readonly property real cell: Math.min(cellWidth, Math.round(theme.em * 1.15))  // day height
+    readonly property real stepX: cellWidth + gap
     readonly property real step: cell + gap
     readonly property real monthHeight: theme.em * 1.3
-    readonly property int shownWeeks: Math.max(1, Math.min(weeks, Math.floor((width - labelWidth + gap) / step)))
+    readonly property int shownWeeks: Math.max(1, Math.min(weeks, Math.floor((width - labelWidth + gap) / stepX)))
     readonly property int firstDay: Math.max(0, (weeks - shownWeeks) * 7)
     property int hovered: -1
 
@@ -40,7 +44,7 @@ Item {
             required property var modelData
             readonly property int column: modelData.week - activity.firstDay / 7
             visible: column >= 0 && column <= activity.shownWeeks - 2
-            x: activity.labelWidth + column * activity.step
+            x: activity.labelWidth + column * activity.stepX
             y: 0
             text: modelData.text
             textFormat: Text.PlainText
@@ -71,6 +75,7 @@ Item {
     onDaysChanged: Qt.callLater(paintDays)
     onShownWeeksChanged: Qt.callLater(paintDays)
     onCellChanged: Qt.callLater(paintDays)
+    onCellWidthChanged: Qt.callLater(paintDays)
     readonly property var paintColors: [theme.accent, theme.base, theme.dark]  // theme switched: painted again
     onPaintColorsChanged: Qt.callLater(paintDays)
     Canvas {
@@ -78,29 +83,30 @@ Item {
         renderStrategy: Canvas.Threaded
         x: activity.labelWidth
         y: activity.monthHeight
-        width: activity.shownWeeks * activity.step
+        width: activity.shownWeeks * activity.stepX
         height: 7 * activity.step
         onPaint: {
             var ctx = getContext("2d")
             ctx.reset()
-            var size = activity.cell, step = activity.step, corner = Math.max(2, size * 0.22)
+            var size = activity.cell, wide = activity.cellWidth, step = activity.step, stepX = activity.stepX
+            var corner = Math.max(2, size * 0.22)
             for (var index = 0; index < activity.shownWeeks * 7; index++) {
                 var day = activity.days[activity.firstDay + index]
                 if (!day || day.level < 0) continue
-                var x = Math.floor(index / 7) * step, y = (index % 7) * step
+                var x = Math.floor(index / 7) * stepX, y = (index % 7) * step
                 ctx.fillStyle = activity.dayColor(day.level)
                 ctx.beginPath()
-                ctx.roundedRect(x, y, size, size, corner, corner)
+                ctx.roundedRect(x, y, wide, size, corner, corner)
                 ctx.fill()
             }
         }
     }
     Rectangle {  // hovered day
         visible: activity.hovered >= 0
-        x: activity.labelWidth + Math.floor((activity.hovered - activity.firstDay) / 7) * activity.step - 1
+        x: activity.labelWidth + Math.floor((activity.hovered - activity.firstDay) / 7) * activity.stepX - 1
         y: activity.monthHeight + ((activity.hovered - activity.firstDay) % 7) * activity.step - 1
-        width: activity.cell + 2
-        height: width
+        width: activity.cellWidth + 2
+        height: activity.cell + 2
         radius: Math.max(2, activity.cell * 0.22) + 1
         color: "transparent"
         border.width: 1.5
@@ -110,11 +116,11 @@ Item {
         id: dayArea
         x: activity.labelWidth
         y: activity.monthHeight
-        width: activity.shownWeeks * activity.step
+        width: activity.shownWeeks * activity.stepX
         height: 7 * activity.step
         hoverEnabled: true
         onPositionChanged: function(mouse) {
-            var column = Math.floor(mouse.x / activity.step), row = Math.floor(mouse.y / activity.step)
+            var column = Math.floor(mouse.x / activity.stepX), row = Math.floor(mouse.y / activity.step)
             var index = activity.firstDay + column * 7 + row
             var day = activity.days[index]
             activity.hovered = row < 7 && day && day.level >= 0 ? index : -1
@@ -126,8 +132,8 @@ Item {
         visible: activity.hovered >= 0
         text: visible ? activity.days[activity.hovered].tip : ""
         delay: theme.motionBase  // follows the mouse from day to day: quicker than button tips
-        x: visible ? Math.max(0, Math.min(activity.labelWidth + Math.floor((activity.hovered - activity.firstDay) / 7) * activity.step
-                                          - width / 2, activity.width - width)) : 0
+        x: visible ? Math.max(0, Math.min(activity.labelWidth + Math.floor((activity.hovered - activity.firstDay) / 7) * activity.stepX
+                                          + activity.cellWidth / 2 - width / 2, activity.width - width)) : 0
         y: visible ? activity.monthHeight + ((activity.hovered - activity.firstDay) % 7) * activity.step - height - 4 : 0
     }
 
@@ -147,10 +153,11 @@ Item {
         Text { text: i18n.tr("Less"); color: theme.dimText; font.pointSize: theme.fontCaption }
         Repeater {
             model: 5
-            Rectangle {
+            Rectangle {  // laid out by its preferred size (a plain width overlaps "More")
                 required property int index
-                width: activity.cell * 0.85
-                height: width
+                Layout.preferredWidth: Math.round(activity.cell * 0.85)
+                Layout.preferredHeight: Layout.preferredWidth
+                Layout.alignment: Qt.AlignVCenter
                 radius: Math.max(2, width * 0.22)
                 color: activity.dayColor(index)
             }

@@ -14,6 +14,8 @@ TpPage {
     readonly property int view: backend.viewMode  // 0 cards, 1 list, 2 screen
     readonly property bool grid: view === 0
     readonly property bool compact: width < theme.bpCompact
+    // Header row too short for preset name & Share text: icons only (names in tooltips), never pushed out of the page
+    readonly property bool tightHeader: width < theme.bpNarrow
     readonly property real cardMinWidth: theme.em * 14.5
     readonly property var categoryCounts: backend.categoryCounts
     readonly property var stateCounts: backend.stateCounts
@@ -81,17 +83,19 @@ TpPage {
                 id: presetButton
                 flat: true
                 glyph: backend.presetLocked ? "" : ""  // lock : library
-                text: backend.presetName
+                text: page.tightHeader ? "" : backend.presetName
+                fallback: i18n.tr("Preset")
                 Layout.maximumWidth: theme.em * 13
                 tip: (backend.presetLocked ? i18n.tr("Loaded preset (locked)") : i18n.tr("Loaded preset"))
-                     + ": " + backend.presetName + "\n" + i18n.tr("Click to load another preset")
+                     + i18n.colon() + backend.presetName + "\n" + i18n.tr("Click to load another preset")
                 onClicked: presetMenu.toggleBelow(presetButton)
             }
             TpButton {
                 id: shareButton
                 flat: true
                 glyph: theme.glyphs.share
-                text: i18n.tr("Share")
+                fallback: "↗"
+                text: page.tightHeader ? "" : i18n.tr("Share")
                 tip: i18n.tr("Export or import overlay settings as a file")
                 onClicked: shareMenu.toggleBelow(shareButton)
             }
@@ -217,13 +221,14 @@ TpPage {
                 model: backend.model
                 readonly property int columns: page.grid ? Math.max(1, Math.floor(width / page.cardMinWidth)) : 1
                 cellWidth: Math.floor((width - theme.em * 0.7) / columns)  // room for scroll bar
-                cellHeight: page.grid ? Math.round(cellWidth * 0.52 + theme.em * 3.4) : Math.round(theme.row)
+                // Card: preview + footer (OverlayCard: name, 2 description lines, category)
+                cellHeight: page.grid ? Math.round(cellWidth * 0.52 + theme.em * 5.6) : Math.round(theme.row)
                 cacheBuffer: Math.max(0, cellHeight * 2)
                 reuseItems: true  // delegates reset their transient state when pooled (see OverlayCard)
                 boundsBehavior: Flickable.StopAtBounds
                 highlightFollowsCurrentItem: false
                 keyNavigationEnabled: true
-                activeFocusOnTab: visible
+                activeFocusOnTab: visible || activeFocus
                 delegate: page.grid ? cardDelegate : rowDelegate
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 

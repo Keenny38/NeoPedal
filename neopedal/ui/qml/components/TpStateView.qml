@@ -3,7 +3,8 @@ import QtQuick.Layouts
 
 // State of a panel without content to show, centered in its parent: waiting (spinner), error (warning icon,
 // message) or empty (icon, title, explanation, action). One place & look everywhere; never "nothing
-// recorded" while data is still loading (loading wins).
+// recorded" while data is still loading (loading wins). The actions stay shown in the error state: an error can
+// offer "Try Again" (actionText) instead of a dead end.
 //   TpStateView { anchors.centerIn: parent; loading: backend.loading; empty: list.count === 0
 //                 glyph: ""; title: i18n.tr("No laps"); text: ...; loadingText: i18n.tr("Reading laps…") }
 Item {
@@ -49,8 +50,8 @@ Item {
         glyph: view.error ? "" : view.glyph  // warning
         title: view.error ? "" : view.title
         text: view.error ? view.errorText : view.text
-        actionText: view.error ? "" : view.actionText
-        secondaryActionText: view.error ? "" : view.secondaryActionText
+        actionText: view.actionText
+        secondaryActionText: view.secondaryActionText
         onAction: view.action()
         onSecondaryAction: view.secondaryAction()
     }

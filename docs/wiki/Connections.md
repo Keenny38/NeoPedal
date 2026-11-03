@@ -107,9 +107,18 @@ Good to know:
 
 - **OpenXR games**, on any runtime (SteamVR, Meta Quest Link / Air Link, Virtual Desktop, Windows Mixed Reality, Pimax, Varjo...), **experimental and off by default** (`enable_openxr_layer`): the app comes with its own OpenXR layer, a small DLL that OpenXR games load when they start. It draws the overlays over the game image. Games using Direct3D 11 (Le Mans Ultimate, rFactor 2 and most sim racing games), Direct3D 12 or Vulkan are supported; OpenGL games are not.
 - **SteamVR games** (OpenVR): shown as a SteamVR overlay as soon as SteamVR runs. The app never starts SteamVR, so Meta or Virtual Desktop users without SteamVR are not bothered. When an OpenXR game runs on SteamVR, only the OpenXR layer draws the overlays (no double image).
+- **Headsets that run through SteamVR** (Valve Index, HTC Vive, PlayStation VR2 with its PC adapter, Bigscreen Beyond, Pimax or Meta headsets set to SteamVR...): `enable_vr_overlay` is enough, in SteamVR games and in OpenXR games using SteamVR as runtime (Le Mans Ultimate). The OpenXR layer is not needed.
 - OpenXR games: start the app before the game. Overlays disappear from the headset within 2 seconds when the app is closed.
-- `enable_attach_to_headset` makes it follow your head; otherwise it is fixed in front of your seated position (recentering the view in the game moves it too).
+- `enable_attach_to_headset` makes it follow your head; otherwise it is fixed in front of your seated position. Recentering the view in a SteamVR game moves it too; in an OpenXR game it stays where SteamVR's seated position is (`Reset seated position` in SteamVR moves it).
 - `overlay_width_meters`, `distance_meters`, `vertical_offset_meters` and `horizontal_offset_meters` place it. `update_interval` sets the refresh (default `50` ms).
+
+Overlay not visible in the headset:
+
+- The VR overlay only shows what is visible on your desktop: with auto hide outside sessions, or in the game menus, there is nothing to show. Test on track.
+- Start SteamVR (or the app of your headset) before NeoPedal: the app checks for SteamVR every 5 seconds while you drive, every minute while overlays are paused.
+- Turn `enable_attach_to_headset` on: the overlay follows your head. If it appears, it was only out of view: turn the option back off and change `distance_meters` or `vertical_offset_meters`, or reset the seated position in SteamVR.
+- Steam and NeoPedal must run with the same rights: one of them run as administrator and not the other cannot connect.
+- `Help` > `Show Log` says what happened: `ENABLED: VR overlay (SteamVR)` once connected, `waiting for SteamVR` while SteamVR is not seen, `VR overlay unavailable` with the reason when the connection failed. Include those lines, the game and your version in a report.
 
 How the OpenXR layer is installed and removed:
 
@@ -147,7 +156,7 @@ The telemetry viewer can open the replay at the cursor position (`Open Replay He
 
 ### Game replays (Le Mans Ultimate)
 
-The `Replays` list and the `Replay` tab of [Results & Replays](Race-Results.md) (`Results` in the navigation bar, or `Tools` > `Results & Replays`) control replays saved by Le Mans Ultimate, through the game REST API (the game must be running). Each replay is linked to the results file of its session: pick a replay to see its results, or watch an event or a lap of the results in the replay. The pill at the top tells what the game is doing: not answering, in the menus, in a session, or replay open.
+The `Replays` list and the `Replay` tab of [Results & Replays](Race-Results.md) (`Results` in the navigation bar, or the `Tools` page) control replays saved by Le Mans Ultimate, through the game REST API (the game must be running). Each replay is linked to the results file of its session: pick a replay to see its results, or watch an event or a lap of the results in the replay. The pill at the top tells what the game is doing: not answering, in the menus, in a session, or replay open.
 
 - **Replays**: the replays of `UserData/Replays` grouped by day (newest first), with track, session, event, time and size. Search by track or event, `All` / `Practice` / `Qualify` / `Race` filter, sort by date, size or track. `Watch` (or double-click, or `Enter`) opens one in the game, after confirmation (with a warning in a live session). `Open Folder` opens the replay folder.
 - **Replay files**: `Add` copies replay files (`.Vcr`) into the game replay folder (you can also drop them on the page), with a progress bar and `Stop Copy`; a file with the same name gets a number, `Name (2)`; nothing is copied if the disk lacks space. Right-click a replay (or the `...` menu for the selected replays) to `Export` it to another folder, `Rename` it, `Protect From Deletion` (star) or `Delete` it: deleted replays go to the Windows recycle bin, after confirmation, in the background with a progress bar and `Stop`; protected ones are always kept. Select several replays with `Ctrl` + click, a range with `Shift` + click, all with `Ctrl+A`. The `...` menu also cleans the folder up: delete replays older than a number of days, keep only the latest ones, delete the temporary files (`_vcr*.tmp`) the game leaves behind. A replay open in the game cannot be deleted or renamed.
@@ -163,6 +172,6 @@ The page asks the game only while the replays list or the `Replay` tab is shown,
 
 ### Broadcast director (Le Mans Ultimate)
 
-`Broadcast` in the navigation bar (or `Tools` > `Broadcast Director`) casts a race: live, driving or spectating an online race, or in a replay. Cars with live timing, every game camera in one click, an assisted or automatic director, a commentator screen, and its own **broadcast graphics** as a browser source (1920 x 1080) served by the stream overlay server, placed with a layout editor in your browser. See [Broadcast Director](Broadcast-Director.md).
+`Broadcast` in the navigation bar (or the `Tools` page) casts a race: live, driving or spectating an online race, or in a replay. Cars with live timing, every game camera in one click, an assisted or automatic director, a commentator screen, and its own **broadcast graphics** as a browser source (1920 x 1080) served by the stream overlay server, placed with a layout editor in your browser. See [Broadcast Director](Broadcast-Director.md).
 
 All options: [Remote Control](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#remote-control), [Web Dashboard](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#web-dashboard), [VR Overlay](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#vr-overlay), [Session recorder](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#session-recorder) and [Game replays](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#game-replays).

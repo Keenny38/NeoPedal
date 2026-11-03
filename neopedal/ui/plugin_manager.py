@@ -90,7 +90,7 @@ def plugin_status_kind(widget_name: str) -> tuple[str, str, str]:
     if PLUGIN_ERRORS.get(widget_name) == UNTRUSTED_ERROR:
         return "untrusted", tr("Not trusted"), tr(UNTRUSTED_ERROR)
     if widget_name in PLUGIN_ERRORS:  # known error texts translated (safe mode...), others as is
-        return "error", tr("Error"), tr(PLUGIN_ERRORS[widget_name])
+        return "error", tr("Error"), trm(tr(PLUGIN_ERRORS[widget_name]))
     return "loaded", tr("Loaded"), ""
 
 
@@ -266,7 +266,7 @@ class PluginManager(BaseDialog):
             return
         error = reload_plugin(name)
         if error:
-            QMessageBox.warning(self, tr("Error"), trm(f"Plugin reloaded with error:<br>{html.escape(tr(error))}"))
+            QMessageBox.warning(self, tr("Error"), trm(f"Plugin reloaded with error:<br>{html.escape(trm(tr(error)))}"))
         self.refresh()
         self.show_detail()
 
@@ -297,13 +297,13 @@ class PluginManager(BaseDialog):
         try:
             trust_plugin(name, expected_digest=digest)  # refuse code changed after confirmation
         except (OSError, ValueError) as error:
-            QMessageBox.warning(self, tr("Error"), trm(f"Unable to save plugin trust:<br>{html.escape(str(error))}"))
+            QMessageBox.warning(self, tr("Error"), trm(f"Unable to save plugin trust:<br>{html.escape(trm(tr(str(error))))}"))
             return
         if name in wctrl.names:
             load_error = reload_plugin(name)
             if load_error:
                 QMessageBox.warning(
-                    self, tr("Error"), trm(f"Plugin loaded with error:<br>{html.escape(tr(load_error))}"))
+                    self, tr("Error"), trm(f"Plugin loaded with error:<br>{html.escape(trm(tr(load_error)))}"))
         self.refresh()
         self.show_detail()
         self.refresh_buttons()
@@ -354,13 +354,19 @@ class PluginManager(BaseDialog):
             name = install_plugin_package(filename)
             trust_plugin(name)  # installing is confirmed by user above
         except (OSError, ValueError) as error:
-            QMessageBox.warning(self, tr("Error"), trm(f"Unable to install plugin:<br>{html.escape(str(error))}"))
+            QMessageBox.warning(self, tr("Error"), trm(f"Unable to install plugin:<br>{html.escape(trm(tr(str(error))))}"))
             return
         plugin_name = html.escape(name[len(PLUGIN_PREFIX):])
         show_toast(self, trm(f"Plugin <b>{plugin_name}</b> installed, restart NeoPedal to load it."))
         self.refresh()
 
-    @staticmethod
-    def open_folder():
-        os.makedirs(PLUGIN_FOLDER, exist_ok=True)
+    def open_folder(self):
+        """Plugins folder opened, made first if missing (install folder of another user, read only: told why)"""
+        try:
+            os.makedirs(PLUGIN_FOLDER, exist_ok=True)
+        except OSError as error:
+            QMessageBox.warning(self, tr("Error"), trm(
+                f"Unable to open plugins folder:<br>{html.escape(os.path.abspath(PLUGIN_FOLDER))}<br>"
+                f"{html.escape(str(error))}"))
+            return
         QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(PLUGIN_FOLDER)))

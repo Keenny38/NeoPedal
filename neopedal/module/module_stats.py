@@ -31,7 +31,7 @@ from .. import calculation as calc
 from .. import realtime_state
 from ..api_control import api
 from ..const_api import API_LMU_NAME
-from ..const_common import FLOAT_INF
+from ..const_common import FLOAT_INF, MAX_LAPTIME
 from ..game_rest_cache import REQUEST_TIMEOUT, fetch_game, lmu_address
 from ..module_info import StatsInfo, minfo
 from ..process.results_index import game_version_text
@@ -42,7 +42,13 @@ from ..userfile.car_setup import (
     set_car_setup_filename,
     set_car_setup_laptime,
 )
-from ..userfile.driver_history import append_record, session_record, worth_recording
+from ..userfile.driver_history import (
+    append_record,
+    clear_checkpoint,
+    mark_checkpoint,
+    session_record,
+    worth_recording,
+)
 from ..userfile.driver_stats import DriverStats, combined_stats, load_driver_stats, save_driver_stats
 from ..userfile.json_setting import notify_stats_not_saved
 from ..validator import generator_init
@@ -122,7 +128,9 @@ def stats_keys(vehicle_classification: str) -> tuple[str, str]:
     elif vehicle_classification == "Class - Brand":
         brand_name = select_brand_name(vehicle_name=api.read.vehicle.vehicle_name())
         class_name = api.read.vehicle.class_name()
-        if brand_name:
+        if not class_name:  # class not known yet (car loading): nothing recorded until it is
+            name = ""
+        elif brand_name:
             name = f"{class_name} - {brand_name}"
         else:  # fallback to class name
             name = class_name
@@ -268,11 +276,14 @@ def record_driver_stats(
     stopping = False  # module stopping: last save
     stint_saved = DriverStats()  # stats of stint saved at checkpoints (driver_stats: since last checkpoint)
     next_checkpoint = FLOAT_INF
+    stint_start = 0.0  # Unix time stint loaded (checkpoint mark, see mark_checkpoint)
     own_names: frozenset[str] = frozenset()  # names of game profile
     stint_driver = ""  # driver of stint (player): another one at the wheel is a teammate (driver swap)
 
     def best_laptime(laptime_valid: float, lap_session_type: int):
-        """Personal, qualifying & race best lap times"""
+        """Personal, qualifying & race best lap times (game clock jump taken as a lap: never a best)"""
+        if laptime_valid >= MAX_LAPTIME:
+            return
         # Personal best (any session)
         if driver_stats.pb > laptime_valid:
             driver_stats.pb = laptime_valid
@@ -336,6 +347,7 @@ def record_driver_stats(
                 game_version=game_version, wetness=wetness, track_temp=temperature, compound=compound,
                 start_position=start_place, online=online.result,
             ))
+            clear_checkpoint(filepath, stint_start)
         lap_state.delayed_save = False
 
     def teammate_driving() -> bool:
@@ -361,6 +373,8 @@ def record_driver_stats(
         times kept, counters started again"""
         nonlocal driver_stats, stint_saved
         save_part()
+        if all(key_list):  # stats counted already: session never imported from results if no record follows
+            mark_checkpoint(filepath, key_list[0], stint_start, time())
         stint_saved = combined_stats(stint_saved, driver_stats)
         driver_stats = DriverStats(pb=driver_stats.pb, qb=driver_stats.qb, rb=driver_stats.rb)
 
@@ -391,6 +405,7 @@ def record_driver_stats(
             driver_stats = DriverStats()
             stint_saved = DriverStats()
             next_checkpoint = _base.monotonic() + _base.CHECKPOINT_INTERVAL
+            stint_start = time()
             own_names = player_profile_names()
             stint_driver = ""
             key_list = stats_keys(vehicle_classification)
@@ -433,6 +448,13 @@ def record_driver_stats(
             is_pit_lap = 1
             lap_invalid = False
             continue
+
+        # Class not known when loaded (car loading): stats keys taken again once it is
+        if not vehicle_class:
+            vehicle_class = api.read.vehicle.class_name()
+            if vehicle_class:
+                key_list = stats_keys(vehicle_classification)
+                loaded_stats = load_driver_stats(key_list=key_list, filepath=filepath)
 
         # General
         lap_stime = api.read.timing.start()

@@ -14,12 +14,13 @@ from PySide6.QtCore import QCoreApplication
 from neopedal.api_control import api
 from neopedal.module_info import ConsumptionDataSet, minfo
 from neopedal.process import team_usage
+from tests._speed import budget
 from tests.test_game_usage import wait_request
 from tests.test_perf_page_state import qml_warnings  # noqa: F401 (fixture)
 from tests.test_race_calculator import host, page, set_race  # noqa: F401 (host, page: fixtures)
 from tests.test_race_live_data import REFUEL_SCREEN, SESSION_SETTINGS, TYRE_SCREEN
 
-UI_BUDGET = 0.05  # seconds a slot may hold the UI thread
+UI_BUDGET = budget(0.05)  # seconds a slot may hold the UI thread (scaled by this machine's speed)
 DRIVERS = 60  # every driver of the usage answer late in a 24 h race
 DRIVER_LAPS = 350
 

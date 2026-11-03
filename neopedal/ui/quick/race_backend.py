@@ -72,7 +72,7 @@ from ...fuel_strategy import (
     strategy_input_from_values,
 )
 from ...game_rest import GameRequest
-from ...i18n import tr, trm
+from ...i18n import plural, tr, trm
 from ...module_info import ConsumptionDataSet, minfo
 from ...process.team_usage import StintUsage
 from ...race_live import RivalTracker, StopCounter
@@ -848,8 +848,8 @@ class RaceBackend(RaceFiles, HistoryTeam, TeamPlan, TyreTab, LiveTab, PageBacken
         energy, _ = results.consumption_details(
             "energy", 100, usage.get("energy", setup.energy_per_lap), plan_setup.energy_start or 100,
             strategy.energy_needed, reserve["energy"], setup.laptime, False)
-        fuel["average_refill"] = f"{strategy.average_fuel:.2f}" if stops else results.DASH
-        energy["average_refill"] = f"{strategy.average_energy:.2f}" if stops else results.DASH
+        fuel["average_refill"] = results.number_text(strategy.average_fuel, 2) if stops else results.DASH
+        energy["average_refill"] = results.number_text(strategy.average_energy, 2) if stops else results.DASH
         if not ready or not has_fuel:  # energy only car: no fuel figure
             fuel = {}
         if not ready or not has_energy:
@@ -865,7 +865,7 @@ class RaceBackend(RaceFiles, HistoryTeam, TeamPlan, TyreTab, LiveTab, PageBacken
         self.publish("calc", {
             "ready": ready, "feasible": strategy.feasible, "impossible": strategy.impossible,
             "hasEnergy": has_energy, "hasFuel": has_fuel, "drivers": drivers,
-            "fuelRatio": f"{fuel_ratio:.3f}" if has_energy else results.DASH,
+            "fuelRatio": results.number_text(fuel_ratio, 3) if has_energy else results.DASH,
         })
         self.publish("tiles", results.key_figures(strategy, setup, self.symbol_fuel, self.is_gallon, tyre_status))
         self.publish("summary", results.summary(strategy, self.race_state, setup.pit_seconds))
@@ -1004,13 +1004,16 @@ class RaceBackend(RaceFiles, HistoryTeam, TeamPlan, TyreTab, LiveTab, PageBacken
         with self.batch():
             if estimate.pit_stops:
                 self.setInput("input_pit_seconds", round(estimate.pit_seconds, 1))
-                found.append(f"{tr('Pit Stop Time')}: {estimate.pit_seconds:.1f} s ({estimate.pit_stops} {tr('stop(s)')})")
+                found.append(tr("Pit stop time: %1 s (%2)").replace("%1", results.number_text(estimate.pit_seconds, 1))
+                             .replace("%2", f"{estimate.pit_stops} {plural(estimate.pit_stops, 'stop', 'stops')}"))
             if estimate.fuel_laps:
                 self.setInput("input_fuel_effect", estimate.fuel_effect)
-                found.append(f"{tr('Fuel Effect')}: {estimate.fuel_effect:.3f} ({estimate.fuel_laps} {tr('laps')})")
+                found.append(tr("Fuel effect: %1 (%2)").replace("%1", results.number_text(estimate.fuel_effect, 3))
+                             .replace("%2", f"{estimate.fuel_laps} {plural(estimate.fuel_laps, 'lap', 'laps')}"))
             if estimate.track_laps:
                 self.setInput("input_track_evolution", estimate.track_evolution)
-                found.append(f"{tr('Track Evolution')}: {estimate.track_evolution:+.2f} s/h")
+                found.append(tr("Track evolution: %1 s/h").replace(
+                    "%1", results.signed_text(estimate.track_evolution, 2)))
         self.estimate_text = "<br>".join(found) if found else tr(
             "Not enough laps: stints of 3 laps or more at race pace needed")
         self.notesChanged.emit()

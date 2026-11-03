@@ -808,3 +808,49 @@ def test_b050_stream_opacity_kept_when_screen_hide_ends(ui_env, monkeypatch):
     finally:
         widget.stop()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+# B-021: app quit right after an instant replay: game sent back to live before the process ends
+def test_b021_quit_during_instant_replay_waits_back_to_live(director_page, monkeypatch):  # noqa: F811
+    import threading
+
+    from neopedal import loader
+    from neopedal.ui.quick import director_camera
+    from neopedal.ui.quick import game_camera as gc
+
+    sent = []
+    monkeypatch.setattr(director_camera.gc, "send_commands", lambda batch, address: sent.append(batch) or True)
+    monkeypatch.setattr(loader, "_close_waiters", [])
+    camera = director_page.backend._camera
+    camera._sending.acquire()  # batch entering the instant replay still on its way (slow game)
+    camera.send_closed(gc.leave_replay)  # page closed by quit
+    threading.Timer(0.3, camera._sending.release).start()
+    for waiter in loader._close_waiters:  # app closing (see loader.close)
+        waiter()
+    assert sent == [(gc.leave_replay,)]
+    assert director_camera.wait_back_to_live(0.0)
+
+
+def test_b021_close_waits_for_registered_waiters(monkeypatch):
+    from types import SimpleNamespace
+
+    from neopedal import loader, safe_mode
+    from neopedal.setting import cfg
+
+    calls = []
+    monkeypatch.setattr(loader, "_close_waiters", [])
+    monkeypatch.setattr(loader, "write_pending", lambda: None)
+    monkeypatch.setattr(loader, "unload_modules", lambda *args, **kwargs: None)
+    monkeypatch.setattr(loader, "replay", SimpleNamespace(stop_recording=lambda: None, wait_closed=lambda t: True))
+    monkeypatch.setattr(loader, "api", SimpleNamespace(stop=lambda: None, close=lambda: calls.append("api.close")))
+    monkeypatch.setattr(safe_mode, "clear_marker", lambda path: None)
+    monkeypatch.setattr(type(cfg), "flush", lambda self, *args: None)
+
+    def broken():
+        raise RuntimeError("waiter failed")
+
+    loader.on_close(broken)  # one failing waiter never stops quit
+    loader.on_close(lambda: calls.append("waiter"))
+    loader.on_close(broken)  # registered once
+    loader.close()
+    assert calls == ["waiter", "api.close"] and len(loader._close_waiters) == 2

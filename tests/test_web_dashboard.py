@@ -24,7 +24,8 @@ from neopedal.web_dashboard import (
 )
 
 # Own port per test process (pytest-xdist workers "gw0", "gw1"... run at once)
-PORT = 18338 + 10 * int(os.environ.get("PYTEST_XDIST_WORKER", "gw0")[2:] or 0)
+PORT = (18338 + 10 * int(os.environ.get("PYTEST_XDIST_WORKER", "gw0")[2:] or 0)
+        + int(os.environ.get("NEOPEDAL_TEST_PORT_OFFSET", "0")))  # runs at once (tools/check.py --matrix)
 
 
 @pytest.fixture
@@ -187,13 +188,19 @@ def test_session_limit(dashboard):
 
 @pytest.mark.parametrize("length", ["-1", "abc"])
 def test_login_body_size_bounded(dashboard, length):
-    """Negative or invalid length never makes server read until connection closed (before login)"""
+    """Negative or invalid length never makes server read until connection closed (before login)
+
+    Response read once the server is done with the request: the body it left unread is drained before closing
+    (lingering close). Closed with it unread, the server sent a reset that dropped the response before the client
+    read it (flaky in the pre-push hook: read at once, the client won the race most of the time).
+    """
     client = http.client.HTTPConnection("127.0.0.1", PORT, timeout=5)
     try:
         client.putrequest("POST", "/login")
         client.putheader("Content-Length", length)
         client.endheaders()
         client.send(b"code=WRONG")
+        time.sleep(0.2)
         status = client.getresponse().status  # answered without waiting for more data
     finally:
         client.close()

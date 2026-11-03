@@ -35,7 +35,7 @@ from collections.abc import Callable, Iterable
 import shiboken6
 from PySide6.QtCore import QEasingCurve, QEvent, QObject, Qt, QTimer, QVariantAnimation, Slot
 from PySide6.QtGui import QColor, QPainter, QPalette
-from PySide6.QtWidgets import QApplication, QLabel, QStackedWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QPushButton, QStackedWidget, QVBoxLayout, QWidget
 
 from ..jobs import weak_callback
 
@@ -60,17 +60,30 @@ def request_idle_collect(trim: bool = False):
         request(trim=trim)
 
 
-def release_quick_views(widget: QWidget):
-    """Unload Qt Quick views of widget & its children before they are deleted
+def release_view(view: QWidget):
+    """Qt Quick view hidden now (nothing drawn), deleted by the event loop
 
-    Qt Quick views go first: backend (created before view) is deleted first by Qt,
-    QML bindings still active would then read a null backend.
+    Never unloaded by setSource(QUrl()) from Python: Qt's image reader thread may be in a Python image provider
+    (async overlay pictures, image://overlaypreview), waiting for the GIL that call holds while Qt waits for
+    that thread (app frozen). The event loop deletes it without the GIL.
     """
-    from PySide6.QtCore import QUrl
+    if not shiboken6.isValid(view):
+        return
+    view.hide()
+    view.deleteLater()
+
+
+def release_quick_views(widget: QWidget):
+    """Qt Quick views of widget & its children released (see release_view) before widget is deleted
+
+    Qt Quick views go first: backend (created before view) is deleted first by Qt, QML bindings still active
+    would then read a null backend. Deletion of the views is posted before the widget's (deleteLater after this,
+    or deleted at exit): views deleted first.
+    """
     from PySide6.QtQuickWidgets import QQuickWidget
 
     for view in widget.findChildren(QQuickWidget):
-        view.setSource(QUrl())
+        release_view(view)
 
 
 class LazyPage(QWidget):
@@ -90,6 +103,7 @@ class LazyPage(QWidget):
         self._skeleton = False  # placeholder shown, page built by caller once painted (see show_skeleton)
         self._failed = False  # factory raised: error shown, not tried again until retry_build (see ensure_page)
         self._placeholder: QLabel | None = None
+        self._error_bar: QWidget | None = None  # Try Again & View Log under the error text (never a dead end)
         self.page: QWidget | None = None
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -117,9 +131,11 @@ class LazyPage(QWidget):
 
                 self.placeholder().setText(tr("Page failed to load, see log for details."))
                 self.placeholder().show()
+                self.show_error_bar(True)
             else:
                 if self._placeholder is not None:
                     self._placeholder.hide()
+                self.show_error_bar(False)
             finally:
                 self._building = False
             if self.page is not None:
@@ -135,13 +151,47 @@ class LazyPage(QWidget):
         self._failed = False
         return self.ensure_page()
 
+    def show_error_bar(self, shown: bool):
+        """Buttons under the error text: Try Again (build again) & View Log; error text just above them"""
+        if self._error_bar is None:
+            if not shown:
+                return
+            from ..i18n import tr
+
+            bar = QWidget(self)
+            row = QHBoxLayout(bar)
+            row.setContentsMargins(0, 0, 0, 0)
+            retry = QPushButton(tr("Try Again"), bar)
+            retry.setObjectName("retryButton")
+            retry.clicked.connect(self._retry_clicked)
+            log = QPushButton(tr("View Log"), bar)
+            log.setObjectName("viewLogButton")
+            log.clicked.connect(self._log_clicked)
+            row.addWidget(retry)
+            row.addWidget(log)
+            self._layout.addWidget(bar, 1, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+            self._error_bar = bar
+        self._error_bar.setVisible(shown)
+        if self._placeholder is not None:  # text right above the buttons, the pair centered in the page
+            self._placeholder.setAlignment(
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom if shown else Qt.AlignmentFlag.AlignCenter)
+
+    def _retry_clicked(self):
+        if self.retry_build() is not None:
+            self.page.setFocus()  # type: ignore[union-attr]
+
+    def _log_clicked(self):
+        from .log_info import LogInfo
+
+        LogInfo(self.window()).show()
+
     def placeholder(self) -> QLabel:
         """Placeholder label (loading or error text), made once"""
         if self._placeholder is None:
             self._placeholder = QLabel("", self)
             self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self._placeholder.setEnabled(False)  # dim text of window theme
-            self._layout.addWidget(self._placeholder)
+            self._layout.addWidget(self._placeholder, 1)  # half of the room with the error buttons below
         return self._placeholder
 
     def show_skeleton(self):

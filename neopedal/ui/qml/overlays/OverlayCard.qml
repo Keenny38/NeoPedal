@@ -4,7 +4,8 @@ import "../components"
 
 // Overlay card of Overlays page (grid): preview on a dark stage (overlays are drawn over the game), played on a
 // moving simulated race while hovered, favorite star, when the overlay shows (if not always), name & category,
-// settings button & on/off switch. Click opens settings, right-click the menu, hovering tells what it shows.
+// what it shows (two lines at most, whole text in the tooltip when cut), settings button & on/off switch. Click opens
+// settings, right-click the menu.
 Item {
     id: card
     required property int index
@@ -55,20 +56,17 @@ Item {
         onTriggered: backend.startLive(card.name)
     }
 
-    Rectangle {
+    // Card look of every list of cards (TpListRow card): hovered surface, overlay on = emphasized (accent tint &
+    // tinted outline), the same as module cards & setup wizard tiles
+    TpListRow {
         id: surface
         anchors.fill: parent
         anchors.margins: theme.space2
-        radius: theme.radiusLg
-        // Active & hovered: accent tint over the hovered card surface (both states shown, as in the list rows)
-        readonly property color cardBase: card.hovered ? theme.surfaceHover : theme.surfaceCard
-        color: card.active ? Qt.tint(cardBase, theme.tint(theme.accent, "subtle")) : cardBase
-        border.width: card.active ? 1.5 : 1
-        border.color: card.active ? theme.accent
-                    : card.hovered ? theme.strokeStrong
-                    : theme.cardBorder
-        Behavior on color { enabled: !card.recycling; ColorAnimation { duration: theme.motionBase } }
-        Behavior on border.color { enabled: !card.recycling; ColorAnimation { duration: theme.motionBase } }
+        // "card" here is TpListRow's own property (it shadows the root id): root read through parent
+        card: true
+        hovered: parent.hovered
+        emphasized: parent.active
+        animate: !parent.recycling
 
         // Card background click (buttons above get their own clicks)
         MouseArea {
@@ -85,9 +83,9 @@ Item {
                     backend.openConfig(card.name)
             }
         }
-        // What the overlay shows, below the card
+        // What the overlay shows, below the card: whole text when the card cuts it
         TpToolTip {
-            visible: area.containsMouse && card.description !== ""
+            visible: area.containsMouse && descriptionText.truncated
             delay: theme.tipDelay * 2
             text: card.description
             y: surface.height + theme.space2
@@ -250,7 +248,7 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: Math.round(theme.em * 3.1)
+            height: Math.round(theme.em * 5.3)  // name, description (2 lines), category: see Overlays.qml cellHeight
 
             ColorDot {
                 id: dot
@@ -264,7 +262,8 @@ Item {
                 anchors.leftMargin: theme.space3
                 anchors.right: controls.left
                 anchors.rightMargin: theme.space2
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.topMargin: theme.space2
                 spacing: 1
                 Text {
                     id: nameText
@@ -284,6 +283,20 @@ Item {
                     ToolTip.text: card.label
                     ToolTip.delay: theme.tipDelay
                 }
+                // What the overlay shows: read without hovering (first run, keyboard)
+                Text {
+                    id: descriptionText
+                    objectName: "cardDescription"
+                    width: parent.width
+                    visible: card.description !== ""
+                    text: card.description
+                    textFormat: Text.PlainText
+                    color: theme.text
+                    font.pointSize: theme.fontSmall
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    elide: Text.ElideRight
+                }
                 Text {
                     width: parent.width
                     text: card.categoryLabel
@@ -297,11 +310,11 @@ Item {
                 id: controls
                 anchors.right: parent.right
                 anchors.rightMargin: card.pad
-                anchors.verticalCenter: parent.verticalCenter
+                y: texts.y + nameText.height / 2 - height / 2  // beside the name
                 TpSwitch {
                     checkable: false  // follows model: switched by backend
                     checked: card.active
-                    tip: i18n.tr("Enable / Disable")
+                    tip: (card.active ? i18n.tr("Disable %1") : i18n.tr("Enable %1")).arg(card.label)
                     implicitWidth: theme.em * 2.6
                     anchors.verticalCenter: parent.verticalCenter
                     onClicked: {

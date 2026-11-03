@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Property, QTimer, Signal, Slot
 
-from ...i18n import tr
+from ...i18n import colon, plural, tr
 from ...process import championship as champ
 from ...process import director as dr
 from ...process.game_info import Standing
@@ -285,7 +285,8 @@ class BroadcastGraphics(DirectorPart):
             if rows:
                 count = sum(1 for row in rows if not row["ahead"])
                 radar = {"title": tr("Pit Lane"), "rows": rows[:6],
-                         "count": tr("%1 cars approaching").replace("%1", str(count)) if count else ""}
+                         "count": plural(count, "%1 car approaching", "%1 cars approaching").replace("%1", str(count))
+                         if count else ""}
         on_demand = self.on_demand
         return {
             "pitRadar": radar,
@@ -897,7 +898,7 @@ class BroadcastGraphics(DirectorPart):
             with open(path, "rb") as file:
                 data = file.read(2_000_000)
         except OSError as error:
-            self.page.notify(f"{tr('Championship not imported')}: {error}", True)
+            self.page.notify(f"{tr('Championship not imported')}{colon()}{error}", True)
             return False
         try:
             text = data.decode("utf-8-sig")
@@ -1152,7 +1153,7 @@ class BroadcastGraphics(DirectorPart):
             self.remove_logo_files()
             shutil.copyfile(path, os.path.join(folder, f"logo.{extension}"))
         except OSError as error:
-            self.page.notify(f"{tr('Logo not saved')}: {error}", True)
+            self.page.notify(f"{tr('Logo not saved')}{colon()}{error}", True)
             saved = False
         self.read_brand()  # some logo files may be removed before a failure
         self.publish_graphics(force=True)
@@ -1192,7 +1193,7 @@ class BroadcastGraphics(DirectorPart):
         try:
             self.remove_logo_files()
         except OSError as error:
-            self.page.notify(f"{tr('Logo not removed')}: {error}", True)
+            self.page.notify(f"{tr('Logo not removed')}{colon()}{error}", True)
             removed = False
         self.read_brand()
         self.publish_graphics(force=True)

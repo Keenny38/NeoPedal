@@ -199,7 +199,7 @@ def test_updated_time_message_translated_from_cache(ui_env):
     parent = QWidget()
     replays = GameReplaysBackend(parent)  # type: ignore[arg-type]
     team = types.SimpleNamespace(  # race calculator team tab: only what received_team uses
-        team_request=types.SimpleNamespace(busy=True), team_status="", unit_fuel=lambda value: value,
+        team_request=types.SimpleNamespace(busy=True), team_status="", unit_fuel=lambda value: value, game_data=True,
         show_team_stints=lambda stints, capacity: None, team_status_changed=lambda: None,
         keep_team_names=lambda: None)
 

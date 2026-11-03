@@ -329,7 +329,7 @@ def update_vehicle_data(
         new_car = False
         if read_scoring:
             data.speed = speed = api.read.vehicle.speed(index)
-            slot_id = api.read.vehicle.slot_id(index)
+            data.slotID = slot_id = api.read.vehicle.slot_id(index)
             known_slot = _index_slot_ids.get(index)
             if known_slot != slot_id:  # other car in index, or first seen since module reset
                 if known_slot is not None:

@@ -451,6 +451,10 @@ class FrameStore:
         self._shown: tuple[Placement, ...] = ()
         self._canvas = (0, 0)
         self._requests: dict[str, float] = {}
+        # Number of last change of everything (cleared, layout places, canvas) & of each overlay place: an overlay
+        # source wakes only when its overlay changed (not at every frame of another overlay)
+        self._reset_seq = 0
+        self._placed_seq: dict[str, int] = {}
         self.on_watch: Callable[[], Any] | None = None  # called when a view not watched asks frames (any thread)
 
     def touch(self, view: str):
@@ -484,12 +488,15 @@ class FrameStore:
             self._frames.clear()
             self._shown = ()
             self.seq += 1
+            self._reset_seq = self.seq
+            self._placed_seq.clear()
             self._condition.notify_all()
 
     def bump(self):
         """Same frames, new number (layout places changed): waiting requests answered at once"""
         with self._condition:
             self.seq += 1
+            self._reset_seq = self.seq
             self._condition.notify_all()
 
     def publish(self, images: dict[str, QImage], shown: list[Placement], canvas: tuple[int, int]):
@@ -504,17 +511,32 @@ class FrameStore:
             names = {placement.name for placement in placements}
             for name in [name for name in self._frames if name not in names]:
                 del self._frames[name]
+            if canvas != self._canvas:
+                self._reset_seq = self.seq
+            if placements != self._shown:
+                old = {placement.name: placement for placement in self._shown}
+                new = {placement.name: placement for placement in placements}
+                for name in old.keys() | new.keys():
+                    if old.get(name) != new.get(name):  # moved, opacity, shown or gone
+                        self._placed_seq[name] = self.seq
             self._shown = placements
             self._canvas = canvas
             self._condition.notify_all()
 
+    def _changed(self, view: str, after: int) -> bool:
+        """Something of view newer than frame "after" (layout: any change)"""
+        if view == LAYOUT or self._reset_seq > after:
+            return self.seq > after
+        frame = self._frames.get(view)
+        return (frame is not None and frame.seq > after) or self._placed_seq.get(view, 0) > after
+
     def bundle(self, view: str, after: int, codec: str, timeout: float = WAIT_SECONDS,
                places: dict | None = None) -> bytes:
-        """Frames of view newer than "after" (see module doc), waits for a new frame up to timeout"""
+        """Frames of view newer than "after" (see module doc), waits for a change of view up to timeout"""
         with self._condition:
             if after > self.seq:  # server started again since
                 after = 0
-            self._condition.wait_for(lambda: self.seq > after, timeout)
+            self._condition.wait_for(lambda: self._changed(view, after), timeout)
             seq = self.seq
             placements = [placement for placement in self._shown if view == LAYOUT or placement.name == view]
             frames = [(placement, self._frames.get(placement.name)) for placement in placements]
@@ -649,10 +671,14 @@ class ResultsCache:
 
 def classes_key() -> int:
     """Class names & colors of the vehicle class editor (results page made again when they change)"""
-    try:
-        return zlib.crc32(json.dumps(cfg.user.classes, sort_keys=True, default=str).encode("utf-8"))
-    except (TypeError, ValueError):
-        return 0
+    for _ in range(3):
+        try:
+            return zlib.crc32(json.dumps(cfg.user.classes, sort_keys=True, default=str).encode("utf-8"))
+        except RuntimeError:  # server thread: classes changed by a reload meanwhile (GUI thread), read again
+            continue
+        except (TypeError, ValueError):
+            return 0
+    return 0
 
 
 def _result_code(path: str) -> str:
@@ -864,6 +890,8 @@ class StreamHandler(BoundedRequestHandler):
         elif path == "/api/results":
             kind = query.get("session", ["race"])[0]
             data = results_snapshot(self.results, kind if kind in RESULT_KINDS else "race")
+            # Status colors sent each time: open sources follow the colorblind option (page made once)
+            data = {**data, "status": status_css(colorblind=colorblind_style(cfg.user.config.get("overlay_style")))}
             self.send_body(200, json.dumps(data, ensure_ascii=False).encode("utf-8"), "application/json")
         else:
             self.send_body(404, b"not found", "text/plain")
@@ -1186,7 +1214,8 @@ body.edit.bare #toolbar{display:none}
 #toolbar button{font:600 13px "Segoe UI",sans-serif;padding:6px 14px;border-radius:6px;border:1px solid #3a4150;background:#262b36;color:#fff;cursor:pointer}
 #toolbar button.main{background:#e5383b;border-color:#e5383b}
 #toolbar span{color:#aab2c0;max-width:520px}
-#toolbar b{color:#facc15;font-weight:600;min-width:150px}</style></head>
+#toolbar b{color:#facc15;font-weight:600;min-width:150px}
+body.lost #c,body.lost #layers{visibility:hidden!important}</style></head>
 <body><canvas id="c" width="0" height="0"></canvas><div id="stage"><div id="area"></div></div>
 <div id="toolbar"><button class="main" id="save"></button><button id="undo"></button><button id="reset"></button><button id="resetAll"></button><b id="place"></b><span id="hint"></span></div>
 <script>
@@ -1357,7 +1386,7 @@ async function run(){
     try{
       const response=await fetch("/api/frames?view="+encodeURIComponent(VIEW)+"&seq="+seq+"&codec="+codec+
         (cropText?"&crop="+encodeURIComponent(cropText):"")+"&token="+encodeURIComponent(token),{cache:"no-store"});
-      if(!response.ok){await sleep(response.status===403?5000:1000);continue}
+      if(!response.ok){serverLost(true);await sleep(response.status===403?5000:1000);continue}
       const data=new Uint8Array(await response.arrayBuffer());
       const length=new DataView(data.buffer).getUint32(0);
       const head=JSON.parse(new TextDecoder().decode(data.subarray(4,4+length)));
@@ -1377,9 +1406,17 @@ async function run(){
       shown=head.overlays;size=head.canvas;if(head.places)places=head.places;
       for(const entry of shown)entry.label=(LABELS.names||{})[entry.name]||entry.name;
       seq=head.overlays.some(entry=>!images.has(entry.name))?0:head.seq;
-      draw();
-    }catch(error){seq=0;await sleep(1000)}
+      draw();serverLost(false);
+    }catch(error){seq=0;serverLost(true);await sleep(1000)}
   }
+}
+// App closed, stream server turned off or access token changed: overlays hidden after a few seconds of failed
+// requests (never left frozen on air), shown again with the first answer (as the /director source)
+const LOST_MS=5000;let failedSince=0;
+function serverLost(lost){
+  if(!lost){failedSince=0;document.body.classList.remove("lost");return}
+  if(!failedSince)failedSince=Date.now();
+  if(!edit&&Date.now()-failedSince>=LOST_MS)document.body.classList.add("lost");
 }
 run();
 </script></body></html>"""
@@ -1411,7 +1448,7 @@ background:linear-gradient(90deg,rgba(229,56,59,.95),rgba(229,56,59,.55) 40%,rgb
 #cls i{display:inline-block;width:1.4vh;height:1.4vh;border-radius:50%}
 #flag{padding:.3vh 1vh;border-radius:.6vh;background:rgba(251,146,60,.2);color:#fb923c;font-weight:700;
 font-size:calc(var(--row)*.4);display:none}
-.grid{display:grid;grid-template-columns:5.2vh .6vh 6vh minmax(0,1.5fr) minmax(0,1fr) 6vh 14vh 13vh 10vh;
+.grid{display:grid;grid-template-columns:5.2vh .6vh 6vh minmax(0,1.5fr) minmax(0,1fr) 6vh var(--gapw,14vh) 13vh 10vh;
 align-items:center;column-gap:1.4vh;padding:0 2.4vh}
 .head{height:3.6vh;color:var(--dim);font-size:calc(var(--row)*.4);letter-spacing:.12em;text-transform:uppercase;
 border-bottom:1px solid var(--line)}
@@ -1428,7 +1465,8 @@ transition:opacity .35s ease,transform .35s ease}
 .car{display:flex;align-items:center;gap:1vh;min-width:0}
 .logo{height:58%;width:5.2vh;object-fit:contain;flex:none}
 #tlogo{height:calc(var(--row)*1.45);max-width:16vh;object-fit:contain;display:none}
-.r{text-align:right}.dim{color:var(--dim)}.loss{color:var(--loss)}
+.r{text-align:right}.row .r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dim{color:var(--dim)}.loss{color:var(--loss)}
 .best.fast{color:var(--purple);font-weight:700}
 footer{display:flex;align-items:center;justify-content:space-between;padding:1vh 2.4vh;color:var(--dim);
 font-size:calc(var(--row)*.4);letter-spacing:.1em;text-transform:uppercase}
@@ -1454,8 +1492,9 @@ const session=query.get("session")||"race";
 const animate=query.get("animate")!=="0";
 if(!animate)document.documentElement.classList.add("still");
 const $=id=>document.getElementById(id);
-document.documentElement.style.setProperty("--row",Math.min(78/(perPage+3.2),6)+"vh");
-let data=null,views=[],viewIndex=0,timer=0;
+const rowVh=Math.min(78/(perPage+3.2),6);
+document.documentElement.style.setProperty("--row",rowVh+"vh");
+let data=null,views=[],viewIndex=0,timer=0,statusCss="";
 const text=value=>String(value==null?"":value);
 function cell(className,value){const div=document.createElement("div");div.className=className;div.textContent=text(value);return div}
 const picture=link=>link?link+"?token="+encodeURIComponent(token):"";
@@ -1466,6 +1505,9 @@ function carCell(row){
 function buildViews(){
   views=[];
   if(!data||!data.available)return;
+  // Time / Gap column as wide as the longest time on every row (24 h race: 24:00:27.250), never over the best lap
+  const longest=data.rows.reduce((most,row)=>Math.max(most,text(row.gap).length,text(row.classGap).length),0);
+  document.documentElement.style.setProperty("--gapw",Math.max(14,rowVh*longest*.27).toFixed(2)+"vh");
   const classes=data.classes.map(item=>item.name);
   const groups=classMode==="cycle"&&classes.length>1?classes:
     (classMode!=="all"&&classes.includes(classMode)?[classMode]:[null]);  // null: every class (a class may be "")
@@ -1513,6 +1555,9 @@ async function load(){
     const response=await fetch("/api/results?session="+encodeURIComponent(session)+"&token="+encodeURIComponent(token),{cache:"no-store"});
     if(response.ok){
       const next=await response.json();
+      if(next.status&&next.status!==statusCss){  // colorblind option changed: status colors applied at once
+        statusCss=next.status;
+        for(const part of statusCss.split(";")){const at=part.indexOf(":");if(at>0)document.documentElement.style.setProperty(part.slice(0,at),part.slice(at+1))}}
       const labels=next.labels||{};
       $("lpos").textContent=labels.pos||"";$("ldriver").textContent=labels.driver||"";$("lcar").textContent=labels.car||"";
       $("llaps").textContent=labels.laps||"";$("lgap").textContent=labels.gap||"";$("lbest").textContent=labels.best||"";

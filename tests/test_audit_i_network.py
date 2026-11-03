@@ -467,6 +467,42 @@ def test_forget_hostname_keeps_unresolved_entry(monkeypatch):
         clear_resolved_hosts()
 
 
+def test_game_not_running_requests_fail_without_connecting(monkeypatch):
+    """Game closed: each page request connected anyway after the failed probe, waiting for Windows to refuse it
+    (2 s per loopback address): 7 s per request, game request workers held (Game Replays polling, Upcoming Races)"""
+    from neopedal import async_request, game_rest
+    from neopedal.async_request import clear_resolved_hosts
+
+    probes, connections = [], []
+
+    async def probe(hostnames, port, timeout=3):
+        probes.append(port)
+        return ""
+
+    class Refused:
+        def __init__(self, *args, **kwargs):
+            connections.append(args)
+            raise ConnectionRefusedError
+
+    monkeypatch.setattr(async_request, "localhost_resolve", probe)
+    monkeypatch.setattr(game_rest.http.client, "HTTPConnection", Refused)
+    clear_resolved_hosts()
+    try:
+        with game_rest.GameConnection(address=("localhost", 6397)) as connection:
+            assert connection.request("GET", "/rest/a") == (0, b"") and connection.failed
+        with game_rest.GameConnection(address=("localhost", 6397)) as connection:
+            assert connection.get("/rest/b") is None
+        monkeypatch.setattr(game_rest, "game_address", lambda: ("localhost", 6397))
+        assert game_rest.game_command("PUT", "/rest/c") is False
+        assert probes == [6397] and connections == []  # one probe for its hold, no connection tried
+        assert not async_request.host_unreachable("192.168.1.20", 6397)  # game on another computer: connected
+        async_request._store_hostname("localhost", 6397, "127.0.0.1")  # game started: connected again
+        assert not async_request.host_unreachable("localhost", 6397)
+        assert game_rest.game_command("PUT", "/rest/c") is False and len(connections) == 1
+    finally:
+        clear_resolved_hosts()
+
+
 def test_unresolved_hostname_warned_once_until_game_answers(monkeypatch, caplog):
     import socket
 

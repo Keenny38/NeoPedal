@@ -30,8 +30,20 @@ AbstractButton {
 
     hoverEnabled: true
     focusPolicy: Qt.TabFocus  // reached with Tab, a click leaves keyboard focus where it was
-    implicitHeight: Math.round(size === "sm" ? theme.controlHeightSm : size === "xs" ? theme.controlHeightXs : theme.controlHeight)
-    implicitWidth: Math.max(implicitHeight, iconWidth + (shownText !== "" ? Math.min(label.implicitWidth, labelMax) : 0) + pad)
+    // Drawn size, and the click & hover area around it: small buttons (xs: chip ✕, remove in lists) keep their drawn
+    // size while the button itself grows to theme.minTarget (24 px at 100 %, WCAG 2.5.8), its background inset back
+    // (a containment mask never takes clicks outside the item's bounds)
+    readonly property real drawnHeight: Math.round(size === "sm" ? theme.controlHeightSm
+                                                   : size === "xs" ? theme.controlHeightXs : theme.controlHeight)
+    readonly property real drawnWidth: Math.max(drawnHeight, iconWidth + (shownText !== "" ? Math.min(label.implicitWidth, labelMax) : 0) + pad)
+    readonly property real hitPadV: size === "xs" ? Math.max(0, Math.ceil((theme.minTarget - drawnHeight) / 2)) : 0
+    readonly property real hitPadH: size === "xs" ? Math.max(0, Math.ceil((theme.minTarget - drawnWidth) / 2)) : 0
+    implicitHeight: drawnHeight + hitPadV * 2
+    implicitWidth: drawnWidth + hitPadH * 2
+    topInset: hitPadV
+    bottomInset: hitPadV
+    leftInset: hitPadH
+    rightInset: hitPadH
     opacity: enabled ? 1 : theme.disabledOpacity
 
     readonly property string tipText: !enabled && disabledTip !== "" ? disabledTip
@@ -84,7 +96,7 @@ AbstractButton {
                 color: control.accent ? theme.accentInk : control.checked ? theme.accent : theme.text
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Text {
+            TpText {
                 id: label
                 text: control.shownText
                 textFormat: Text.PlainText

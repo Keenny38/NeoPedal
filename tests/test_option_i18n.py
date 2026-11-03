@@ -19,7 +19,7 @@ def test_english_labels():
 
 
 def test_french_labels(french):
-    assert option_label("font_color_speed") == "Couleur du texte : vitesse"
+    assert option_label("font_color_speed") == "Couleur du texte\u00a0: vitesse"
     assert option_label("show_brake_bias") == "Afficher la répartition de freinage"
     assert module_label("brake_temperature") == "Température des freins"
     assert option_label("unknown_new_option") == "Unknown New Option"  # fallback

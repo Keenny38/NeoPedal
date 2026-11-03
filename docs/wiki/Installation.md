@@ -98,7 +98,7 @@ To install the app in `/usr/local/share/NeoPedal`, a `NeoPedal` command in `/usr
 sudo ./install.sh
 ```
 
-Pass another prefix as argument (for example `sudo ./install.sh /opt`, you are asked to confirm). Run it again from a newer source folder to update: the previous copy is removed first.
+Pass another prefix as argument (for example `sudo ./install.sh /opt`, you are asked to confirm). The script works from any folder and with spaces in paths, and stops at the first error. Run it again from a newer source folder to update: the previous copy is removed first, the plugins in its `plugins` folder are kept (if the update fails, the message tells where they were set aside).
 
 Versions until 0.23.0 were installed under another name: `install.sh` removes such an older install.
 

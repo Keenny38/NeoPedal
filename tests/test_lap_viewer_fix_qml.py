@@ -370,13 +370,13 @@ def test_axis_labels_follow_tick_step(opener, warnings):
     assert chart.property("tickStep") >= 1
     assert evaluate(view, chart, "axisText(119.5)") == "2:00"  # never 1:60
     assert evaluate(view, chart, "axisText(59.6)") == "1:00"
-    assert evaluate(view, chart, "axisText(12)") == "12s"
+    assert evaluate(view, chart, "axisText(12)") == "12 s"
     evaluate(view, chart, "setView(119, 119.5, false)")  # closest zoom: 0.5 s
     wait(0.2)
     assert chart.property("tickStep") == pytest.approx(0.05)
     assert evaluate(view, chart, "axisText(119.25)") == "1:59.25"
     assert evaluate(view, chart, "axisText(119.995)") == "2:00.00"
-    assert evaluate(view, chart, "axisText(12.05)") == "12.05s"
+    assert evaluate(view, chart, "axisText(12.05)") == "12.05 s"
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows scan codes")

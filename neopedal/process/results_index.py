@@ -45,6 +45,7 @@ from bisect import bisect_right
 from collections.abc import Iterable, Sequence
 from typing import NamedTuple
 
+from ..const_common import MAX_LAPTIME
 from . import results_file as rf
 from .results_file import Entry, SessionResult
 
@@ -788,7 +789,7 @@ def best_lap_fixes(summaries: Iterable[ResultSummary], stats: dict, linked: dict
     """
     best: dict[tuple[str, str, str], BestLapFix] = {}
     for summary in summaries:
-        if summary.game != "LMU" or summary.best_lap <= 0:
+        if summary.game != "LMU" or not 0 < summary.best_lap < MAX_LAPTIME:  # game clock jump (LMU DQ): no lap time
             continue
         track = next((name for name in (summary.course, summary.track) if isinstance(stats.get(name), dict)), "")
         vehicles = stats.get(track) if track else None
@@ -800,7 +801,7 @@ def best_lap_fixes(summaries: Iterable[ResultSummary], stats: dict, linked: dict
             continue
         for stat in best_lap_stat(summary.kind):
             current = data.get(stat, 0)
-            current = float(current) if isinstance(current, (int, float)) and 0 < current < 99999 else 0.0
+            current = float(current) if isinstance(current, (int, float)) and 0 < current < MAX_LAPTIME else 0.0
             if current and summary.best_lap >= current - 0.0005:
                 continue
             key = (track, vehicle, stat)

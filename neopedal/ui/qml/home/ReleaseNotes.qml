@@ -42,6 +42,7 @@ TpPage {
         // Version & its state, release date under it, version menu (title cut first on narrow windows)
         TpPageHeader {
             title: backend.title
+            pageTitle: false  // version shown, not the page name
             subtitle: backend.detail
             status: [
                 Pill {

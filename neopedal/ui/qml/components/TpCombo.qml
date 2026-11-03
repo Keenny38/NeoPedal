@@ -26,18 +26,17 @@ ComboBox {
     background: Rectangle {
         radius: theme.radiusSm
         color: box.hovered ? theme.hover : theme.raised
-        border.width: box.visualFocus ? 1.5 : 1
-        border.color: box.popup.visible || box.visualFocus ? theme.accent : box.hovered ? theme.strokeStrong : theme.border
+        border.width: 1
+        border.color: box.popup.visible ? theme.accent : box.hovered ? theme.strokeStrong : theme.border
         Behavior on color { ColorAnimation { duration: theme.motionFast } }
+        FocusRing { visible: box.visualFocus }  // keyboard focus as on buttons (a button-like control)
     }
     contentItem: Row {
         leftPadding: theme.space4
         spacing: theme.space3
-        Rectangle {
+        ColorDot {
             visible: box.dotColor !== null
-            width: Math.round(theme.em * 0.6)
-            height: width
-            radius: width / 2
+            size: Math.round(theme.em * 0.6)
             color: box.dotColor ? box.dotColor(box.displayText) : "transparent"
             anchors.verticalCenter: parent.verticalCenter
         }
@@ -46,7 +45,7 @@ ComboBox {
             name: box.compounds ? box.displayText : ""
             anchors.verticalCenter: parent.verticalCenter
         }
-        Text {
+        TpText {
             text: box.displayText
             textFormat: Text.PlainText
             color: theme.text
@@ -69,8 +68,8 @@ ComboBox {
         topMargin: theme.space3
         bottomMargin: theme.space3
         width: Math.max(box.width, theme.em * 9)
-        padding: 4
-        implicitHeight: Math.min(contentItem.implicitHeight + 8, theme.em * 22)
+        padding: theme.space2
+        implicitHeight: Math.min(contentItem.implicitHeight + theme.space2 * 2, theme.em * 22)
         enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: theme.motionFast } }
         exit: Transition { NumberAnimation { property: "opacity"; from: 1; to: 0; duration: theme.motionFast } }
         contentItem: ListView {
@@ -101,11 +100,9 @@ ComboBox {
         highlighted: box.highlightedIndex === index
         contentItem: Row {
             spacing: theme.space3
-            Rectangle {
+            ColorDot {
                 visible: box.dotColor !== null
-                width: Math.round(theme.em * 0.6)
-                height: width
-                radius: width / 2
+                size: Math.round(theme.em * 0.6)
                 color: box.dotColor ? box.dotColor(item.label) : "transparent"
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -114,7 +111,7 @@ ComboBox {
                 name: box.compounds ? item.label : ""
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Text {
+            TpText {
                 text: item.label
                 textFormat: Text.PlainText
                 color: theme.text

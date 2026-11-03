@@ -58,6 +58,8 @@ ignore = [
     "F403",     # widget & module registry uses star import
     "PLE0605",  # widget & module registry __all__ built dynamically
 ]
+# French typography: no-break space before : ; ! ? and inside « » (translation tables, see tests/test_i18n_coverage.py)
+allowed-confusables = [" "]
 
 [tool.mypy]
 python_version = "3.11"
@@ -107,6 +109,7 @@ addopts = "-m 'not manual and not benchmark'"
 markers = [
     "manual: requires running sim, skipped by default (pytest -m manual)",
     "benchmark: widget render timing, fails on large performance regression",
+    "runner_flaky(reason, issue): known flake of shared CI runners, run again twice on CI only (pytest-rerunfailures, env CI), listed in tests/FLAKY.md",
 ]
 
 [tool.coverage.run]

@@ -116,7 +116,7 @@ The menus open the matching category:
 | `Settings` > `Overlay Style` | Modern design, theme, fonts, corners, depth effects, overlay scale, fade, overlay editing (edit mode, snapping, grid, layout guides, layout per screen setup) |
 | `Settings` > `Remote Control`, `Web Dashboard`, `VR Overlay (Experimental)` | See [Connections](Connections.md) |
 | `Settings` > `User Path` | Folders for presets, data and recorded laps |
-| `API` > `Options` | Game connection (saved in the preset), see [Game Setup](Game-Setup.md) |
+| `API` > `API Options` | Game connection (saved in the preset), see [Game Setup](Game-Setup.md) |
 | `Window` | `Show at Startup`, `Minimize to Tray`, `Remember Position`, `Remember Size`, `Reopen Pages at Startup`, `Reset Window Size and Position`, `Restart NeoPedal` |
 
 `Settings` > `Import Settings…` copies the global settings of another copy of the app, see [Import settings](Installation.md#import-settings). `Settings` > `Open Folder` opens any user folder in your file manager. Data folders set inside the app folder are stored as relative paths (each copy keeps its own data); set them outside the app folder to share data between copies.

@@ -31,7 +31,7 @@ def test_next_rank_and_tip():
     i18n.set_language("Français")
     try:
         assert rank_tip(dr.Rank("Silver", 2, 25), "+17%") == (
-            "25 % du chemin vers Silver 3\n+17 % d'un palier depuis le rang vu précédemment")
+            "25 % de la progression vers Silver 3\n+17 % d'un palier depuis le rang vu précédemment")
         assert rank_tip(dr.Rank("Platinum", 3, 80), "") == "Rang maximal atteint"
     finally:
         i18n.set_language("English")

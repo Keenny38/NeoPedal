@@ -207,7 +207,7 @@ class AppSettings(SettingsHostMixin, BaseDialog):
             page.show_modified()
         from .quick import reload_in_language
 
-        reload_in_language(self.view)
+        self.view = reload_in_language(self.view, "Settings.qml", {"backend": self.backend})
 
     def closeEvent(self, event):
         if self.is_modified():

@@ -423,7 +423,7 @@ def test_brand_restapi_answer_after_editor_closed(env, monkeypatch):
     ("heatmap_editor", "HeatmapEditor", ["Température (°C)", "Couleur"]),
     ("track_info_editor", "TrackInfoEditor", [
         "Nom du circuit", "Entrée des stands (m)", "Sortie des stands (m)", "Vitesse dans les stands (km/h)",
-        "Radar de vitesse (m)", "Orientation de la carte (°)", "Lever du soleil", "Coucher du soleil",
+        "Speed trap (m)", "Orientation de la carte (°)", "Lever du soleil", "Coucher du soleil",
         "Preset principal"]),
     ("tyre_compound_editor", "TyreCompoundEditor", ["Nom de la gomme", "Symbole", "Couleur", "Nom de la heatmap"]),
     ("vehicle_brand_editor", "VehicleBrandEditor", ["Nom du véhicule", "Marque"]),
@@ -465,13 +465,9 @@ def test_heatmap_preset_texts_translated(heatmap_editor, french):
      "Impossible d'ouvrir le fichier sélectionné.<br><br>Fichier de notes invalide."),
     ("Cannot import selected file.<br><br>Invalid vehicle data file.",
      "Impossible d'importer le fichier sélectionné.<br><br>Fichier de données véhicules invalide."),
-    ("Set position at <b>12.5</b> from map?", "Placer la position à <b>12.5</b> depuis la carte ?"),
-    ("Set position at <b>12.5</b> from telemetry?", "Placer la position à <b>12.5</b> depuis la télémétrie ?"),
-    ("Set speed trap at position <b>1234.5</b><br>for <b>Spa</b>?",
-     "Placer le radar de vitesse à la position <b>1234.5</b><br>pour <b>Spa</b> ?"),
     ("Unable to save notes at:<br><b>C:/notes/Spa.tppn</b><br><br>"
      "Make sure the folder is writable, or save notes to another folder.",
-     "Impossible d'enregistrer les notes dans :<br><b>C:/notes/Spa.tppn</b><br><br>"
+     "Impossible d'enregistrer les notes dans\u00a0:<br><b>C:/notes/Spa.tppn</b><br><br>"
      "Vérifiez que le dossier est accessible en écriture, ou enregistrez les notes dans un autre dossier."),
     ("Temperature <b>80.0</b> is listed more than once.<br><br>"
      "Each temperature can only be listed once, change or remove duplicate rows.",

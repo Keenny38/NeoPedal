@@ -186,8 +186,8 @@ def test_stats_viewer_display_units(stats_viewer, monkeypatch):
 
     monkeypatch.setitem(cfg.units, "odometer_unit", "Kilometer")
     monkeypatch.setitem(cfg.units, "fuel_unit", "Gallon")
-    assert stats_common.parse_display_value("meters", 125000.0) == 125.0
-    assert stats_common.parse_display_value("liters", 3.785411784) == pytest.approx(1.0)
+    assert stats_common.parse_display_value("meters", 125000.0) == "125.0"
+    assert stats_common.parse_display_value("liters", 3.785411784) == "1.00"
     assert stats_common.format_header_key("meters") == "Km"
     assert stats_common.format_header_key("liters") == "Gallons"
     monkeypatch.setitem(cfg.units, "odometer_unit", "Mile")

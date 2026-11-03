@@ -299,6 +299,8 @@ TpPage {
                         Accessible.role: Accessible.PageTab
                         Accessible.name: label
                         Accessible.selected: selected
+                        // Keyboard focus on the navigation (Up / Down choose): ring on the shown overlay, as Settings
+                        FocusRing { anchors.margins: gap; visible: nav.activeFocus && backend.overlay === entry.key }  // inside: list clips
 
                         Rectangle {
                             visible: entry.selected
@@ -571,7 +573,7 @@ TpPage {
                     visible: (page.info.userProfiles || []).length > 0 && !page.everyOverlay
                     flat: true
                     text: i18n.tr("Profile") + " ▾"
-                    tip: i18n.tr("Save shown items as a display profile, then pick it in Display Profile (saved with Apply or Save)")
+                    tip: i18n.tr("Save shown items as a display profile, then pick it in Display Profile (saved with Apply)")
                     checked: profileMenu.visible
                     onClicked: profileMenu.toggleBelow(profileButton)
                 }
@@ -581,7 +583,7 @@ TpPage {
                     visible: (page.info.themes || []).length > 0 && !page.everyOverlay
                     flat: true
                     text: i18n.tr("Theme") + " ▾"
-                    tip: i18n.tr("Set every color to a theme (saved only with Apply or Save)")
+                    tip: i18n.tr("Set every color to a theme (saved only with Apply)")
                     checked: themeMenu.visible
                     onClicked: themeMenu.toggleBelow(themeButton)
                 }
@@ -609,6 +611,24 @@ TpPage {
                     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
                     Keys.onUpPressed: contentY = Math.max(originY, contentY - theme.em * 3)
                     Keys.onDownPressed: contentY = Math.max(originY, Math.min(originY + contentHeight - height, contentY + theme.em * 3))
+                    // Focus came by Tab / Backtab (focusReason is a property of controls only): the key release
+                    // reaches the list (or its current row) once focused. Cleared when focus leaves the list.
+                    property bool keyboardFocus: false
+                    onActiveFocusChanged: if (!activeFocus) list.keyboardFocus = false
+                    Keys.onReleased: function(event) {
+                        if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab)
+                            list.keyboardFocus = list.activeFocus
+                        event.accepted = false
+                    }
+                    // Keyboard focus on the list (Up / Down scroll): ring inside its edges (list clips), as Settings
+                    FocusRing {
+                        objectName: "optionsFocusRing"
+                        parent: list
+                        target: list
+                        anchors.margins: gap
+                        z: 2
+                        visible: list.activeFocus && list.keyboardFocus
+                    }
                     delegate: OverlayOptionRow {
                         width: list.width - list.leftMargin - list.rightMargin
                         onMenuRequested: function(data, anchor, x, y) { page.openRowMenu(data, anchor, x, y) }

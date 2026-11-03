@@ -65,7 +65,7 @@ TpSectionCard {
                 selected: true
                 size: "sm"
                 tip: i18n.tr("Remove this filter")
-                Accessible.name: i18n.tr("Remove this filter") + ": " + modelData.text
+                Accessible.name: i18n.tr("Remove this filter") + i18n.colon() + modelData.text
                 onClicked: backend.clearFilter(modelData.key)
             }
         }
@@ -162,7 +162,7 @@ TpSectionCard {
                 boundsBehavior: Flickable.StopAtBounds
                 model: progressionBox.sessions
                 // Keyboard: Tab, Up / Down, Enter shows the session in Results & Replays (results file)
-                activeFocusOnTab: count > 0
+                activeFocusOnTab: count > 0 || activeFocus
                 currentIndex: -1
                 keyNavigationEnabled: true
                 highlightFollowsCurrentItem: false

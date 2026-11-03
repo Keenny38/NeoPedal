@@ -41,7 +41,7 @@ from ...formatter import (  # noqa: F401  # class_*: shared by Director parts
     class_style,
     shorten_driver_name,
 )
-from ...i18n import current_language, tr
+from ...i18n import current_language, percent_sign, tr
 from ...process import championship as champ
 from ...process import director as dr
 from ...process.driver_history import history as driver_history
@@ -361,7 +361,7 @@ def parse_forecast(answer: Any, session: str) -> list[dict]:
         sky = values.get("WNV_SKY")
         result.append({
             "label": label,
-            "rain": f"{round(rain)}%" if isinstance(rain, (int, float)) else "",
+            "rain": f"{round(rain)}{percent_sign()}" if isinstance(rain, (int, float)) else "",
             "temperature": temperature_text(float(temperature)) if isinstance(temperature, (int, float)) else "",
             "celsius": float(temperature) if isinstance(temperature, (int, float)) else -1000.0,
             "sky": str(sky.get("stringValue") or "") if isinstance(sky, dict) else "",

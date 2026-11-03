@@ -60,11 +60,37 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            // Keyboard (Tab reaches the circle): + / - zoom at the center, arrows move, 0 whole circle
+            activeFocusOnTab: circle.hasData || activeFocus
+            Accessible.role: Accessible.Graphic
+            Accessible.name: i18n.tr("G circle")
+            Accessible.description: i18n.tr("+ / -: zoom · arrows: move · 0: whole circle")
+            Keys.onPressed: function(event) {
+                var step = plot.width * 0.1 / circle.gScale  // a tenth of the plot, in G
+                if (event.key === Qt.Key_Plus || event.key === Qt.Key_Equal)
+                    circle.zoomAt(1.25, plot.width / 2, plot.height / 2)
+                else if (event.key === Qt.Key_Minus)
+                    circle.zoomAt(0.8, plot.width / 2, plot.height / 2)
+                else if (event.key === Qt.Key_0)
+                    circle.resetZoom()
+                else if (event.key === Qt.Key_Left && circle.zoom > 1)
+                    circle.centerX -= step
+                else if (event.key === Qt.Key_Right && circle.zoom > 1)
+                    circle.centerX += step
+                else if (event.key === Qt.Key_Up && circle.zoom > 1)
+                    circle.centerY += step
+                else if (event.key === Qt.Key_Down && circle.zoom > 1)
+                    circle.centerY -= step
+                else
+                    return
+                event.accepted = true
+            }
+            FocusRing { anchors.margins: gap; z: 3; visible: plot.activeFocus }  // inside: plot clips
 
             // Wheel: zoom at mouse, drag: move, double-click: whole circle (told by tooltip while not zoomed)
             HoverHandler { id: plotHover; enabled: circle.hasData }
             ToolTip.visible: plotHover.hovered && circle.zoom <= 1
-            ToolTip.text: i18n.tr("Wheel: zoom · drag: move · double-click: whole circle")
+            ToolTip.text: i18n.tr("Wheel or + / -: zoom · drag or arrows: move · double-click or 0: whole circle")
             ToolTip.delay: theme.tipDelay * 2
             MouseArea {
                 anchors.fill: parent

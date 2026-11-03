@@ -300,7 +300,7 @@ def test_next_level_and_qualifying_mark(backend):
     reference = backend.reference
     marks = [row["marks"] for row in reference["ladder"]]
     assert "PB" in marks[1] and "Qualifying" in marks[2] and "Race" in marks[2] and not marks[3]
-    assert reference["next"] == "Next level Alien: 0.42 s to find"  # 121.50 - 121.08
+    assert reference["next"] == "Next level Alien: 0.420 s to find"  # 121.50 - 121.08
     backend.selectRow("Hyper - Ferrari")
     assert backend.reference["next"] == "Top level reached"
     spa = lap_reference.parse_lap_references(SHEET).entries[("Spa", "LMP2elms")]
@@ -354,7 +354,7 @@ def test_export_csv_text_and_raw(backend, tmp_path):
     assert "PB (s)" in header and "Km (m)" in header
     oreca = raw[2].split(",")
     assert oreca[header.index("PB (s)")] == "121.5" and oreca[header.index("Km (m)")] == "50000"
-    assert raw[1].split(",")[header.index("Theoretical (s)")] == ""  # unknown: empty
+    assert "Theoretical (s)" not in header  # no sector best for any car: empty column left out
 
 
 def test_backup_before_edit_and_restore(backend):
@@ -416,7 +416,7 @@ def test_all_tracks_view_actions_and_letters(backend):
     assert backend.table_header_key[:4] == ["track", "class:GT3", "class:Hyper", "class:LMP2_ELMS"]
     hyper = backend.cell(SPA, "class:Hyper")
     assert hyper.text == "1:59.000" and hyper.badge == "A" and hyper.color
-    assert text_of(backend, "Monza", "class:Hyper") == "-" and text_of(backend, SPA, "races") == "2"
+    assert text_of(backend, "Monza", "class:Hyper") == "—" and text_of(backend, SPA, "races") == "2"
     assert backend.level_counts[:2] == [1, 1] and backend.unrated == 1  # Monza GT3: no reference
     assert [level["count"] for level in backend.levels][:2] == [1, 1]
     tiles = {tile["title"]: tile for tile in backend.tiles}

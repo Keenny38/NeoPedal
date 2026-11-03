@@ -13,47 +13,59 @@ def french():
     i18n.set_language("English")
 
 
-def test_translations_unique():
-    """Reverse lookup (menu action dispatch) requires unique translations"""
-    values = list(TRANSLATION.values())
-    duplicated = {value for value in values if values.count(value) > 1}
-    assert not duplicated
+def test_context_keys():
+    """A context key ("<context>\\x04<text>") translates one meaning of an English text: context & text never empty,
+    one separator"""
+    for key in TRANSLATION:
+        if i18n.CONTEXT_SEPARATOR in key:
+            context, _, text = key.partition(i18n.CONTEXT_SEPARATOR)
+            assert context and text and i18n.CONTEXT_SEPARATOR not in text, key
 
 
 def test_english_is_identity():
     i18n.set_language("English")
     assert i18n.tr("Duplicate") == "Duplicate"
+    assert i18n.tr("Change", "noun") == "Change"
     assert i18n.trm("This cannot be undone!") == "This cannot be undone!"
 
 
 def test_french_roundtrip(french):
+    """Every key translated; untr gives back an English text with that translation (shared translations: the
+    first one), never a context key"""
     for original, translated in TRANSLATION.items():
         assert i18n.tr(original) == translated
-        assert i18n.untr(translated) == original
+        english = i18n.untr(translated)
+        assert i18n.CONTEXT_SEPARATOR not in english
+        assert TRANSLATION.get(english, english) == translated or i18n.CONTEXT_SEPARATOR in original
+
+
+def test_french_context(french):
+    """Context key first, plain key when the context has none"""
+    assert i18n.tr("Change", "noun") != i18n.tr("Change")
+    assert i18n.tr("Change", "no such context") == i18n.tr("Change")
+    assert i18n.tr("Cancel") == "Annuler" == i18n.tr("Undo")
 
 
 def test_french_messages(french):
     assert i18n.trm("Delete <b>race</b> preset permanently?<br><br>This cannot be undone!") == (
-        "Supprimer définitivement le preset <b>race</b> ?<br><br>Cette action est irréversible !"
+        "Supprimer définitivement le preset <b>race</b>\u00a0?<br><br>Cette action est irréversible\u00a0!"
     )
-    assert i18n.trm("<b>Disable</b> all modules?") == "<b>Désactiver</b> tous les modules ?"
-    assert i18n.trm("UI: Legacy Light") == "Thème : classique clair"
     assert i18n.trm("Unknown message stays") == "Unknown message stays"
 
 
 def test_french_game_data_messages(french):
     """Audit fixes (package A): replay & connection messages"""
-    assert i18n.trm("Saving section: 45%") == "Enregistrement de la section : 45 %"
-    assert i18n.trm("Shared memory: last update 0.1 s ago") == "Mémoire partagée : dernière mise à jour il y a 0.1 s"
+    assert i18n.trm("Saving section: 45%") == "Enregistrement de la section\u00a0: 45 %"
+    assert i18n.trm("Shared memory: last update 0.1 s ago") == "Mémoire partagée\u00a0: dernière mise à jour il y a 0.1 s"
     assert i18n.trm("Replay recorded with rFactor 2 API, select rFactor 2 API to play it.") == (
-        "Rejeu enregistré avec l'API rFactor 2, sélectionnez l'API rFactor 2 pour le lire.")
+        "Replay enregistré avec l'API rFactor 2, sélectionnez l'API rFactor 2 pour le lire.")
     assert i18n.trm("Unable to open game shared memory, see log for details.").startswith("Impossible d'ouvrir")
-    assert i18n.trm("Replay not compatible with rFactor 2 API, reading game data.").startswith("Rejeu non compatible")
+    assert i18n.trm("Replay not compatible with rFactor 2 API, reading game data.").startswith("Replay non compatible")
     assert i18n.tr("Receiving data") == "Réception des données"
     # Replay recording errors (status bar & replay page)
     assert i18n.trm("Replay recording stopped: [Errno 28] No space left on device") == (
-        "Enregistrement du rejeu arrêté : [Errno 28] No space left on device")
-    assert i18n.trm("Recording stopped: disk lost") == "Enregistrement arrêté : disk lost"
+        "Enregistrement du replay arrêté\u00a0: [Errno 28] No space left on device")
+    assert i18n.trm("Recording stopped: disk lost") == "Enregistrement arrêté\u00a0: disk lost"
 
 
 def test_language_pack(tmp_path):

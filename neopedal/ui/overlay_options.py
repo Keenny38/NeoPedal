@@ -189,7 +189,7 @@ class OverlayOptions(BaseDialog):
             page.show_modified()
         from .quick import reload_in_language
 
-        reload_in_language(self.view)
+        self.view = reload_in_language(self.view, "OverlayOptions.qml", {"backend": self.backend})
 
     def closeEvent(self, event):
         self.commit_edits()  # value typed but not entered (app quit keeps focus in field): asked to save too
@@ -259,6 +259,10 @@ class OverlayOptions(BaseDialog):
 
     def notify(self, text: str):
         show_toast(self, text)
+
+    def notify_undo(self, text: str, undo):
+        """Notice with an Undo button (a change made without asking first)"""
+        show_toast(self, text, action_text=tr("Undo"), action=undo)
 
     def export_overlays(self, names: list[str]):
         """Settings of picked overlays saved as package file (values shown, pending edits included)"""

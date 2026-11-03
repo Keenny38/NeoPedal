@@ -28,7 +28,7 @@ from typing import TYPE_CHECKING, Any
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from ...formatter import driver_display_name
-from ...i18n import tr
+from ...i18n import percent_sign, tr
 from ...process import director as dr
 from ...template.setting_status_colors import energy_tone
 from .director_shared import (
@@ -132,7 +132,7 @@ class TimingTable(DirectorPart):
     @Property(list, notify=timingColumnsChanged)
     def timingColumns(self) -> list[dict]:
         """Columns of the view shown: key, title, width (em), alignment"""
-        return [{"key": key, "title": tr(TIMING_COLUMNS[key][0]), "width": TIMING_COLUMNS[key][1],
+        return [{"key": key, "title": tr(TIMING_COLUMNS[key][0], "column"), "width": TIMING_COLUMNS[key][1],
                  "align": TIMING_COLUMNS[key][2]} for key in self.timing_columns[self.timing_view]]
 
     @Property(list, notify=timingColumnsChanged)
@@ -264,7 +264,7 @@ class TimingTable(DirectorPart):
                 "s2": localized(f"{sectors[1]:.3f}") if sectors[1] > 0 else "",
                 "s3": localized(f"{sectors[2]:.3f}") if sectors[2] > 0 else "",
                 "pits": str(car.pitstops), "stint": str(stint) if stint >= 0 else "",
-                "pitTime": pit_time, "energy": f"{round(level * 100)}%" if level >= 0 else "",
+                "pitTime": pit_time, "energy": f"{round(level * 100)}{percent_sign()}" if level >= 0 else "",
                 "tyres": "/".join(car_tyres), "penalties": str(car.penalties) if car.penalties else "",
                 "status": status,
             }

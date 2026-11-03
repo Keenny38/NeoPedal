@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
 
 from .. import regex_pattern as rxp
 from ..const_file import ConfigType
-from ..i18n import tr, trm
+from ..i18n import colon, tr, trm
 from ..i18n.options import module_label, option_label, option_tooltip, search_text
 from ..setting import cfg
 from ._common import (
@@ -95,6 +95,11 @@ HIDDEN_OPTIONS = {
         "command_palette_recent", "close_to_tray_notice_shown",
     ),
     "vr_overlay": ("mirror_position_x", "mirror_position_y"),
+    "driver_stats_viewer": (
+        "enable_group_by_class", "show_level_limits", "stats_tab", "activity_view", "activity_year",
+        "condition_filter", "online_filter", "since_version", "friend_file", "goals", "goals_reached",
+        "goal_levels", "lap_fixes_done",
+    ),
 }
 
 
@@ -469,7 +474,7 @@ class UserConfig(BaseDialog):
             self.error_marks[key] = mark
         if mark is not None:
             mark.setText(f"⚠ {text}" if reason else "")
-            mark.setToolTip(f"{option_label(key)}: {text}" if reason else "")
+            mark.setToolTip(f"{option_label(key)}{colon()}{text}" if reason else "")
             mark.setHidden(not reason or editor.isHidden())
 
     def first_invalid_key(self) -> str:
@@ -486,7 +491,7 @@ class UserConfig(BaseDialog):
             return
         self.label_invalid.setText(f"⚠ {trm(f'Fix {count} invalid value(s) to save')}")
         self.label_invalid.setToolTip("<br>".join(
-            f"{option_label(key)}: {reason_text(self.option_errors[key])}"
+            f"{option_label(key)}{colon()}{reason_text(self.option_errors[key])}"
             for key in self.option_edit if key in self.option_errors))
 
     def show_invalid_option(self, key: str):

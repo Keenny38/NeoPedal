@@ -26,7 +26,7 @@ Item {
     Accessible.name: text + (record === "session" ? ", " + i18n.tr("Session best")
                              : record === "personal" ? ", " + i18n.tr("Personal Best") : "")
 
-    Text {
+    TpText {
         id: label
         anchors.verticalCenter: parent.verticalCenter
         x: lapTime.horizontalAlignment === Text.AlignLeft ? 0 : Math.max(lapTime.width - lapTime.markRoom - width, 0)
@@ -40,7 +40,7 @@ Item {
         font.features: { "tnum": 1 }
         elide: Text.ElideLeft
     }
-    Text {  // record mark: ◆ session best, ● personal best
+    TpText {  // record mark: ◆ session best, ● personal best
         id: mark
         visible: lapTime.marked
         anchors.left: label.right

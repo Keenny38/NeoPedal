@@ -42,11 +42,12 @@ from .raceos import player_ranks
 PLAYERS_PATH = "api/v1/players"
 BATCH = 50  # names per request
 CHECK_SECONDS = 30.0  # server joined & ranks due checked this often
-JOIN_SECONDS = 3.0  # driver joining the session asked at once, at most one request this often (arrivals grouped)
+JOIN_SECONDS = 15.0  # driver joining the session asked at once, at most one request this often (arrivals grouped)
 KEEP_DRIVERS = 500  # ranks kept of drivers no longer in session (shown at once if they come back), at most
-KEEP_SECONDS = 300.0  # ranks of a driver read again this late
-RESULTS_DELAYS = (30.0, 120.0, 300.0)  # every driver read again this long after a session ended
-MISSING_SECONDS = 600.0  # driver without RaceControl profile (or read failed) asked again this late
+KEEP_SECONDS = 3600.0  # ranks of a driver read again this late (few requests: RaceControl refuses many)
+RESULTS_DELAYS = (300.0,)  # every driver read again this long after a session ended
+MISSING_SECONDS = 3600.0  # driver without RaceControl profile asked again this late
+RETRY_SECONDS = 300.0  # drivers of a read not sent (RaceControl limits, waiting) or not answered asked again this late
 
 logger = logging.getLogger(__name__)
 _SUFFIX = re.compile(r"\s*#\d+\s*$")
@@ -222,9 +223,12 @@ class FieldRanks:
         for start in range(0, len(due), BATCH):
             batch = due[start:start + BATCH]
             for name in batch:
-                asked[driver_key(name)] = now  # failed read or no profile: asked again later
+                asked[driver_key(name)] = now  # no profile: asked again later
             data = source.post(PLAYERS_PATH, {"usernames": batch})
-            if not isinstance(data, list):
+            if not isinstance(data, list):  # not sent (limits, waiting) or not answered: asked again soon
+                for name in batch:
+                    key = driver_key(name)
+                    asked[key] = now - (KEEP_SECONDS if key in ranks else MISSING_SECONDS) + RETRY_SECONDS
                 break
             for player in data:
                 entry = player_ranks(player)

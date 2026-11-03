@@ -645,7 +645,7 @@ Item {
             Text {
                 id: angleText
                 anchors.centerIn: parent
-                text: wheel.realAngle ? Math.round(Math.abs(wheel.angle)) + "°" : Math.round(Math.abs(wheel.steering) * 100) + "%"
+                text: wheel.realAngle ? Math.round(Math.abs(wheel.angle)) + "°" : Math.round(Math.abs(wheel.steering) * 100) + i18n.percentSign()
                 textFormat: Text.PlainText
                 color: theme.text
                 font.bold: true

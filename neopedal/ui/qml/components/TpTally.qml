@@ -39,7 +39,7 @@ Rectangle {
             border.color: tally.ink
             pulsing: tally.live
         }
-        Text {
+        TpText {
             anchors.verticalCenter: parent.verticalCenter
             text: tally.text
             textFormat: Text.PlainText

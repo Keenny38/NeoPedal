@@ -144,11 +144,14 @@ class NotificationCenter(ShellPopup):
             return None
         if cls.just_closed(KIND):
             return None
-        size = popup_size(window, 26, 30)
+        size = popup_size(window, 35, 40)  # em of QML pages
         popup = cls(window, KIND, "NotificationCenter.qml", NotificationBackend(window), size)
-        if anchor is not None:  # opening upward, right of the bell
+        if anchor is not None:
             corner = anchor.mapToGlobal(anchor.rect().bottomRight())
-            position = QPoint(corner.x() + 4, corner.y() - size.height())
+            if anchor.mapTo(window, QPoint(0, 0)).y() < window.height() // 2:  # bell in the title bar: below it
+                position = QPoint(corner.x() - size.width() + 1, corner.y() + 4)
+            else:  # bell of the rail: opening upward, right of it
+                position = QPoint(corner.x() + 4, corner.y() - size.height())
         else:
             frame = window.geometry()
             position = frame.topRight() - popup.rect().topRight()

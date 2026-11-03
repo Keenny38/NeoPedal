@@ -799,7 +799,7 @@ TpPage {
         title: i18n.tr("Metadata Info")
         acceptText: i18n.tr("Apply")
         dismissOnOutside: false  // typed text kept: only Esc or Cancel close it
-        width: Math.min(parent ? parent.width - theme.em * 2 : theme.em * 34, theme.em * 34)
+        width: Math.min(overlayItem ? overlayItem.width - theme.em * 2 : theme.em * 34, theme.em * 34)
         onAboutToShow: {
             for (var i = 0; i < metaFields.count; i++) metaFields.itemAt(i).reset()
         }

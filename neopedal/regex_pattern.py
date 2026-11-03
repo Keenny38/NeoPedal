@@ -116,6 +116,8 @@ CFG_STRING = (
     "^favorite_overlays$|"
     "^recent_overlays$|"
     "^command_palette_recent$|"
+    "^friend_file$|"
+    "^since_version$|"
     "^version$|"
     "^user_profile_[0-9]$|"  # black box user display profiles (see black_box_ui.USER_PROFILES)
     # Partial match
@@ -132,6 +134,9 @@ CFG_STRING = (
     "unit|"
     "url_host"
 )
+
+# List of strings
+CFG_STRING_LIST = "^(goals_reached|lap_fixes_done)$"
 
 # Integer
 CFG_INTEGER = (

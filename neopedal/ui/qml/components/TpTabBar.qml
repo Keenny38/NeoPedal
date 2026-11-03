@@ -2,8 +2,11 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 
-// Underlined tabs: icon & text per tab, underline slides to the current tab. One Tab stop: arrows, Home & End
-// choose (like TpSegmented). Extra controls after the tabs (right side): children.
+// Underlined tabs: icon, text & optional count per tab ({ text, glyph, count }), underline slides to the current tab.
+// One Tab stop: arrows, Home & End choose (like TpSegmented). Extra controls after the tabs (right side): children.
+// Rule (Development.md): TpTabBar switches between views of a page or panel, TpSegmented picks a filter or a mode.
+// Not enough room: tabs keep their texts with less padding (squeezed); minimumWidth tells the room they need then
+// (a caller may show a drop-down list instead below it).
 //   TpTabBar { model: [{ text: i18n.tr("Fuel"), glyph: "" }, ...]; currentIndex: backend.tab
 //              onActivated: function(index) { backend.setTab(index) } }
 ColumnLayout {
@@ -12,7 +15,25 @@ ColumnLayout {
     property int currentIndex: 0
     property string name: ""
     default property alias trailing: trailingRow.data
+    // Counts of the tabs (-1: none), apart from the model: a count changing never makes the tabs again
+    property var counts: []
     signal activated(int index)
+
+    // Widths of the tabs (contents only, from texts: never from .visible), with full and squeezed padding
+    readonly property real padFull: theme.em * 1.6
+    readonly property real padSqueezed: theme.em * 0.7
+    readonly property real contentsWidth: {
+        var sum = 0
+        for (var i = 0; i < tabRepeater.count; i++) {  // count read: evaluated again once the tabs are made
+            var item = tabRepeater.itemAt(i)
+            if (item)
+                sum += item.contentWidth
+        }
+        return sum + Math.max(0, tabRepeater.count - 1) * theme.space1
+    }
+    readonly property real naturalWidth: contentsWidth + tabRepeater.count * padFull
+    readonly property real minimumWidth: contentsWidth + tabRepeater.count * padSqueezed
+    readonly property bool squeezed: width > 0 && naturalWidth > width - trailingRow.implicitWidth - theme.space4
 
     function choose(index) {
         if (index >= 0 && index < model.length && index !== currentIndex)
@@ -46,12 +67,16 @@ ColumnLayout {
                 required property var modelData
                 required property int index
                 readonly property bool current: bar.currentIndex === index
-                implicitHeight: Math.round(theme.em * 2.2)
-                implicitWidth: tabRow.implicitWidth + theme.em * 1.6
+                readonly property int count: index < bar.counts.length && typeof bar.counts[index] === "number"
+                                             ? bar.counts[index]
+                                             : typeof modelData.count === "number" ? modelData.count : -1
+                readonly property real contentWidth: tabRow.implicitWidth
+                implicitHeight: Math.round(theme.controlHeight)
+                implicitWidth: contentWidth + (bar.squeezed ? bar.padSqueezed : bar.padFull)
                 hoverEnabled: true
                 focusPolicy: Qt.NoFocus  // the bar takes Tab, arrows move
                 Accessible.role: Accessible.PageTab
-                Accessible.name: modelData.text
+                Accessible.name: count >= 0 ? modelData.text + " (" + count + ")" : modelData.text
                 Accessible.selected: current
                 onClicked: bar.choose(index)
                 HoverHandler { cursorShape: Qt.PointingHandCursor }
@@ -72,11 +97,18 @@ ColumnLayout {
                             color: tabButton.current ? theme.accent : theme.dimText
                             anchors.verticalCenter: parent.verticalCenter
                         }
-                        Text {
+                        TpText {
                             text: tabButton.modelData.text
                             textFormat: Text.PlainText
                             color: tabButton.current ? theme.text : theme.dimText
                             font.weight: tabButton.current ? Font.DemiBold : Font.Normal
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        TpCountBadge {  // items of the view (laps, incidents...): never glued to the text
+                            visible: tabButton.count >= 0
+                            size: "sm"
+                            tone: tabButton.current ? "accent" : "neutral"
+                            text: tabButton.count
                             anchors.verticalCenter: parent.verticalCenter
                         }
                     }

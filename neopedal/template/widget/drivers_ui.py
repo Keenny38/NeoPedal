@@ -32,13 +32,13 @@ from .black_box_ui import ORDER_LIST, OptionUI
 
 # Columns of modern design, in design order (shown left to right while no display order was changed)
 RELATIVE_COLUMNS = (
-    "position", "class", "position_change", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
+    "position", "class", "position_change", "car_number", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
     "pit_status", "laptime", "best_laptime", "average_laptime", "delta_laptime", "energy_remaining",
     "energy_per_lap", "vehicle_integrity", "incidents", "track_limits", "stint_laps", "speed_trap",
     "lift_and_coast_time", "time_gap", "gap_trend", "driver_ranks", "driver_badge",
 )
 STANDINGS_COLUMNS = (
-    "position", "class", "position_change", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
+    "position", "class", "position_change", "car_number", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
     "pit_status", "laptime", "best_laptime", "average_laptime", "delta_laptime",
     "energy_remaining", "energy_per_lap", "vehicle_integrity", "incidents", "track_limits", "stint_laps",
     "speed_trap", "lift_and_coast_time", "time_interval", "time_gap", "gap_trend", "driver_ranks", "driver_badge",
@@ -79,12 +79,14 @@ COLUMN_TITLES = {
     "gap_trend": "Gap Trend",
     "driver_ranks": "Driver & Safety Rank",
     "driver_badge": "Driver Badge",
+    "car_number": "Car Number",
 }
 # Options of each column (column, options), shown after the column list
 COLUMN_OPTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("class", ("show_class_name",)),
     ("position_change", ("show_position_change_in_class",)),
-    ("driver_name", ("driver_name_shorten", "driver_name_uppercase", "driver_name_width")),
+    ("driver_name", ("driver_name_shorten", "driver_name_uppercase", "driver_name_width", "show_team_name",
+                     "team_name_width")),
     ("vehicle_name", ("show_vehicle_brand_as_name", "vehicle_name_width")),
     ("brand_logo", ("brand_logo_width",)),
     ("tyre_compound", ("show_compound_for_each_wheel",)),

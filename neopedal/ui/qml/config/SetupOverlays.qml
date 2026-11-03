@@ -137,11 +137,15 @@ SetupStep {
 
         Repeater {
             model: backend.tileModel
-            Rectangle {
+            // Card look of every list of cards (TpListRow card under the content), as overlay cards: checked =
+            // selected (accent tint & outline). An Item, not the TpListRow itself: the model's "tint" role (category
+            // color) would replace TpListRow's own tint
+            Item {
                 id: tile
                 required property string key
                 required property string label
                 required property string category
+                required property string description
                 required property string tint
                 required property bool checked
                 required property string preview
@@ -150,17 +154,12 @@ SetupStep {
                 required property int previewState
                 width: grid.tileWidth
                 height: picture.height + info.implicitHeight + theme.em * 1.3
-                radius: theme.radiusLg
-                color: tileArea.containsMouse ? theme.surfaceHover : theme.surfaceCard
-                border.width: checked ? 2 : 1
-                border.color: checked ? theme.accent : theme.cardBorder
                 scale: tileArea.pressed ? 0.98 : 1
                 activeFocusOnTab: true
-                Behavior on color { ColorAnimation { duration: theme.motionFast } }
-                Behavior on border.color { ColorAnimation { duration: theme.motionBase } }
                 Behavior on scale { NumberAnimation { duration: theme.motionFast } }
                 Accessible.role: Accessible.CheckBox
                 Accessible.name: label
+                Accessible.description: description
                 Accessible.checkable: true
                 Accessible.checked: checked
                 Keys.onSpacePressed: function(event) {
@@ -168,7 +167,14 @@ SetupStep {
                     backend.toggleOverlay(tile.key)
                 }
 
-                FocusRing { visible: tile.activeFocus }  // solid: never taken for the checked border
+                TpListRow {
+                    id: tileSurface
+                    anchors.fill: parent
+                    card: true
+                    hovered: tileArea.containsMouse
+                    selected: tile.checked
+                }
+                FocusRing { target: tileSurface; visible: tile.activeFocus }  // solid: never taken for the checked outline
 
                 SetupBackdrop {
                     id: picture
@@ -219,6 +225,27 @@ SetupStep {
                         color: theme.text
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
+                    }
+                    // What the overlay shows: a newcomer can't guess "Relative" or "Trailing" (2 lines kept for
+                    // every tile: rows of the Flow stay even)
+                    Text {
+                        id: tileDescription
+                        objectName: "tileDescription"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.ceil(fontMetrics.lineSpacing * 2)
+                        text: tile.description
+                        textFormat: Text.PlainText
+                        color: theme.dimOn(tileSurface.color)  // hovered & selected tile surface too
+                        font.pointSize: theme.fontSmall
+                        wrapMode: Text.WordWrap
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                        verticalAlignment: Text.AlignTop
+                        FontMetrics { id: fontMetrics; font: tileDescription.font }
+                        TpToolTip {
+                            visible: tileArea.containsMouse && tileDescription.truncated
+                            text: tile.description
+                        }
                     }
                     Pill {
                         text: tile.category

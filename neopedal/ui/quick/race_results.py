@@ -40,7 +40,7 @@ from ...fuel_strategy import (
     Variant,
     race_result,
 )
-from ...i18n import localized, tr, trm
+from ...i18n import localized, plural, tr, trm
 from ...module_info import StintDataSet
 from ...process.results_text import MINUS, MISSING, number_text, signed_text
 from ...race_live import PitExit, Rival
@@ -48,6 +48,14 @@ from .race_model import DRIVER_COLORS, RAIN_COLOR, SAFETY_CAR_COLOR, duration_te
 
 PLAN_COLUMNS = ("stop", "lap", "window", "time", "fuel", "energy", "tyres", "driver", "seconds")
 DASH = MISSING  # value not known yet (same em dash on every page)
+
+
+def scenario_line(text: str, stops: int, laps: int, signed: bool = False) -> str:
+    """Scenario line: tr(text) with stops & laps ("Sans pluie : 2 arrêts, 45 tours"), "+1 arrêt" if signed"""
+    stops_text = f"{stops:+d}" if signed else f"{stops}"
+    laps_text = f"{laps:+d}" if signed else f"{laps}"
+    return tr(text).replace("%1", f"{stops_text} {plural(stops, 'stop', 'stops')}").replace(
+        "%2", f"{laps_text} {plural(laps, 'lap', 'laps')}")
 
 
 def trm_number(text: str) -> str:
@@ -259,7 +267,7 @@ def plan_rows(strategy: Strategy, has_energy: bool, time_text: Callable[[float],
         driver_name(strategy.driver_of(0)), "")]
     counts = strategy.tyre_changes
     for index, stop in enumerate(strategy.stops):
-        tyres = (f"{tr('Change')} ({counts[index]})" if index < len(counts) else tr("Change")) if stop.tyres else ""
+        tyres = (f"{tr('Change', 'noun')} ({counts[index]})" if index < len(counts) else tr("Change", "noun")) if stop.tyres else ""
         window = f"{strategy.windows[index][0]}-{strategy.windows[index][1]}" if index < len(strategy.windows) else ""
         mark = {"sc": " SC", "rain": f" {tr('Wet')}", "dry": f" {tr('Dry')}"}.get(
             stop.reason, " SC" if stop.safety_car else "")
@@ -424,12 +432,13 @@ def saving_texts(strategy: Strategy, plan_setup: StrategyInput, setup: StrategyI
         if setup.saving_cost > 0:
             cost = saving.saving_seconds - plan_setup.saving_seconds
             if saving.race_laps != strategy.race_laps:
-                gain = f"{saving.race_laps - strategy.race_laps:+d} {tr('laps')}"
+                laps = saving.race_laps - strategy.race_laps
+                gain = f"{laps:+d} {plural(laps, 'lap', 'laps')}"
             else:
                 gain = f"{signed_text(saving.race_seconds - strategy.race_seconds, 1)} s"
             worth = race_result(saving) < race_result(strategy)
-            one_less += (f"<br>{tr('Saving Cost')}: +{number_text(cost, 2)} s/{tr('lap')} · {tr('Race')} {gain} · "
-                         + (tr("worth it") if worth else tr("not worth it")))
+            one_less += "<br>" + tr("Saving cost: +%1 s/lap · race %2 · %3").replace("%1", number_text(cost, 2)).replace(
+                "%2", gain).replace("%3", tr("worth it") if worth else tr("not worth it"))
     aimed_text = ""
     if aimed is not None:
         aimed_setup, aimed_strategy = aimed
@@ -518,18 +527,19 @@ def scenario_text(kind: str, strategy: Strategy, without: Strategy | None) -> st
     if kind == "rain":
         if not strategy.rain[0]:
             return tr("Rain after the finish: no effect")
-        parts = [f"{tr('Without rain')}: {len(without.stops)} {tr('stop(s)')}, {without.race_laps} {tr('laps')}",
-                 f"{tr('With rain')}: {stops:+d} {tr('stop(s)')}, {laps:+d} {tr('laps')}"]
+        parts = [scenario_line("Without rain: %1, %2", len(without.stops), without.race_laps),
+                 scenario_line("With rain: %1, %2", stops, laps, True)]
         for stop in strategy.stops:
             if stop.reason in ("rain", "dry"):
-                name = tr("Wet tyres at lap") if stop.reason == "rain" else tr("Slicks at lap")
-                parts.append(f"{name} {stop.lap} ({number_text(stop.seconds, 1)} s)")
+                name = tr("Wet tyres at lap %1 (%2 s)") if stop.reason == "rain" else tr("Slicks at lap %1 (%2 s)")
+                parts.append(name.replace("%1", str(stop.lap)).replace("%2", number_text(stop.seconds, 1)))
         return "<br>".join(parts)
-    parts = [f"{tr('Without safety car')}: {len(without.stops)} {tr('stop(s)')}, {without.race_laps} {tr('laps')}",
-             f"{tr('With safety car')}: {stops:+d} {tr('stop(s)')}, {laps:+d} {tr('laps')}"]
+    parts = [scenario_line("Without safety car: %1, %2", len(without.stops), without.race_laps),
+             scenario_line("With safety car: %1, %2", stops, laps, True)]
     sc_stop = next((stop for stop in strategy.stops if stop.safety_car), None)
     if sc_stop is not None:
-        parts.append(f"{tr('Stop under safety car at lap')} {sc_stop.lap} ({number_text(sc_stop.seconds, 1)} s)")
+        parts.append(tr("Stop under safety car at lap %1 (%2 s)").replace("%1", str(sc_stop.lap)).replace(
+            "%2", number_text(sc_stop.seconds, 1)))
     if not strategy.safety_car[1]:
         parts.append(tr("Safety car after the finish: no effect"))
     return "<br>".join(parts)

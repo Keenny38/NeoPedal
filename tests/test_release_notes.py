@@ -504,7 +504,7 @@ def test_update_messages_translated():
 
     i18n.set_language("Français")
     try:
-        assert i18n.trm("New Updates: v0.15.0 (2026-10-4)") == "Nouvelle version : v0.15.0 (2026-10-4)"
+        assert i18n.trm("New Updates: v0.15.0 (2026-10-4)") == "Nouvelle version\u00a0: v0.15.0 (2026-10-4)"
         assert i18n.trm("No Updates Available") == "Aucune mise à jour disponible"
     finally:
         i18n.set_language("English")

@@ -19,8 +19,10 @@
 """
 User interface translation
 
-tr(text): translate English UI text to current language (text itself if not translated).
-untr(text): get original English text from translated text (for menu action dispatch).
+tr(text, context): translate English UI text to current language (text itself if not translated). Context tells
+    apart one English text with two meanings ("Change": a button or a column): key "<context><text>" first,
+    text alone if the language has no such key.
+untr(text): get original English text from translated text (command palette search & keys).
 Qt built-in dialogs & standard buttons use Qt's own translation files.
 """
 
@@ -73,6 +75,7 @@ _space = re.compile(r"\s+")
 
 _translation: dict[str, str] = {}
 _reverse: dict[str, str] = {}
+CONTEXT_SEPARATOR = ""  # context key "<context><English text>" (same separator as gettext msgctxt)
 _qt_translators: list = []  # keep reference, translator is removed if garbage collected
 _message_rules: tuple = ()
 _message_literals: tuple = ()  # literal text each rule needs in a message, "" if unknown (see pattern_literal)
@@ -97,8 +100,42 @@ def decimal_point() -> str:
     return _locale_decimal(current_language())
 
 
+# Languages with a (no-break) space before ":" ";" "!" "?" (French typography)
+SPACED_PUNCTUATION = frozenset(("fr",))
+
+
+def colon() -> str:
+    """Separator of a label & its value built by code: ": " (no-break space first in French, like translated texts)"""
+    return "\u00a0: " if _current_code in SPACED_PUNCTUATION else ": "
+
+
+def percent_sign() -> str:
+    """Percent sign after a number built by code: "45%" ("45\u00a0%" in French)"""
+    return "\u00a0%" if _current_code in SPACED_PUNCTUATION else "%"
+
+
+# Languages whose singular covers 0 and 1 (and 1.5): "0 tour", "1 tour", "2 tours"; other languages: 1 only
+SINGULAR_BELOW_TWO = frozenset(("fr",))
+
+
+def is_singular(count: float) -> bool:
+    """Whether a noun after count takes the singular in app language"""
+    if _current_code in SINGULAR_BELOW_TWO:
+        return abs(count) < 2
+    return count == 1
+
+
+def plural(count: float, one: str, many: str) -> str:
+    """Translated noun for count: one ("lap") or many ("laps") in app language"""
+    return tr(one) if is_singular(count) else tr(many)
+
+
 def localized(text: str) -> str:
-    """Number text with decimal separator of app language (lap times keep their dot)"""
+    """Number text with decimal separator of app language (lap times keep their dot)
+
+    Pages & stream graphics only: in-game overlays keep the dot on purpose (HUD habit, compact digits), and
+    overlays of classic design keep their English labels (modern design ones: tr_overlay).
+    """
     point = decimal_point()
     return text if point == "." else text.replace(".", point)
 
@@ -263,9 +300,12 @@ def set_language(name: str) -> str:
     _current_code = code
     _translation = load_translation(code)
     _overlay = load_overlay_labels(code)
-    _reverse = {translated: original for original, translated in _translation.items()}
-    if len(_reverse) != len(_translation):
-        logger.warning("I18N: duplicated translation found, some menu actions may not work")
+    # Two English texts may share a translation ("Undo", "Cancel": Annuler): untr gives the first one, context
+    # keys never (commands dispatch by action, untr only matches searches & recent command keys)
+    _reverse = {}
+    for original, translated in _translation.items():
+        if CONTEXT_SEPARATOR not in original:
+            _reverse.setdefault(translated, original)
     _load_message_rules(code)
     # Qt built-in texts & key names ("Ctrl+Maj+F" in French) follow the language once an app exists: a Qt
     # translation left installed after a switch back to English changed the shortcut texts of later windows
@@ -317,8 +357,12 @@ def pattern_literal(pattern: str) -> str:
     return "".join(chars)
 
 
-def tr(text: str) -> str:
-    """Translate UI text"""
+def tr(text: str, context: str = "") -> str:
+    """Translate UI text, context key first if given (see CONTEXT_SEPARATOR)"""
+    if context:
+        value = _translation.get(f"{context}{CONTEXT_SEPARATOR}{text}")
+        if value is not None:
+            return value
     return _translation.get(text, text)
 
 

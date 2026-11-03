@@ -106,7 +106,7 @@ TpPage {
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 2
+                    spacing: theme.space1
                     Text {
                         text: i18n.tr("Loaded preset")
                         color: theme.dimText
@@ -138,8 +138,8 @@ TpPage {
                         Layout.fillWidth: true
                         visible: page.loadedInfo.found === true
                         text: page.loadedInfo.pending === true ? (page.loadedInfo.changedText || "")  // content read meanwhile
-                            : (page.loadedInfo.changedText || "") + "  ·  " + i18n.trm((page.loadedInfo.overlays || 0) + " overlays")
-                              + "  ·  " + i18n.trm((page.loadedInfo.modules || 0) + " modules")
+                            : (page.loadedInfo.changedText || "") + "  ·  " + (page.loadedInfo.overlays || 0) + " " + i18n.plural(page.loadedInfo.overlays || 0, "overlay", "overlays")
+                              + "  ·  " + (page.loadedInfo.modules || 0) + " " + i18n.plural(page.loadedInfo.modules || 0, "module", "modules")
                         textFormat: Text.PlainText
                         color: theme.dimText
                         font.pointSize: theme.fontSmall
@@ -150,7 +150,7 @@ TpPage {
                     Layout.columnSpan: page.roomy ? 1 : 2
                     Layout.alignment: page.roomy ? Qt.AlignRight | Qt.AlignVCenter : Qt.AlignLeft
                     Layout.maximumWidth: page.roomy ? theme.em * 28 : -1
-                    spacing: 2
+                    spacing: theme.space1
                     TpSwitch {
                         Layout.alignment: page.roomy ? Qt.AlignRight : Qt.AlignLeft
                         Layout.maximumWidth: page.roomy ? theme.em * 28 : -1
@@ -312,7 +312,7 @@ TpPage {
                 Layout.maximumWidth: implicitWidth
                 text: backend.filtered
                     ? i18n.trm(backend.shownCount + " of " + backend.presetCount + " presets shown")
-                    : i18n.trm(backend.presetCount + " presets")
+                    : backend.presetCount + " " + i18n.plural(backend.presetCount, "preset", "presets")
                 textFormat: Text.PlainText
                 color: theme.dimText
                 font.features: { "tnum": 1 }

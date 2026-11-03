@@ -37,7 +37,7 @@ from . import app_signal
 from .const_api import API_MAP_CONFIG
 from .const_common import EMPTY_DICT
 from .const_file import ConfigType, FileExt
-from .setting_validator import PresetValidator, StyleValidator
+from .setting_validator import PresetValidator, StyleValidator, folder_path
 from .userfile import app_path, set_global_config_path, set_user_data_path
 from .userfile.json_setting import (
     ACCESS_TIMEOUT,
@@ -157,11 +157,14 @@ class FilePath:
         Relative path is resolved against APP root folder, never the working folder.
         """
         for key in user_path:
-            path = user_path[key]
+            path = folder_path(user_path[key])  # file names added to it as they are
             if not set_user_data_path(path):
                 path = default_path[key]
                 logger.warning("SETTING: %s %s unavailable, %s used for this session", key, user_path[key], path)
-                set_user_data_path(path)
+                if not set_user_data_path(path):  # default folder not writable either (read-only app copy)
+                    path = f"{self.config}{key.replace('_path', '')}/"
+                    logger.error("SETTING: %s default folder unavailable, %s used for this session", key, path)
+                    set_user_data_path(path)
             # Assign path
             setattr(self, key.replace("_path", ""), app_path(path))
 

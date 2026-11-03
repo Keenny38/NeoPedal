@@ -338,8 +338,8 @@ def test_palette_has_every_menu_command(window):
     from neopedal.ui.command_palette import build_commands
 
     titles = {command.title.split("  (")[0] for command in build_commands(window)}
-    for title in ("Restart NeoPedal", "Quit", "Check for Updates", "Create Bug Report…", "Show Log", "About",
-                  "Setup Wizard", "What's New", "Keyboard Shortcuts", "Customize Navigation Bar…", "Restart API",
+    for title in ("Restart NeoPedal", "Quit", "Check for Updates", "Create Bug Report…", "Show Log", "About NeoPedal",
+                  "Setup Wizard…", "What's New", "Keyboard Shortcuts", "Customize Navigation Bar…", "Restart API",
                   "Notifications", "Reset Window Size and Position", "Minimize to Tray", "Delta Best",
                   "Window theme: Modern Light", "Settings", "Find Option…", "Back", "Forward"):
         assert title in titles, title
@@ -480,6 +480,7 @@ def test_first_close_to_tray_told_once(window, monkeypatch):
     messages = []
     monkeypatch.setattr(QSystemTrayIcon, "showMessage", lambda self, title, text, *args: messages.append(text))
     monkeypatch.setattr(QSystemTrayIcon, "isVisible", lambda self: True)
+    monkeypatch.setattr(QSystemTrayIcon, "isSystemTrayAvailable", staticmethod(lambda: True))  # B-010: tray there
     cfg.application["minimize_to_tray"] = True
     cfg.application["close_to_tray_notice_shown"] = False
     try:
@@ -579,7 +580,7 @@ def test_new_texts_translated(french):
                  "Calculator", "Loading page…", "Help for This Page", "Open GitHub Issue…", "Trust Plugin…",
                  "Uninstall…", "Find a tool", "Now", "Window theme", "Every page is in the navigation bar"):
         assert tr(text) != text, text
-    assert trm("3 unread") != "3 unread" and trm("Help: Overlays") == "Aide : Overlays"
+    assert trm("3 unread") != "3 unread" and trm("Help: Overlays") == "Aide\u00a0: Overlays"
     assert trm("Go to Outils") == "Aller à Outils"
 
 

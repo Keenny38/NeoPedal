@@ -145,8 +145,8 @@ def test_notice_texts_translated(ui_env):
         assert trm(f"{name} switched on") == f"{name} activée"
         assert trm(f"{name} switched off") == f"{name} désactivée"
         assert trm(f"{name} back to default").startswith(f"{name} remise")
-        assert trm(f"Undone: {name}") == f"Annulé : {name}"
-        assert trm(f"Redone: {name}") == f"Rétabli : {name}"
+        assert trm(f"Undone: {name}") == f"Annulé\u00a0: {name}"
+        assert trm(f"Redone: {name}") == f"Rétabli\u00a0: {name}"
     finally:
         set_language("English")
 

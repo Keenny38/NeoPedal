@@ -42,11 +42,15 @@ logger = logging.getLogger(__name__)
 CLAMPED: list[tuple[str, float, float]] = []
 
 
-def clamp_value(key: str, dict_user: dict) -> None:
+def clamp_value(key: str, dict_user: dict, section: str = "") -> None:
     """Number brought within the limit of its option (typed in file, imported, older limit): a value the
-    options page refuses never reaches an overlay (huge sizes: memory, crash)"""
+    options page refuses never reaches an overlay (huge sizes: memory, crash)
+
+    Args:
+        section: name of the preset section holding the option (overlay: its own limits first, see OVERLAY_LIMITS).
+    """
     value = dict_user[key]
-    clamped = clamp_to_limit(key, value)
+    clamped = clamp_to_limit(key, value, section)
     if clamped != value:
         dict_user[key] = clamped
         CLAMPED.append((key, value, clamped))
@@ -250,7 +254,7 @@ class ValueValidator:
     """Value validator"""
 
     @staticmethod
-    def boolean(key: str, dict_user: dict) -> bool:
+    def boolean(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - Boolean"""
         if not re.search(rxp.CFG_BOOL, key):
             return False
@@ -263,7 +267,7 @@ class ValueValidator:
         return True
 
     @staticmethod
-    def choice_units(key: str, dict_user: dict) -> bool:
+    def choice_units(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - units choice list"""
         for ref_key, choice_list in rxp.CHOICE_UNITS.items():
             if re.search(ref_key, key):
@@ -273,7 +277,7 @@ class ValueValidator:
         return False
 
     @staticmethod
-    def choice_common(key: str, dict_user: dict) -> bool:
+    def choice_common(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - common choice list"""
         for ref_key, choice_list in rxp.CHOICE_COMMON.items():
             if re.search(ref_key, key):
@@ -283,7 +287,7 @@ class ValueValidator:
         return False
 
     @staticmethod
-    def color(key: str, dict_user: dict) -> bool:
+    def color(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - Color string"""
         if not re.search(rxp.CFG_COLOR, key):
             return False
@@ -292,7 +296,7 @@ class ValueValidator:
         return True
 
     @staticmethod
-    def clock_format(key: str, dict_user: dict) -> bool:
+    def clock_format(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - clock format string"""
         if not re.search(rxp.CFG_CLOCK_FORMAT, key):
             return False
@@ -301,7 +305,7 @@ class ValueValidator:
         return True
 
     @staticmethod
-    def string(key: str, dict_user: dict) -> bool:
+    def string(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - string"""
         for strings in (
             rxp.CFG_FONT_NAME,
@@ -319,7 +323,17 @@ class ValueValidator:
         return True
 
     @staticmethod
-    def integer(key: str, dict_user: dict) -> bool:
+    def string_list(key: str, dict_user: dict, section: str = "") -> bool:
+        """Value - list of strings"""
+        if not re.search(rxp.CFG_STRING_LIST, key):
+            return False
+        value = dict_user[key]
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            dict_user.pop(key)
+        return True
+
+    @staticmethod
+    def integer(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - integer"""
         if not re.search(rxp.CFG_INTEGER, key):
             return False
@@ -328,17 +342,24 @@ class ValueValidator:
         elif key.endswith("_port") and not 0 <= dict_user[key] <= 65535:
             dict_user.pop(key)  # out of range port raises OverflowError at bind
         else:
-            clamp_value(key, dict_user)
+            clamp_value(key, dict_user, section)
         return True
 
     @staticmethod
-    def numeric(key: str, dict_user: dict) -> bool:
+    def numeric(key: str, dict_user: dict, section: str = "") -> bool:
         """Value - numeric (finite: JSON NaN & Infinity not allowed)"""
         if not is_finite_number(dict_user[key]):
             dict_user.pop(key)
         else:
-            clamp_value(key, dict_user)
+            clamp_value(key, dict_user, section)
         return True
+
+
+def folder_path(path: str) -> str:
+    """Folder path ending with a separator (file names are added to it as they are), empty path unchanged"""
+    if not path or path.endswith(("/", "\\")):
+        return path
+    return f"{path}/"
 
 
 class PresetValidator:
@@ -352,11 +373,13 @@ class PresetValidator:
     )
 
     @classmethod
-    def remove_invalid_key(cls, dict_user: dict, dict_def: dict, keep_unknown: bool = False) -> None:
+    def remove_invalid_key(cls, dict_user: dict, dict_def: dict, keep_unknown: bool = False,
+                           section: str = "") -> None:
         """Remove invalid key & value from user dictionary
 
         Args:
             keep_unknown: keep keys unknown to this build (options of a newer build), as they are.
+            section: name of the preset section validated (overlay: its own limits, see clamp_value).
         """
         key_list_user = tuple(dict_user)  # create user key list
 
@@ -371,9 +394,12 @@ class PresetValidator:
                 if not isinstance(dict_def[key], dict):
                     dict_user.pop(key)
                 continue
+            if isinstance(dict_def[key], dict):  # value set in place of a dict: default restored later
+                dict_user.pop(key)
+                continue
             # Validate values
             for _validator in cls._value_validators:
-                if _validator(key, dict_user):
+                if _validator(key, dict_user, section):
                     break
 
     @staticmethod
@@ -386,8 +412,8 @@ class PresetValidator:
             if key not in key_list_user:  # check each default key in user list
                 data_def = dict_def[key]
                 # Add missing item to user
-                if isinstance(data_def, dict):
-                    dict_user[key] = data_def.copy()  # copy sub-dict
+                if isinstance(data_def, (dict, list)):
+                    dict_user[key] = data_def.copy()  # copy sub-dict or list (default never changed in place)
                 else:
                     dict_user[key] = data_def
                 is_modified = True
@@ -401,9 +427,10 @@ class PresetValidator:
             dict_user[d_key] = dict_user.pop(d_key)  # append user key at the end
 
     @classmethod
-    def validate_key_pair(cls, dict_user: dict, dict_def: dict, keep_unknown: bool = False) -> None:
-        """Create key-only check list, then validate key"""
-        cls.remove_invalid_key(dict_user, dict_def, keep_unknown)
+    def validate_key_pair(cls, dict_user: dict, dict_def: dict, keep_unknown: bool = False,
+                          section: str = "") -> None:
+        """Create key-only check list, then validate key (section: name of the preset section, see clamp_value)"""
+        cls.remove_invalid_key(dict_user, dict_def, keep_unknown, section)
         cls.add_missing_key(dict_user, dict_def)
         cls.sort_key_order(dict_user, dict_def)
 
@@ -416,7 +443,15 @@ class PresetValidator:
         if preset_version == VERSION_NA or preset_version < build_version:
             preupdate_global_setting(preset_version, dict_user)
         # Validate preset, options of a newer build kept
-        return cls._validate(dict_user, dict_def, preset_version > build_version)
+        dict_user = cls._validate(dict_user, dict_def, preset_version > build_version)
+        # User folders typed by hand without final separator: fixed (file saved again), never files written
+        # beside the folder with its name as prefix
+        user_path = dict_user.get("user_path")
+        if isinstance(user_path, dict):
+            for key, path in user_path.items():
+                if isinstance(path, str):
+                    user_path[key] = folder_path(path)
+        return dict_user
 
     @classmethod
     def user_preset(cls, dict_user: dict, dict_def: dict) -> dict:
@@ -454,6 +489,6 @@ class PresetValidator:
             if not isinstance(dict_user[item], dict):
                 dict_user[item] = dict_def[item].copy()
                 continue
-            cls.validate_key_pair(dict_user[item], dict_def[item], keep_unknown)
+            cls.validate_key_pair(dict_user[item], dict_def[item], keep_unknown, item)
             normalize_display_orders(dict_user[item])
         return dict_user

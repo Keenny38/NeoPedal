@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 # Settings changed in memory & saved later by their owner (car followed by the Director): written before preset
 # reload, restart & quit, else lost (preset file loaded again) or written late, see write_pending
 _pending_writers: list[Callable[[], object]] = []
+_close_waiters: list[Callable[[], object]] = []
 LAP_SAVER_TIMEOUT = 10.0  # seconds to wait for lap files being written before restart
 REPLAY_CLOSE_TIMEOUT = 10.0  # seconds to wait more for a replay recording still closing (quit, restart)
 # Objects of a started app (window, overlays, settings) moved out of garbage collection: full collections scan
@@ -64,8 +65,18 @@ _trim_due = False  # physical memory given back after that collection (window aw
 _gc_last_collect = 0.0  # monotonic time of last full collection of frozen objects
 IDLE_COLLECT_MS = 10 * 60 * 1000  # full collection asked this often while not driving (garbage of closed pages)
 _idle_collect_timer: Any = None  # QTimer asking periodic full collection, once start finished
+# Automatic garbage collection off from start: it ran on whichever thread allocated (module, page job, server
+# thread), and a reference cycle holding a QObject was then freed there, off the UI thread (Linux crash). The
+# generation automatic collection would collect is collected by a UI thread timer instead, see collect_due
+# Checked this often (a count read when nothing is due): young generation stays small, collections short (measured
+# 2026-11-02 with a heavy worker allocating cycles: gen 0 p95 7.7 ms at 100 ms, 13 ms at 250 ms)
+UI_COLLECT_MS = 100
+FULL_COLLECT_DRIVING_S = 120.0  # while driving, full collection (objects made since freeze) at most this often
+_ui_collect_timer: Any = None
+_gc_last_full = 0.0  # monotonic time of last full collection by collect_due
 RELOAD_POLL_MS = 10  # reload: interval checking whether modules stopped
 SAVE_TIMEOUT = 10.0  # reload: seconds waiting for settings saving before loading preset (as cfg.flush)
+_closed = False  # close() done (quit, restart): not done again when the event loop ends, see close_at_exit
 
 
 def int_signal_handler(sign, frame):
@@ -89,6 +100,7 @@ def start():
     """Start api, modules, widgets, etc. Call once per launch."""
     logger.info("STARTING............")
     signal.signal(signal.SIGINT, int_signal_handler)
+    collect_on_ui_thread()  # before any module, server or page job thread starts
     # 1 load user preset
     cfg.set_next_to_load(f"{cfg.preset_files()[0]}{FileExt.JSON}")
     cfg.load_user()
@@ -103,8 +115,8 @@ def start():
     if not safe_mode.state.enabled:
         wctrl.start()
     # 5 start main window
-    from .ui.app import AppWindow
-    window = AppWindow()
+    from .ui.app import main_window
+    window = main_window()
     # Finalize loading after main GUI fully loaded
     logger.info("FINALIZING............")
     # 1 Enable overlay control
@@ -122,8 +134,11 @@ def start():
     if cfg.application["check_for_updates_on_startup"]:
         update_checker.check(False)
     # 5 Start finished once window & overlays are up for a while (startup marker removed)
-    from PySide6.QtCore import QTimer
+    from PySide6.QtCore import QCoreApplication, QTimer
     QTimer.singleShot(safe_mode.SETTLE_MS, finish_start)
+    app = QCoreApplication.instance()
+    if app is not None:  # ended by the system (no Quit menu): saved all the same
+        app.aboutToQuit.connect(close_at_exit)
     if safe_mode.state.enabled:
         QTimer.singleShot(0, lambda: show_safe_mode_notice(window))
 
@@ -134,6 +149,19 @@ def finish_start():
     logger.info("STARTED: startup marker removed")
     freeze_collected()
     start_idle_collect_timer()
+    import threading
+
+    # Installers of earlier updates left in the temporary folder (an installer can't delete itself): off the UI thread
+    threading.Thread(target=remove_old_downloads, daemon=True, name="Old update downloads").start()
+
+
+def remove_old_downloads():
+    from .update import remove_old_downloads as remove
+
+    try:
+        remove()
+    except Exception:  # cleanup only: never stops the app
+        logger.exception("UPDATES: old downloads not removed")
 
 
 def freeze_collected():
@@ -155,6 +183,63 @@ def start_idle_collect_timer():
     _idle_collect_timer = QTimer()
     _idle_collect_timer.timeout.connect(periodic_idle_collect)
     _idle_collect_timer.start(IDLE_COLLECT_MS)
+
+
+def collect_on_ui_thread():
+    """Automatic garbage collection turned off, generations collected by a UI thread timer instead (see collect_due)
+
+    Called once at start, before modules & servers start their threads: reference cycles (QObject ones too) are
+    then only ever freed on the UI thread. Objects freed by reference counting are not concerned (owners hold
+    callbacks of their jobs weakly, see jobs.weak_callback). Never called by tests: the test process turns automatic
+    collection off itself and collects between tests on the main thread (tests/conftest.py, same due_generation).
+    """
+    global _ui_collect_timer, _gc_last_full
+    if _ui_collect_timer is not None:
+        return
+    from PySide6.QtCore import QTimer
+
+    gc.disable()
+    _gc_last_full = monotonic()
+    _ui_collect_timer = QTimer()
+    _ui_collect_timer.timeout.connect(collect_due)
+    _ui_collect_timer.start(UI_COLLECT_MS)
+
+
+def due_generation(count: tuple[int, ...], threshold: tuple[int, ...]) -> int:
+    """Oldest generation whose collection automatic collection would have started by now, -1 if none
+
+    Same rule as the interpreter: generation 0 once its new objects reach threshold 0, generation n once
+    generation n-1 was collected threshold n times since. Threshold 0 (collection turned off) collects nothing.
+    """
+    if not threshold or threshold[0] <= 0:
+        return -1
+    for generation in range(min(len(count), len(threshold)) - 1, -1, -1):
+        if threshold[generation] > 0 and count[generation] >= threshold[generation]:
+            return generation
+    return -1
+
+
+def collect_due() -> int:
+    """Generation automatic collection would have collected by now collected here, on the UI thread (timer of
+    collect_on_ui_thread), collected generation returned (-1 if none)
+
+    Full collections scan objects made since the app was frozen (see freeze_collected) and may take longer: while
+    driving, at most one every FULL_COLLECT_DRIVING_S (younger generation collected meanwhile).
+    """
+    global _gc_last_full
+    if gc.isenabled():  # turned on again (library): off again, cycles keep being freed on this thread only
+        gc.disable()
+    generation = due_generation(gc.get_count(), gc.get_threshold())
+    if generation < 0:
+        return -1
+    now = monotonic()
+    if generation >= 2:
+        if realtime_state.active and now - _gc_last_full < FULL_COLLECT_DRIVING_S:
+            generation = 1
+        else:
+            _gc_last_full = now
+    gc.collect(generation)
+    return generation
 
 
 def periodic_idle_collect():
@@ -280,6 +365,13 @@ def on_pending_write(writer: Callable[[], object]):
         _pending_writers.append(writer)
 
 
+def on_close(waiter: Callable[[], object]):
+    """Waiter called once the app closes (quit, restart, app ended by the system): waits, bounded, for work of a
+    background thread the process end would cut (see close), registered once"""
+    if waiter not in _close_waiters:
+        _close_waiters.append(waiter)
+
+
 def write_pending():
     """Unsaved settings of every writer queued for saving now (see on_pending_write)"""
     for writer in tuple(_pending_writers):
@@ -289,8 +381,24 @@ def write_pending():
             logger.exception("USERDATA: pending setting write failed")
 
 
+def closed() -> bool:
+    """close() done (quit, restart, or app ended by the system), see close_at_exit"""
+    return _closed
+
+
+def close_at_exit():
+    """Event loop ending (QApplication.aboutToQuit): closed as Quit does when the app was ended without it
+    (Windows shut down or log off, installer closing running apps: Qt quits on WM_ENDSESSION), so the last lap,
+    module data, replay & settings are saved. Nothing done when Quit or restart closed already."""
+    if not _closed:
+        logger.info("CLOSING: app ended by the system")
+        close()
+
+
 def close():
     """Close api, modules, widgets. Call before quit APP."""
+    global _closed
+    _closed = True
     logger.info("CLOSING............")
     write_pending()
     # 0 reload in progress never finished (modules still stopping waited below)
@@ -304,19 +412,26 @@ def close():
     replay.stop_recording()
     if not replay.wait_closed(REPLAY_CLOSE_TIMEOUT):  # slow drive: never cut by the process end
         logger.warning("CLOSING: replay recording not closed")
-    # 3 stop & close api
+    # 3 background work the process end would cut (game sent back to live, events log lines), each bounded
+    for waiter in tuple(_close_waiters):
+        try:
+            waiter()
+        except Exception:  # one waiter failing never stops quit
+            logger.exception("CLOSING: close waiter failed")
+    # 4 stop & close api
     api.stop()
     api.close()
     logger.info("API: closed")
-    # 4 quitting or restarting before start finished is no crash
+    # 5 quitting or restarting before start finished is no crash
     safe_mode.clear_marker(cfg.path.config)
-    # 5 settings saved by stopped modules (track info, brands, brakes) written before the process ends:
+    # 6 settings saved by stopped modules (track info, brands, brakes) written before the process ends:
     # quit never waited for the saving thread (restart does, see restart)
     cfg.flush()
 
 
 def restart():
     """Restart APP"""
+    global _closed
     logger.info("RESTARTING............")
     if sys.platform == "win32":
         # New instance started first: Python & app modules load while this one closes. It reads nothing until
@@ -348,6 +463,7 @@ def restart():
         os.execv(command[0], command)
     except OSError as error:
         # exe moved or blocked: keep running, reload what close() unloaded
+        _closed = False
         logger.error("RESTARTING: failed, %s", error)
         os.environ.pop(RESTART_ENVIRONMENT, None)
         api.connect()

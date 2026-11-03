@@ -70,3 +70,4 @@ URL_USER_GUIDE = f"{URL_FORK}/wiki"  # wiki of this version (docs/wiki), not the
 URL_FAQ = f"{URL_FORK}/wiki/Troubleshooting"
 URL_RELEASE = f"https://github.com/{FORK_REPO_NAME}/releases"
 URL_PATREON = "https://www.patreon.com/cw/keenny38"  # support the NeoPedal author
+URL_KOFI = "https://ko-fi.com/neopedal"  # one-time support of the NeoPedal author

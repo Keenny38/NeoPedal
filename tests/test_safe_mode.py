@@ -184,9 +184,10 @@ def controls(ui_env, monkeypatch):
     monkeypatch.setattr(loader, "sync_screen_layout", lambda: None)
     monkeypatch.setattr(loader.signal, "signal", lambda *args: None)
     monkeypatch.setattr(loader, "freeze_collected", lambda: None)  # test process never left frozen
+    monkeypatch.setattr(loader, "collect_on_ui_thread", lambda: None)  # automatic collection kept on in tests
     from neopedal.ui import app
 
-    monkeypatch.setattr(app, "AppWindow", lambda: calls.append("window") or None)
+    monkeypatch.setattr(app, "main_window", lambda: calls.append("window") or None)
     from PySide6.QtCore import QTimer
 
     timers = []

@@ -5,7 +5,8 @@ import "../components"
 
 // Positions lap by lap (races): place of every car at end of each lap (class place when a class is picked),
 // grid at lap 0. Other cars dimmed in their class color, player in accent color, car picked in text color.
-// Hover: nearest car highlighted with its name & place. Click: pick that car.
+// Hover: nearest car highlighted with its name & place. Click: pick that car. Keyboard (Tab reaches the chart):
+// Up / Down pick the car ahead / behind at the finish, Home / End the first / last.
 // Lines drawn by the GPU (GpuShape), built by backend in plot pixels once the plot size settles: resize only
 // scales them meanwhile, hover & pick only show other lines. Lines revealed by a clip.
 Item {
@@ -33,6 +34,32 @@ Item {
     readonly property int picked: seriesIndex(backend.selectedEntry)
     readonly property bool highlighted: picked >= 0 || hovered >= 0
     readonly property bool drawn: active && series.length > 0 && laps > 0
+    // Series by final place (keyboard picking order)
+    readonly property var finishOrder: {
+        var order = []
+        for (var i = 0; i < series.length; i++) order.push(i)
+        return order.sort(function(a, b) {
+            var pa = series[a].last.length ? series[a].last[1] : 9999, pb = series[b].last.length ? series[b].last[1] : 9999
+            return pa - pb
+        })
+    }
+    function pickStep(step) {
+        if (finishOrder.length === 0)
+            return
+        var at = finishOrder.indexOf(picked)
+        var next = at < 0 ? (step > 0 ? 0 : finishOrder.length - 1)
+                 : Math.max(0, Math.min(finishOrder.length - 1, at + step))
+        backend.selectEntry(series[finishOrder[next]].key)
+    }
+    function placeText(place) { return i18n.tr("P%1").arg(place) }
+    activeFocusOnTab: true
+    Keys.onUpPressed: pickStep(-1)
+    Keys.onDownPressed: pickStep(1)
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Home && finishOrder.length) { backend.selectEntry(series[finishOrder[0]].key); event.accepted = true }
+        else if (event.key === Qt.Key_End && finishOrder.length) { backend.selectEntry(series[finishOrder[finishOrder.length - 1]].key); event.accepted = true }
+    }
+    FocusRing { visible: chart.activeFocus; anchors.margins: gap }  // inside the tab
     readonly property var players: {
         var found = []
         for (var i = 0; i < series.length; i++) if (series[i].player) found.push(series[i])
@@ -125,9 +152,32 @@ Item {
         easing.type: Easing.OutCubic
     }
 
-    // Legend
+    // Axis titles: place (left, above the place labels), lap (bottom right, after the lap ticks)
+    Text {
+        id: placeTitle
+        objectName: "placeAxisTitle"
+        visible: chart.drawn
+        x: 0
+        y: chart.plotY - height - theme.space2
+        text: i18n.tr("Place")
+        textFormat: Text.PlainText
+        color: theme.dimText
+        font.pointSize: theme.fontCaption
+    }
+    Text {
+        objectName: "lapAxisTitle"
+        visible: chart.drawn
+        x: chart.plotX + chart.plotWidth + theme.space3
+        y: chart.plotY + chart.plotHeight + theme.space2
+        text: i18n.tr("Lap")
+        textFormat: Text.PlainText
+        color: theme.dimText
+        font.pointSize: theme.fontCaption
+    }
+
+    // Legend: every kind of line (other cars in the color of their class)
     Row {
-        x: chart.plotX
+        x: Math.max(chart.plotX, placeTitle.implicitWidth + theme.space6)
         y: theme.em * 0.6
         spacing: theme.space6
         visible: chart.series.length > 0
@@ -140,6 +190,11 @@ Item {
             spacing: theme.space3
             Rectangle { width: theme.em * 1.2; height: Math.round(chart.thickWidth); radius: height / 2; color: theme.text; anchors.verticalCenter: parent.verticalCenter }
             Text { text: i18n.tr("Car picked"); color: theme.dimText; font.pointSize: theme.fontSmall }
+        }
+        Row {
+            spacing: theme.space3
+            Rectangle { width: theme.em * 1.2; height: Math.round(chart.thinWidth); radius: height / 2; color: theme.dimText; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: i18n.tr("Other cars, in their class color"); color: theme.dimText; font.pointSize: theme.fontSmall }
         }
     }
 
@@ -251,7 +306,7 @@ Item {
             y: chart.py(modelData.place) - height / 2
             width: Math.min(implicitWidth, Math.max(chart.width - x, theme.em * 2))  // cut at the chart edge
             elide: Text.ElideRight
-            text: "P" + modelData.place + "  " + modelData.name
+            text: chart.placeText(modelData.place) + "  " + modelData.name
             textFormat: Text.PlainText
             color: modelData.color
             font.pointSize: theme.fontSmall
@@ -267,7 +322,8 @@ Item {
         visible: item !== null && area.containsMouse
         text: item === null ? ""
             : (item.number !== "" ? "#" + item.number + "  " : "") + item.name + "\n"
-              + (chart.hoverLap === 0 ? i18n.tr("Grid") : i18n.tr("Lap") + " " + chart.hoverLap) + ": P" + chart.hoverPlace
+              + (chart.hoverLap === 0 ? i18n.tr("Grid") : i18n.tr("Lap") + " " + chart.hoverLap) + i18n.colon()
+              + chart.placeText(chart.hoverPlace)
         x: Math.max(0, Math.min(area.mouseX + theme.em, chart.width - width - theme.space4))
         y: Math.max(area.mouseY - height - theme.space4, 0)
     }
@@ -291,4 +347,5 @@ Item {
     }
     Accessible.role: Accessible.Graphic
     Accessible.name: i18n.tr("Positions")
+    Accessible.description: i18n.tr("Up / Down: car ahead / behind at the finish")
 }

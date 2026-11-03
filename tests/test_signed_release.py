@@ -298,7 +298,7 @@ def test_refused_message_translated():
     for pattern, replacement in fr_messages.MESSAGE_RULES:
         text = "Update Refused: v99.0.0 Has No Valid Signature"
         if re.search(pattern, text):
-            assert re.sub(pattern, replacement, text) == "Mise à jour refusée : la v99.0.0 n'a pas de signature valide"
+            assert re.sub(pattern, replacement, text) == "Mise à jour refusée\u00a0: la v99.0.0 n'a pas de signature valide"
             break
     else:
         raise AssertionError("no French rule")

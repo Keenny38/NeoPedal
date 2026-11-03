@@ -514,15 +514,21 @@ Item {
                 objectName: "replayListState"
                 parent: list
                 anchors.centerIn: parent
-                loading: replays.loading && replays.replayCount === 0  // asking game: never "no replay" while waiting
+                // Asking game, or game starting: never "no replay" while waiting
+                loading: (replays.loading || replays.gameStarting) && replays.replayCount === 0
                 empty: list.count === 0
-                loadingText: i18n.tr("Asking game…")
+                loadingText: replays.gameStarting ? i18n.tr("Starting Le Mans Ultimate…") : i18n.tr("Asking game…")
                 glyph: replays.replayCount > 0 ? "" : ""  // search, video
                 title: replays.replayCount > 0 ? i18n.tr("No replay matches the search or filter.")
                      : replays.gameState === "offline" ? i18n.tr("Start LMU to list the replays it saved.")
                      : i18n.tr("No replay saved by the game yet.")
-                actionText: replays.replayCount > 0 ? i18n.tr("Clear Filters") : ""
+                actionText: replays.replayCount > 0 ? i18n.tr("Clear Filters")
+                          : replays.gameState === "offline" ? i18n.tr("Start LMU") : ""
                 onAction: {
+                    if (replays.replayCount === 0) {  // game not running: started
+                        replays.startGame()
+                        return
+                    }
                     searchField.clearSearch()
                     replays.clearFilters()
                     list.forceActiveFocus()

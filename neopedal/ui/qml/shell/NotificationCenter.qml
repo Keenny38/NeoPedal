@@ -11,6 +11,9 @@ TpPage {
     color: theme.surfaceFlyout  // popup window: native drop shadow of Windows popups around it
     border.width: 1
     border.color: theme.strokeSubtle
+    // Corners of the popups of pages (Windows 11 rounds the window the same, ShellPopup); content fades in.
+    // Square when the system keeps a square window (Windows 10): rounded corners would show the view background
+    radius: theme.radiusLg * (backend.roundedCorners ? 1 : 0)
     focus: true
     Keys.onEscapePressed: backend.close()
 
@@ -21,7 +24,9 @@ TpPage {
         return severity === "error" ? theme.loss : severity === "warning" ? theme.warning : theme.accent
     }
 
+    TpEnter { target: popupContent }
     ColumnLayout {
+        id: popupContent
         anchors.fill: parent
         anchors.margins: theme.padCard
         spacing: theme.space3

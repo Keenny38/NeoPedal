@@ -65,22 +65,18 @@ Item {
         return lines.join("\n")
     }
 
-    Rectangle {
+    // Card look of every list of cards (TpListRow card), as overlay cards: hovered surface; on, needed or failed =
+    // emphasized in the state color (accent, warning, loss: tint & outline). "card" inside is TpListRow's own
+    // property (it shadows the root id): root read through parent
+    TpListRow {
         id: surface
         anchors.fill: parent
-        anchors.margins: Math.round(theme.em * 0.3)
-        radius: theme.radiusLg
-        // Hovered: hover surface in every state (enabled cards too)
-        color: card.active ? Qt.tint(area.containsMouse ? theme.surfaceHover : theme.surfaceCard,
-                                     theme.tint(theme.accent, "subtle"))
-             : area.containsMouse ? theme.surfaceHover
-             : theme.surfaceCard
-        border.width: card.active || card.needed ? 1.5 : 1
-        border.color: card.needed || card.failed || card.active ? card.edge
-                    : area.containsMouse ? theme.strokeStrong
-                    : theme.cardBorder
-        Behavior on color { enabled: !card.recycling; ColorAnimation { duration: theme.motionBase } }
-        Behavior on border.color { enabled: !card.recycling; ColorAnimation { duration: theme.motionBase } }
+        anchors.margins: theme.space2
+        card: true
+        hovered: area.containsMouse
+        emphasized: parent.active || parent.needed || parent.failed
+        tint: parent.edge
+        animate: !parent.recycling
 
         // Card background click (buttons above get their own clicks)
         MouseArea {
@@ -118,7 +114,7 @@ Item {
             anchors.right: controls.left
             anchors.rightMargin: theme.space3
             anchors.verticalCenter: tile.verticalCenter
-            spacing: 3
+            spacing: theme.space1
             Text {
                 id: nameText
                 width: parent.width

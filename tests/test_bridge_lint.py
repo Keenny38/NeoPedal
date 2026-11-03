@@ -54,6 +54,8 @@ ALLOWED_SHARED: dict[tuple[str, str], int] = {
     ("overlay_options_backend.py", "filterChanged"): 9,
     ("overlay_options_backend.py", "previewChanged"): 9,
     ("overlay_options_backend.py", "stateChanged"): 8,
+    # Game state & game started from the page (Results & Replays): changed together, the status text tells both
+    ("replays_backend.py", "statusChanged"): 7,
     ("results_backend.py", "selectionChanged"): 7,
     ("stream_backend.py", "serverChanged"): 9,
     ("track_map_backend.py", "mapChanged"): 7,

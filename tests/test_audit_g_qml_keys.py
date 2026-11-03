@@ -91,6 +91,17 @@ def option_items(segmented) -> list:
     return sorted((item for item in row.childItems() if item.width() > 0), key=lambda item: item.x())
 
 
+def tab_items(tab_bar) -> list:
+    """Tab buttons of a TpTabBar (made by its repeater), left to right"""
+    found, stack = [], list(tab_bar.childItems())
+    while stack:
+        item = stack.pop()
+        if has_property(item, "contentWidth") and has_property(item, "current") and item.width() > 0:
+            found.append(item)
+        stack.extend(item.childItems())
+    return sorted(found, key=lambda item: item.x())  # one row of tabs
+
+
 def click(view, item):
     QTest.mouseClick(view, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, center_of(item))
     QCoreApplication.processEvents()
@@ -129,10 +140,10 @@ def test_lap_viewer_tabs_follow_backend_after_click(opener, warnings):  # noqa: 
     dialog.resize(1900, 800)  # side panel wide enough for its six tabs (narrower: drop-down list instead)
     wait(0.4)
     view, backend = dialog.view, dialog.backend
-    segmented = find(view, lambda item: has_property(item, "options") and has_property(item, "squeezed"))
-    tabs = next(item for item in segmented if evaluate(view, item, "options.length") == 6)
+    tabs = named(view, "sideTabs")  # tools: views of the side panel, so a TpTabBar
+    assert tabs.property("visible") and len(tab_items(tabs)) == 6
     mode = named(view, "viewMode")
-    click(view, option_items(tabs)[1])  # G circle
+    click(view, tab_items(tabs)[1])  # G circle
     wait(0.3)
     assert backend.sideTab == 1 and tabs.property("currentIndex") == 1
     backend.setSideTab(0)  # by code (markers set...): highlight follows, no workaround needed

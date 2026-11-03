@@ -41,6 +41,7 @@ from ..const_app import (
     LICENSE,
     MODIFICATION_NOTICE,
     URL_FORK,
+    URL_KOFI,
     URL_PATREON,
     URL_WEBSITE,
     VERSION,
@@ -141,6 +142,7 @@ class About(BaseDialog):
             f"<p>{tr('Based on TinyPedal:')} {COPYRIGHT}<br><a href={URL_WEBSITE}>{URL_WEBSITE}</a></p>"
             f"<p>{tr(DESCRIPTION)}</p><p>{tr(LICENSE)}</p>"
             f"<p>{tr('Support NeoPedal on Patreon')}<br><a href={URL_PATREON}>{URL_PATREON}</a></p>"
+            f"<p>{tr('Support NeoPedal on Ko-fi')}<br><a href={URL_KOFI}>{URL_KOFI}</a></p>"
         )
         label_desc.setObjectName("labelAbout")
         label_desc.setWordWrap(True)

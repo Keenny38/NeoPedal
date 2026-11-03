@@ -96,7 +96,7 @@ def test_page_reloaded_keeps_incubating(page_folder):
     parent = QWidget()
     view = create_quick_view(parent, "AsyncTest.qml", {}, samples=0)
     try:
-        quick.reload_in_language(view)
+        view = quick.reload_in_language(view, "AsyncTest.qml", {})
         root = view.rootObject()
         deadline = time.monotonic() + 10
         while root.property("asyncStatus") != LOADER_READY:

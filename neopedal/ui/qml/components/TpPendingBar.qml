@@ -57,7 +57,7 @@ Rectangle {
             fallback: bar.discarded ? "✓" : bar.errorCount > 0 ? "!" : ""
             color: bar.discarded ? theme.gain : bar.errorCount > 0 ? theme.loss : theme.accent
         }
-        Text {
+        TpText {
             Layout.fillWidth: true
             text: bar.discarded ? i18n.tr("Changes discarded")
                 : bar.errorCount > 0

@@ -465,6 +465,7 @@ def test_fetch_sheet_cut_off_response_is_os_error(monkeypatch):
             raise http.client.IncompleteRead(b"partial")
 
     monkeypatch.undo()  # real fetch_sheet (tests replace it by an offline one)
+    monkeypatch.setattr(lap_reference, "RETRY_DELAYS", ())  # cut off at once: no wait between attempts
     monkeypatch.setattr(urllib.request, "urlopen", lambda *args, **kwargs: Response())
     with pytest.raises(OSError):
         lap_reference.fetch_sheet(lap_reference.DEFAULT_SHEET_URL)

@@ -20,7 +20,7 @@ TpDialog {
     title: i18n.tr("Setup Differences")
     showCancel: false
     acceptText: i18n.tr("Close")
-    width: Math.min((parent ? parent.width : theme.em * 40) - theme.em * 4, theme.em * 36)
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 40) - theme.em * 4, theme.em * 36)
 
     Text {
         Layout.fillWidth: true

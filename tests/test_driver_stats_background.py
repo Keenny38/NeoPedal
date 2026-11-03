@@ -132,8 +132,41 @@ def test_unreadable_file_not_served_from_cache(tmp_path, monkeypatch):
     assert read_records(folder) == []
 
 
-def test_concurrent_reads_and_appends(tmp_path):
+def parse_log(monkeypatch) -> list[tuple]:
+    """Fingerprint of every parse kept (thread, (inode, size, mtime ns), offset, lines, records, tail end): explains a
+    record lost by the cached reading (post-mortem 0.28.0, P2 13)"""
+    log = []
+    original = driver_history.keep_records
+
+    def keep_records(path, parsed, generation):
+        log.append((threading.current_thread().name, parsed.stamp, parsed.offset, len(parsed.lines),
+                    len(parsed.records), parsed.tail[-24:]))
+        original(path, parsed, generation)
+
+    monkeypatch.setattr(driver_history, "keep_records", keep_records)
+    return log
+
+
+def history_diagnostics(folder: str, log: list[tuple], expected: list) -> str:
+    """Parses kept, file size & missing records, last lines of file"""
+    path = history_file(folder)
+    with open(path, "rb") as file:
+        data = file.read()
+    cached = driver_history.kept_records(path)
+    stat = os.stat(path)
+    kept = set(cached.records if cached else ())
+    missing = [entry.time for entry in expected if entry not in kept]
+    lines = data.count(b"\n")  # never in the f-string: backslash there needs Python 3.12
+    return "\n".join([
+        f"file: size {stat.st_size} mtime {stat.st_mtime_ns} ({len(data)} bytes read, {lines} lines)",
+        f"cached: {cached.stamp if cached else None} offset {cached.offset if cached else None} "
+        f"records {len(cached.records) if cached else None}, missing {missing}",
+        "parses (last 30):", *map(str, log[-30:]), "file end:", repr(data[-600:])])
+
+
+def test_concurrent_reads_and_appends(tmp_path, monkeypatch):
     folder = str(tmp_path)
+    log = parse_log(monkeypatch)
     errors = []
     done = threading.Event()
 
@@ -151,7 +184,10 @@ def test_concurrent_reads_and_appends(tmp_path):
     done.set()
     for thread in threads:
         thread.join()
-    assert not errors and read_records(folder) == full_read(folder) == [record(index) for index in range(200)]
+    expected = [record(index) for index in range(200)]
+    cached = read_records(folder)
+    assert not errors and cached == expected, history_diagnostics(folder, log, expected)
+    assert full_read(folder) == expected
 
 
 # --- Page: history read & edits saved on a worker thread

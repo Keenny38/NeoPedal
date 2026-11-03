@@ -73,6 +73,7 @@ OLD_TOOL_SECTIONS = (
         ("Lap Telemetry Viewer", "", "lap_viewer.LapViewer"),
         ("Broadcast Director", "", "broadcast_director.BroadcastDirector"),
         ("Results & Replays", "", "race_results_viewer.RaceResultsViewer"),
+        ("Upcoming Races", "\ue787", "race_schedule_viewer.RaceScheduleViewer"),  # calendar
         ("Stream Overlays", "", "stream_overlay_view.StreamOverlaysView"),
     )),
     ("Editors", (
@@ -106,7 +107,7 @@ OLD_NAV_PAGES = (
 OLD_SHORT_LABELS = {
     "race_calculator": "Calculator", "driver_stats_viewer": "Stats", "track_map_viewer": "Map", "lap_viewer": "Telemetry",
     "replay_view": "Recorder", "broadcast_director": "Broadcast",
-    "race_results_viewer": "Results", "stream_overlay_view": "Stream", "heatmap_editor": "Heatmap",
+    "race_results_viewer": "Results", "race_schedule_viewer": "Races", "stream_overlay_view": "Stream", "heatmap_editor": "Heatmap",
     "brake_editor": "Brakes", "tyre_compound_editor": "Compounds", "vehicle_brand_editor": "Brands",
     "vehicle_class_editor": "Classes", "track_info_editor": "Tracks", "track_notes_editor": "Notes",
     "plugin_manager": "Plugins", "perf_view": "Performance",  # Preset Comparison: panel of Presets (audit N5)
@@ -114,10 +115,10 @@ OLD_SHORT_LABELS = {
 OLD_KEYWORD_TOOLS = {
     "app_settings.AppSettings", "stream_overlay_view.StreamOverlaysView", "race_results_viewer.RaceResultsViewer",
     "broadcast_director.BroadcastDirector", "race_calculator.RaceCalculator",
-    "replay_view.ReplayView",
+    "replay_view.ReplayView", "race_schedule_viewer.RaceScheduleViewer",
 }
 OLD_RAIL_ITEMS = (
-    "home,widget,driver_stats_viewer,race_results_viewer,"  # game replays merged in results & replays
+    "home,widget,driver_stats_viewer,race_results_viewer,race_schedule_viewer,"  # replays in results, races
     "broadcast_director,stream_overlay_view,lap_viewer,race_calculator,preset"
 )
 OLD_PAGE_SWITCHES = {
@@ -141,7 +142,7 @@ def dummy_overlay(**kwargs):
 
 DUMMY_PAGE = pages.PageSpec(
     "dummy_tool", "Dummy Tool", "", "Editors", "dummy_tool.DummyTool",
-    short_label="Dummy", rail=9, keywords="dummy words", status="neopedal.ui.quick.dummy_backend:dummy_status",
+    short_label="Dummy", rail=10, keywords="dummy words", status="neopedal.ui.quick.dummy_backend:dummy_status",
 )
 
 

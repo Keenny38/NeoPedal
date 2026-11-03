@@ -6,7 +6,8 @@ import "../components"
 // sessions clipped hollow at bottom), personal best so far (steps over a soft area), level limits (dashed,
 // level color & letter), round lap time grid lines. Data from backend: points x & y from 0 to 1 (y 0: fastest,
 // at top), grid ticks, date marks. Drawn from left to right when data changes.
-// Hover: guide line, date, session & lap time of nearest session.
+// Hover: guide line, date, session & lap time of nearest session. Keyboard (Tab reaches the chart): Left / Right
+// show the session before / after, Home / End the first / last, Enter shows it in the sessions list (as a click).
 Item {
     id: chart
 
@@ -54,6 +55,32 @@ Item {
     }
     Accessible.role: Accessible.Graphic
     Accessible.name: chartData.info || ""
+    Accessible.description: i18n.tr("Left / Right: session before / after · Enter: show it in the sessions list")
+
+    // Keyboard: one session shown at a time (guide line & tooltip as on hover), from the one shown or hovered in
+    // the sessions list; Alt / Ctrl keys left to the page (Alt+Left: back to All Tracks)
+    function showStep(step) {
+        var count = points.length
+        var from = shownPoint >= 0 ? shownPoint : step > 0 ? -1 : count
+        hovered = Math.max(0, Math.min(count - 1, from + step))
+    }
+    function clickPoint(index) {
+        if (index >= 0 && index < points.length)
+            pointClicked(points[index].session !== undefined ? points[index].session : -1)
+    }
+    activeFocusOnTab: points.length >= 2 || activeFocus
+    onActiveFocusChanged: if (!activeFocus && !hoverArea.containsMouse) hovered = -1
+    Keys.onPressed: function(event) {
+        if (points.length < 2 || (event.modifiers & (Qt.AltModifier | Qt.ControlModifier)))
+            return
+        if (event.key === Qt.Key_Left) showStep(-1)
+        else if (event.key === Qt.Key_Right) showStep(1)
+        else if (event.key === Qt.Key_Home) hovered = 0
+        else if (event.key === Qt.Key_End) hovered = points.length - 1
+        else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && shownPoint >= 0) clickPoint(shownPoint)
+        else return
+        event.accepted = true
+    }
     // Layers: grid & limits, data (painted once per data / size / theme, revealed by a clip), hovered session
     // (guide line & dot items: mouse moves & reveal frames paint nothing).
     // Resize: canvases (chart size) paint again by themselves, width & height of one step asked once; painted by
@@ -331,11 +358,9 @@ Item {
         onPositionChanged: function(mouse) { chart.hovered = chart.nearest(mouse.x + hoverArea.x) }
         onExited: chart.hovered = -1
         cursorShape: chart.hovered >= 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: function(mouse) {
-            var index = chart.nearest(mouse.x + hoverArea.x)
-            if (index >= 0) chart.pointClicked(chart.points[index].session !== undefined ? chart.points[index].session : -1)
-        }
+        onClicked: function(mouse) { chart.clickPoint(chart.nearest(mouse.x + hoverArea.x)) }
     }
+    FocusRing { objectName: "statsChartFocus"; visible: chart.activeFocus; anchors.margins: gap }  // inside the card
     TpToolTip {
         parent: chart
         visible: chart.hovered >= 0 && chart.hovered < chart.points.length

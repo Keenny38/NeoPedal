@@ -70,6 +70,17 @@ def _store_hostname(host: str, port: int, resolved: str) -> str:
     return address
 
 
+def host_unreachable(host: str, port: int) -> bool:
+    """Local host probed lately with no answer (game not running, until UNRESOLVED_HOLD expires): connecting to it
+    would only wait for Windows to refuse it (about 2 s per loopback address, 4 s for "localhost": a request of a
+    page took 7 s each with game closed, holding a game request worker)"""
+    if not is_local_host(host):
+        return False
+    with _resolved_lock:
+        cached = _resolved_hosts.get((host, port))
+    return cached is not None and not cached[2] and monotonic() < cached[1]
+
+
 def forget_hostname(host: str, port: int) -> None:
     """Drop cached address of host (connection failed), next request probes again
 

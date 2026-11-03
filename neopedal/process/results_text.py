@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from .. import calculation as calc
 from ..formatter import class_alias, class_color, class_style  # noqa: F401  # shared by results pages & stream graphics
-from ..i18n import localized, tr
+from ..i18n import localized, plural, tr
 from .results_file import FINISHED, Entry, SessionResult, best_lap_gap, race_gap
 
 MINUS = chr(0x2212)  # typeset minus sign
@@ -160,7 +160,7 @@ def laps_behind_text(laps: int) -> str:
 
 def count_text(count: int, one: str, many: str) -> str:
     """Count with word: "1 car", "3 cars" (in app language)"""
-    return f"{count} {tr(one) if count == 1 else tr(many)}"
+    return f"{count} {plural(count, one, many)}"
 
 
 def laps_text(count: int) -> str:

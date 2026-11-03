@@ -40,6 +40,7 @@ class RaceResultsViewer(BaseDialog):
 
     def __init__(self, parent):
         from .quick import create_quick_view
+        from .quick.online_results import OnlineResultsBackend
         from .quick.replays_backend import GameReplaysBackend
         from .quick.results_backend import RaceResultsBackend
 
@@ -48,15 +49,20 @@ class RaceResultsViewer(BaseDialog):
         self.setMinimumSize(UIScaler.size(60), UIScaler.size(30))
         self.backend = RaceResultsBackend(self)
         self.replays = GameReplaysBackend(self)
+        self.online = OnlineResultsBackend(self)  # races driven online (RaceControl), read when its list shows
+        self.online.sessions = lambda: self.backend.sessions
+        self.online.sessionWanted.connect(self.open_local_session)
         self._replays_active = False  # game asked (replay tab or replays list shown)
         self.backend.replaysLinked.connect(self.replays.set_results_links)
         self.backend.watchWanted.connect(self.watch)
         self.backend.tabsChanged.connect(self.update_replays_active)
         self.backend.listModeChanged.connect(self.update_replays_active)
+        self.backend.listModeChanged.connect(self.update_online_shown)
         self.backend.selectionChanged.connect(self.session_selected)
         self.replays.selectionChanged.connect(self.replay_selected)
         self.view = create_quick_view(  # chart lines: multisampled layer
-            self, "RaceResults.qml", {"backend": self.backend, "replays": self.replays}, samples=0)
+            self, "RaceResults.qml", {"backend": self.backend, "replays": self.replays, "online": self.online},
+            samples=0)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.view)
@@ -85,6 +91,22 @@ class RaceResultsViewer(BaseDialog):
         else:
             self.replays.page_hidden()
 
+    def update_online_shown(self):
+        """Online races read once their list shows (shown page only)"""
+        online = getattr(self, "online", None)  # pages built by tests without it
+        if online is not None:
+            online.list_shown(self.isVisible() and self.backend.list_mode == 2)
+
+    def open_local_session(self, path: str):
+        """Results file of an online race: sessions list, its classification"""
+        self.backend.setListMode(0)
+        self.backend.showResults(path)
+
+    def show_online(self):
+        """Online races list shown (Upcoming Races page: your results)"""
+        self.backend.setListMode(2)
+        self.update_online_shown()
+
     def watch(self, action):
         """Replay of session opened in game (event or lap of results: replay goes there)"""
         self.replays.watch_named(action.replay, action)
@@ -111,11 +133,15 @@ class RaceResultsViewer(BaseDialog):
         self.backend.page_shown()
         super().showEvent(event)
         self.update_replays_active()
+        self.update_online_shown()
 
     def hideEvent(self, event):
         self.backend.page_hidden()
         super().hideEvent(event)
         self.update_replays_active()
+        online = getattr(self, "online", None)  # pages built by tests without it
+        if online is not None:
+            online.list_shown(False)  # nothing read while the page is hidden
 
     def keep_when_hidden(self) -> bool:
         """Replays being copied (add, export) or moved to the recycle bin: kept while hidden (freed, a copy stops)"""
@@ -124,6 +150,9 @@ class RaceResultsViewer(BaseDialog):
     def free_page(self):
         """QML gone before both backends it binds to"""
         self.view.setSource(QUrl())
+        online = getattr(self, "online", None)
+        if online is not None:
+            online.release()
         self.replays.release()
         self.backend.release()
 

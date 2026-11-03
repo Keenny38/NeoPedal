@@ -2338,6 +2338,8 @@ class RelativeConfig(WidgetConfig):
     show_class_name: bool
     column_position_change: bool
     column_driver_name: bool
+    show_team_name: bool
+    team_name_width: float
     column_vehicle_name: bool
     column_brand_logo: bool
     column_tyre_compound: bool
@@ -2364,6 +2366,8 @@ class RelativeConfig(WidgetConfig):
     display_order_driver_ranks: int
     column_driver_badge: bool
     display_order_driver_badge: int
+    column_car_number: bool
+    display_order_car_number: int
     column_delta_laptime: bool
     number_of_delta_laptime: int
     show_inverted_delta_laptime_layout: bool
@@ -2623,6 +2627,8 @@ class RivalsConfig(WidgetConfig):
     show_class_name: bool
     column_position_change: bool
     column_driver_name: bool
+    show_team_name: bool
+    team_name_width: float
     column_vehicle_name: bool
     column_brand_logo: bool
     column_tyre_compound: bool
@@ -3180,6 +3186,8 @@ class StandingsConfig(WidgetConfig):
     show_class_name: bool
     column_position_change: bool
     column_driver_name: bool
+    show_team_name: bool
+    team_name_width: float
     column_vehicle_name: bool
     column_brand_logo: bool
     column_tyre_compound: bool
@@ -3205,6 +3213,8 @@ class StandingsConfig(WidgetConfig):
     display_order_driver_ranks: int
     column_driver_badge: bool
     display_order_driver_badge: int
+    column_car_number: bool
+    display_order_car_number: int
     column_gap_trend: bool
     display_order_gap_trend: int
     column_stint_laps: bool

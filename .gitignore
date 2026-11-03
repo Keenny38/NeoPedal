@@ -52,6 +52,7 @@ prof.out
 /build/
 /native/openxr_layer/build/
 .venv/
+.venv311/
 .ruff_cache/
 .pytest_cache/
 .mypy_cache/

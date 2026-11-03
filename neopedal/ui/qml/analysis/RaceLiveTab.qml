@@ -212,7 +212,7 @@ Item {
                                     enabled: liveRow.differs
                                     glyph: ""  // arrow: to the calculator
                                     fallback: "→"
-                                    tip: i18n.tr("Fill In") + ": " + liveRow.game
+                                    tip: i18n.tr("Fill In") + i18n.colon() + liveRow.game
                                     onClicked: backend.applyLiveValue(liveRow.key)
                                     Accessible.name: i18n.tr("Fill In") + " " + liveRow.title
                                 }
@@ -368,7 +368,7 @@ Item {
                                             spacing: theme.space2
                                             TpCompound {
                                                 name: usedChip.chip.compound || ""
-                                                width: Math.round(theme.em * 0.9)
+                                                size: theme.em * 0.9
                                                 anchors.verticalCenter: parent.verticalCenter
                                             }
                                             Text {

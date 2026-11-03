@@ -11,12 +11,10 @@ TpPopup {
     readonly property var transfer: backend.transfer
     readonly property bool sideBySide: width >= theme.em * 36  // content-tuned: two lists of 16 em side by side
 
-    parent: Overlay.overlay
+    anchors.centerIn: overlayItem  // in the middle of the window, wherever it is declared (TpPopup)
     modal: true
-    width: Math.min((parent ? parent.width : theme.em * 44) - theme.em * 4, theme.em * 48)
-    height: Math.min((parent ? parent.height : theme.em * 36) - theme.em * 4, theme.em * 34)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 44) - theme.em * 4, theme.em * 48)
+    height: Math.min((overlayItem ? overlayItem.height : theme.em * 36) - theme.em * 4, theme.em * 34)
     onAboutToShow: popup.transfer.start()
     onOpened: destination.forceActiveFocus()
 

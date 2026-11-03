@@ -131,7 +131,8 @@ TpPage {
                         model: backend.weather
                         delegate: Pill {
                             required property string modelData
-                            readonly property bool flag: modelData === i18n.tr("Full course yellow")
+                            required property int index
+                            readonly property bool flag: index === 0 && backend.yellowFlag
                             anchors.verticalCenter: parent.verticalCenter
                             text: modelData
                             glyph: flag ? "" : ""  // flag
@@ -193,7 +194,12 @@ TpPage {
                 objectName: "modeSwitch"
                 name: i18n.tr("Director mode")
                 enabled: backend.enabled
-                options: [i18n.tr("Manual"), i18n.tr("Assisted"), i18n.tr("Automatic")]
+                // Each mode told where it is chosen (the page opens in Assisted)
+                options: [
+                    { text: i18n.tr("Manual"), tip: i18n.tr("You cut alone: pick the car and the camera") },
+                    { text: i18n.tr("Assisted"), tip: i18n.tr("Stories worth showing are listed, you choose which one goes on air") },
+                    { text: i18n.tr("Automatic"), tip: i18n.tr("The director cuts to the best story by itself") }
+                ]
                 currentIndex: backend.modeIndex
                 onActivated: function(index) { backend.setMode(index) }
             }
@@ -248,12 +254,11 @@ TpPage {
                 enabled: backend.enabled
                 onClicked: backend.game.refresh()
             }
-            TpButton {  // director on / off, last of the header like the Race Calculator's
+            // Director on / off, last of the header like the Race Calculator's: a switch as on Stream Overlays and
+            // Settings (knob & label tell the state, a click turns it the other way)
+            TpSwitch {
                 objectName: "enabledSwitch"
-                glyph: ""  // power
-                fallback: backend.enabled ? i18n.tr("Enabled") : i18n.tr("Disabled")
-                // Narrow page: label only while off (state easy to miss from the icon alone)
-                text: page.wide || !backend.enabled ? (backend.enabled ? i18n.tr("Enabled") : i18n.tr("Disabled")) : ""
+                text: backend.enabled ? i18n.tr("Enabled") : i18n.tr("Disabled")
                 tip: i18n.tr("Broadcast Director on or off") + page.hotkeyTip("director_toggle")
                 checkable: false  // follows backend
                 checked: backend.enabled

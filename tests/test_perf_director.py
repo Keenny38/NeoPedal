@@ -326,13 +326,19 @@ def test_popup_contents_made_when_opened_and_timing_cells_light(director_page, m
         view = root.findChild(QQuickItem, "timingList")
         table = view.property("contentItem")
         columns = backend.timing.timingColumnRows.rowCount()
-        cells = [item for item in descendants(table) if item.property("size") is not None]
+        # Cells of the columns (tyre compound badges have a size too, no alignment)
+        cells = [item for item in descendants(table)
+                 if item.property("size") is not None and item.property("align") is not None]
         rows = len(cells) // columns
         assert rows == 6 and len(cells) == rows * columns
         rings = [item.property("letter") for item in descendants(table) if item.property("letter") and item.isVisible()]
         assert sorted(rings) == ["M", "S", "W"]  # one ring per compound
-        items = len(list(descendants(table)))
-        assert items < rows * columns * 2.5  # one Text per cell, a Loader for tyres, energy & penalties only
+        # One Text per cell, a Loader for tyres, energy & penalties only; a compound badge (TpLetterBadge: rim, letter)
+        # counted as one item
+        inside_badges = {getCppPointer(child)[0] for item in descendants(table) if item.property("letter") is not None
+                         for child in descendants(item)}
+        items = len([item for item in descendants(table) if getCppPointer(item)[0] not in inside_badges])
+        assert items < rows * columns * 2.5
 
         def cells_of(key):
             return [item for item in descendants(table) if item.property("key") == key

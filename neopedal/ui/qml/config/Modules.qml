@@ -177,7 +177,7 @@ TpPage {
                 color: theme.dimText
                 text: backend.filtered
                     ? i18n.trm(backend.shownCount + " of " + backend.totalCount + " modules shown")
-                    : i18n.trm(backend.totalCount + " modules")
+                    : backend.totalCount + " " + i18n.plural(backend.totalCount, "module", "modules")
                 textFormat: Text.PlainText
             }
             // At once with Undo in the toast (as on the Overlays page), counts of what each one switches

@@ -85,7 +85,7 @@ def pace_comment(result: SessionResult, entry: Entry) -> dict[str, str] | None:
         "glyph": GLYPH_PACE,
         "title": tr("Race pace") if race else tr("Best Lap"),
         "value": lap_text(own),
-        "detail": f"{compared} · {rank} / {len(known)} {tr('in class')}",
+        "detail": f"{compared} · {tr('%1 / %2 in class').replace('%1', str(rank)).replace('%2', str(len(known)))}",
         "tone": "" if abs(delta) < SAME_PACE else "gain" if delta < 0 else "loss",
     }
 

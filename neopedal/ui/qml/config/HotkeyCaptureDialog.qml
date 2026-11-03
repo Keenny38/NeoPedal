@@ -13,7 +13,7 @@ TpDialog {
     title: backend.captureTitle
     acceptText: conflict !== "" ? i18n.tr("Assign Anyway") : i18n.tr("Save")
     dismissOnOutside: false  // captured key kept: only Esc or the buttons close it
-    width: Math.min(parent ? parent.width - theme.space6 * 2 : theme.em * 30, theme.em * 30)
+    width: Math.min(overlayItem ? overlayItem.width - theme.space6 * 2 : theme.em * 30, theme.em * 30)
     onAccepted: backend.saveCapture()
     onCancelled: backend.cancelCapture()
 

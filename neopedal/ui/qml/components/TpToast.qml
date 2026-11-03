@@ -1,7 +1,8 @@
 import QtQuick
 
 // Message at bottom of page for a few seconds (click: hidden), slides in. show() after each new message.
-// Shown long enough to read it (longer for errors), kept while the mouse is over it; optional action
+// Shown long enough to read it (longer for errors), kept while the mouse is over it or its button has keyboard
+// focus (Undo reached with Tab never vanishes under the key); optional action
 // button (actionText, action signal): "Undo" after an action done without confirmation.
 // level: "success" (check, default), "info", "warning", "error" (error: true is the same as level "error"),
 // told by icon & border color. Screen readers announce it (alert). Same durations as the widget toasts
@@ -20,13 +21,21 @@ Rectangle {
                                 : level === "info" ? theme.accent : theme.gain
     readonly property int shownTime: duration > 0 ? duration
         : Math.round(Math.max(3000, text.length * 55 + 1500) * (failed ? 1.5 : 1) + (actionText !== "" ? 3000 : 0))
+    // Mouse over the toast, or its action button focused: kept shown
+    readonly property bool held: hover.hovered || actionButton.activeFocus
     signal action()
 
     function show() {
         shown = true
-        if (hover.hovered)
+        if (held)
             hideTimer.stop()
         else
+            hideTimer.restart()
+    }
+    onHeldChanged: {
+        if (held)
+            hideTimer.stop()
+        else if (shown)
             hideTimer.restart()
     }
 
@@ -47,15 +56,7 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: theme.motionSlow } }
     Timer { id: hideTimer; interval: toast.shownTime; onTriggered: toast.shown = false }
     TpShadow {}
-    HoverHandler {
-        id: hover
-        onHoveredChanged: {
-            if (hovered)
-                hideTimer.stop()
-            else if (toast.shown)
-                hideTimer.restart()
-        }
-    }
+    HoverHandler { id: hover }
     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: toast.shown = false }
     Row {
         id: toastRow
@@ -69,7 +70,8 @@ Rectangle {
             fallback: toast.level === "warning" || toast.level === "error" ? "!" : toast.level === "info" ? "i" : "✓"
             color: toast.tone
         }
-        Text {
+        TpText {
+            elide: Text.ElideNone
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, (toast.parent ? toast.parent.width : 0) - theme.em * 7
                             - (toast.actionText !== "" ? actionButton.implicitWidth + toastRow.spacing : 0))

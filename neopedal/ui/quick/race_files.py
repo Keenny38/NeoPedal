@@ -43,7 +43,7 @@ from ...fuel_strategy import (
     full_tank_laps,
     history_laps,
 )
-from ...i18n import tr, trm
+from ...i18n import colon, tr, trm
 from ...module_info import minfo
 from ...race_live import pit_exit
 from ...race_live import read_race_state as read_live
@@ -184,7 +184,7 @@ class RaceFiles(RaceBase):
             done.append(tr("consumption history loaded"))
         elif lap_time > 0:
             self.setInput("input_lap_time", lap_time)
-            done.append(f"{tr('Lap Time')}: {laptime_text(self.values['input_lap_time'])}")
+            done.append(f"{tr('Lap Time')}{colon()}{laptime_text(self.values['input_lap_time'])}")
         name = f"{track} - {vehicle}" if track and vehicle else track or vehicle
         if done:
             self.host.toast(trm(f"Race prepared for <b>{escape(name)}</b>:") + " " + ", ".join(done))

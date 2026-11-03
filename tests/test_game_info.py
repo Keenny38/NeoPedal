@@ -898,16 +898,16 @@ def test_game_replays_french_messages():
 
     i18n.set_language("Français")
     try:
-        assert i18n.trm("Move <b>3</b> replays (1,2 Go) to the recycle bin?") == "Mettre <b>3</b> rejeux (1,2 Go) à la corbeille du système ?"
+        assert i18n.trm("Move <b>3</b> replays (1,2 Go) to the recycle bin?") == "Mettre <b>3</b> replays (1,2 Go) à la corbeille du système\u00a0?"
         assert i18n.trm("Move replay <b>Spa R1 1</b> (182 Mo) to the recycle bin?") == (
-            "Mettre le rejeu <b>Spa R1 1</b> (182 Mo) à la corbeille du système ?")
-        assert i18n.trm("2 replay(s) moved to the recycle bin") == "2 rejeu(x) mis à la corbeille du système"
-        assert i18n.trm("1 replay(s) added to the game replay folder") == "1 rejeu(x) ajouté(s) au dossier des rejeux du jeu"
+            "Mettre le replay <b>Spa R1 1</b> (182 Mo) à la corbeille du système\u00a0?")
+        assert i18n.trm("2 replay(s) moved to the recycle bin") == "2 replays mis à la corbeille du système"
+        assert i18n.trm("1 replay(s) added to the game replay folder") == "1 replay ajouté au dossier des replays du jeu"
         assert i18n.trm("Unable to delete (replay open in game?): a.Vcr").startswith("Impossible de supprimer")
-        assert i18n.trm("Unable to rename: name already used") == "Impossible de renommer : nom déjà utilisé"
+        assert i18n.trm("Unable to rename: name already used") == "Impossible de renommer\u00a0: nom déjà utilisé"
         assert i18n.trm("You are in a session: opening a replay may leave it.<br><br>Open replay <b>X</b> in the game?") == (
-            "Vous êtes en session : ouvrir un rejeu peut vous la faire quitter.<br><br>Ouvrir le rejeu <b>X</b> dans le jeu ?")
-        assert i18n.trm("Lap of Keenny Hess:") == "Tour de Keenny Hess :"
+            "Vous êtes en session\u00a0: ouvrir un replay peut vous la faire quitter.<br><br>Ouvrir le replay <b>X</b> dans le jeu\u00a0?")
+        assert i18n.trm("Lap of Keenny Hess:") == "Tour de Keenny Hess :"
         assert i18n.tr("Trackside") == "Bord de piste" and i18n.tr("In Pits") == "Aux stands"
     finally:
         i18n.set_language("English")
@@ -948,7 +948,7 @@ def test_game_replays_qml_page(replays_page):
         for _ in range(10):
             QCoreApplication.processEvents()
         texts = texts_of(replays_page.view)
-        assert "Algarve" in texts and "Incidents  2" in texts and "Replay open in game" in texts
+        assert "Algarve" in texts and {"Incidents", "2"} <= texts and "Replay open in game" in texts  # count badge of the tab
         assert "Trackside · Cycle All" in texts and "Map" in texts  # camera shown as camera menu names it
         backend = replays_page.backend
         backend.setPanel(1)  # standings

@@ -40,6 +40,8 @@ from .replays_base import ReplaysBase
 from .replays_common import (
     ACTION_WAIT,
     CTRL,
+    LAUNCH_WAIT,
+    OFFLINE,
     REPLAY,
     SESSION,
     SESSION_FILTERS,
@@ -53,6 +55,7 @@ from .replays_common import (
     play_replay,
     session_text,
     size_text,
+    start_game,
 )
 
 
@@ -222,14 +225,17 @@ class ReplaysList(ReplaysBase):
         """Replay opened in game, after confirmation (warning in a live session)"""
         self.watch(key)
 
-    def watch(self, key: str, action: ReplayAction | None = None):
-        """Replay opened in game after confirmation, then action done once it is open (already open from page:
-        action done at once, no confirmation)"""
+    def watch(self, key: str, action: ReplayAction | None = None, started: bool = False):
+        """Replay opened in game after confirmation (started: asked when the game was started from page), then
+        action done once it is open (already open from page: action done at once, no confirmation)"""
         replay = self.replay_of(key)
         if replay is None:
             return
         if key not in self.checked:
             self.selectReplay(key)
+        if started:
+            self.open_replay(replay.name, action)
+            return
         if action is not None and self.state == REPLAY and self.playing == replay.name and self.play_sent is None and (
                 time.monotonic() - self.state_time < STATE_FRESH and time.monotonic() >= self.action_after):
             # Replay open & loaded, told by a recent answer (page hidden meanwhile: polling stopped, game may have
@@ -270,17 +276,63 @@ class ReplaysList(ReplaysBase):
         self.ask_replays()
 
     def watch_pending(self):
-        """Replay asked by race results opened once replays list answered, else told why not"""
+        """Replay asked by race results opened once replays list answered, else told why not (game not running:
+        started after confirmation, replay opened once it answers)"""
+        starting = self.launching_until > 0.0
+        if starting and (self.replays_answered or time.monotonic() > self.launching_until):
+            self.launching_until = 0.0  # game answered, or never did
+            self.statusChanged.emit()
+            if not self.replays_answered:
+                self.pending_watch, self.pending_action = "", None
+                self.notify(tr("Le Mans Ultimate did not answer after it was started: check that it runs and "
+                               "that its Rest API access is enabled"), True)
+                return
+        elif starting:
+            return  # replay asked kept until the game lists its replays
         name, self.pending_watch = self.pending_watch, ""
         action, self.pending_action = self.pending_action, None
         if not name:
             return
         if not self.replays_answered:
-            self.notify(trm(f"Start Le Mans Ultimate to watch replay {name}"), True)
+            self.offer_start(name, action)
         elif self.replay_of(name) is None:
             self.notify(trm(f"Replay not found in game: {name}"), True)
         else:
-            self.watch(name, action)
+            self.watch(name, action, started=starting)
+
+    def offer_start(self, name: str, action: ReplayAction | None):
+        """Game not answering: started after confirmation, replay opened (and action done) once it answers"""
+        def confirmed(chosen: bool):
+            if chosen and self.state == OFFLINE and self.launch_game():
+                self.pending_watch, self.pending_action = name, action
+
+        message = trm(f"Le Mans Ultimate is not running. Start it, then open replay <b>{name}</b> once it is ready?")
+        dialogs.confirm(self._window, tr("Start Le Mans Ultimate"), message, tr("Start and Watch"), confirmed)
+
+    @Slot()
+    def startGame(self):
+        """Game started (not running): page follows it once it answers"""
+        if self.state == OFFLINE and not self.launching_until:
+            self.launch_game()
+
+    @Slot()
+    def cancelStart(self):
+        """Replay asked once the game answers forgotten, game left starting (or not)"""
+        self.pending_watch, self.pending_action = "", None
+        if self.launching_until:
+            self.launching_until = 0.0  # asked at the usual pace from the next answer
+            self.statusChanged.emit()
+
+    def launch_game(self) -> bool:
+        """Game started by Steam, asked often until it lists its replays (False if Steam could not be opened)"""
+        if not start_game():
+            self.notify(tr("Steam could not be opened: start Le Mans Ultimate yourself"), True)
+            return False
+        self.launching_until = time.monotonic() + LAUNCH_WAIT
+        self.statusChanged.emit()
+        self._timer.stop()
+        self.refresh_state()
+        return True
 
     def check_action(self, state: dict | None):
         """Action of replay opened from race results done once replay is open with its cars (state answer asked

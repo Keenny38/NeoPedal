@@ -26,6 +26,7 @@ from types import MappingProxyType
 FLOAT_INF = float("inf")
 MAX_VEHICLES = 128  # set vehicle data size limit
 MAX_SECONDS = 99999.0  # for lap or sector time limit
+MAX_LAPTIME = 3600.0  # longest believable lap time: longer is a game clock jump (LMU DQ: 10 h "valid" lap)
 MAX_METERS = 999999.0  # for distance limit
 # Lighter impacts are not incidents (impact cone, incident recorder, module recordings): kerbs & underbody
 # scraping (LMU: 15 to 130 every half second), and LMU impact updates without impact (magnitude 0 at position 0,0)

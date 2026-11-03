@@ -8,7 +8,8 @@ TpDialog {
     property string text: ""
     danger: false  // set true for what cannot be undone (same default as dialogs.confirm)
 
-    Text {
+    TpText {
+        elide: Text.ElideNone
         Layout.fillWidth: true
         visible: text !== ""
         text: dialog.text

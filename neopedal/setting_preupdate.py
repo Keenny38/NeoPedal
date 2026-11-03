@@ -37,6 +37,7 @@ def preupdate_global_setting(preset_version: tuple[int, int, int], dict_user: di
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 8), _global_prior_2_51_8),  # 2026-11-02
         ((2, 51, 6), _global_prior_2_51_6),  # 2026-10-30
         ((2, 51, 3), _global_prior_2_51_3),  # 2026-10-18
         ((2, 51, 0), _global_prior_2_51_0),  # 2026-10-12
@@ -56,7 +57,9 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 10), _user_prior_2_51_10),  # 2026-11-02
         ((2, 51, 9), _user_prior_2_51_9),  # 2026-11-02
+        ((2, 51, 7), _user_prior_2_51_7),  # 2026-11-01
         ((2, 51, 5), _user_prior_2_51_5),  # 2026-10-29
         ((2, 51, 4), _user_prior_2_51_4),  # 2026-10-29
         ((2, 51, 3), _user_prior_2_51_3),  # 2026-10-18
@@ -88,6 +91,19 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
 
 
 # Global setting update function
+def _global_prior_2_51_8(dict_user: dict):
+    # Navigation bar: Upcoming Races page added after Results & Replays (or last), customized bars kept
+    application = dict_user.get("application")
+    if not isinstance(application, dict) or not isinstance(application.get("rail_items"), str):
+        return
+    items = [item.strip() for item in application["rail_items"].split(",") if item.strip()]
+    if not items or "race_schedule_viewer" in items:
+        return
+    index = items.index("race_results_viewer") + 1 if "race_results_viewer" in items else len(items)
+    items.insert(index, "race_schedule_viewer")
+    application["rail_items"] = ",".join(items)
+
+
 def _global_prior_2_51_6(dict_user: dict):
     # Class colors (Hypercar red, GT3 green, GTE orange): classes still at former default color updated once
     # (see StyleValidator.classes)
@@ -151,6 +167,17 @@ def _global_prior_2_43_0(dict_user: dict):
 
 
 # User setting update function
+def _user_prior_2_51_10(dict_user: dict):
+    # Recorder: laps kept per track no longer limited (former default 50 removed laps of a few sessions for good),
+    # out & in laps recorded by default; values still at former default updated once, other limits kept
+    recorder = dict_user.get("module_recorder")
+    if isinstance(recorder, dict):
+        if recorder.get("number_of_saved_laps_per_track") == 50:
+            recorder["number_of_saved_laps_per_track"] = 0
+        if recorder.get("enable_out_and_in_lap_recording") is False:
+            recorder["enable_out_and_in_lap_recording"] = True
+
+
 def _user_prior_2_51_9(dict_user: dict):
     # Rivals: show_player_highlighted removed (rivals never lists the player: the option did nothing)
     rivals = dict_user.get("rivals")
@@ -166,6 +193,17 @@ def _user_prior_2_51_9(dict_user: dict):
             gear["show_speed_limiter_pit_reminder"] = gear.get("show_speed_limiter_pit_reminder", False)
         else:
             gear["show_speed_limiter_pit_reminder"] = modern
+
+
+def _user_prior_2_51_7(dict_user: dict):
+    # Clock formats: former default "%H:%M%p" showed a 24 h time with AM/PM ("14:05PM"), now "%H:%M"; formats
+    # changed by user kept
+    for widget in dict_user.values():
+        if not isinstance(widget, dict):
+            continue
+        for key in ("system_clock_format", "track_clock_format"):
+            if widget.get(key) == "%H:%M%p":
+                widget[key] = "%H:%M"
 
 
 def _user_prior_2_51_5(dict_user: dict):

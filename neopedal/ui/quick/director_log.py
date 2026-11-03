@@ -34,7 +34,8 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Property, Signal, Slot
 
-from ...i18n import tr
+from ... import loader
+from ...i18n import colon, tr
 from ...process import director as dr
 from ...setting import cfg
 from . import last_folder
@@ -116,6 +117,7 @@ class LogWriter:
 # a closing page never waits for it, lines written in background, waited once when the app exits
 WRITER = LogWriter()
 atexit.register(WRITER.flush)
+loader.on_close(WRITER.flush)  # restart ends the process without atexit (os._exit, see loader.restart)
 
 
 
@@ -204,6 +206,6 @@ class EventsLog(DirectorPart):
                     writer.writerow(safe_row((clock_text(event.time), tr(KIND_TEXTS[event.kind]), title, detail,
                                               event.car_class, cars)))
         except (OSError, csv.Error) as error:
-            page.notify(f"{tr('Events not saved')}: {error}", True)
+            page.notify(f"{tr('Events not saved')}{colon()}{error}", True)
             return
         page.notify(tr("Events saved"), file=path)

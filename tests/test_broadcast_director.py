@@ -546,7 +546,8 @@ def test_navigation_bar_broadcast_in_place_of_spectate_for_everyone():
     assert old["application"] == {"language": "Français"}  # default bar given at load
     kept = {"application": {"rail_items": "home,tools"}}
     preupdate_global_setting((2, 50, 8), kept)
-    assert kept["application"]["rail_items"] == "home,tools,stream_overlay_view"  # not reset, Stream added (2.51.3)
+    # not reset: Stream added (2.51.3), Upcoming Races added (2.51.8)
+    assert kept["application"]["rail_items"] == "home,tools,stream_overlay_view,race_schedule_viewer"
 
 
 # From LMU Broadcast Control: slow cars, flags, race start, pit box time, laps & sectors, energy
@@ -1200,7 +1201,7 @@ def test_pit_radar_of_car_on_air(director_page, monkeypatch):
     radar = published[-1]["pitRadar"]
     assert [row["number"] for row in radar["rows"]] == ["2", "3"] and radar["rows"][0]["alongside"]
     assert radar["rows"][1]["distance"] == "40 m" and not radar["rows"][1]["ahead"]
-    assert radar["count"] == "1 cars approaching"
+    assert radar["count"] == "1 car approaching"
     assert [row["number"] for row in backend.onAir["pitRadar"]] == ["2", "3"]
     backend.graphics.setGraphic("pitRadar", False)
     assert published[-1]["pitRadar"] is None
@@ -1239,3 +1240,123 @@ def test_graphics_emptied_when_page_closed(director_page):
     backend.release()
     assert not any(director_feed.state.values())
     assert live_feed.wait(0, 0)[1] == b"{}"
+
+
+def closed_page_commands(page) -> list:
+    """Commands sent once the page closed (background thread waited, as the app does when it closes)"""
+    from neopedal.ui.quick import director_camera
+
+    page.game.sent.clear()
+    page.backend.release()
+    assert director_camera.wait_back_to_live()
+    return page.game.sent
+
+
+def player_race(session_time, *cars, player=1, focus=1, replay=False):
+    """Live session where the local player's car is the one of slot player (no car of that slot: online spectator)"""
+    answers = race_answers(session_time, *cars, focus=focus, replay=replay)
+    for row in answers["/rest/watch/standings"]:
+        row["player"] = row["slotID"] == player
+    return answers
+
+
+COCKPIT_COMMANDS = [("PUT", "/rest/watch/focus/1"), ("PUT", "/rest/watch/focus/1/0/false")]
+
+
+def test_page_closed_gives_player_car_back_in_cockpit(director_page):
+    """Director moved the camera: closing the page shows the player's car again, cockpit view"""
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars))
+    backend.cutToCar(2)
+    wait_commands(backend.camera)
+    assert ("PUT", "/rest/watch/focus/2") in page.game.sent
+    assert closed_page_commands(page) == COCKPIT_COMMANDS
+
+
+def test_page_closed_during_instant_replay_back_to_live_then_player_cockpit(director_page):
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars, focus=2))
+    backend.camera.send_instant(("PUT", "/rest/watch/focus/2"))  # instant replay on its way to the game
+    backend.instant = True
+    wait_commands(backend.camera)
+    poll(page, player_race(101.0, *cars, focus=2, replay=True))  # game in the replay of the session
+    assert closed_page_commands(page) == [("POST", "/rest/replay/toggleactive"), *COCKPIT_COMMANDS]
+    assert not backend.instant
+
+
+def test_page_closed_camera_untouched_keeps_player_view(director_page):
+    """Director never moved the camera: the player's own view (car, camera) is kept"""
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars, focus=2))
+    backend.camera.send(("PUT", f"/rest/watch/replayCommand/{1}"))  # playback or HUD command: camera unchanged
+    wait_commands(backend.camera)
+    assert closed_page_commands(page) == []
+
+
+def test_page_closed_without_player_car_leaves_camera(director_page):
+    """Online spectator (no car of the local player): camera left on the car on air"""
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars, player=-1))
+    backend.cutToCar(2)
+    wait_commands(backend.camera)
+    assert closed_page_commands(page) == []
+
+
+def test_director_off_gives_player_car_back_in_cockpit(director_page):
+    """Director turned off after it moved the camera: player's car in cockpit view, page still open; closing the
+    page then sends nothing more (camera given back already)"""
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars))
+    backend.cutToCar(2)
+    wait_commands(backend.camera)
+    page.game.sent.clear()
+    backend.setEnabled(False)
+    wait_commands(backend.camera)
+    assert page.game.sent == COCKPIT_COMMANDS
+    backend.setEnabled(True)  # on again, no cut since: the player's camera is left as it is
+    poll(page, player_race(101.0, *cars))
+    assert closed_page_commands(page) == []
+
+
+def test_director_off_during_instant_replay_back_to_live_then_player_cockpit(director_page):
+    page, backend = director_page, director_page.backend
+    cars = (car(1, 1, distance=2000.0), car(2, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars, focus=2))
+    backend.camera.send_instant(("PUT", "/rest/watch/focus/2"))
+    backend.instant = True
+    wait_commands(backend.camera)
+    poll(page, player_race(101.0, *cars, focus=2, replay=True))
+    page.game.sent.clear()
+    backend.setEnabled(False)
+    wait_commands(backend.camera)
+    assert page.game.sent == [("POST", "/rest/replay/toggleactive"), *COCKPIT_COMMANDS] and not backend.instantReplay
+    backend.setEnabled(True)
+
+
+def test_director_off_camera_untouched_keeps_player_view(director_page):
+    page, backend = director_page, director_page.backend
+    poll(page, player_race(100.0, car(1, 1, distance=2000.0), car(2, 2, distance=1000.0), focus=2))
+    page.game.sent.clear()
+    backend.setEnabled(False)
+    wait_commands(backend.camera)
+    assert page.game.sent == []
+    backend.setEnabled(True)
+
+
+def test_director_off_player_in_slot_zero(director_page):
+    """LMU gives the local player's car slot 0 (seen live 2026-11-02): given back like any other slot"""
+    page, backend = director_page, director_page.backend
+    cars = (car(0, 1, distance=2000.0), car(1, 2, distance=1000.0))
+    poll(page, player_race(100.0, *cars, player=0, focus=0))
+    backend.cutToCar(1)
+    wait_commands(backend.camera)
+    page.game.sent.clear()
+    backend.setEnabled(False)
+    wait_commands(backend.camera)
+    assert page.game.sent == [("PUT", "/rest/watch/focus/0"), ("PUT", "/rest/watch/focus/1/0/false")]
+    backend.setEnabled(True)

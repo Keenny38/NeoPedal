@@ -17,7 +17,7 @@ Set the game display mode to **Borderless** or **Windowed**. In exclusive fullsc
 
 The [setup wizard](Getting-Started.md#first-launch) asks for your game on first launch. To change it later, open the `API` menu of the main window and select `Le Mans Ultimate` or `rFactor 2`.
 
-- The API button at the bottom of the navigation bar shows the selected game and its connection state (dot color, tooltip). Game options are in `API` > `Options`.
+- The API button at the bottom of the navigation bar shows the selected game and its connection state (dot color, tooltip). Game options are in `API` > `API Options`.
 - `API` > `Restart API` reconnects to the game.
 - `API` > `Remember API Selection from Preset` stores the game in each preset (on by default), so a preset made for rFactor 2 selects rFactor 2 when loaded.
 - `Le Mans Ultimate (legacy)` (LMU through the rFactor 2 plugin) is only listed after `API` > `Enable Legacy API Selection`. It is deprecated and not recommended.
@@ -51,7 +51,7 @@ With Le Mans Ultimate, the app also reads the game's local REST API. It is enabl
 
 The app only reads data. Commands are sent to the game only when you ask for them (for example opening a replay), never automatically.
 
-If REST data does not show up, check `API` > `Options` (with `Le Mans Ultimate` selected):
+If REST data does not show up, check `API` > `API Options` (with `Le Mans Ultimate` selected):
 
 - `enable_restapi_access` must be on.
 - `url_port` (default `6397`) must match the `WebUI port` value of the game file `UserData\player\Settings.JSON`. This value can change in some situations.

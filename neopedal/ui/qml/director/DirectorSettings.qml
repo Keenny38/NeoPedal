@@ -8,8 +8,8 @@ import "../components"
 TpPopup {
     id: popup
     objectName: "settingsPopup"
-    width: Math.min(theme.em * 26, (Overlay.overlay ? Overlay.overlay.width : theme.em * 28) - theme.em * 2)
-    readonly property real maxContentHeight: Math.max(theme.em * 12, (Overlay.overlay ? Overlay.overlay.height : theme.em * 40) - theme.em * 8)
+    width: Math.min(theme.em * 26, (overlayItem ? overlayItem.width : theme.em * 28) - theme.em * 2)
+    readonly property real maxContentHeight: Math.max(theme.em * 12, (overlayItem ? overlayItem.height : theme.em * 40) - theme.em * 8)
 
     component SettingLabel: ColumnLayout {
         property string title: ""

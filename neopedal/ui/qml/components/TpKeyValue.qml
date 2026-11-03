@@ -22,7 +22,7 @@ GridLayout {
     Accessible.role: Accessible.StaticText
     Accessible.name: label + ": " + value
 
-    Text {
+    TpText {
         id: labelText
         Layout.fillWidth: true
         text: pair.label

@@ -27,7 +27,9 @@ from __future__ import annotations
 
 import ctypes
 import logging
+import sys
 import threading
+from collections.abc import Sequence
 from time import monotonic
 from typing import Any, ClassVar
 
@@ -36,6 +38,52 @@ from ..thread_guard import run_supervised, wait_all_stopped
 from .data_notify import notifier
 
 logger = logging.getLogger(__name__)
+
+ERROR_FILE_NOT_FOUND = 2  # Windows error code
+FILE_MAP_READ = 0x0004
+
+
+def running_as_admin() -> bool:
+    """App runs as administrator (Windows)"""
+    if sys.platform != "win32":
+        return False
+    try:
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except (AttributeError, OSError):
+        return False
+
+
+def mapping_exists(name: str) -> bool:
+    """Named shared memory exists already (made by the game, Windows), True if unknown"""
+    if sys.platform != "win32":
+        return True
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenFileMappingW.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.OpenFileMappingW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    handle = kernel32.OpenFileMappingW(FILE_MAP_READ, False, name)
+    if handle:
+        kernel32.CloseHandle(handle)
+        return True
+    return ctypes.get_last_error() != ERROR_FILE_NOT_FOUND  # access denied...: made by another program
+
+
+def warn_elevated_mapping(names: Sequence[str]) -> bool:
+    """App run as administrator about to make the shared memory of a game not started yet: the game (not run as
+    administrator) may be refused writing it, and then shows no data. Logged as a warning (start the game first,
+    or the app without administrator rights), True if warned."""
+    if not running_as_admin():
+        return False
+    missing = [name for name in names if not mapping_exists(name)]
+    if not missing:
+        return False
+    logger.warning("sharedmemory: app runs as administrator and made %s before the game started: the game may be "
+                   "unable to write it (no data). Start the game first, or the app without administrator rights",
+                   ", ".join(missing))
+    return True
 INVALID_INDEX = -1  # same in LMU & rF2 shared memory libraries
 STOP_TIMEOUT = 3.0  # seconds to wait for update thread to stop
 RETRY_DELAYS = (1.0, 5.0, 30.0, 60.0)  # seconds before update loop restarts once its restart budget is spent

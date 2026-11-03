@@ -43,7 +43,7 @@ from PySide6.QtWidgets import QMenu
 
 from .. import app_signal
 from ..const_file import ConfigType, FileExt
-from ..i18n import tr, untr
+from ..i18n import colon, tr, untr
 from ..i18n.options import module_label
 from ..module_control import ModuleControl, mctrl, wctrl
 from ..setting import cfg
@@ -96,6 +96,11 @@ class Command(NamedTuple):
     @property
     def folded_title(self) -> str:
         return self.folded or sort_key(self.title)
+
+
+def plain_menu_text(text: str) -> str:
+    """Menu text without mnemonic markers: "&&" is a shown "&", other "&" marks the mnemonic letter"""
+    return re.sub(r"&(&?)", r"\1", text)
 
 
 def folded_commands(commands: list[Command]) -> list[Command]:
@@ -213,12 +218,15 @@ def module_commands(control: ModuleControl, kind: str, parent) -> list[Command]:
 
 def menu_commands(menu: QMenu, path: str = "") -> list[Command]:
     """Every enabled action of menu & its submenus (states refreshed first), run by triggering the action"""
+    from .menu import PALETTE_HIDDEN
+
     menu.aboutToShow.emit()  # menus refresh checked states when shown
     commands = []
     for action in menu.actions():
-        if action.isSeparator() or not action.isVisible() or not action.isEnabled() or not action.text():
+        if (action.isSeparator() or not action.isVisible() or not action.isEnabled() or not action.text()
+                or action.property(PALETTE_HIDDEN)):
             continue
-        title, _, shown_keys = action.text().replace("&", "").partition("\t")  # "Text\tKeys": keys shown only
+        title, _, shown_keys = plain_menu_text(action.text()).partition("\t")  # "Text\tKeys": keys shown only
         submenu = action.menu()
         if isinstance(submenu, QMenu):
             commands += menu_commands(submenu, f"{path} \u203a {title}" if path else title)
@@ -250,9 +258,9 @@ def app_commands(window) -> list[Command]:
     commands = []
     current = cfg.application["window_color_theme"]
     for theme in THEME_NAMES:
-        title = f"{tr('Window theme')}: {tr(theme)}"
+        title = f"{tr('Window theme')}{colon()}{tr(theme)}"
         commands.append(Command(
-            f"{title}  ({tr('On')})" if theme == current else title, group,
+            f"{title}  ({tr('On', 'current')})" if theme == current else title, group,
             search_text(title, "window color theme ui dark light modern legacy", theme), partial(set_color_theme, theme),
             "\ue790", key=f"theme:{theme}"))
     view = window.centralWidget()
@@ -269,6 +277,9 @@ def app_commands(window) -> list[Command]:
         (tr("Help for This Page"), "help user guide wiki page", getattr(view, "open_page_help", None), "\ue897", ""),
         (tr("Back"), "back previous page", getattr(window, "go_back", None), "\ue72b", "Alt+Left"),
         (tr("Forward"), "forward next page", getattr(window, "go_forward", None), "\ue72a", "Alt+Right"),
+        # Window menu entries, else in the title bar menu only (not a menu bar menu)
+        (tr("Restart NeoPedal"), "restart neopedal app redemarrer", getattr(window, "restart_app", None), "\ue72c", ""),
+        (tr("Quit"), "quit exit close app quitter", getattr(window, "quit_app", None), "\ue7e8", ""),
     ):
         if callable(run):
             commands.append(Command(label, group, search_text(label, english), run, glyph, shortcut,
@@ -328,7 +339,7 @@ def build_commands(window) -> list[Command]:
     for menu in menu_bar_menus(window):
         if type(menu).__name__ in SKIPPED_MENUS:
             continue
-        commands += [command for command in menu_commands(menu, menu.title().replace("&", ""))
+        commands += [command for command in menu_commands(menu, plain_menu_text(menu.title()))
                      if command.title not in titles]
     from .quick.settings_backend import CATEGORIES
 

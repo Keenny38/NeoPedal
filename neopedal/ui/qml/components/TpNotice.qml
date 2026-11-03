@@ -29,7 +29,8 @@ Rectangle {
         anchors.rightMargin: theme.space3
         spacing: theme.space3
         Icon { glyph: notice.glyph; fallback: notice.fallback; color: notice.tone }
-        Text {
+        TpText {
+            elide: Text.ElideNone
             Layout.fillWidth: true
             wrapMode: Text.WordWrap
             color: theme.text

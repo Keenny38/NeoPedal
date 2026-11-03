@@ -25,6 +25,7 @@ from __future__ import annotations
 import copy
 import html
 import logging
+import os
 import time
 from collections.abc import Callable, Iterable
 from functools import partial
@@ -34,16 +35,21 @@ from PySide6.QtCore import (
     Property,
     QDateTime,
     QLocale,
+    QStandardPaths,
     Slot,
 )
+from PySide6.QtWidgets import QFileDialog
 
 from ... import calculation as calc
+from ...const_common import MAX_SECONDS
 from ...i18n import tr, trm
+from ...process import mysimrace_import, results_import
 from ...process import results_index as ri
 from ...setting import cfg
 from ...userfile.driver_history import (
     SESSION_GROUPS,
     SessionRecord,
+    checkpoint_times,
     load_history,
     replace_records,
     restored_history,
@@ -72,6 +78,7 @@ from .stats_common import (
     MAX_UNDO,
     ROLLBACK_ATTEMPTS,
     ROLLBACK_DELAY,
+    clean_up_stats,
     read_backup_files,
     valid_laptime,
 )
@@ -83,6 +90,45 @@ from .stats_io import (
 )
 
 logger = logging.getLogger(__name__)
+SESSION_QUALIFYING = 2  # history record sessions with their own best lap time (see results_import.HISTORY_SESSION)
+SESSION_RACE = 4
+
+
+def restored_stats(backup: dict, current: dict, records: list[SessionRecord], created: float) -> dict:
+    """Stats of a backup with the stints recorded after it counted again (their history records are kept, see
+    restored_history): counters recorded since for their track & car, best lap times of their records (never a
+    lap time the backup is restored to get rid of)"""
+    newer = [record for record in records if record.time > created]
+    if not newer:
+        return copy.deepcopy(backup)
+    driven = {(record.track, record.vehicle) for record in newer}
+    since: dict = {}
+    for track, vehicles in stats_since(current, backup).items():
+        for vehicle, stats in vehicles.items():
+            counters = {key: value for key, value in stats.items() if not DriverStats.is_lap_time(key)}
+            if (track, vehicle) in driven and counters:
+                since.setdefault(track, {})[vehicle] = counters
+    for record in newer:
+        if not 0 < record.best < MAX_SECONDS:
+            continue
+        laps = {"pb": record.best}
+        if record.session == SESSION_QUALIFYING:
+            laps["qb"] = record.best
+        elif record.session == SESSION_RACE:
+            laps["rb"] = record.best
+        stats = since.setdefault(record.track, {}).setdefault(record.vehicle, {})
+        for key, laptime in laps.items():
+            if laptime < stats.get(key, MAX_SECONDS):
+                stats[key] = laptime
+    return merge_stats_since(backup, since)
+
+
+MAX_FIXES_DONE = 500  # lap times completed automatically remembered (oldest forgotten)
+
+
+def fix_key(fix: ri.BestLapFix) -> str:
+    """Lap time of race results completed in stats: "track|vehicle|stat|lap time" """
+    return f"{fix.track}|{fix.vehicle}|{fix.stat}|{fix.laptime:.3f}"
 
 
 class StatsEdits(StatsHost):
@@ -92,7 +138,29 @@ class StatsEdits(StatsHost):
     def completeLapTimes(self):
         """Lap times missing or slower in stats taken from results files, at once: undone from the toast (naming
         the first changes) or with Ctrl+Z (reversible: never confirmed)"""
-        fixes = self._fixes
+        self.complete_fixes(self._fixes)
+
+    def auto_complete(self):
+        """Lap times of race results missing from stats (or faster) taken at once once found, each only once (an
+        undo keeps it out, Complete... of the driver card takes it again); page shown, nothing being edited"""
+        if self._released or self.defer_while_hidden(self.auto_complete):
+            return
+        if self.editing or not self._fixes:
+            return
+        done = self.fixes_done()
+        new = [fix for fix in self._fixes if fix_key(fix) not in done]
+        if not new:
+            return
+        self.save_viewer_config(lap_fixes_done=sorted(done | {fix_key(fix) for fix in new})[-MAX_FIXES_DONE:])
+        self.complete_fixes(new)
+
+    def fixes_done(self) -> set[str]:
+        """Lap times completed automatically once (fix_key), never again"""
+        done = self.viewer_config().get("lap_fixes_done", [])
+        return {str(key) for key in done} if isinstance(done, list) else set()
+
+    def complete_fixes(self, fixes: list[ri.BestLapFix]):
+        """Lap times of fixes saved (worker thread), told with Undo"""
         if not fixes or self.editing:
             return
         lines = []
@@ -121,11 +189,179 @@ class StatsEdits(StatsHost):
                 if not isinstance(data, dict):
                     continue
                 current = valid_laptime(data.get(fix.stat, 0))
+                if not valid_laptime(fix.laptime):  # game clock jump of a results file: never a lap time
+                    continue
                 if not current or fix.laptime < current - 0.0005:
                     data[fix.stat] = fix.laptime
             if not cls.save_edit(stats_user, (), ()):
                 return "unsaved", None
         return "saved", StatsEdit((), before, copy.deepcopy(stats_user))
+
+    @Slot()
+    def importResults(self):
+        """Sessions of results files never recorded added to stats & session history, at once: undone from the
+        toast or with Ctrl+Z (reversible: never confirmed)"""
+        candidates = self._imports
+        if not candidates or self.editing:
+            return
+        setting = cfg.user.setting.get("module_stats", {})
+        podium_by_class = bool(setting.get("enable_podium_by_class", True)) if isinstance(setting, dict) else True
+        self.run_locked(StatsJob("edit", self.write_import, (tuple(candidates), self.classification(),
+                                                             dict(cfg.user.brands), podium_by_class),
+                                 self.import_written))
+
+    @classmethod
+    def write_import(cls, candidates: tuple[ri.ResultSummary, ...], classification: str, brands: dict[str, str],
+                     podium_by_class: bool) -> tuple[str, StatsEdit | None, int]:
+        """Sessions of candidates read from results files, added to stats & history read again (STATS_LOCK held,
+        worker thread): sessions recorded since left out
+
+        Returns:
+            Outcome as write_edit ("saved", "history", "unsaved", "unreadable", "none": nothing left to add),
+            edit to undo, sessions added.
+        """
+        sessions = results_import.read_sessions(candidates, classification, brands, podium_by_class)
+        with STATS_LOCK:
+            stats_user = cls.load_fresh_stats()
+            if stats_user is None:
+                return "unreadable", None, 0
+            try:
+                history = load_history(cfg.path.config, strict=True)
+            except OSError:  # never rewritten from empty history
+                return "unreadable", None, 0
+            left = {summary.path for summary in results_import.import_candidates(
+                candidates, history, (), checkpoint_times(cfg.path.config))}
+            before = copy.deepcopy(stats_user)
+            added = results_import.apply_import(stats_user, history,
+                                                [session for session in sessions if session.path in left])
+            if not added:
+                return "none", None, 0
+            backup_stats_file(cfg.path.config, with_history=True)
+            records = tuple(session.record for session in added)
+            saved = cls.save_edit(stats_user, (), records, history)
+            if saved is False:
+                return "unsaved", None, 0
+            if saved is None:
+                return "history", StatsEdit((), None, None, (), records, history_only=True), len(added)
+        return "saved", StatsEdit((), before, copy.deepcopy(stats_user), (), records), len(added)
+
+    def import_written(self, result: tuple[str, StatsEdit | None, int]):
+        """Import saved (UI thread): as an edit, told how many sessions were added"""
+        outcome, edit, count = result
+        if outcome == "none":
+            self.reload_stats()  # sessions recorded since: none left to import
+            return
+        self.edit_written((outcome, edit), trm(f"{count} session(s) imported from game results"))
+
+    @Slot()
+    def cleanUpStats(self):
+        """Empty cars removed (with their history) & impossible lap times reset, every track, at once: undone from
+        the toast or with Ctrl+Z (reversible: never confirmed)"""
+        if self.editing:
+            return
+        self.run_locked(StatsJob("edit", self.write_clean_up, (), self.clean_up_written))
+
+    @classmethod
+    def write_clean_up(cls) -> tuple[str, StatsEdit | None, int]:
+        """Clean up applied to stats file read again (STATS_LOCK held, worker thread)
+
+        Returns:
+            Outcome as write_import ("none": nothing to clean up), edit to undo, cars removed & lap times reset.
+        """
+        with STATS_LOCK:
+            stats_user = cls.load_fresh_stats()
+            if stats_user is None:
+                return "unreadable", None, 0
+            try:
+                history = load_history(cfg.path.config, strict=True)
+            except OSError:  # never rewritten from empty history
+                return "unreadable", None, 0
+            before = copy.deepcopy(stats_user)
+            combos, resets = clean_up_stats(stats_user)
+            if not combos and not resets:
+                return "none", None, 0
+            backup_stats_file(cfg.path.config, with_history=True)
+            removed = tuple(record for record in history if (record.track, record.vehicle) in combos)
+            saved = cls.save_edit(stats_user, removed, (), history)
+            if saved is False:
+                return "unsaved", None, 0
+            if saved is None:
+                return "history", StatsEdit((), None, None, removed, (), history_only=True), len(combos) + resets
+        return "saved", StatsEdit((), before, copy.deepcopy(stats_user), removed, ()), len(combos) + resets
+
+    def clean_up_written(self, result: tuple[str, StatsEdit | None, int]):
+        """Clean up saved (UI thread): as an edit, told how many changes"""
+        outcome, edit, count = result
+        if outcome == "none":
+            self.toast(tr("Nothing to clean up: no empty car, no impossible lap time"))
+            return
+        self.edit_written((outcome, edit), trm(f"{count} empty car(s) or impossible lap time(s) cleaned up"))
+
+    @Slot()
+    def importMysimrace(self):
+        """Sessions of a mysimrace.com data export never recorded added to stats & session history, at once:
+        undone from the toast or with Ctrl+Z (reversible: never confirmed)"""
+        if self.editing:
+            return
+        folder = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
+        filename, _ = QFileDialog.getOpenFileName(self._window, tr("Import From mysimrace…"),
+                                                  folder or os.path.expanduser("~"), "JSON (*.json)")
+        if not filename:
+            return
+        brands = tuple(str(brand) for brand in cfg.user.brands.values())
+        self.run_locked(StatsJob("edit", self.write_mysimrace, (filename, tuple(self.results), self.classification(),
+                                                                brands),
+                                 self.mysimrace_written))
+
+    @classmethod
+    def write_mysimrace(cls, path: str, summaries: tuple[ri.ResultSummary, ...], classification: str,
+                        brands: tuple[str, ...]) -> tuple[str, StatsEdit | None, int]:
+        """Sessions of a mysimrace export added to stats & history read again (STATS_LOCK held, worker thread):
+        sessions recorded, or in results files (imported from results instead), left out
+
+        Returns:
+            Outcome as write_import, or "invalid" (not a mysimrace export), edit to undo, sessions added.
+        """
+        try:
+            laps, _ = mysimrace_import.read_export(path)
+        except (OSError, ValueError) as error:
+            logger.info("DRIVER STATS: %s not imported: %s", os.path.basename(path), error)
+            return "invalid", None, 0
+        with STATS_LOCK:
+            stats_user = cls.load_fresh_stats()
+            if stats_user is None:
+                return "unreadable", None, 0
+            try:
+                history = load_history(cfg.path.config, strict=True)
+            except OSError:  # never rewritten from empty history
+                return "unreadable", None, 0
+            found = mysimrace_import.export_sessions(laps, path, stats_user, history, summaries, classification,
+                                                     brands)
+            before = copy.deepcopy(stats_user)
+            added = results_import.apply_import(stats_user, history, found.sessions)
+            if not added:
+                return "none", None, 0
+            backup_stats_file(cfg.path.config, with_history=True)
+            records = tuple(session.record for session in added)
+            saved = cls.save_edit(stats_user, (), records, history)
+            if saved is False:
+                return "unsaved", None, 0
+            if saved is None:
+                return "history", StatsEdit((), None, None, (), records, history_only=True), len(added)
+        return "saved", StatsEdit((), before, copy.deepcopy(stats_user), (), records), len(added)
+
+    def mysimrace_written(self, result: tuple[str, StatsEdit | None, int]):
+        """mysimrace import saved (UI thread): as an edit, told how many sessions were added, or why none"""
+        outcome, edit, count = result
+        if self._released:
+            return
+        if outcome == "invalid":
+            self.toast(tr("This file is not a mysimrace data export with laps of Le Mans Ultimate"))
+        elif outcome == "none":
+            self.reload_stats()
+            self.toast(tr("Nothing to import: the sessions of this file are already in your stats"))
+        else:
+            self.edit_written((outcome, edit), trm(f"{count} session(s) imported from mysimrace"))
 
     @Slot()
     def deleteSelected(self):
@@ -239,18 +475,22 @@ class StatsEdits(StatsHost):
                 return "changed", None  # stats module saved a new lap time since shown: never reset unseen
             backup_stats_file(cfg.path.config, with_history=history_change is not None)
             before = stats_entry(stats_user, path) if path else copy.deepcopy(stats_user)
-            if path:
-                set_stats_entry(stats_user, path, value)
-            else:
-                stats_user = copy.deepcopy(value)
-            removed: tuple = ()
-            added: tuple = ()
             history = None
-            if history_change is not None:
+            if history_change is not None or (not path and callable(value)):
                 try:
                     history = load_history(cfg.path.config, strict=True)
                 except OSError:  # never rewritten from empty history
                     return "unreadable", None
+            if path:
+                set_stats_entry(stats_user, path, value)
+            elif callable(value):  # whole file made from stats & history read now (backup restored)
+                value = value(stats_user, history)
+                stats_user = copy.deepcopy(value)
+            else:
+                stats_user = copy.deepcopy(value)
+            removed: tuple = ()
+            added: tuple = ()
+            if history_change is not None and history is not None:
                 removed_list, added_list = history_change(history)
                 removed, added = tuple(removed_list), tuple(added_list)
             saved = cls.save_edit(stats_user, removed, added, history)
@@ -300,10 +540,14 @@ class StatsEdits(StatsHost):
         self.reload_stats()
 
     @classmethod
-    def apply_edit(cls, edit: StatsEdit, undo: bool) -> bool:
+    def apply_edit(cls, edit: StatsEdit, undo: bool) -> tuple[str, StatsEdit | None]:
         """Apply edit again (redo) or its reverse (undo, stats recorded since kept) on stats file read again
 
-        Called with STATS_LOCK held (worker thread, see run_locked), False if stats file unreadable or not saved.
+        Called with STATS_LOCK held (worker thread, see run_locked).
+
+        Returns:
+            Outcome as write_edit ("saved", "history" changed only, "unsaved", "unreadable"), and for "history"
+            the history change made (its own undo, stats not saved).
         """
         with STATS_LOCK:
             if edit.history_only:
@@ -313,11 +557,11 @@ class StatsEdits(StatsHost):
                     else:
                         replace_records(cfg.path.config, edit.history_before, edit.history_after)
                 except OSError:
-                    return False
-                return True
+                    return "unreadable", None
+                return "saved", None
             stats_user = cls.load_fresh_stats()
             if stats_user is None:
-                return False
+                return "unreadable", None
             backup_stats_file(cfg.path.config, with_history=bool(edit.history_before or edit.history_after))
             if not edit.path:  # whole file (backup restored, lap times completed): stats recorded since kept
                 since = stats_since(stats_user, edit.after if undo else edit.before)
@@ -328,9 +572,12 @@ class StatsEdits(StatsHost):
             else:  # redo: stats recorded since kept
                 current = stats_entry(stats_user, edit.path)
                 set_stats_entry(stats_user, edit.path, redo_stats_entry(current, edit.before, edit.after, edit.path))
-            if undo:
-                return bool(cls.save_edit(stats_user, edit.history_after, edit.history_before))
-            return bool(cls.save_edit(stats_user, edit.history_before, edit.history_after))
+            removed, added = (edit.history_after, edit.history_before) if undo else (
+                edit.history_before, edit.history_after)
+            saved = cls.save_edit(stats_user, removed, added)
+            if saved is None:  # stats not saved, history changed anyway: that change undone on its own
+                return "history", StatsEdit(edit.path, None, None, removed, added, history_only=True)
+            return ("saved" if saved else "unsaved"), None
 
     @Slot()
     def undo(self):
@@ -348,14 +595,23 @@ class StatsEdits(StatsHost):
         edit = self._edits_redo.pop()
         self.run_locked(StatsJob("edit", self.apply_edit, (edit, False), self.edit_applied, (edit, False)))
 
-    def edit_applied(self, done: bool, edit: StatsEdit, undo: bool):
-        """Undo or redo saved (UI thread): moved to other stack (back to its stack if not saved), page reloaded"""
+    def edit_applied(self, result: tuple[str, StatsEdit | None], edit: StatsEdit, undo: bool):
+        """Undo or redo saved (UI thread): moved to other stack (back to its stack if not saved, told why), page
+        reloaded. History changed without stats: edit back to its stack, the history change undone by Ctrl+Z."""
+        outcome, history_edit = result
         self._backups = None  # listed again (backup made before undo & redo)
-        if done:
+        if outcome == "saved":
             (self._edits_redo if undo else self._edits_undo).append(edit)
         else:
             (self._edits_undo if undo else self._edits_redo).append(edit)
-            self.stats_unreadable()
+            if outcome == "history" and history_edit is not None:
+                self._edits_undo.append(history_edit)
+                del self._edits_undo[:-MAX_UNDO]
+                self.stats_unsaved_history_changed()
+            elif outcome == "unsaved":
+                self.stats_unsaved()
+            else:
+                self.stats_unreadable()
         if undo:
             self.reload_stats(select=edit.path[0] if edit.path else None)
         else:
@@ -474,7 +730,9 @@ class StatsEdits(StatsHost):
         history_change = None
         if history_backup is not None:
             history_change = partial(restored_history, backup=history_backup, since=created)
-        self.edit_stats((), stats_backup, history_change, done_text=tr("Stats restored from the backup of %1").replace(
+        # Stints recorded after the backup: their history records kept, their stats counted again
+        stats = partial(restored_stats, stats_backup, created=created)
+        self.edit_stats((), lambda current, records: stats(current, records or []), history_change, done_text=tr("Stats restored from the backup of %1").replace(
             "%1", f"<b>{html.escape(date)}</b>"))
 
     def backup_failed(self, error: BaseException):

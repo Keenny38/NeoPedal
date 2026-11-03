@@ -48,7 +48,7 @@ from PySide6.QtCore import Property, QCoreApplication, QObject, QTimer, Signal, 
 from PySide6.QtWidgets import QWidget
 
 from ... import app_signal
-from ...i18n import tr
+from ...i18n import colon, is_singular, percent_sign, plural, tr
 from ...process import director as dr
 from ...process.driver_history import history as driver_history
 from ...process.game_info import IMMOVABLE, Contact, SessionState, Standing, merge_contacts
@@ -255,6 +255,7 @@ class DirectorBackend(PageBackend):
         self.session_info = SessionState()
         self.laps_slot = -1  # car of lap history shown, -1 if none
         self._weather: list[str] = []
+        self._yellow_flag = False  # first weather pill is the full course yellow flag
         notes = settings.get("notes")
         self.notes: dict[str, str] = ({str(key): str(value) for key, value in notes.items() if value}
                                       if isinstance(notes, dict) else {})
@@ -273,7 +274,8 @@ class DirectorBackend(PageBackend):
         self._global_keys = False
         self.session_key: tuple[str, str, float] = ("", "", 0)
         self.session_time = -1.0
-        self.time_received = 0.0  # time.time() of session time
+        self.time_received = 0.0  # time.time() of session time (clock moved from it by QML Date.now())
+        self._clock_answered = 0.0  # time.monotonic() of session time (rate measured from)
         self.replay_rate = 0.0
         self.track_length = 0.0
         self.standings: list[Standing] = []
@@ -348,6 +350,7 @@ class DirectorBackend(PageBackend):
         self._game.stop()
         self._instant_timer.stop()
         self._camera.stop()  # events log lines still written in background: page never waits (see WRITER)
+        self.give_back_camera(closed=True)
         if self.follow_overlays and self._enabled:  # spectate mode of the director: overlays back on the player car
             self.overlays_stop_following()
         self._history_asked = False  # driver_history tables kept: scanned again once opened, files unchanged not read
@@ -358,6 +361,34 @@ class DirectorBackend(PageBackend):
             # No more updates: broadcast graphics emptied (as director off), never left frozen on air
             director_feed.clear()
             live_feed.clear()
+
+    def give_back_camera(self, closed: bool = False):
+        """Director off or page closed: game given back to the player as before the director. Instant replay shown:
+        live session again. Live session where the director moved the camera: player's car followed again, in the
+        cockpit view (no player car, as an online spectator: car on air kept; camera never touched by the director:
+        player's own choice kept). Page closed: sent in background (see send_closed)"""
+        commands: list[gc.Command] = []
+        if self.instant:
+            self._instant_timer.stop()
+            self.instant = False
+            self.instant_event = None
+            if not closed:
+                self.instantChanged.emit()
+            commands.append(gc.leave_replay)
+        elif self.state != SESSION:  # replay of a recorded session, menus: no live player view to go back to
+            return
+        player = next((car.slot for car in self.standings if car.player), -1)
+        if player >= 0 and self._camera.moved:
+            commands += [gc.focus_command(player), *gc.camera_commands("COCKPIT")]
+            self.focus = player
+        elif commands and self.on_air_slot >= 0:  # live again on the car on air (live camera may follow another)
+            commands.append(gc.focus_command(self.on_air_slot))
+            self.focus = self.on_air_slot
+        if commands and closed:
+            self._camera.send_closed(*commands)
+        elif commands:
+            self._camera.send(*commands)
+        self._camera.moved = False  # given back (this batch too): the player's camera until the director moves it
 
     def refresh_models(self):
         """Every list & card of the page made again from the last answer (lists of hidden tabs once shown)"""
@@ -593,6 +624,7 @@ class DirectorBackend(PageBackend):
             self._suggestions_model.reset([])
             self.suggestionsChanged.emit()
         self.statusChanged.emit()
+        self.clockChanged.emit()  # session text & clock follow the state (session left: header emptied)
 
     def new_session(self):
         self._leave_pending = False  # replay of another session: never left for the director
@@ -619,11 +651,12 @@ class DirectorBackend(PageBackend):
         self.update_laps()
 
     def update_clock(self, session_time: float):
-        now = time.time()
-        if self.session_time >= 0 and session_time >= 0 and now - self.time_received > 0.2:
-            rate = (session_time - self.session_time) / (now - self.time_received)
+        now, answered = time.time(), time.monotonic()
+        elapsed = answered - self._clock_answered  # never the wall clock: set back or forward meanwhile
+        if self.session_time >= 0 and session_time >= 0 and elapsed > 0.2:
+            rate = (session_time - self.session_time) / elapsed
             self.replay_rate = rate if abs(rate) < 50 else 0.0
-        self.session_time, self.time_received = session_time, now
+        self.session_time, self.time_received, self._clock_answered = session_time, now, answered
         self.clockChanged.emit()
 
     def count_incidents(self) -> dict[str, int]:
@@ -1202,14 +1235,15 @@ class DirectorBackend(PageBackend):
         left = dr.level(car)
         if left < 0:
             return ""
-        parts = [f"{round(left * 100)}%"]
+        parts = [f"{round(left * 100)}{percent_sign()}"]
         three, five = self.watcher.energy_average(car.slot, 3), self.watcher.energy_average(car.slot, 5)
         if three > 0:
             per_lap = tr("%1/lap").replace("%1", f"{localized(f'{three * 100:.1f}')}%")
             if five > 0:
-                per_lap += f" (5: {localized(f'{five * 100:.1f}')}%)"
+                per_lap += f" (5{colon()}{localized(f'{five * 100:.1f}')}{percent_sign()})"
             parts.append(per_lap)
-            parts.append(tr("%1 laps").replace("%1", str(int(left / three))))
+            laps = int(left / three)
+            parts.append(plural(laps, "%1 lap", "%1 laps").replace("%1", str(laps)))
         return " · ".join(parts)
 
     def update_laps(self):
@@ -1237,7 +1271,7 @@ class DirectorBackend(PageBackend):
                 "s1Tone": sector_tone(sectors[0], bests[0], class_bests[0]),
                 "s2Tone": sector_tone(sectors[1], bests[1], class_bests[1]),
                 "s3Tone": sector_tone(sectors[2], bests[2], class_bests[2]),
-                "pit": record.pit, "energy": f"{localized(f'{record.energy * 100:.1f}')}%" if record.energy >= 0 else "",
+                "pit": record.pit, "energy": f"{localized(f'{record.energy * 100:.1f}')}{percent_sign()}" if record.energy >= 0 else "",
                 "position": record.position,
             })
         if self._laps_model.sync(rows):
@@ -1253,8 +1287,9 @@ class DirectorBackend(PageBackend):
         ) if text]
         flag = "" if info.yellow in ("NONE", "INVALID", "") else tr("Full course yellow")
         weather = [flag, *weather] if flag else weather
-        if weather != self._weather:
+        if weather != self._weather or bool(flag) != self._yellow_flag:
             self._weather = weather
+            self._yellow_flag = bool(flag)
             self.weatherChanged.emit()
 
     def update_on_air(self):
@@ -1439,6 +1474,11 @@ class DirectorBackend(PageBackend):
         """Full course yellow, air & track temperatures, rain, wet track"""
         return self._weather
 
+    @Property(bool, notify=weatherChanged)
+    def yellowFlag(self) -> bool:
+        """First weather pill is the full course yellow flag (told apart without comparing translated texts)"""
+        return self._yellow_flag
+
     @Property(QObject, constant=True)
     def lapRows(self) -> DictListModel:
         return self._laps_model
@@ -1543,8 +1583,9 @@ class DirectorBackend(PageBackend):
 
     @Slot(bool)
     def setEnabled(self, enabled: bool):
-        """Director on or off. Off: game no longer asked, automatic cuts stopped, instant replay left, overlays
-        back to the player car (spectate mode off), broadcast graphics emptied; events & notes of the session kept"""
+        """Director on or off. Off: game no longer asked, automatic cuts stopped, game camera given back to the
+        player (see give_back_camera), overlays back to the player car (spectate mode off), broadcast graphics
+        emptied; events & notes of the session kept"""
         from ...stream_director import director_feed, live_feed
 
         if enabled == self._enabled:
@@ -1562,7 +1603,7 @@ class DirectorBackend(PageBackend):
         self._game.stop()  # no more requests, connection kept from answer to answer closed
         self._graphics.stop()
         self._graphics.end_auto_event()  # event card shown by the director at session start: hidden
-        self.backToLive()  # instant replay shown: live session again in the game
+        self.give_back_camera()  # live session, player's car in cockpit view (if the director moved the camera)
         if self.mode == "auto":  # automatic cuts never start by themselves (as when the page opens)
             self.setMode(MODES.index("assist"))
         self.overlays_stop_following()  # spectate mode off, whoever turned it on: overlays on the player car
@@ -1874,8 +1915,9 @@ class DirectorBackend(PageBackend):
         stats = driver_history.stats(car.driver, self.session_key[0])
         if stats is None:
             return ""
-        parts = [tr("%1 races").replace("%1", str(stats.starts)), tr("%1 wins").replace("%1", str(stats.wins)),
-                 tr("%1 podiums").replace("%1", str(stats.podiums))]
+        parts = [plural(stats.starts, "%1 race", "%1 races").replace("%1", str(stats.starts)),
+                 (tr("%1 win") if is_singular(stats.wins) else tr("%1 wins", "count")).replace("%1", str(stats.wins)),
+                 plural(stats.podiums, "%1 podium", "%1 podiums").replace("%1", str(stats.podiums))]
         if stats.best_here:
             parts.append(tr("Best here: P%1").replace("%1", str(stats.best_here)))
         last = ", ".join(f"{'P' + str(record.class_position) if record.finished else tr('DNF')} {record.track}"

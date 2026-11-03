@@ -82,19 +82,37 @@ def apply_positions(setting: dict, positions: dict) -> bool:
     return changed
 
 
-def load_profiles(filename: str) -> dict[str, dict]:
-    """Load layout profiles, empty if missing or invalid"""
+def load_profiles(filename: str) -> dict[str, dict] | None:
+    """Load layout profiles: empty if missing; None if not readable now (held by antivirus or cloud sync, no
+    access: never saved over, profiles of other screen setups kept); an invalid file (bad JSON, edited by hand)
+    is kept as a timestamped backup before it is replaced, None if that backup fails"""
     try:
-        with open(filename, encoding="utf-8-sig") as file:  # BOM if edited by user
-            data = json_loads_checked(file.read())
+        with open(filename, "rb") as file:
+            raw = file.read()
     except FileNotFoundError:
         return {}
-    except (OSError, ValueError, RecursionError) as error:  # RecursionError: nested too deeply
+    except OSError as error:
+        logger.error("USERDATA: layout profile %s not readable, not saved this time: %s", filename, error)
+        return None
+    try:
+        data = json_loads_checked(raw.decode("utf-8-sig"))  # BOM if edited by user
+    except (ValueError, RecursionError) as error:  # UnicodeDecodeError & JSON errors; RecursionError: too deep
         logger.error("USERDATA: invalid layout profile %s: %s", filename, error)
-        return {}
+        data = None
     if not isinstance(data, dict):
-        return {}
+        return {} if backup_invalid(filename) else None
     return {key: value for key, value in data.items() if isinstance(key, str) and isinstance(value, dict)}
+
+
+def backup_invalid(filename: str) -> bool:
+    """Invalid profile file copied to a timestamped backup (replaced by next save), True if kept"""
+    from .json_setting import create_backup_file, set_backup_timestamp
+
+    folder, name = os.path.split(filename)
+    if create_backup_file(name, os.path.join(folder, ""), set_backup_timestamp(), show_log=True):
+        return True
+    logger.error("USERDATA: invalid layout profile %s not backed up, not saved this time", filename)
+    return False
 
 
 def save_profiles(filename: str, profiles: dict[str, dict]) -> bool:
@@ -111,6 +129,8 @@ def sync_layout(setting: dict, widget_names: Iterable[str], filename: str, key: 
         True if preset positions changed (preset needs saving).
     """
     profiles = load_profiles(filename)
+    if profiles is None:  # not readable now: positions of preset kept, file left as it is
+        return False
     changed = key in profiles and apply_positions(setting, profiles[key])
     if changed:
         logger.info("LAYOUT: restored widget positions for screen setup %s", key)
@@ -121,9 +141,12 @@ def sync_layout(setting: dict, widget_names: Iterable[str], filename: str, key: 
 def store_layout(
     setting: dict, widget_names: Iterable[str], filename: str, key: str, profiles: dict | None = None,
 ) -> None:
-    """Store current widget positions for screen setup"""
+    """Store current widget positions for screen setup (profiles: loaded already), nothing written if the file
+    is not readable now (profiles of other screen setups never replaced)"""
     if profiles is None:
         profiles = load_profiles(filename)
+        if profiles is None:
+            return
     positions = widget_positions(setting, widget_names)
     if profiles.get(key) == positions and next(reversed(profiles), None) == key:  # unchanged & most recent
         return

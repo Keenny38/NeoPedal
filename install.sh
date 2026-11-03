@@ -1,15 +1,20 @@
 #!/bin/bash
+# Install NeoPedal (Linux): sudo bash install.sh [prefix], default prefix /usr/local
+# Stops at the first error (never says installation finished after a failed copy); paths with spaces work;
+# files are copied from the folder of this script, whatever the current folder.
+set -euo pipefail
 
-SOURCE_PATH=$(dirname $(readlink -f $0))
+SOURCE_PATH="$(dirname "$(readlink -f "$0")")"
 DESTINATION_PREFIX="/usr/local"
+cd "${SOURCE_PATH}"
 
 # Check argument
-if [ -n "$1" ];
+if [ -n "${1:-}" ];
 then
     DESTINATION_PREFIX="${1%/}"
     echo
     while true; do
-        read -p "Are you sure you want to install this program to '${DESTINATION_PREFIX}' prefix? " yn
+        read -r -p "Are you sure you want to install this program to '${DESTINATION_PREFIX}' prefix? " yn
         case $yn in
             [Yy]* ) break;;
             [Nn]* ) exit;;
@@ -54,6 +59,15 @@ then
     exit 1
 fi
 
+# Plugins installed by the user (none shipped since 0.22, folder made by app): kept over the update
+PLUGINS_KEPT=""
+if [ -d "${DESTINATION_PATH}/plugins" ];
+then
+    PLUGINS_KEPT="$(mktemp -d "${SHARE_PATH}/NeoPedal-plugins.XXXXXX")"
+    cp -a "${DESTINATION_PATH}/plugins/." "${PLUGINS_KEPT}/"
+    trap 'echo "Error: installation failed, your plugins are kept in ${PLUGINS_KEPT}"' ERR
+fi
+
 # Remove old file & folder
 if [ -d "${DESTINATION_PATH}" ];
 then
@@ -94,13 +108,13 @@ IMAGE_FILE='
 replace() {
     PATTERN="$1"
     STRING="$2"
-    while read LINE; do
+    while IFS= read -r LINE || [ -n "${LINE}" ]; do
         echo "${LINE/${PATTERN}/${STRING}}"
     done
 }
 
 copyfiles() {
-    for LINE in ${1}/*;
+    for LINE in "${1}"/*;
     do
         if [ -d "${LINE}" ];
         then
@@ -134,6 +148,8 @@ for LINE in ${BASE_FILE};
 do
     cp "${LINE}" "${DESTINATION_PATH}"
 done
+# Started by the launcher directly (./run.py): executable even when copied from an archive without file modes
+chmod a+x "${DESTINATION_PATH}/run.py"
 
 # Copy images folder file
 echo "Writing ${DESTINATION_PATH}/images"
@@ -148,12 +164,20 @@ echo "Writing ${DESTINATION_PATH}/fonts"
 mkdir -p "${DESTINATION_PATH}/fonts"
 cp fonts/*.ttf fonts/*.txt "${DESTINATION_PATH}/fonts"
 
-# Copy plugins folder file (none shipped since 0.22, folder made by app)
+# Copy plugins folder file: plugins of the source folder, then the plugins kept from the previous install
 if [ -d plugins ];
 then
     echo "Writing ${DESTINATION_PATH}/plugins"
     mkdir -p "${DESTINATION_PATH}/plugins"
     cp -r plugins/. "${DESTINATION_PATH}/plugins"
+fi
+if [ -n "${PLUGINS_KEPT}" ];
+then
+    echo "Restoring plugins in ${DESTINATION_PATH}/plugins"
+    mkdir -p "${DESTINATION_PATH}/plugins"
+    cp -a "${PLUGINS_KEPT}/." "${DESTINATION_PATH}/plugins/"
+    trap - ERR
+    rm -r "${PLUGINS_KEPT}"
 fi
 
 # Copy submodule folder file

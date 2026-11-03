@@ -519,7 +519,7 @@ FocusScope {
         var decimals = stepDecimals(tickStep)
         var factor = Math.pow(10, decimals)
         var total = Math.round(value * factor) / factor  // rounded first: 119.5 s is 2:00, never 1:60
-        if (total < 60) return total.toFixed(decimals).replace(".", theme.decimalPoint) + "s"
+        if (total < 60) return total.toFixed(decimals).replace(".", theme.decimalPoint) + " s"
         var minutes = Math.floor(total / 60 + 1e-9)
         var seconds = Math.max(total - minutes * 60, 0)
         return minutes + ":" + (seconds < 10 ? "0" : "") + seconds.toFixed(decimals).replace(".", theme.decimalPoint)

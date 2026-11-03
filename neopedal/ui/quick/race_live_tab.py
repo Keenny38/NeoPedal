@@ -37,7 +37,7 @@ from ...fuel_strategy import (
     plan,
     whole_laps,
 )
-from ...i18n import tr, trm
+from ...i18n import percent_sign, tr, trm
 from ...module_info import minfo
 from ...process.results_text import number_text, position_text
 from ...race_live import clock as race_clock
@@ -125,6 +125,8 @@ class LiveTab(RaceBase):
     def received_garage(self, answers: list):
         """Game answers: repair & refuel screen, tyre screen, session settings"""
         self.garage_request.busy = False
+        if not self.game_data:  # turned off while asked: inputs left as they are (page shows calculator off)
+            return
         refuel, tyres, session = (list(answers) + [None] * 3)[:3]
         self.garage = parse_garage(refuel, tyres, session)
         self.garage_time = clock_seconds() if self.garage.available else ""
@@ -400,7 +402,7 @@ class LiveTab(RaceBase):
         wheels = []
         for wheel, offers in zip(HEADER_TYREPLAN, garage.used_tyres):
             wheels.append({"wheel": tr(wheel), "tyres": [
-                {"text": f"{offer.compound} {offer.tread:.0f}%", "color": tread_color(offer.tread / 100),
+                {"text": f"{offer.compound} {offer.tread:.0f}{percent_sign()}", "color": tread_color(offer.tread / 100),
                  "compound": offer.compound, "tip": offer.text} for offer in offers]})
         return {
             "known": bool(garage.new_compounds or garage.used_tyres or garage.tyres_allowed),

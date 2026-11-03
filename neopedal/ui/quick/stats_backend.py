@@ -54,10 +54,10 @@ from ...process import results_index as ri
 from ...process.player_profile import PlayerProfile
 from ...userfile.driver_history import SessionRecord
 from ...userfile.lap_reference import LEVELS, LapReferenceTable
+from .. import colorblind_state
 from .game_pictures import LogoCache, notifier
 from .models import DictListModel
 from .page_backend import PageBackend
-from .stats_analysis import Upcoming
 from .stats_common import (
     ALL_TRACKS,
     CONDITION_FILTERS,
@@ -87,9 +87,14 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
 
     CANCEL_JOBS_ON_RELEASE = False  # running edit saved after close (waiting ones wait for it), see release_resources
 
+    @property
+    def _window(self) -> Any:
+        """Page host (parent of dialogs & tools opened from the page): Qt parent, never stored on the page (cycle
+        page <-> host: a closed page would wait for the garbage collector, which may free it on a worker thread)"""
+        return self.parent()
+
     def __init__(self, parent):
         super().__init__(parent, "Driver stats")
-        self._window = parent
         self.stats_temp: dict = {}
         self.selected_stats_key = ""  # selected track, empty for All Tracks
         self.selected_stats_dict: dict = {}
@@ -104,6 +109,7 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
         self.references = LapReferenceTable()
         self.reference_error = ""
         self._downloading = False
+        self._precise_asked = False  # cache to the hundredth downloaded again (once)
         self._loaded = False  # first load selects current track
         self._reading = True  # stats files not read yet (read in background): page shows it is loading
         self._visible = True
@@ -156,6 +162,8 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
         self._driver_key: tuple = ()
         self._driver: dict = {"visible": False}
         self._fixes: list[ri.BestLapFix] = []
+        self._imports_key: tuple = ()
+        self._imports: list[ri.ResultSummary] = []  # sessions of results files never recorded
         self._published: dict[str, Any] = {}  # parts of page as last told (see publish)
         # Stints & consistency of selected vehicle from recorded laps (read in background), friend's stats
         self._stints: dict = {}
@@ -187,14 +195,12 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
         self._search = ""
         self._class_filter = ""
         self._unfiltered_rows = 0
+        self._empty_columns: set[str] = set()  # columns without any value (left out)
+        self._rust_shown = False  # amber Last Driven date in the table
         self._table_classes: list[str] = []
-        # All Tracks: rivals of online races (made again when results read), official races to come (option)
+        # All Tracks: rivals of online races (made again when results read)
         self._rivals: list[dict] = []
         self._rivals_key: tuple = ()
-        self._upcoming_events: list[Upcoming] = []
-        self._game_tracks: dict[str, tuple[str, ...]] = {}  # game track scene: names
-        self._upcoming_note = ""
-        self._upcoming_time = 0.0  # monotonic time of last read asked (0: never)
 
         # Stats & history files saved by stats module: reloaded
         self.watcher = QFileSystemWatcher(self)
@@ -233,6 +239,8 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
             self._palette_connected = True
         # Units & vehicle classification changed in settings: cells, headers & tiles shown again in new ones
         app_signal.refresh.connect(self.settings_changed)
+        # Colorblind colors of the app (Settings): level colors follow at once (disconnected with refresh, release)
+        colorblind_state().changed.connect(self.colorblind_changed)
         self._settings_connected = True
 
         self.load_reference()
@@ -260,8 +268,6 @@ class DriverStatsBackend(StatsSharing, StatsEdits, StatsSelection, StatsOverview
             self.selectTrack(ALL_TRACKS)
         self.check_ranks()  # ranks changed while hidden
         self.check_live_track()  # game session started or ended while hidden
-        if not self.selected_stats_key:
-            self.load_upcoming()  # official races to come (option), read again after a while
         if self._dirty:
             self._dirty = False
             self.reload_if_changed()

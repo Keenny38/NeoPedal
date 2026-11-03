@@ -243,6 +243,15 @@ TpPopup {
             checkable: false
             onClicked: backend.setIdealDelta(!backend.idealDelta)
         }
+        TpSwitch {  // a chart option: here with the others, not in the page toolbar
+            objectName: "timeAxisSwitch"
+            visible: !backend.simpleView  // charts only
+            text: i18n.tr("Time Axis")
+            tip: i18n.tr("Charts along lap time instead of lap distance")
+            checked: backend.timeAxis
+            checkable: false
+            onClicked: backend.setTimeAxis(!backend.timeAxis)
+        }
         RowLayout {
             Layout.fillWidth: true
             spacing: theme.space3

@@ -16,9 +16,9 @@ Rectangle {
 
     implicitHeight: Math.min(sheetColumn.implicitHeight + theme.space6, maximumHeight)
     radius: theme.radiusLg
-    color: theme.raised
+    color: theme.surfaceCard  // card tokens (surface & stroke), as every card
     border.width: live.onAir ? 2 : 1  // on air: thicker red frame
-    border.color: live.onAir ? theme.loss : theme.border
+    border.color: live.onAir ? theme.loss : theme.strokeSubtle
 
     // Sector & lap marks besides colors (colorblind): ◆ best of class, ● personal best
     // Record mark right of the time, as every page (TpLapTime): ◆ best of class first, ● personal best
@@ -163,7 +163,7 @@ Rectangle {
                 }
                 Stat { label: i18n.tr("Overall"); value: sheetCard.live.position ? "P" + sheetCard.live.position : "" }
                 Stat { label: i18n.tr("Laps"); value: sheetCard.live.laps !== undefined ? String(sheetCard.live.laps) : "" }
-                Stat { label: i18n.tr("Current stint"); value: sheetCard.live.stint >= 0 ? i18n.tr("%1 laps").arg(sheetCard.live.stint) : "" }
+                Stat { label: i18n.tr("Current stint"); value: sheetCard.live.stint >= 0 ? i18n.plural(sheetCard.live.stint, "%1 lap", "%1 laps").arg(sheetCard.live.stint) : "" }
             }
             RowLayout {
                 visible: sheetCard.expanded

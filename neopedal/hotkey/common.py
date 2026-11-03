@@ -27,6 +27,7 @@ from collections.abc import Callable, Iterable, Mapping
 from itertools import chain
 
 from ..const_app import PLATFORM
+from ..i18n import tr
 from .joystick import JOY_CODE_BASE, JoystickReader, joystick_reader
 from .keymap import KEYMAP_GENERAL, KEYMAP_MODIFIER
 
@@ -51,8 +52,15 @@ def sort_key_codes(
 
 
 def format_hotkey_name(name: str, notset: str = "", delimiter: str = "+") -> str:
-    """Format hotkey name for display"""
-    return name.replace("_", " ").replace("+", delimiter).title() if name else notset
+    """Format hotkey name for display, key names in app language ("Ctrl + Maj + F" in French)"""
+    if not name:
+        return notset
+    return delimiter.join(key_label(part.replace("_", " ").title()) for part in name.split("+"))
+
+
+def key_label(key: str) -> str:
+    """Key name in app language, as Qt shows it ("Shift": "Maj"), context "key" (Delete key, not the button)"""
+    return tr(key, "key")
 
 
 def modifier_priority(key: str) -> int:

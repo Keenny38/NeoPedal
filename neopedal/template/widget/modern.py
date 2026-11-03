@@ -42,6 +42,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "show_class_name": True,  # class column: class name, then position in class (else position on class color)
         "column_position_change": False,
         "column_driver_name": True,
+        "show_team_name": False,  # driver name column: team name after driver name, smaller
+        "team_name_width": 12,
         "column_vehicle_name": False,
         "column_brand_logo": True,
         "column_tyre_compound": True,
@@ -69,6 +71,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "display_order_driver_ranks": 24,
         "column_driver_badge": False,  # game badge of driver, same drivers as driver & safety rank column
         "display_order_driver_badge": 28,
+        "column_car_number": False,  # number LMU gives the car (online: per split), from game Rest API
+        "display_order_car_number": 29,
         "column_delta_laptime": False,
         "number_of_delta_laptime": 3,
         "show_inverted_delta_laptime_layout": False,
@@ -89,6 +93,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "show_class_name": True,  # class column: class name, then position in class (else position on class color)
         "column_position_change": False,
         "column_driver_name": True,
+        "show_team_name": False,  # driver name column: team name after driver name, smaller
+        "team_name_width": 12,
         "column_vehicle_name": False,
         "column_brand_logo": True,
         "column_tyre_compound": True,
@@ -116,6 +122,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "display_order_driver_ranks": 27,
         "column_driver_badge": False,  # game badge of driver, same drivers as driver & safety rank column
         "display_order_driver_badge": 29,
+        "column_car_number": False,  # number LMU gives the car (online: per split), from game Rest API
+        "display_order_car_number": 30,
         "column_gap_trend": False,
         "display_order_gap_trend": 28,
         "column_stint_laps": False,
@@ -135,6 +143,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "show_class_name": True,  # class column: class name, then position in class (else position on class color)
         "column_position_change": False,
         "column_driver_name": True,
+        "show_team_name": False,  # driver name column: team name after driver name, smaller
+        "team_name_width": 12,
         "column_vehicle_name": False,
         "column_brand_logo": True,
         "column_tyre_compound": True,

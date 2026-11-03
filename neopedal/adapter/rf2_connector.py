@@ -131,6 +131,7 @@ class MMapDataSet:
             access_mode: 0 = copy access, 1 = direct access.
             rf2_pid: rF2 Process ID for accessing server data.
         """
+        _sync.warn_elevated_mapping((f"{rFactor2Constants.MM_SCORING_FILE_NAME}{rf2_pid}",))
         created = []
         try:
             for zone, mode in (

@@ -29,6 +29,7 @@ the other drivers of an online session (RaceControl profiles by name), see proce
 from __future__ import annotations
 
 import os
+import time
 from typing import NamedTuple
 
 from .process import driver_ranks as dr
@@ -41,6 +42,8 @@ GAME = "LMU"  # only game with ranks
 PROBE_ROUTE = "/rest/watch/focus"  # cheap answer of a running game (in menus too)
 JOIN_ROUTE = "/rest/multiplayer/join/state"  # "JOIN_JOINED_SERVER" while on an online server
 GAME_TIMEOUT = 3.0
+BLOCK_FILE = ".raceos_block.json"  # end of the wait after RaceControl refused this connection (403), see raceos.py
+RANKS_FILE = ".raceos_ranks.json"  # your ranks of the last sign in & its time: no sign in at each app start
 
 
 def locate() -> dr.Located:
@@ -78,7 +81,9 @@ def online_client():
         from .const_app import APP_NAME, VERSION
         from .process import raceos
 
-        _client = raceos.RaceOSClient(lambda: raceos.game_ticket(_game_get), user_agent=f"{APP_NAME}/{VERSION}")
+        _client = raceos.RaceOSClient(lambda: raceos.game_ticket(_game_get), user_agent=f"{APP_NAME}/{VERSION}",
+                                      block_file=os.path.join(cfg.path.config, BLOCK_FILE),
+                                      ranks_file=os.path.join(cfg.path.config, RANKS_FILE))
     return _client
 
 
@@ -96,8 +101,18 @@ class OnlineRanks:
         return _game_get(PROBE_ROUTE)[0] != 0
 
     @staticmethod
-    def fetch(account: str) -> dr.DriverRanks | None:
-        return online_client().fetch(account)
+    def fetch(account: str, max_age: float) -> dr.DriverRanks | None:
+        return online_client().fetch(account, max_age)
+
+    @staticmethod
+    def fetch_timed(account: str, max_age: float) -> tuple[dr.DriverRanks, float] | None:
+        """Ranks of fetch & time of the sign in that read them (older than now when reused)"""
+        client = online_client()
+        fetch_timed = getattr(client, "fetch_timed", None)
+        if fetch_timed is not None:
+            return fetch_timed(account, max_age)
+        ranks = client.fetch(account, max_age)  # client without sign in time (tests): read now
+        return (ranks, time.time()) if ranks is not None else None
 
     @staticmethod
     def forget() -> None:

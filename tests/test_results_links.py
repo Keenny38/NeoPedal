@@ -311,7 +311,9 @@ def test_stats_driver_card_and_fixes(backend, monkeypatch):  # noqa: F811
     assert driver["visible"] and driver["name"] == "Alice Driver" and driver["initials"] == "AD"
     assert driver["detail"] == "France · Team A · #7" and driver["avatar"] == ""
     figures = {figure["label"]: figure["value"] for figure in driver["figures"]}
-    assert figures["Races"] == "2" and figures["Wins"] == "1" and figures["Podiums"] == "1"
+    # Races, wins & podiums of results files: Races key figure of All Tracks (not repeated in the card)
+    races = next(tile for tile in backend.tiles if tile["title"] == "Races")
+    assert "Races" not in figures and races["value"] == "2" and races["detail"] == "1 win · 1 podium"
     assert figures["Clean Races"] == "1/2" and figures["Avg. Finish"] == "P1.0"
     assert driver["fixes"] == 2  # PB & race best of Oreca
     backend.completeLapTimes()
@@ -417,18 +419,19 @@ def test_results_open_path_before_loaded(ui_env, tmp_path, monkeypatch):
 def test_watch_named_waits_for_replays_list():
     from neopedal.ui.quick.replays_backend import GameReplaysBackend
 
-    notices, watched, asked = [], [], []
+    notices, watched, asked, offered = [], [], [], []
     known = {"Spa R1 1"}
     fake = SimpleNamespace(
-        pending_watch="", pending_action=None, replays_answered=False,
+        pending_watch="", pending_action=None, replays_answered=False, launching_until=0.0,
         notify=lambda text, error=False: notices.append(text),
-        watch=lambda name, action=None: watched.append(name), ask_replays=lambda: asked.append(1),
+        watch=lambda name, action=None, started=False: watched.append(name), ask_replays=lambda: asked.append(1),
+        offer_start=lambda name, action: offered.append(name),
         replay_of=lambda name: name if name in known else None)
     fake.watch_pending = lambda: GameReplaysBackend.watch_pending(fake)
     GameReplaysBackend.watch_named(fake, "Spa R1 1")
     assert fake.pending_watch == "Spa R1 1" and asked and not watched
-    fake.watch_pending()  # game did not answer
-    assert notices and "Start Le Mans Ultimate" in notices[-1] and fake.pending_watch == ""
+    fake.watch_pending()  # game did not answer: offered to start it (tests/test_replays_game_start.py)
+    assert offered == ["Spa R1 1"] and not notices and fake.pending_watch == ""
     fake.replays_answered = True
     GameReplaysBackend.watch_named(fake, "Spa R1 1")
     assert watched == ["Spa R1 1"]

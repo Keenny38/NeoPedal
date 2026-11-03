@@ -59,6 +59,7 @@ from .table import (
     LOGO,
     PAIR,
     RIGHT,
+    TEAM_GAP,
     TEXT,
     TREND,
     Cell,
@@ -81,7 +82,7 @@ HEADER_LABELS = {
     "laptime": "Time", "best_laptime": "Best", "average_laptime": "Avg", "delta_laptime": "Delta",
     "energy_remaining": "Energy", "energy_per_lap": "E/Lap", "vehicle_integrity": "Health", "incidents": "Inc", "track_limits": "TL",
     "stint_laps": "Stint", "speed_trap": "Speed", "lift_and_coast_time": "L&C", "time_interval": "Int",
-    "time_gap": "Gap", "gap_trend": "Trend", "driver_ranks": "DR/SR", "driver_badge": "Badge",
+    "time_gap": "Gap", "gap_trend": "Trend", "driver_ranks": "DR/SR", "driver_badge": "Badge", "car_number": "#",
 }
 # Driver & Safety Rank of sample cars (overlay pictures & previews), by overall position
 SAMPLE_RANKS = (
@@ -94,12 +95,20 @@ RANK_LETTERS = "BSGP"  # first letter of Bronze, Silver, Gold, Platinum (Rank.sh
 # Gap change per lap of sample race rows (index -> seconds), overlay pictures
 SAMPLE_TRENDS = {2: 0.3, 7: -0.2, 8: -0.4, 10: -0.3, 3: -1.8, 11: 0.5}
 SAMPLE_LIMIT = 5.0  # track limits points per penalty of sample race
+SAMPLE_NUMBERS = 23  # car numbers of sample race: 1 to 23, one per car (see demo_car_number)
+# Team names of sample race (overlay pictures & previews), by overall position
+SAMPLE_TEAMS = (
+    "Apex Endurance", "Redline Motorsport", "Northwind Racing", "Velocity Works", "Le Ciel Racing",
+    "Blue Comet Team", "Iron Gate Racing", "Silverline Esports", "Corsa Rossa", "Night Owl Racing",
+    "Summit Motorsport", "Falcon GT Team",
+)
 
 # Options read by every driver list widget
 DRIVER_OPTIONS = (
     "font_size", "show_player_highlighted", "show_lap_difference",
     "column_position", "column_class", "show_class_name", "column_position_change", "show_position_change_in_class",
     "column_driver_name", "driver_name_shorten", "driver_name_uppercase", "driver_name_width",
+    "show_team_name", "team_name_width",
     "column_vehicle_name", "show_vehicle_brand_as_name", "vehicle_name_width",
     "column_tyre_compound", "column_pit_status", "show_pit_request",  # pit status column shows pit stops too
     "show_pit_stops_beside_status",
@@ -158,6 +167,8 @@ class DriverTable(TableMixin, ModernOverlay):
         self.limit = 0.0  # track limits points per penalty of session, 0 if none
         self.demo = False  # overlay pictures & previews: simulated energy usage, nothing read from game
         self.energy_usage: Any = None  # energy usage poller, see usages
+        self.team_names: Any = None  # team names poller (team_names module loaded only with team names shown)
+        self.car_numbers: Any = None  # car numbers poller, see numbers
         self.usage_average = bool(wcfg.get("show_energy_per_lap_average", False))
         self.delta_count = min(max(int(wcfg.get("number_of_delta_laptime", 3)), 2), 5)
         self.delta_inverted = bool(wcfg.get("show_inverted_delta_laptime_layout", False))  # most recent lap first
@@ -179,6 +190,8 @@ class DriverTable(TableMixin, ModernOverlay):
         shown = {column.key for column in columns}
         self.limits_shown = "track_limits" in shown  # data read per update only for shown columns
         self.energy_shown = "energy_per_lap" in shown
+        self.numbers_shown = "car_number" in shown
+        self.team_shown = "driver_name" in shown and bool(wcfg.get("show_team_name", False))
         # Cell builders of columns (options read once), kept colors & cells: same objects compare fast
         self.highlight_player = bool(self.wcfg.get("show_player_highlighted", True))  # not in Rivals (B-078)
         self.class_stripe = bool(self.wcfg["column_class"])
@@ -227,6 +240,13 @@ class DriverTable(TableMixin, ModernOverlay):
         if key == "driver_name":
             lap_color = style.lap_color
             name_of = self.driver_name
+            if self.team_shown:  # team name after driver name, smaller (extra)
+                team_of = self.team_of
+
+                def driver_and_team(veh, ctx, player, alias, class_color, extra):
+                    return Cell(TEXT, name_of(veh.driverName), "strong" if player else "value",
+                                lap_color(veh.isLapped, player), extra=team_of(veh) or None)
+                return driver_and_team
 
             def driver_name(veh, ctx, player, alias, class_color, extra):
                 return Cell(TEXT, name_of(veh.driverName), "strong" if player else "value",
@@ -301,6 +321,8 @@ class DriverTable(TableMixin, ModernOverlay):
             return self.ranks_builder()
         if key == "driver_badge":
             return self.badge_builder()
+        if key == "car_number":
+            return self.number_builder()
         if key == "track_limits":
             track_limits_cell = self.track_limits_cell
             return lambda veh, ctx, *_: track_limits_cell(veh.trackLimitsPoints, ctx.in_race)
@@ -372,6 +394,26 @@ class DriverTable(TableMixin, ModernOverlay):
             return cell
         return badge_cell
 
+    def number_builder(self) -> CellBuilder:
+        """Car number as the game shows it (online: the number the server gave the car in this split), dash while
+        unknown (game not answering, rFactor 2)"""
+        theme = self.theme
+        unknown = Cell(TEXT, DASH, "value", theme.text_faint)
+        cells: dict[tuple[str, bool], Cell] = {}  # same cell objects for same numbers: rows compare fast
+
+        def number_cell(veh, ctx, player, alias, class_color, extra):
+            number = demo_car_number(veh) if self.demo else self.numbers().number(veh.slotID)
+            if not number:
+                return unknown
+            key = (number, player)
+            cell = cells.get(key)
+            if cell is None:
+                if len(cells) >= 256:
+                    cells.clear()
+                cell = cells[key] = Cell(TEXT, f"#{number}", "value", theme.text if player else theme.text_dim)
+            return cell
+        return number_cell
+
     def poll_ranks(self, data_set) -> None:
         """Ranks of drivers of session read in background when due (driver & safety rank or badge column, or
         strength of field of classes shown)"""
@@ -391,6 +433,10 @@ class DriverTable(TableMixin, ModernOverlay):
             self.limit = api.read.session.limits_points()
         if self.energy_shown and not self.demo:
             self.usages().poll()
+        if self.numbers_shown and not self.demo:
+            self.numbers().poll()
+        if self.team_shown and not self.demo:
+            self.teams().poll()
         self.poll_ranks(data_set)
 
     def sample_columns(self):
@@ -428,6 +474,30 @@ class DriverTable(TableMixin, ModernOverlay):
 
             self.energy_usage = energy_usage
         return self.energy_usage
+
+    def numbers(self) -> Any:
+        """Car numbers poller (car_numbers module loaded only with car number column)"""
+        if self.car_numbers is None:
+            from ...car_numbers import car_numbers
+
+            self.car_numbers = car_numbers
+        return self.car_numbers
+
+    def teams(self) -> Any:
+        """Team names poller (team_names module loaded only with team names shown)"""
+        if self.team_names is None:
+            from ...team_names import team_names
+
+            self.team_names = team_names
+        return self.team_names
+
+    def team_of(self, veh) -> str:
+        """Team name of car as shown (upper case with driver names), empty if unknown"""
+        if self.demo:
+            team = SAMPLE_TEAMS[(veh.positionOverall - 1) % len(SAMPLE_TEAMS)]
+        else:
+            team = self.teams().team(veh.slotID, veh.vehicleName)
+        return team.upper() if team and self.wcfg.get("driver_name_uppercase", False) else team
 
     def delta_cell(self, veh, ctx: Context) -> Cell:
         """Lap time difference to player of recent laps, oldest first (most recent first if inverted)"""
@@ -488,7 +558,10 @@ class DriverTable(TableMixin, ModernOverlay):
         if key == "position_change":
             return Column(key, change_width(unit, ROW_SCALE, self.digit_width("value")))
         if key == "driver_name":
-            return Column(key, self.row_style.name_width(self.wcfg.get("driver_name_width", 10)))
+            width = self.row_style.name_width(self.wcfg.get("driver_name_width", 10))
+            if self.wcfg.get("show_team_name", False):  # team name after driver name (see draw_name_and_team)
+                width += unit * TEAM_GAP + self.row_style.name_width(self.wcfg.get("team_name_width", 12), "small")
+            return Column(key, width)
         if key == "vehicle_name":
             return Column(key, self.row_style.name_width(self.wcfg.get("vehicle_name_width", 10), "dim"))
         if key == "brand_logo":  # 2.35 units at classic default (20): wordmark logos (AMG, McLaren) readable
@@ -528,6 +601,8 @@ class DriverTable(TableMixin, ModernOverlay):
         if key == "driver_ranks":  # driver & safety rank: "S2 P3", each part as wide as the widest rank letter
             self.rank_width = max(self.text_width("value", f"{letter}3") for letter in RANK_LETTERS)
             return Column(key, self.rank_width * 2 + unit * 0.3, CENTER)
+        if key == "car_number":  # "#888"
+            return Column(key, self.text_width("value", "#888"), CENTER)
         if key == "driver_badge":  # game badge icon
             return Column(key, unit * ROW_SCALE * COMPOUND_SIZE, CENTER)
         if key == "track_limits":
@@ -789,6 +864,11 @@ def known_ranks(veh) -> Any:
         sample = SAMPLE_RANKS[veh.positionOverall % len(SAMPLE_RANKS)]
         return dr.DriverRanks("", "", "", "", dr.Rank(*sample[:2], 50), dr.Rank(*sample[2:4], 50), sample[4])
     return rank_info.driver_ranks(veh.driverName)
+
+
+def demo_car_number(veh) -> str:
+    """Car number of sample car (overlay pictures & previews), by overall position: one per car, not in order"""
+    return f"{veh.positionOverall * 7 % SAMPLE_NUMBERS + 1}"
 
 
 def demo_energy_per_lap(veh) -> float:

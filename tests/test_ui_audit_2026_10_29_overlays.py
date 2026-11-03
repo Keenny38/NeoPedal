@@ -293,7 +293,7 @@ def test_locked_preset_unlocked_after_question(backend, control, monkeypatch):
     i18n.set_language("Français")
     try:
         assert i18n.trm("Overlay moved, not saved (locked preset): Carburant") == (
-            "Overlay déplacé, non enregistré (preset verrouillé) : Carburant")
+            "Overlay déplacé, non enregistré (preset verrouillé)\u00a0: Carburant")
     finally:
         i18n.set_language("English")
 
@@ -632,9 +632,9 @@ def test_try_overlay_with_undo(notes_page, monkeypatch):  # noqa: F811
 
     i18n.set_language("Français")
     try:
-        assert i18n.trm("Try Drapeau") == "Essayer Drapeau" and i18n.trm("Options: Drapeau") == "Options : Drapeau"
-        assert i18n.trm("Options: 12") == "Options : 12"
-        assert i18n.trm("Overlay turned on: Drapeau") == "Overlay activé : Drapeau"
+        assert i18n.trm("Try Drapeau") == "Essayer Drapeau" and i18n.trm("Options: Drapeau") == "Options\u00a0: Drapeau"
+        assert i18n.trm("Options: 12") == "Options\u00a0: 12"
+        assert i18n.trm("Overlay turned on: Drapeau") == "Overlay activé\u00a0: Drapeau"
     finally:
         i18n.set_language("English")
 
@@ -710,29 +710,41 @@ def test_error_badges_are_pills(overlays_page, control):
     assert badges and all(badge.property("solid") and badge.property("text") == "Error" for badge in badges)
 
 
-def test_overlay_reset_asked_in_the_page(ui_env):
+def test_overlay_reset_without_question_undo_in_notice(ui_env):
+    """Reset is pending & undoable (UI/UX audit 2026-11-01): done at once, notice with Undo (no dialog)"""
     from neopedal.ui.quick.overlay_options_backend import OverlayOptionsBackend
     from tests.test_overlay_options import Host
 
-    class AskingHost(Host):
+    class UndoHost(Host):
         def __init__(self):
             super().__init__()
-            self.asked = []
+            self.undos = []
 
         def ask(self, text, action_text, on_result):
-            self.asked.append((text, action_text, on_result))
+            pytest.fail("reset asked a question")
 
-    host = AskingHost()
+        def notify_undo(self, text, undo):
+            self.undos.append((text, undo))
+
+    host = UndoHost()
     backend = OverlayOptionsBackend(None, host, OptionsControl())
     try:
         backend.selectOverlay("speedometer")
         backend.setNumber("speedometer/opacity", 0.5)
         backend.resetOverlay()
-        assert backend.value("speedometer", "opacity") == 0.5 and host.asked  # answered later
-        text, action, on_result = host.asked[0]
-        assert "Speedometer" in text and action == "Reset" and not host.questions
-        on_result(True)
-        assert backend.value("speedometer", "opacity") != 0.5
+        assert backend.value("speedometer", "opacity") != 0.5 and not host.questions
+        text, undo = host.undos[-1]
+        assert "Speedometer" in text and "saved with Apply" in text and "Save Button" not in text
+        undo()
+        assert backend.value("speedometer", "opacity") == 0.5  # reset taken back
+        backend.resetOverlay()
+        backend.setNumber("speedometer/opacity", 0.7)  # edited after the reset
+        host.undos[-1][1]()
+        assert backend.value("speedometer", "opacity") == 0.7  # late Undo never takes a later edit back
+        count = len(host.undos)
+        backend.resetOverlay()
+        backend.resetOverlay()  # already default: nothing told
+        assert len(host.undos) == count + 1
     finally:
         backend.close()
         backend.deleteLater()

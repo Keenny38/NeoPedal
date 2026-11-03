@@ -28,12 +28,12 @@ from contextlib import suppress
 from statistics import median_low
 from typing import Any
 
-from PySide6.QtCore import Property, QObject, Slot
+from PySide6.QtCore import Property, QObject, QTimer, Slot
 from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPalette
 from PySide6.QtWidgets import QApplication
 
 from ... import calculation as calc
-from ...const_common import MAX_SECONDS, TEXT_NOLAPTIME
+from ...const_common import MAX_SECONDS
 from ...i18n import tr, trm
 from ...process import results_index as ri
 from ...setting import cfg
@@ -50,6 +50,7 @@ from .stats_common import (
     HEADER_TOOLTIPS,
     LOGO_EM,
     LOWER_IS_BETTER,
+    MISSING,
     REFERENCE_KEYS,
     RUST_COLOR,
     RUST_DAYS,
@@ -59,6 +60,7 @@ from .stats_common import (
     class_prefix,
     combo_name,
     derived_value,
+    empty_vehicle,
     format_derived,
     format_duration,
     format_header_key,
@@ -122,12 +124,20 @@ class StatsTable(StatsHost):
         else:
             rows = self.track_rows()
         self._unfiltered_rows = len(rows)
+        # Columns without any value in the rows (no recorded lap, class without lap time...): left out
+        self._empty_columns = {key for key in self.table_header_key if rows and all(
+            (cell := cells.get(key)) is None or (cell.value is None and cell.text == MISSING) for _, cells in rows)}
         self._table_classes = self.row_classes()
         self._table = self.sorted_rows([row for row in rows if self.row_shown(row)])
+        # Amber Last Driven date in the table (not driven for RUST_DAYS): footer hint explains it
+        self._rust_shown = any((cell := cells.get("last")) is not None and bool(cell.color) for _, cells in self._table)
         self.publish_table()
         self.refresh_tiles()
         self._track_info = self.track_info()
         self._fixes = self.lap_time_fixes()
+        if self._fixes:  # lap times of race results missing from stats: taken at once (each once)
+            QTimer.singleShot(0, self.auto_complete)
+        self._imports = self.results_to_import()
         if not self.selected_stats_key:
             self._activity = self.activity_data()
             self._recent = self.recent_sessions()
@@ -151,9 +161,6 @@ class StatsTable(StatsHost):
             self.publish("driver", self._driver, self.driverChanged)
             self.publish("rivals", self._rivals, self.rivalsChanged)
             self.publish("weekly", self._weekly, self.weeklyChanged)
-            self.publish_upcoming()  # best laps on their tracks changed
-            if self._visible:
-                self.load_upcoming()
         self.publish_edits()
         self.publish_table_filter()
         self.update_selection()
@@ -173,7 +180,9 @@ class StatsTable(StatsHost):
     def row_classes(self) -> list[str]:
         """Classes of the rows made (vehicle classes, class columns of All Tracks)"""
         if self.selected_stats_key:
-            return sorted({self.class_of(str(vehicle)) for vehicle in self.selected_stats_dict}, key=str.lower)
+            # "" is every class (filter chip): vehicle of no class has no chip
+            return sorted({self.class_of(str(vehicle)) for vehicle, data in self.selected_stats_dict.items()
+                           if not empty_vehicle(data)} - {""}, key=str.lower)
         return [key[6:] for key in self.table_header_key if key.startswith("class:")]
 
     def row_shown(self, row: tuple[str, dict[str, Cell]]) -> bool:
@@ -251,7 +260,7 @@ class StatsTable(StatsHost):
             f"{tr('PB')} v{latest}" if key == "version_pb" and latest else header_label(key) for key in VEHICLE_COLUMNS])
         track = self.selected_stats_key
         rows = [(str(vehicle), self.vehicle_cells(track, str(vehicle), data))
-                for vehicle, data in self.selected_stats_dict.items() if isinstance(data, dict)]
+                for vehicle, data in self.selected_stats_dict.items() if not empty_vehicle(data)]
         # Best personal best of each class with several vehicles: told in its tooltip
         bests: dict[str, tuple[float, str]] = {}
         counts: dict[str, int] = {}
@@ -274,16 +283,17 @@ class StatsTable(StatsHost):
         cells: dict[str, Cell] = {"vehicle": Cell(vehicle, vehicle.lower(), vehicle,
                                                   logo=vehicle_logo(vehicle, self.classes.values(), self.logos))}
         percent = reference.percent(best) if reference else 0.0
-        cells["gap"] = Cell(f"{number_text(percent, 2)} %" if percent else "-", percent or None, round(percent, 3) if percent else None)
+        cells["gap"] = Cell(f"{number_text(percent, 2)} %" if percent else MISSING, percent or None, round(percent, 3) if percent else None)
         level = reference.level(best) if reference else -1
         cells["level"] = Cell(level_text(level), level if level >= 0 else None, level_text(level) if level >= 0 else None,
                               self.level_color(level), level >= 0, pill=level >= 0)
         cells["theory"] = Cell(str(parse_display_value("theory", theory)), theory or None, round(theory, 3) if theory else None)
         potential = best - theory if best and theory and best >= theory - 0.0005 else None
-        cells["potential"] = Cell(number_text(max(potential, 0.0), 3) if potential is not None else "-",
+        cells["potential"] = Cell(number_text(max(potential, 0.0), 3) if potential is not None else MISSING,
                                   potential, round(max(potential, 0.0), 3) if potential is not None else None)
+        fuel_data = self.fuel_data(track, vehicle, data)
         for key in DERIVED_COLUMNS:
-            value = derived_value(key, data)
+            value = derived_value(key, fuel_data if key == "consumption" else data)
             cells[key] = Cell(format_derived(key, value), value, round(value, 3) if value is not None else None)
         cells["last"] = self.last_cell(self.vehicle_last_driven.get((track, vehicle), 0.0))
         cells.update(self.history_cells(track, vehicle, best))
@@ -294,9 +304,24 @@ class StatsTable(StatsHost):
                 laptime = valid_laptime(value)
                 cells[key] = Cell(str(parse_display_value(key, laptime or MAX_SECONDS)), laptime or None,
                                   round(laptime, 3) if laptime else None, bold=key == "pb" and laptime > 0)
+            elif key == "liters" and value <= 0:  # fuel never recorded (sessions imported from results files)
+                cells[key] = Cell(MISSING, None, None)
             else:
                 cells[key] = Cell(str(parse_display_value(key, value)), value, value)
         return cells
+
+    def fuel_data(self, track: str, vehicle: str, data: dict) -> dict:
+        """Stats of a vehicle for its consumption: distance of sessions imported from game results files (no fuel
+        in them) left out"""
+        imported = sum(record.meters for record in self.history_index.get((track, vehicle), ())
+                       if self.imported_record(record))
+        return {**data, "meters": max(stat_number(data, "meters") - imported, 0.0)} if imported else data
+
+    def imported_record(self, record: SessionRecord) -> bool:
+        """Session added from a game results file: its record ends at the session end (a recorded stint is saved
+        later, once back to garage)"""
+        summary = self.record_result(record)
+        return summary is not None and abs(summary.end - record.time) < 0.01
 
     def last_cell(self, driven: float) -> Cell:
         """Last driven date, colored when not driven for RUST_DAYS (driving again needs a warm up)"""
@@ -324,7 +349,7 @@ class StatsTable(StatsHost):
                        default=0.0)
 
         def laptime_cell(laptime: float) -> Cell:
-            return Cell(calc.sec2laptime_full(laptime) if laptime else TEXT_NOLAPTIME, laptime or None,
+            return Cell(calc.sec2laptime_full(laptime) if laptime else MISSING, laptime or None,
                         round(laptime, 3) if laptime else None)
 
         latest = self.latest_version()
@@ -345,12 +370,12 @@ class StatsTable(StatsHost):
             if summary is not None and summary.kind == "Race" and all(summary.path != race.path for race in linked):
                 linked.append(summary)  # team race: one result for every stint, counted once
         gained_value = sum(gains) / len(gains) if gains else None
-        cells["gained"] = Cell(signed(gained_value, 1) if gained_value is not None else "-", gained_value,
+        cells["gained"] = Cell(signed(gained_value, 1) if gained_value is not None else MISSING, gained_value,
                                round(gained_value, 2) if gained_value is not None else None,
                                tip=plural(len(gains), "race", "races") if gains else "")
         clean = sum(summary.contacts == 0 and summary.penalties == 0 for summary in linked)
         rate = clean / len(linked) * 100 if linked else None
-        cells["clean_rate"] = Cell(f"{number_text(rate, 0)} %" if rate is not None else "-", rate,
+        cells["clean_rate"] = Cell(f"{number_text(rate, 0)} %" if rate is not None else MISSING, rate,
                                    round(rate, 1) if rate is not None else None,
                                    tip=trm(f"{clean} of {len(linked)} races without contact nor penalty")
                                    if linked else "")
@@ -358,8 +383,11 @@ class StatsTable(StatsHost):
 
     def track_rows(self) -> list[tuple[str, dict[str, Cell]]]:
         """All Tracks: best lap of each class (level color & letter), totals; level distribution"""
-        tracks = {key: vehicles for key, vehicles in self.stats_temp.items() if key and isinstance(vehicles, dict)}
-        classes = sorted({self.class_of(str(vehicle)) for vehicles in tracks.values() for vehicle in vehicles},
+        # Vehicles with something to show (empty ones hidden), tracks having any
+        tracks = {key: shown for key, vehicles in self.stats_temp.items() if key and isinstance(vehicles, dict)
+                  if (shown := {vehicle: data for vehicle, data in vehicles.items() if not empty_vehicle(data)})}
+        # Vehicle of no class (" - Brand": recorded while car loading by older versions) has no column
+        classes = sorted({self.class_of(str(vehicle)) for vehicles in tracks.values() for vehicle in vehicles} - {""},
                          key=str.lower)
         keys = ["track", *(f"class:{name}" for name in classes), *TRACK_TOTAL_COLUMNS]
         self.set_header(keys, [tr("Track"), *classes, *(header_label(key) for key in TRACK_TOTAL_COLUMNS)])
@@ -377,7 +405,7 @@ class StatsTable(StatsHost):
             for name in classes:
                 best, vehicle = bests.get(name, (0.0, ""))
                 if not best:
-                    cells[f"class:{name}"] = Cell("-")
+                    cells[f"class:{name}"] = Cell(MISSING)
                     continue
                 reference = self.reference_for(track, vehicle)
                 level = reference.level(best) if reference else -1
@@ -478,7 +506,8 @@ class StatsTable(StatsHost):
         if self._class_filter and not self.selected_stats_key:  # lap times of the class filtered only
             hidden |= {key for key in self.table_header_key
                        if key.startswith("class:") and key != f"class:{self._class_filter}"}
-        return [key for key in self.table_header_key if key in FIXED_COLUMNS or key not in hidden]
+        return [key for key in self.table_header_key
+                if key in FIXED_COLUMNS or (key not in hidden and key not in self._empty_columns)]
 
     def publish_table(self):
         """Visible columns (widths from contents) & rows to page"""
@@ -617,9 +646,11 @@ class StatsTable(StatsHost):
 
     @Property(str, notify=StatsCore.statsChanged)
     def hint(self) -> str:
-        if self.selected_stats_key:
-            return tr("Right click a car or lap time to remove or reset it, Ctrl+Z to undo.")
-        return tr("Double click a track to show its cars.")
+        hint = (tr("Right click a car or lap time to remove or reset it, Ctrl+Z to undo.") if self.selected_stats_key
+                else tr("Double click a track to show its cars."))
+        if self._rust_shown:
+            hint = f"{hint} {tr('Amber date: not driven for 30 days or more (warm up first).')}"  # RUST_DAYS
+        return hint
 
     @Property(str, notify=StatsCore.statsChanged)
     def emptyText(self) -> str:
@@ -660,13 +691,22 @@ class StatsTable(StatsHost):
         if laps:
             laps_detail = trm(f"{valid / laps * 100:.0f} % of {laps:.0f} {'lap' if laps == 1 else 'laps'}")
         races_detail = f"{plural(total('wins'), 'win', 'wins')} · {plural(total('podiums'), 'podium', 'podiums')}"
+        races_value = f"{total('races'):.0f}" if data else MISSING
+        races_tip = tr("Races finished while the Stats module recorded. The Driver card counts the race "
+                       "results files of the game.")
+        race_results = [summary for summary in self.results if summary.kind == "Race"]
+        if not self.selected_stats_key and race_results:  # career: races of game results files, as the driver card
+            record = ri.race_record(race_results)
+            races_value = str(record.races)
+            races_detail = f"{plural(record.wins, 'win', 'wins')} · {plural(record.podiums, 'podium', 'podiums')}"
+            races_tip = tr("Races of the game results files (class positions), races before NeoPedal included")
         tiles += [
             self.tile(tr("Distance"), f"{parse_display_value('meters', meters)} {tr(format_header_key('meters')).lower()}"
-                      if data else "-", glyph=""),  # car
-            self.tile(tr("Driving Time"), format_duration(total("seconds")) if data else "-", glyph=""),  # clock
-            self.tile(tr("Valid Laps"), f"{valid:.0f}" if data else "-", laps_detail, glyph="",  # check
+                      if data else MISSING, glyph=""),  # car
+            self.tile(tr("Driving Time"), format_duration(total("seconds")) if data else MISSING, glyph=""),  # clock
+            self.tile(tr("Valid Laps"), f"{valid:.0f}" if data else MISSING, laps_detail, glyph="",  # check
                       ratio=valid / laps if laps else -1.0),
-            self.tile(tr("Races"), f"{total('races'):.0f}" if data else "-", races_detail if data else "",
+            self.tile(tr("Races"), races_value, races_detail if races_value != MISSING else "", tip=races_tip,
                       glyph=""),  # flag
         ]
         self._tiles = tiles
@@ -686,8 +726,8 @@ class StatsTable(StatsHost):
         tip_best = tr("Best personal best of the track, any car")
         tip_level = tr("Level of best lap on community lap times")
         if not bests:
-            return [self.tile(tr("Best Lap"), "-", tip=tip_best, glyph=""),  # stopwatch
-                    self.tile(tr("Level"), "-", tip=tip_level, glyph="")]  # star
+            return [self.tile(tr("Best Lap"), MISSING, tip=tip_best, glyph=""),  # stopwatch
+                    self.tile(tr("Level"), MISSING, tip=tip_level, glyph="")]  # star
         best, vehicle = min(bests)
         reference = self.reference_of(vehicle)
         level = reference.level(best) if reference else -1
@@ -701,7 +741,9 @@ class StatsTable(StatsHost):
 
     def career_tiles(self) -> list[dict]:
         """Tracks driven & most driven one, median level of best laps"""
-        tracks = {key: vehicles for key, vehicles in self.stats_temp.items() if key and isinstance(vehicles, dict)}
+        # Vehicles with something to show (empty ones hidden), tracks having any
+        tracks = {key: shown for key, vehicles in self.stats_temp.items() if key and isinstance(vehicles, dict)
+                  if (shown := {vehicle: data for vehicle, data in vehicles.items() if not empty_vehicle(data)})}
         seconds = {key: sum(stat_number(data, "seconds") for data in vehicles.values() if isinstance(data, dict))
                    for key, vehicles in tracks.items()}
         most = max(seconds, key=lambda key: seconds[key], default="")
@@ -710,7 +752,7 @@ class StatsTable(StatsHost):
         level = median_low(levels) if levels else -1
         level_detail = f"{tr('Median of')} {plural(len(levels), 'best lap', 'best laps')}" if levels else ""
         return [
-            self.tile(tr("Tracks"), str(len(tracks)) if tracks else "-", detail, tip=f"{tr('Tracks with stats')}\n{detail}",
+            self.tile(tr("Tracks"), str(len(tracks)) if tracks else MISSING, detail, tip=f"{tr('Tracks with stats')}\n{detail}",
                       glyph=""),  # map pin
             self.tile(tr("Level"), level_text(level), level_detail, self.level_color(level),
                       tr("Median level of your best laps, all tracks & classes"), glyph="",
@@ -722,12 +764,14 @@ class StatsTable(StatsHost):
         track = self.selected_stats_key
         if track:
             sessions, first = self.track_sessions.get(track, (0, 0.0))
-            parts = [plural(len(self.selected_stats_dict), "vehicle", "vehicles")]
+            parts = [plural(sum(not empty_vehicle(data) for data in self.selected_stats_dict.values()),  # as rows
+                            "vehicle", "vehicles")]
             driven = self.track_last_driven.get(track, 0.0)
         else:
             found = [self.track_sessions[key] for key in self.stats_temp if key in self.track_sessions]
             sessions, first = sum(count for count, _ in found), min((when for _, when in found), default=0.0)
-            count = len([key for key in self.stats_temp if key])
+            count = sum(1 for key, vehicles in self.stats_temp.items()  # tracks shown as rows
+                        if key and isinstance(vehicles, dict) and not all(map(empty_vehicle, vehicles.values())))
             parts = [plural(count, "track", "tracks")] if count else []  # no stats: empty page says it
             driven = 0.0
         if sessions:

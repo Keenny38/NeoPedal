@@ -3,7 +3,8 @@ import QtQuick.Layouts
 
 // Page title row: title (display face), status items right after it (status: Pill, TpTally...), optional count
 // badge, subtitle under the title, then the page's actions (children, right side). An empty title (tool pages: the
-// host's title bar shows it) keeps status, subtitle & actions.
+// host's title bar shows it) keeps status, subtitle & actions. The page name (pageTitle) is left out while the title
+// bar drawn by the app shows it (theme.pageTitleInBar).
 //   TpPageHeader { title: i18n.tr("Presets"); count: backend.presetCount; TpButton { ... } }
 //   TpPageHeader { title: backend.title; subtitle: backend.detail
 //                  status: [Pill { text: backend.chip; tint: theme.gain }]; TpCombo { ... } }
@@ -13,6 +14,8 @@ RowLayout {
     property string subtitle: ""
     property string count: ""
     property bool countActive: false  // count in accent color (something enabled), else dim
+    property bool pageTitle: true  // title is the page name (not "Version 0.28.1"...): already in the window title bar
+    readonly property bool titleShown: title !== "" && !(pageTitle && theme.pageTitleInBar)
     default property alias actions: actionRow.data
     property alias status: statusRow.data
 
@@ -30,7 +33,8 @@ RowLayout {
                 // Up to its own width: status & count stay right after the title, cut with "..." when short of room
                 Layout.fillWidth: true
                 Layout.maximumWidth: implicitWidth
-                visible: text !== ""  // tool pages: title already in the host's title bar
+                // Tool pages: title already in the host's title bar, page name in the window title bar
+                visible: header.titleShown
                 role: "title"
                 text: header.title
             }
@@ -44,7 +48,8 @@ RowLayout {
             }
             TpCountBadge {
                 Layout.alignment: Qt.AlignVCenter
-                visible: header.count !== ""
+                // A bare number goes with the title ("Presets 8"), alone it reads as nothing; "3 / 93 enabled" stays
+                visible: header.count !== "" && (header.titleShown || isNaN(Number(header.count)))
                 text: header.count
                 tone: header.countActive ? "accent" : "neutral"
             }

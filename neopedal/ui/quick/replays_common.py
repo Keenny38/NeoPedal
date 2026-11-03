@@ -95,6 +95,9 @@ ACTION_WAIT = 300.0  # seconds: replay asked by race results (event, lap) given 
 # menus LMU loads the track and answers nothing for minutes: 3.5 min seen)
 ACTION_SETTLE = 3.0  # seconds: replay open command accepted, game loading it (state of former replay meanwhile)
 STATE_FRESH = 5.0  # seconds: last state answer this recent still tells the replay open in game (asked every 2 s)
+LMU_STEAM_APP = 2399420  # Steam app id of Le Mans Ultimate: game started through Steam (anti-cheat, Steam sign in)
+LAUNCH_WAIT = 300.0  # seconds: game started from page given this long to answer (answered after ~20 s seen)
+LAUNCH_REFRESH_MS = 2000  # game starting: asked often, replay asked meanwhile opened as soon as it answers
 SETTINGS_FILE = "game_replays.json"
 ROAD_WIDTH, PIT_WIDTH = 14.0, 6.0  # map line widths (meters), at least a few pixels
 CTRL, SHIFT = 0x04000000, 0x02000000  # Qt.KeyboardModifier values of QML mouse events
@@ -360,6 +363,14 @@ def play_replay(name: str) -> Command:
         # No answer after the replays list did: game loading the replay (refused: answered with an error status)
         return connection.send("GET", f"/rest/watch/play/{replay.id}") or (connection.failed and connection.answered)
     return run
+
+
+def start_game() -> bool:
+    """Le Mans Ultimate started by Steam (False if no program opens Steam links)"""
+    from PySide6.QtCore import QUrl
+    from PySide6.QtGui import QDesktopServices
+
+    return QDesktopServices.openUrl(QUrl(f"steam://rungameid/{LMU_STEAM_APP}"))
 
 
 def enter_replay(connection: GameConnection) -> bool:

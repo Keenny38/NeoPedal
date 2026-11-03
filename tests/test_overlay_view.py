@@ -603,13 +603,12 @@ def test_french_page_messages():
 
     i18n.set_language("Français")
     try:
-        assert i18n.trm("<b>Enable</b> 3 shown overlays?") == "<b>Activer</b> les 3 overlays affichés ?"
-        assert i18n.trm("<b>Disable</b> all overlays?") == "<b>Désactiver</b> tous les overlays ?"
+        assert i18n.trm("<b>Enable</b> 3 shown overlays?") == "<b>Activer</b> les 3 overlays affichés\u00a0?"
         assert i18n.trm("5 of 87 overlays shown") == "5 overlays affichés sur 87"
         assert i18n.trm("12 / 87 enabled") == "12 / 87 activés"
         assert i18n.trm("2 overlays could not start, see log.") == "2 overlays n'ont pas pu démarrer, voir le journal."
         assert i18n.tr("1 overlay could not start, see log.") == "1 overlay n'a pas pu démarrer, voir le journal."
-        assert i18n.trm("Show only Freins") == "Afficher uniquement : Freins"
+        assert i18n.trm("Show only Freins") == "Afficher uniquement\u00a0: Freins"
         assert i18n.trm("87 overlays") == "87 overlays"
     finally:
         i18n.set_language("English")

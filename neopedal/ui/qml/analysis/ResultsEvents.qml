@@ -33,12 +33,13 @@ Item {
             TpSegmented {
                 readonly property var counts: backend.eventCounts
                 name: i18n.tr("Events")
+                // A filter: segmented, counts apart from the texts
                 options: [
-                    i18n.tr("All") + "  " + (counts[0] || 0),
-                    i18n.tr("Contacts") + "  " + (counts[1] || 0),
-                    i18n.tr("Penalties") + "  " + (counts[2] || 0),
-                    i18n.tr("Track Limits") + "  " + (counts[3] || 0),
-                    i18n.tr("Chat") + "  " + (counts[4] || 0),
+                    { "text": i18n.tr("All"), "count": counts[0] || 0 },
+                    { "text": i18n.tr("Contacts"), "count": counts[1] || 0 },
+                    { "text": i18n.tr("Penalties"), "count": counts[2] || 0 },
+                    { "text": i18n.tr("Track Limits"), "count": counts[3] || 0 },
+                    { "text": i18n.tr("Chat"), "count": counts[4] || 0 },
                 ]
                 currentIndex: backend.eventKind
                 maxWidth: events.width * 0.72
@@ -65,7 +66,7 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
             reuseItems: true
-            activeFocusOnTab: count > 0
+            activeFocusOnTab: count > 0 || activeFocus
             currentIndex: -1
             keyNavigationEnabled: true
             highlightFollowsCurrentItem: false

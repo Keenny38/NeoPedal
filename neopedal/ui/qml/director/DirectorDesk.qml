@@ -430,10 +430,16 @@ ColumnLayout {
             }
         ]
 
+        // What the chosen mode does, in every mode (the page opens in Assisted: never left unexplained)
         Text {
+            objectName: "modeExplanation"
             Layout.fillWidth: true
-            visible: desk.mode === "manual"
-            text: i18n.tr("Manual mode: you cut alone. Assisted mode lists stories worth showing, automatic mode cuts to them by itself.")
+            text: desk.mode === "manual"
+                  ? i18n.tr("Manual mode: you cut alone. Assisted mode lists stories worth showing, automatic mode cuts to them by itself.")
+                  : desk.mode === "auto"
+                  ? i18n.tr("Automatic mode: the director cuts to these stories by itself. Lock the car to keep it on air.")
+                  : i18n.tr("Assisted mode: stories worth showing are listed here, Take Best (Enter) or keys 1 to 6 put one on air.")
+            textFormat: Text.PlainText
             color: theme.dimText
             font.pointSize: theme.fontSmall
             wrapMode: Text.WordWrap
@@ -505,7 +511,7 @@ ColumnLayout {
                         emphasized: story.best
                         tint: story.tint
                         border.width: 1
-                        border.color: story.best ? story.tint : theme.border
+                        border.color: story.best ? story.tint : theme.strokeSubtle
                     }
                     FocusRing { target: storyBack; visible: story.current }
                     MouseArea {

@@ -236,7 +236,9 @@ class TrackMapMixin:
         if not self.map_scaled:
             return ()
         veh_info = minfo.vehicles.dataSet
-        total = len(veh_info)  # draw order of relative can list a car vehicles data no longer has (car left)
+        # Draw order of relative can list a car vehicles data no longer has (car left): cars of the session only
+        # (vehicles data is allocated for the most cars, its length never changes)
+        total = min(minfo.vehicles.totalVehicles, len(veh_info))
         position = self.map_position
         return tuple((index, *position(veh_info[index])) for index in minfo.relative.drawOrder if 0 <= index < total)
 
@@ -301,7 +303,7 @@ class TrackMapMixin:
         predictions: tuple = ()
         if self.wcfg["show_pitout_prediction"]:
             index = minfo.vehicles.playerIndex
-            if 0 <= index < len(minfo.vehicles.dataSet):  # none without player car (spectating)
+            if 0 <= index < min(minfo.vehicles.totalVehicles, len(minfo.vehicles.dataSet)):  # none without player car
                 predictions = tuple(self.pitout_predictions(self.map_scaled, minfo.vehicles.dataSet[index]))
         self.predictions = predictions
         return predictions

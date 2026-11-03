@@ -42,6 +42,11 @@ PAGE_KEYS = (
 )
 
 
+def page_keys_text(keys: str) -> str:
+    """Keys of a page ("Ctrl+Z / Ctrl+Y") as shown on this system, like app shortcuts ("Échap" in French)"""
+    return " / ".join(native(part.strip()) or part.strip() for part in keys.split(" / "))
+
+
 def native(sequence: QKeySequence | str) -> str:
     """Key sequence as shown on this system"""
     return QKeySequence(sequence).toString(QKeySequence.SequenceFormat.NativeText)
@@ -109,7 +114,7 @@ class ShortcutsBackend(ShellBackend):
         page_group = tr("Pages")
         self._all = [
             *window_shortcuts(window),
-            *({"group": page_group, "keys": keys, "text": tr(text)} for keys, text in PAGE_KEYS),
+            *({"group": page_group, "keys": page_keys_text(keys), "text": tr(text)} for keys, text in PAGE_KEYS),
             *hotkey_shortcuts(),
         ]
         self._search = ""
@@ -164,7 +169,7 @@ class ShortcutsSheet(ShellPopup):
         if shown is not None:
             shown.close()
             return None
-        size = popup_size(window, 34, 32)
+        size = popup_size(window, 46, 43)  # em of QML pages
         popup = cls(window, KIND, "Shortcuts.qml", ShortcutsBackend(window), size)
         popup.popup(centered_top(window, size, 0.08))
         return popup

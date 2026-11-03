@@ -118,15 +118,20 @@ def has_keyboard_focus(widget: QWidget) -> bool:
 
 
 def draw_focus_ring(painter: QPainter, widget: QWidget, area: QRectF, radius: float):
-    """Accent outline around custom drawn button reached by keyboard"""
+    """Accent outline around custom drawn button reached by keyboard: 2 px, a gap outside its shape (area), rounded
+    like it, as FocusRing of QML pages (kept inside the widget)"""
     if not has_keyboard_focus(widget):
         return
+    width = max(UIScaler.pixel(2), 2)
+    gap = max(2.0, round(UIScaler.FONT_PIXEL_SCALED * 0.18))  # FocusRing.gap
+    ring = area.adjusted(-gap, -gap, gap, gap).intersected(QRectF(widget.rect()))
+    half = width / 2  # stroke centered on the path: inside the ring
     pen = QPen(widget.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight))
-    pen.setWidthF(max(UIScaler.pixel(2), 2))
+    pen.setWidthF(width)
     painter.save()
     painter.setPen(pen)
     painter.setBrush(Qt.BrushStyle.NoBrush)
-    painter.drawRoundedRect(area.adjusted(1, 1, -1, -1), radius, radius)
+    painter.drawRoundedRect(ring.adjusted(half, half, -half, -half), radius + gap - half, radius + gap - half)
     painter.restore()
 
 
@@ -437,11 +442,14 @@ def set_style_window(base_font_pt: int) -> str:
     font_pt_text_browser = 0.9 * base_font_pt
     font_pt_app_name = 1.4 * base_font_pt
 
-    # Size (Legacy themes: corners half as round, as QML pages)
-    corner = 0.5 if legacy_style() else 1
+    # Size (Legacy themes: corners half as round, as QML pages): radius tokens of QML pages (ui/tokens.py)
+    from .tokens import hover_fill, radius_px, stroke_subtle, surface_flyout
+
+    legacy = legacy_style()
+    corner = 0.5 if legacy else 1
     border_radius_button = 0.4 * corner  # em
-    border_radius_input = 4 * corner  # px
-    border_radius_card = 8 * corner  # px, list & search box
+    border_radius_input = round(radius_px("radiusSm", UIScaler.FONT_PIXEL_SCALED, legacy))  # px
+    border_radius_card = round(radius_px("radiusLg", UIScaler.FONT_PIXEL_SCALED, legacy))  # px, list & search box
 
     # Color
     palette = QApplication.palette()
@@ -455,6 +463,10 @@ def set_style_window(base_font_pt: int) -> str:
     color_active_highlighted_text = palette.highlightedText().color().name()
     color_active_highlight = palette.highlight().color().name()
     color_selection = f"#CC{color_active_highlight[1:]}"  # 80% alpha highlight
+    # Menus & rail as QML pages: flyout surface, subtle stroke, hovered item in the hover color of controls
+    color_flyout = surface_flyout(palette).name()
+    color_stroke_subtle = stroke_subtle(palette, legacy).name()
+    color_hover = hover_fill(palette).name()
 
     palette.setCurrentColorGroup(QPalette.ColorGroup.Inactive)
     color_inactive_highlighted_text = palette.highlightedText().color().name()
@@ -643,8 +655,8 @@ def set_style_window(base_font_pt: int) -> str:
             background: {color_active_midlight};
         }}
         QMenu {{
-            background: {color_active_base};
-            border: 1px solid {color_active_mid};
+            background: {color_flyout};
+            border: 1px solid {color_stroke_subtle};
             padding: 0.2em;
         }}
         QMenu::item {{
@@ -652,8 +664,8 @@ def set_style_window(base_font_pt: int) -> str:
             border-radius: {border_radius_input}px;
         }}
         QMenu::item:selected {{
-            color: {color_active_highlighted_text};
-            background: {color_active_highlight};
+            color: {color_active_window_text};
+            background: {color_hover};
         }}
         QMenu::item:disabled {{
             color: {color_disabled_window_text};
@@ -727,9 +739,16 @@ def set_style_window(base_font_pt: int) -> str:
             border-radius: {border_radius_card}px;
             padding: 0.3em;
         }}
+        #titleMenuBar {{
+            background: transparent;
+            padding: 0;
+        }}
         #navRail {{
             background: {color_active_window};
-            border-right: 1px solid {color_active_midlight};
+            border-right: 1px solid {color_stroke_subtle};
+        }}
+        #navRail[merged="true"] {{
+            border-right: none;
         }}
         #navRailScroll, #navRailList {{
             background: transparent;
@@ -789,6 +808,9 @@ def set_style_window(base_font_pt: int) -> str:
         AppWindow QStatusBar {{
             border-top: 1px solid {color_active_midlight};
             padding: 0.15em 0.3em;
+        }}
+        AppWindow[modernFrame="true"] QStatusBar {{
+            border-top: none;
         }}
         AppWindow QStatusBar #labelSaving {{
             font-size: {font_pt_text_browser}pt;

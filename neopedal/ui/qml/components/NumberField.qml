@@ -4,6 +4,8 @@ import QtQuick.Controls.Basic
 // Number input: value shown with its decimals & unit, typed value applied on Enter or leaving the field
 // (not at every key: a half typed value would plan the race again for nothing), Up / Down keys & wheel
 // (once focused) step it (Shift: 10 steps), Esc puts the value back. Decimal comma accepted.
+// Help (tip & range) shows on hover, and when the field is reached with Tab until a key is typed (keyboard users
+// never hover).
 TextField {
     id: field
     property real value: 0
@@ -18,6 +20,8 @@ TextField {
     readonly property string rangeText: range !== "" ? range
         : showRange ? i18n.tr("From %1 to %2").arg(format(minimum) + suffix).arg(format(maximum) + suffix) : ""
     signal edited(real value)  // value typed or stepped, in range
+    // Reached with Tab / Shift+Tab: help shown until typing starts or focus leaves
+    property bool keyboardTip: false
 
     // Decimal separator of app language (commit() reads both comma & point)
     function format(number) {
@@ -55,11 +59,13 @@ TextField {
     onDecimalsChanged: if (!activeFocus) text = format(value)  // backend may tell value before its decimals
     onEditingFinished: commit()
     onActiveFocusChanged: {
+        keyboardTip = activeFocus && (focusReason === Qt.TabFocusReason || focusReason === Qt.BacktabFocusReason)
         if (activeFocus)
             selectAll()
         else
             text = format(value)
     }
+    onTextEdited: keyboardTip = false  // typing: the tooltip would cover the next fields
     Keys.onUpPressed: function(event) { stepBy(event.modifiers & Qt.ShiftModifier ? 10 : 1) }
     Keys.onDownPressed: function(event) { stepBy(event.modifiers & Qt.ShiftModifier ? -10 : -1) }
     Keys.onEscapePressed: function(event) {  // typed text dropped, page kept open
@@ -87,6 +93,7 @@ TextField {
     // Out of range value put back in range: border in warning color & range shown for a moment
     Timer { id: clampFlash; interval: theme.flashDuration }
     ToolTip.visible: (tip !== "" && hovered && !activeFocus) || (clampFlash.running && rangeText !== "")
+                     || (keyboardTip && (tip !== "" || rangeText !== ""))
     ToolTip.text: rangeText !== "" ? (tip !== "" ? tip + "\n" + rangeText : rangeText) : tip
     ToolTip.delay: clampFlash.running ? 0 : theme.tipDelay
 
@@ -99,7 +106,7 @@ TextField {
         Behavior on border.color { ColorAnimation { duration: theme.motionFast } }
     }
 
-    Text {
+    TpText {
         id: unitText
         visible: field.suffix !== ""
         text: field.suffix

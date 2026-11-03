@@ -482,7 +482,7 @@ Additional notes:
 
 
 ## Le Mans Ultimate API
-**Le Mans Ultimate API options can be accessed from `Options` while this API is enabled in `API` menu in main window.**
+**Le Mans Ultimate API options can be accessed from `API Options` while this API is enabled in `API` menu in main window.**
 
     access_mode
 Set access mode for API. Mode value `0` uses copy access and additional data check to avoid data desynchronized or interruption issues. Mode value `1` uses direct access, which may result data desynchronized or interruption issues. Default mode is copy access.
@@ -548,7 +548,7 @@ Enable access to `race` data from Rest API (LMU): chat messages for [Chat](#chat
 
 
 ## rFactor 2 API
-**rFactor 2 API options can be accessed from `Options` while this API is enabled in `API` menu in main window.**
+**rFactor 2 API options can be accessed from `API Options` while this API is enabled in `API` menu in main window.**
 
     access_mode
 Set access mode for API. Mode value `0` uses copy access and additional data check to avoid data desynchronized or interruption issues. Mode value `1` uses direct access, which may result data desynchronized or interruption issues. Default mode is copy access.
@@ -756,6 +756,11 @@ On Windows, scaling is determined by percentage value set in `Display` > `Scale 
 
 On Linux, DPI scaling may already be forced `ON` in some system, which this option may not have effect.
 
+    enable_modern_title_bar
+Windows: show a modern title bar drawn in the colors of the window theme instead of the Windows title bar, menu bar and status bar. It holds the `Back` & `Forward` buttons (moved from the top of the navigation bar) followed by the app version, a menu button (`F10` too) opening the window menus (`Overlay`, `API`, `Settings`, `Tools`, `Window`, `Help`), the status chips (preset locked, spectate, hotkeys, update available...), the saving state and the app tools moved from the bottom of the navigation bar (command palette, notifications, settings, help of the page), then flat minimize, maximize and close buttons. The navigation bar keeps the overlay switches (lock, auto hide, VR) and the API status: its `More` button is replaced by the menu button (pages & tools left out of the navigation bar in `Tools`, `Customize Navigation Bar…` at the end of the menu, also by right-clicking the navigation bar). The name of the shown page is in the middle of it (not repeated at the top of the page). Title bar and navigation bar form one frame, the page is shown inside it with rounded corners. The window keeps its Windows frame: shadow, rounded corners (Windows 11), resizing from every edge, snapping (drag to a screen edge, `Win` + arrow keys, Snap Layouts shown by hovering the maximize button), double click on the title bar to maximize, right click on it (or `Alt` + `Space`) for the window menu. Turn it off to get back the Windows title bar, menu bar and status bar. Not used in safe mode. This option requires restarting NeoPedal to take effect. This option is enabled by default.
+
+Set in `Settings` > `Application` (asks to restart).
+
     enable_auto_load_preset
 Enable `Auto load preset` system to allow auto loading user-defined game-specific preset depends on active game (currently supports `RF2` and `LMU`).
 
@@ -831,7 +836,7 @@ Show setup wizard at next startup. The wizard asks for language, game, units, wi
 Set GitHub repository (`owner/name`) used by `Check for Updates`. Empty value disables update checks. Default is `Keenny38/NeoPedal` (this fork), so updates never offer the upstream releases.
 
     enable_online_driver_ranks
-Read Driver Rank (DR) & Safety Rank (SR) of Le Mans Ultimate online from RaceControl, the way the game menu does: the app asks the running game for a Steam sign-in ticket, signs in to RaceControl (raceos.gg) with it and reads ranks only (nothing else sent, no change made to your account; ticket & sign-in kept in memory only, never saved). Privacy: the Steam session ticket of the game (it identifies your Steam account) and the names of the drivers of an online session are sent over HTTPS to raceos.gg, a third-party service (not NeoPedal), only while the game runs. Turn this option off to send nothing. The game no longer keeps ranks in its menu file while it runs, so without this option the Driver Rank overlay, driver cards & Broadcast Director show the last ranks seen. Ranks are read when the app starts (game running), after each session (new race results file: read 30 seconds, 2 and 5 minutes later, as RaceControl updates them a moment after) and every 5 minutes while the game runs. While the game is on an online server, the ranks of the other drivers of the session are read too, by name (kept in memory only), for the Driver & Safety Rank column, strength of field and Broadcast Director cards. This option is enabled by default.
+Read Driver Rank (DR) & Safety Rank (SR) of Le Mans Ultimate online from RaceControl, the way the game menu does: the app asks the running game for a Steam sign-in ticket, signs in to RaceControl (raceos.gg) with it and reads ranks only (nothing else sent, no change made to your account; ticket & sign-in kept in memory only, never saved). Privacy: the Steam session ticket of the game (it identifies your Steam account) and the names of the drivers of an online session are sent over HTTPS to raceos.gg, a third-party service (not NeoPedal), only while the game runs. Turn this option off to send nothing. The game no longer keeps ranks in its menu file while it runs, so without this option the Driver Rank overlay, driver cards & Broadcast Director show the last ranks seen. Ranks are read when the app starts (game running), after each session (new race results file: read 3 and 15 minutes later, as RaceControl updates them a moment after) and every 30 minutes while the game runs. While the game is on an online server, the ranks of the other drivers of the session are read too, by name (kept in memory only), for the Driver & Safety Rank column, strength of field and Broadcast Director cards. Requests to RaceControl are few and spaced out (it refuses a connection that asks too much, the game's too): after a refusal nothing is asked for an hour or more, even after the app restarts. Your last ranks and their time are kept in `.raceos_ranks.json` (never the ticket or sign-in) so that starting the app again does not sign in at once; turning the option off removes it. This option is enabled by default.
 
     number_of_automatic_backups
 Set number of automatic backups kept per preset file. A backup is created before saving a preset, at most once every 10 minutes. Backups can be restored from `Restore Backup` dialog. Set `0` to disable. Default is `10`.
@@ -843,7 +848,7 @@ Set number of days deleted presets are kept in preset trash (`trash` folder insi
 Update version hidden by `Skip This Version` (kept by app, not shown in config dialog): its notice is not shown again at startup, a newer version is. Stored as one number (major * 1000000 + minor * 1000 + patch), `0` if none.
 
     rail_items
-Entries of the navigation bar of main window, in order, separated by comma: pages (`home`, `widget`, `module`, `preset`, `spectate`, `pacenotes`, `hotkey`, `tools`) and tools (dialog module name, for example `lap_viewer`, `driver_stats_viewer`, `race_calculator`; former `fuel_calculator` & `tyre_strategy_planner` entries open race calculator). Easier to set by right-clicking the navigation bar, `Customize Navigation Bar…`: check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. `Ctrl+1` to `Ctrl+9` open the first 9 entries. Entries keep their size: when window is too short, they scroll (mouse wheel or thin scroll bar) above the quick buttons, selected entry scrolled into view, a fade with an arrow shows that entries are hidden above or below. Pages and tools left out stay in the `More` menu (`⋯` button at the bottom of the bar), the `Tools` > `Pages` menu and the command palette (`Ctrl+K`). Default: Home, Overlays, Driver Stats Viewer, Results & Replays, Broadcast Director, Telemetry, Race Calculator and Preset (`home,widget,driver_stats_viewer,race_results_viewer,broadcast_director,lap_viewer,race_calculator,preset`; a former `game_replays` entry opens Results & Replays). Existing configs were set to this default once, by the update that introduced it (setting version 2.50.8; Spectate stays in `Tools` and the command palette, Config in the gear button under the bar, the `Config` menu and `Ctrl+,`).
+Entries of the navigation bar of main window, in order, separated by comma: pages (`home`, `widget`, `module`, `preset`, `spectate`, `pacenotes`, `hotkey`, `tools`) and tools (dialog module name, for example `lap_viewer`, `driver_stats_viewer`, `race_calculator`; former `fuel_calculator` & `tyre_strategy_planner` entries open race calculator). Easier to set by right-clicking the navigation bar, `Customize Navigation Bar…`: check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. `Ctrl+1` to `Ctrl+9` open the first 9 entries. Entries keep their size: when window is too short, they scroll (mouse wheel or thin scroll bar) above the quick buttons, selected entry scrolled into view, a fade with an arrow shows that entries are hidden above or below. Pages and tools left out stay in the `More` menu (`⋯` button at the bottom of the bar), the `Tools` > `Pages` menu and the command palette (`Ctrl+K`). With the modern title bar (`enable_modern_title_bar`, Windows), there is no `More` button: they are in `Tools` of the menu button (`☰`), which also ends with `Customize Navigation Bar…`. Default: Home, Overlays, Driver Stats Viewer, Results & Replays, Upcoming Races, Broadcast Director, Stream Overlays, Telemetry, Race Calculator and Preset (`home,widget,driver_stats_viewer,race_results_viewer,race_schedule_viewer,broadcast_director,stream_overlay_view,lap_viewer,race_calculator,preset`; a former `game_replays` entry opens Results & Replays). Existing configs were set to this default once, by the update that introduced it (setting version 2.50.8; Spectate stays in `Tools` and the command palette, Config in the gear button under the bar, the `Config` menu and `Ctrl+,`); Stream Overlays (setting version 2.51.3) and Upcoming Races (2.51.8) were added once to existing bars, after Broadcast Director and Results & Replays (or last).
 
     home_quick_access
 Quick access buttons of home page, in order, separated by comma: tools (dialog module name, for example `lap_viewer`, `race_calculator`), pages (`widget`, `module`, `preset`, `spectate`, `pacenotes`, `hotkey`, `tools`) and actions (`command_palette`, `bug_report`, `check_updates`). Easier to set with `Customize…` next to `Quick Access` on home page (or right-click the buttons): check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. Empty: no quick access button. Default: entries that are not in the default navigation bar, Widget performance, Track map viewer, the Modules, Spectate, Pacenotes, Hotkeys and Tools pages, Settings, then Create bug report and Check for updates (`perf_view,track_map_viewer,module,spectate,pacenotes,hotkey,tools,app_settings,bug_report,check_updates`). An earlier default was set once in existing configs, by the update that introduced it (setting version 2.50.3; a former `game_replays` entry opens Results & replays, a former `layout_editor` entry is dropped: the screen view of the Overlays page replaced it).
@@ -1084,17 +1089,18 @@ Access token included in every source address. A random token is generated if em
 Shows all visible widgets (same layout as on desktop) in your VR headset, with nothing else to install:
 - **OpenXR games** (any runtime: SteamVR, Meta Quest Link / Air Link, Virtual Desktop, Windows Mixed Reality, Pimax, Varjo...), only with `enable_openxr_layer` (experimental, off by default): drawn by the app's own OpenXR layer, loaded by the game (Windows, games using Direct3D 11, Direct3D 12 or Vulkan; OpenGL games are not supported). Start the app before the game.
 - **SteamVR games** (OpenVR): shown as a SteamVR overlay once SteamVR runs. The app never starts SteamVR itself.
+- **Headsets running through SteamVR** (Valve Index, HTC Vive, PlayStation VR2 with its PC adapter...): `enable_vr_overlay` is enough, in SteamVR games and in OpenXR games using SteamVR as runtime.
 
-The VR overlay is hidden automatically when all widgets are hidden, and only sends a new image when widgets have changed.
+The VR overlay is hidden automatically when all widgets are hidden, and only sends a new image when widgets have changed. Nothing in the headset: test on track (not in the game menus), start SteamVR before the app looks for it, and turn `enable_attach_to_headset` on to tell an overlay placed out of view from one not shown. `Help` > `Show Log` says whether SteamVR was found.
 
     enable_vr_overlay
-Enable VR overlay: SteamVR overlay once SteamVR runs, and in OpenXR games with `enable_openxr_layer`.
+Enable VR overlay: SteamVR overlay once SteamVR runs (any headset running through SteamVR, PlayStation VR2 included), and in OpenXR games with `enable_openxr_layer`. Shows only what is visible on desktop: test on track. `Help` > `Show Log` says whether SteamVR was found.
 
     enable_openxr_layer
 Experimental, disabled by default: show the VR overlay in OpenXR games with the app's own OpenXR layer (needs `enable_vr_overlay`). On Windows, the layer is registered for your user account (no admin rights) while the app runs with both options on, and removed when the app is closed, when an option is turned off or when the app is uninstalled: start the app before the game. Every OpenXR game loads it, Le Mans Ultimate too (its VR goes through OpenXR with the built-in OpenComposite): if a game no longer starts in VR, turn this option off. To keep it out of one game, set the `DISABLE_NEOPEDAL_XR_LAYER` environment variable to `1`. Games run as administrator do not load it.
 
     enable_attach_to_headset
-Attach overlay to headset (follows head movement), otherwise overlay is fixed in seated space.
+Attach overlay to headset (follows head movement), otherwise overlay is fixed in seated space. Turn it on when nothing shows in the headset: if the overlay then appears, it was only placed out of view (change `distance_meters` or `vertical_offset_meters`, or reset the seated position in SteamVR).
 
     update_interval
 Set refresh interval in milliseconds. Default is `50`.
@@ -2039,7 +2045,7 @@ Record laps while a telemetry replay is playing. Laps are named after the time t
 Minimum lap distance (percentage of track length) that must be recorded for a lap to be saved. Default is `90`.
 
     number_of_saved_laps_per_track
-Maximum number of laps kept per track & class folder, oldest laps are removed. Default is `50`.
+Maximum number of laps kept per track & class folder, oldest laps are removed over it. `0` keeps every lap. Default is `0`.
 
     number_of_best_laps_kept_per_track
 Number of fastest valid laps never removed from track & class folder, even when they are the oldest. Default is `3`.
@@ -2048,7 +2054,7 @@ Number of fastest valid laps never removed from track & class folder, even when 
 Save laps that are not confirmed as valid (marked `invalid`). Default is enabled.
 
     enable_out_and_in_lap_recording
-Also save out laps (started in pit lane) and in laps (ended in pit lane), marked as such in lap info. Out laps are saved when start line is crossed in pit lane. Default is disabled.
+Also save out laps (started in pit lane) and in laps (ended in pit lane), marked as such in lap info. Out laps are saved when start line is crossed in pit lane. Default is enabled.
 
     enable_compressed_lap_files
 Save laps as compressed CSV files (`.csv.gz`, about 5 times smaller). Lap telemetry viewer reads both. Default is disabled.
@@ -4408,10 +4414,13 @@ Modern design, class column (on by default): class name, then position in class.
 Modern design column after relative time gap (on by default): gap change per lap to each car, averaged over about 30 seconds. Arrow up when the gap grows, down when it shrinks; green when you gain (closing on a car ahead, pulling away from a car behind), red when you lose; dash while steady (under 0.05 s per lap), unknown or in pit lane.
 
     column_driver_ranks
-Modern design column (Relative & Standings), off by default (`LMU` only): Driver Rank & Safety Rank of each driver, short and in rank color (`S2 P3`), dashes while unknown. Yours and your team members' come from the game menu (or RaceControl with `enable_online_driver_ranks`). Other drivers' need `enable_online_driver_ranks` (Settings > Application > Online): while the game is on an online server (practice, race, private server), the app asks RaceControl the profiles of the drivers of the session by name (drivers joining the session asked at once, known ones again every 5 minutes and after each session; drivers leaving are no longer shown). Drivers without a RaceControl profile: dashes.
+Modern design column (Relative & Standings), off by default (`LMU` only): Driver Rank & Safety Rank of each driver, short and in rank color (`S2 P3`), dashes while unknown. Yours and your team members' come from the game menu (or RaceControl with `enable_online_driver_ranks`). Other drivers' need `enable_online_driver_ranks` (Settings > Application > Online): while the game is on an online server (practice, race, private server), the app asks RaceControl the profiles of the drivers of the session by name (drivers joining the session asked within 15 s, known ones hourly and 5 min after each session; drivers leaving are no longer shown). Drivers without a RaceControl profile: dashes.
 
     column_driver_badge
 Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (others need `enable_online_driver_ranks`), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
+
+    column_car_number
+Modern design column (Relative & Standings), off by default (`LMU` only): car number as the game shows it (`#4`), from the game Rest API (`/rest/watch/standings`, read every 5 seconds while the column is shown). Online, the server gives each car of a split its own number, whatever its livery (a car with livery `#397` can be `#4`): shared memory only has the livery number, so a dash is shown while the game does not answer (rFactor 2, menus). Your own number is brighter. Column header: `#`. Its place among the columns is set by `display_order_car_number`.
 
     column_delta_laptime
 Modern design column, off by default: lap time difference to player over recent laps (green if player was faster, most recent lap at right), as in Standings.
@@ -4460,6 +4469,12 @@ Set drive name display width, value in chars, such as 10 = 10 chars.
 
     driver_name_align_center
 Align driver name in the center when enabled. Default is left alignment when disabled.
+
+    show_team_name
+Modern design, driver name column, off by default: team name of each car right after the driver name, in a smaller and dimmer font (endurance and team races). With `Le Mans Ultimate`, the team name is the one the game shows, read from its Rest API (`/rest/watch/standings`, every 10 seconds while shown): online cars with a custom livery show the team their players chose. Until the game answers, and with `rFactor 2`, the team is taken from the livery name when it ends with the car number (`BMW M Team WRT 2025 #15:LM` gives `BMW M Team WRT`). Year and car number are left out. Nothing is shown for a car without team (custom livery with no team chosen), nor when the driver name leaves no room. Upper case with `driver_name_uppercase`.
+
+    team_name_width
+Room added to the driver name column for the team name, value in chars of the smaller font, such as 12 = 12 chars. A longer team name is cut with an ellipsis.
 
     show_vehicle_name
 Show vehicle name. Note, game API outputs `skin livery name` as `vehicle name`, which means actual displayed name depends on what skin livery name is called. For example, some vehicles may add `team name` and/or `class name` in `skin livery name`, some may not.
@@ -4944,7 +4959,7 @@ Set custom session name text.
 Show current system clock time.
 
     system_clock_format
-Set clock format string. To show seconds, add `%S`, such as `%H:%M:%S %p`. See [link](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for full list of format codes.
+Set clock format string. To show seconds, add `%S`, such as `%H:%M:%S`, or `%I:%M:%S %p` for 12-hour time with AM/PM. See [link](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for full list of format codes.
 
     show_session_time
 Show total remaining session time.
@@ -5680,7 +5695,7 @@ Note, synchronization may not work in multiplayer.
 Manually set time multiplier for time-scaled session. Default is `1`, which matches `Time Scale: Normal` setting in-game. Note, this option will only be used if `enable_track_clock_synchronization` option is disabled. In `LMU`, it changes time scale shown and sunlight phase countdown only (track clock comes from game).
 
     track_clock_format
-Set track clock format string. To show seconds, add `%S`, such as `%H:%M:%S %p`. See [link](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for full list of format codes.
+Set track clock format string. To show seconds, add `%S`, such as `%H:%M:%S`, or `%I:%M:%S %p` for 12-hour time with AM/PM. See [link](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) for full list of format codes.
 
     show_time_scale
 Show current session track clock time scale multiplier.

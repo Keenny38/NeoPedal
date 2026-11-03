@@ -23,7 +23,7 @@ MenuItem {
             color: theme.accent
             opacity: item.checkable && item.checked ? 1 : 0  // kept in place: labels stay aligned
         }
-        Text {
+        TpText {
             id: label
             x: theme.em * 1.4
             width: Math.max(0, Math.min(implicitWidth, parent.width - x - item.shortcutWidth - (item.subMenu ? theme.em * 1.5 : 0)))
@@ -33,7 +33,7 @@ MenuItem {
             textFormat: Text.PlainText
             color: item.enabled ? theme.text : theme.dimText
         }
-        Text {
+        TpText {
             id: keyText
             objectName: "menuShortcut"
             anchors.right: parent.right

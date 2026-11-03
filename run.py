@@ -83,13 +83,21 @@ def get_cli_argument() -> argparse.Namespace:
     return parse.parse_args()
 
 
+def start_folder() -> str:
+    """Working folder of the app (fonts, images, docs read from it): folder of the executable once frozen (argv[0]
+    is what the launcher typed, may be a bare name), else of run.py; same as userfile.APP_ROOT"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(os.path.abspath(sys.argv[0]))
+
+
 if __name__ == "__main__":
     # Worker processes (lap viewer heavy jobs) of the frozen app start here: run their job & exit, never the app
     import multiprocessing
 
     multiprocessing.freeze_support()
 
-    os.chdir(os.path.dirname(os.path.abspath(sys.argv[0])))
+    os.chdir(start_folder())
 
     # Load command line arguments
     cli_args = get_cli_argument()

@@ -2,7 +2,7 @@
 
 Every lap you drive is recorded, and the **Lap Telemetry Viewer** compares them: charts, racing line map, corner analysis, session pace, XY plots and a simple view drawn like the overlays. It is drawn by the graphics card (Qt Quick), so zooming and moving stay smooth.
 
-Open it with the `Telemetry` entry of the navigation bar, or `Tools` > `Lap Telemetry Viewer`.
+Open it with the `Telemetry` entry of the navigation bar, or the `Tools` page.
 
 ![Telemetry viewer: gap to reference, markers A and B, range statistics](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.18.0-telemetry-viewer.png)
 
@@ -14,10 +14,10 @@ Main options of the Recorder module:
 
 | Option | Default |
 |---|---|
-| `number_of_saved_laps_per_track` | `50` laps kept per track and class, oldest removed |
+| `number_of_saved_laps_per_track` | `0`: every lap kept (a number keeps that many laps per track and class, oldest removed) |
 | `number_of_best_laps_kept_per_track` | `3` fastest valid laps never removed |
 | `save_invalid_laps` | On |
-| `enable_out_and_in_lap_recording` | Off |
+| `enable_out_and_in_lap_recording` | On |
 | `enable_compressed_lap_files` | Off (`.csv.gz`, about 5 times smaller) |
 | `enable_100hz_lap_recording` | Off (a sample every 10 ms instead of 20 ms: finer suspension, lockups and kerbs, files about twice larger) |
 

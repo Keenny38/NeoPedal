@@ -38,13 +38,15 @@ import threading
 from collections.abc import Callable, Iterable
 from typing import NamedTuple
 
-from ..const_common import MAX_SECONDS
-from . import append_line, atomic_write
+from ..const_common import MAX_LAPTIME
+from . import append_line, atomic_write, write_json
 from .driver_stats import STATS_LOCK
 
 logger = logging.getLogger(__name__)
 
 HISTORY_FILE = "driver.history"
+CHECKPOINT_FILE = "driver.checkpoints"  # stints with stats saved at checkpoints, no record yet
+MAX_CHECKPOINTS = 200  # oldest marks dropped (stints never ended: NeoPedal crashed)
 MAX_RECORDS = 50000  # oldest records dropped (file rewritten when loaded over limit)
 MIN_SESSION_SECONDS = 60  # stint without lap shorter than this not recorded (garage exit...)
 # Session filter: all, practice (test day, practice, warmup), qualifying, race
@@ -114,6 +116,8 @@ def parse_record(data: object) -> SessionRecord | None:
         elif isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             value = default  # Infinity & NaN (accepted by json) too
         values[name] = type(default)(value)
+    if not values["best"] < MAX_LAPTIME:  # game clock jump recorded as a lap time (LMU DQ)
+        values["best"] = 0.0
     time_value = data.get("time")
     if (isinstance(time_value, bool) or not isinstance(time_value, (int, float)) or not math.isfinite(time_value)
             or not 0 < time_value < MAX_RECORD_TIME):
@@ -203,12 +207,22 @@ def parse_file(path: str) -> list[SessionRecord]:
         file.seek(offset)
         added: list[SessionRecord] = []
         unfinished: list[SessionRecord] = []
+        # Bytes read up to the size of the stamp only: records kept match it (bytes appended since are read once
+        # the stamp changed). Reading stops at a line without end: an append landing after it would come back as
+        # a line of its own (rest of the record, skipped) and the record would be lost (Linux shows a write page
+        # by page, a reader can see half a line)
+        end = stat.st_size
         for line in file:
+            if offset + len(line) > end:
+                line = line[:end - offset]  # appended after the stamp was taken: without its end, read next time
             if line.endswith(b"\n"):
                 added += parse_lines(line)
                 offset += len(line)
-            else:  # last line being written (or no newline at end): parsed again next time
+                if offset < end:
+                    continue
+            elif line:  # last line being written (or no newline at end): parsed again next time
                 unfinished = parse_lines(line)
+            break
         file.seek(0)
         head = file.read(min(offset, CHECK_BYTES))
         file.seek(max(offset - CHECK_BYTES, 0))
@@ -487,7 +501,7 @@ def session_record(
     known = 0 <= wetness <= 1 and math.isfinite(track_temp)
     return SessionRecord(
         time=time, track=track, vehicle=vehicle, session=session,
-        best=best if 0 < best < MAX_SECONDS else 0.0,
+        best=best if 0 < best < MAX_LAPTIME else 0.0,
         valid=valid, invalid=invalid, meters=meters, seconds=seconds,
         position=position, finish=finish, vehicle_class=vehicle_class, game_version=game_version,
         wetness=round(wetness, 3) if known else -1.0, track_temp=round(track_temp, 1) if known else 0.0,
@@ -563,3 +577,47 @@ def best_lap_date(records: Iterable[SessionRecord], best: float) -> float:
         if 0 < record.best <= best + 0.0005 and not is_reset_best(record, best):
             return record.time
     return 0.0
+
+
+# Stints whose stats were saved at a checkpoint (see module_stats) but with no history record yet: NeoPedal stopped
+# while driving (crash, power loss). Their session is never offered to import from results (counted twice)
+def checkpoint_path(filepath: str) -> str:
+    return os.path.join(filepath, CHECKPOINT_FILE)
+
+
+def read_checkpoints(filepath: str) -> list[tuple[str, float, float]]:
+    """(track, stint start, last checkpoint) Unix times of stints saved at checkpoints, [] if none"""
+    try:
+        with open(checkpoint_path(filepath), encoding="utf-8") as file:
+            data = json.load(file)
+    except (OSError, ValueError):
+        return []
+    marks = []
+    for item in data if isinstance(data, list) else ():
+        if (isinstance(item, list) and len(item) == 3 and isinstance(item[0], str)
+                and all(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                        for value in item[1:])):
+            marks.append((item[0], float(item[1]), float(item[2])))
+    return marks
+
+
+def mark_checkpoint(filepath: str, track: str, start: float, when: float) -> None:
+    """Stint started at start on track saved at a checkpoint at when"""
+    with STATS_LOCK:
+        marks = [mark for mark in read_checkpoints(filepath) if mark[1] != start]
+        marks.append((track, start, when))
+        write_json(checkpoint_path(filepath), [list(mark) for mark in marks[-MAX_CHECKPOINTS:]], fsync=False)
+
+
+def clear_checkpoint(filepath: str, start: float) -> None:
+    """Stint started at start recorded in history: its checkpoint mark removed"""
+    with STATS_LOCK:
+        marks = read_checkpoints(filepath)
+        kept = [mark for mark in marks if mark[1] != start]
+        if len(kept) != len(marks):
+            write_json(checkpoint_path(filepath), [list(mark) for mark in kept], fsync=False)
+
+
+def checkpoint_times(filepath: str) -> list[tuple[str, float]]:
+    """(track, last checkpoint time) of stints saved at checkpoints with no history record"""
+    return [(track, when) for track, _, when in read_checkpoints(filepath)]

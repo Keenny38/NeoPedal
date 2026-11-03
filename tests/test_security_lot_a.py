@@ -263,7 +263,9 @@ def test_page_engine_loads_nothing_from_network(make_page, web_server):
     component.setData(f"import QtQuick\n{body.replace('page.png', 'plain.png')}\n".encode(), QUrl("plain.qml"))
     item = component.create()
     try:
-        assert wait_until(lambda: hits == ["/plain.png"])
+        # Long wait: the first request of a plain network manager sets up Qt networking (system proxy lookup
+        # on Windows), 5 s and more on a busy machine (failed now and then with 5 s)
+        assert wait_until(lambda: hits == ["/plain.png"], 30.0)
     finally:
         item.deleteLater()
         parent.deleteLater()
@@ -300,7 +302,8 @@ def test_plain_texts_of_components_never_load_images(make_page):
     canary = CanaryImages()
     view.engine().addImageProvider("canary", canary)
     root = view.rootObject()
-    texts = [item for item in root.findChildren(QQuickItem) if item.metaObject().className().startswith("QQuickText")]
+    texts = [item for item in root.findChildren(QQuickItem)  # Text, or TpText of the components (QML subclass)
+             if item.metaObject().className().startswith(("QQuickText", "TpText"))]
     root.setProperty("name", '<img src="image://canary/name"> Driver')
     process_events(0.5)
     assert canary.asked == []

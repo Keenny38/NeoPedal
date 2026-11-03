@@ -10,12 +10,10 @@ TpPopup {
     id: popup
     readonly property var trash: backend.trash
 
-    parent: Overlay.overlay  // centered on page, wherever it is declared
+    anchors.centerIn: overlayItem  // in the middle of the window, wherever it is declared (TpPopup)
     modal: true
-    width: Math.min((parent ? parent.width : theme.em * 40) - theme.em * 4, theme.em * 36)
-    height: Math.min((parent ? parent.height : theme.em * 34) - theme.em * 4, theme.em * 30)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 40) - theme.em * 4, theme.em * 36)
+    height: Math.min((overlayItem ? overlayItem.height : theme.em * 34) - theme.em * 4, theme.em * 30)
     onAboutToShow: popup.trash.refresh()
     onOpened: list.forceActiveFocus()
 
@@ -93,7 +91,7 @@ TpPopup {
                             }
                             Text {
                                 Layout.fillWidth: true
-                                text: i18n.tr("Deleted %1").arg(row.deleted) + "  ·  " + i18n.tr("%1 day(s) left").arg(row.daysLeft)
+                                text: i18n.tr("Deleted %1").arg(row.deleted) + "  ·  " + i18n.plural(row.daysLeft, "%1 day left", "%1 days left").arg(row.daysLeft)
                                 textFormat: Text.PlainText
                                 color: theme.dimText
                                 font.pointSize: theme.fontSmall

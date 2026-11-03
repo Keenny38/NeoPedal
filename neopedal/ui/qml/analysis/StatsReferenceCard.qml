@@ -14,7 +14,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
         visible: referenceCard.reference.vehicle !== undefined && referenceCard.reference.vehicle !== ""
         Layout.fillWidth: true
         spacing: theme.em * 0.5
-        Text {
+        TpText {
             text: referenceCard.reference.vehicle || ""
             textFormat: Text.PlainText
             color: theme.text
@@ -29,7 +29,8 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
             strong: true
         }
     }
-    Text {
+    TpText {
+        elide: Text.ElideNone
         visible: referenceCard.reference.visible === true
         Layout.fillWidth: true
         text: referenceCard.reference.detail || ""
@@ -51,7 +52,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
         columnSpacing: theme.em * 0.8
         rowSpacing: theme.em * 0.15
         Text { text: i18n.tr("Reference"); color: theme.dimText; font.pointSize: theme.fontLabel }
-        Text {
+        TpText {
             text: referenceCard.reference.referenceTime || "—"
             textFormat: Text.PlainText
             color: theme.text
@@ -59,7 +60,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
             Layout.fillWidth: true
         }
         Text { visible: (referenceCard.reference.gapTime || "") !== ""; text: i18n.tr("Gap"); color: theme.dimText; font.pointSize: theme.fontLabel }
-        Text {
+        TpText {
             visible: (referenceCard.reference.gapTime || "") !== ""
             text: (referenceCard.reference.gapTime || "") + "  (" + (referenceCard.reference.percent || "") + ")"
             textFormat: Text.PlainText
@@ -79,7 +80,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
                 radius: width / 2
                 color: (referenceCard.reference.nextLevel || {}).color || "transparent"
             }
-            Text {
+            TpText {
                 text: (referenceCard.reference.nextLevel || {}).name !== undefined
                       ? referenceCard.reference.nextLevel.name + "  " + referenceCard.reference.nextLevel.toFind
                       : (referenceCard.reference.next || "")
@@ -96,7 +97,8 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
             }
         }
     }
-    Text {
+    TpText {
+        elide: Text.ElideNone
         visible: referenceCard.reference.visible === true && (referenceCard.reference.fastest || "") !== ""
         Layout.fillWidth: true
         text: referenceCard.reference.fastest || ""
@@ -140,7 +142,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
                     radius: width / 2
                     color: modelData.color
                 }
-                Text {
+                TpText {
                     text: modelData.name
                     textFormat: Text.PlainText
                     color: theme.text
@@ -156,7 +158,7 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
                         tint: theme.accent
                     }
                 }
-                Text {
+                TpText {
                     text: modelData.limit
                     textFormat: Text.PlainText
                     color: theme.dimText
@@ -173,7 +175,8 @@ TpSectionCard {  // other vehicle: values change in place (no fade: keyboard bro
         Layout.fillWidth: true
         spacing: theme.em * 0.5
         Icon { glyph: ""; color: theme.dimText; size: theme.iconSm; Layout.alignment: Qt.AlignTop }  // info
-        Text {
+        TpText {
+            elide: Text.ElideNone
             Layout.fillWidth: true
             text: referenceCard.reference.reason || ""
             textFormat: Text.PlainText

@@ -85,7 +85,7 @@ AbstractButton {
                 color: chip.selected ? theme.accent : chip.dimmed ? theme.dimText : theme.text
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Text {
+            TpText {
                 text: chip.text
                 textFormat: Text.PlainText
                 width: chip.maximumTextWidth > 0 ? Math.min(implicitWidth, chip.maximumTextWidth) : implicitWidth
@@ -95,7 +95,7 @@ AbstractButton {
                 font.pointSize: chip.size === "sm" ? theme.fontSmall : theme.fontPoint
                 anchors.verticalCenter: parent.verticalCenter
             }
-            Text {
+            TpText {
                 visible: chip.count >= 0
                 text: chip.count
                 textFormat: Text.PlainText

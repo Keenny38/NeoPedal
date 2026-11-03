@@ -565,7 +565,7 @@ class FakeOnline:
     def game_running(self):
         return True
 
-    def fetch(self, account):
+    def fetch(self, account, max_age=0.0):
         self.calls += 1
         return self.ranks
 
@@ -885,6 +885,7 @@ def test_b025_every_goal_beaten_meanwhile_announced(monkeypatch):
         goals=lambda: {"Spa|GT3": 130.0, "Monza|GT3": 110.0}, reached_goals=list, _window=None,
         stats_temp={"Spa": {"GT3": {"pb": 129.0}}, "Monza": {"GT3": {"pb": 109.5}}},
         save_viewer_config=lambda **values: saved.update(values), check_goals=None,
+        goal_levels=dict, reference_for=lambda track, vehicle: None,  # no community lap times: no level told
         defer_while_hidden=lambda callback: False)
     StatsSelection.check_goals(page)
     assert saved["goals_reached"] == ["Spa|GT3", "Monza|GT3"]
@@ -1072,21 +1073,15 @@ def test_b034_backups_rotated_by_creation_in_the_hour_repeated(tmp_path):
 
 
 # B-038
-def test_b038_upcoming_races_without_empty_date_or_started_ones():
-    from neopedal.ui.quick import stats_analysis
-
-    def event(starts: str, race_starts: str = "") -> dict:
-        return {"configuration": {"title": "Sprint", "starts": starts,
-                                  "content": {"track": {"name": "SPA", "friendly": "Spa"}}},
-                "raceStartsAt": race_starts}
+def test_b038_upcoming_races_without_started_ones(ui_env):
+    # The card reads the rows of the Home card now (old reader removed, B-033 of the Upcoming Races audit): a
+    # start over is left out there; empty .NET dates are read by process.race_schedule (B-005 of that audit)
+    from neopedal.process import race_schedule as rs
+    from neopedal.ui.quick.schedule_view import home_card
 
     now = 1_793_600_000.0
-    soon = stats_analysis.datetime.fromtimestamp(now + 3600, stats_analysis.UTC).isoformat()
-    past = stats_analysis.datetime.fromtimestamp(now - 3600, stats_analysis.UTC).isoformat()
-    assert stats_analysis.parse_start("0001-01-01T00:00:00") == 0.0  # empty date of the service
-    races = stats_analysis.parse_events("advanced", [event("0001-01-01T00:00:00", soon)])
-    assert races and races[0].start == now + 3600  # race start used instead
-    answers = {"advanced": [event(past), event(soon)]}
-    read = stats_analysis.read_upcoming(lambda path: next((data for tier, data in answers.items() if tier in path),
-                                                          None), now=now)
-    assert [race.start for race in read] == [now + 3600]
+    over = rs.Event("daily", "advanced", "Over", "Spa", "", (rs.Start(now - 3600),), 0.0,
+                    (rs.Session("Race", 1200.0),), (), rs.Requirement("", 0))
+    soon = over._replace(title="Sprint", starts=(rs.Start(now - 3600), rs.Start(now + 3600)))
+    rows = home_card(rs.EMPTY._replace(events=(over, soon)), ("", 0), now, lambda track: "", 6)
+    assert [(row["title"], row["startTime"]) for row in rows] == [("Sprint", now + 3600)]

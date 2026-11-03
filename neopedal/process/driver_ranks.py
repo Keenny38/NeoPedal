@@ -256,10 +256,11 @@ LOCATE_SECONDS = 60.0  # game folder & player looked for again this often while 
 LOCATE_FOUND_SECONDS = 600.0  # looked for again this often once found (game moved, other Steam user)
 # Online ranks (RaceControl): read at start, after each session (new results file: ranks computed by the service
 # a moment later, read 3 times), else this often while game runs (sign in with a new game ticket each read)
-ONLINE_RESULTS_DELAYS = (30.0, 120.0, 300.0)
-ONLINE_SECONDS = 300.0
+ONLINE_RESULTS_DELAYS = (180.0, 900.0)  # the last one signs in again (sign in answer reused 10 min, see raceos)
+ONLINE_SECONDS = 1800.0  # few sign ins: RaceControl refused this connection for hours after many (2026-11-02)
 ONLINE_GAME_SECONDS = 60.0  # game looked for this often while not running
-ONLINE_RETRY_SECONDS = 300.0  # read again this late once a read failed (offline)
+ONLINE_RETRY_SECONDS = 600.0  # read again this late once a read failed (offline)
+ONLINE_MANUAL_SECONDS = 300.0  # read asked by the player (Refresh) at most this often: few sign ins
 
 
 class Located(NamedTuple):
@@ -321,6 +322,24 @@ def _rank_from_list(value: Any) -> Rank | None:
     if isinstance(value, list) and len(value) == 3 and isinstance(value[0], str):
         return Rank(value[0], _int(value[1]), _int(value[2]))
     return None
+
+
+def ranks_data(ranks: DriverRanks) -> dict:
+    """JSON data of ranks (see ranks_from_data)"""
+    return {"name": ranks.name, "steam_id": ranks.steam_id, "driver_id": ranks.driver_id,
+            "nationality": ranks.nationality, "driver": _rank_list(ranks.driver), "safety": _rank_list(ranks.safety),
+            "badge": ranks.badge}
+
+
+def ranks_from_data(value: Any) -> DriverRanks | None:
+    """Ranks of JSON data (see ranks_data), None if unreadable or without rank"""
+    if not isinstance(value, dict):
+        return None
+    driver, safety = _rank_from_list(value.get("driver")), _rank_from_list(value.get("safety"))
+    if driver is None and safety is None:
+        return None
+    return DriverRanks(_text(value.get("name")), _text(value.get("steam_id")), _text(value.get("driver_id")),
+                       _text(value.get("nationality")), driver, safety, _text(value.get("badge")))
 
 
 def history_line(entry: HistoryEntry) -> str:
@@ -452,7 +471,9 @@ class OnlineSource(Protocol):
 
     def enabled(self) -> bool: ...  # option turned on
     def game_running(self) -> bool: ...
-    def fetch(self, account: str) -> DriverRanks | None: ...  # ranks of game account (SteamID64), None if not read
+    # ranks of game account (SteamID64) read less than max_age seconds ago (0: new sign in), None if not read
+    def fetch(self, account: str, max_age: float) -> DriverRanks | None: ...
+    # optional fetch_timed(account, max_age): (ranks, sign in time since epoch) or None (time of reused ranks)
     def forget(self) -> None: ...  # option turned off: sign in dropped
 
 
@@ -508,6 +529,7 @@ class RankWatcher:
         self.updated = 0.0  # storage file modification time of values (seconds since epoch), 0 if none
         # Player not in storage file (game emptied its menu cache): last ranks of history, time they were seen
         self.remembered = False
+        self._manual_time = -math.inf  # clock time of last read asked by the player
         self.online = False  # player ranks read online (RaceControl), not from storage file
         self.others: list[OtherAccount] = []  # last ranks of other game accounts of this computer
         # Incremented each time values change (drivers, player...), "updated" time only when its day changed (dates
@@ -519,6 +541,25 @@ class RankWatcher:
         """Game account in use (SteamID64), "" if unknown"""
         located = self._located
         return located.steam_id if located is not None else ""
+
+    def read_soon(self) -> None:
+        """Online ranks read again like after a session (an online race of the player just ended: RaceControl
+        computes ranks a moment later), at the next polls"""
+        now = self._clock()
+        with self._lock:
+            self._online_due = sorted({*self._online_due, *(now + delay for delay in ONLINE_RESULTS_DELAYS)})
+
+    def read_now(self) -> bool:
+        """Online ranks read at the next poll (asked by the player), at most once every ONLINE_MANUAL_SECONDS:
+        False if asked again too soon (RaceControl refuses a connection for hours after many sign ins)"""
+        now = self._clock()
+        with self._lock:
+            if now - self._manual_time < ONLINE_MANUAL_SECONDS:
+                return False
+            self._manual_time = now
+            self._online_due = sorted({*self._online_due, now})
+            self._checked_time = -math.inf  # next poll checks at once
+        return True
 
     def poll(self) -> None:
         """Check file in background if due (non blocking)"""
@@ -697,12 +738,19 @@ class RankWatcher:
 
     def _read_online(self, source: OnlineSource, account: str, now: float, due: bool, generation: int) -> None:
         ranks = None
+        read_time = 0.0  # seconds since epoch of the sign in that read the ranks (reused, saved: older than now)
         wait = ONLINE_RETRY_SECONDS
         try:
             if not due and not source.game_running():  # periodic read only while game runs
                 wait = ONLINE_GAME_SECONDS
-            else:
-                ranks = source.fetch(account)
+            else:  # after a session: ranks changed, new sign in; else ranks of a recent sign in (restart) kept
+                max_age = 0.0 if due else ONLINE_SECONDS
+                fetch_timed = getattr(source, "fetch_timed", None)  # sources without it: ranks read now
+                if fetch_timed is not None:
+                    found = fetch_timed(account, max_age)
+                    ranks, read_time = found if found is not None else (None, 0.0)
+                else:
+                    ranks, read_time = source.fetch(account, max_age), self._wall_clock()
         except Exception:  # any error of online source: read again later
             logger.exception("RANKS: online read failed")
         with self._lock:
@@ -720,7 +768,7 @@ class RankWatcher:
                 return
             if account and not ranks.steam_id:  # answer without Steam ID: ranks of the account read for (never
                 ranks = ranks._replace(steam_id=account)  # given to another one after a Steam account switch)
-            self._online_ranks, self._online_pending = (ranks, self._wall_clock()), True
+            self._online_ranks, self._online_pending = (ranks, read_time or self._wall_clock()), True
             self._checked_time = -CHECK_SECONDS  # applied by next poll
 
     def other_accounts(self, located: Located) -> list[OtherAccount]:

@@ -56,7 +56,7 @@ Card {
     border.color: clickable && hovered ? theme.strokeStrong : theme.strokeSubtle
     Behavior on color { ColorAnimation { duration: theme.motionFast } }
 
-    activeFocusOnTab: clickable
+    activeFocusOnTab: clickable || activeFocus
     Keys.onReturnPressed: if (clickable) card.opened()
     Keys.onEnterPressed: if (clickable) card.opened()
     Keys.onSpacePressed: if (clickable) card.opened()

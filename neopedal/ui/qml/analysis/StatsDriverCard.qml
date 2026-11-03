@@ -19,7 +19,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
             Layout.preferredHeight: Layout.preferredWidth
             radius: theme.radiusMd
             color: theme.tint(theme.accent, "selected")
-            Text {
+            TpText {
                 anchors.centerIn: parent
                 visible: avatar.status !== Image.Ready
                 text: card.driver.initials || ""
@@ -42,7 +42,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
         ColumnLayout {
             spacing: 0
             Layout.fillWidth: true
-            Text {
+            TpText {
                 text: card.driver.name || ""
                 textFormat: Text.PlainText
                 color: theme.text
@@ -51,7 +51,8 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
-            Text {
+            TpText {
+                elide: Text.ElideNone
                 visible: text !== ""
                 text: card.driver.detail || ""
                 textFormat: Text.PlainText
@@ -67,66 +68,69 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
         Layout.fillWidth: true
         Layout.topMargin: theme.space2
         spacing: theme.space3
-        Repeater {
+        Repeater {  // rank, progress to next tier & change; rank over time below it (seen at least twice)
             model: card.driver.ranks || []
-            RowLayout {
+            ColumnLayout {
+                id: rankItem
                 required property var modelData
                 readonly property color rankColor: (theme.dark ? modelData.color : modelData.lightColor)
                                                    || theme.accent
                 Layout.fillWidth: true
-                spacing: theme.em * 0.5
-                Text {
-                    text: modelData.label
-                    textFormat: Text.PlainText
-                    color: theme.dimText
-                    font.pointSize: theme.fontSmall
-                    Layout.preferredWidth: theme.em * 6.5
-                    elide: Text.ElideRight
-                }
-                Text {
-                    text: modelData.value
-                    textFormat: Text.PlainText
-                    color: parent.rankColor
-                    font.weight: Font.DemiBold
-                    font.pointSize: theme.fontSubtitle
-                    Layout.preferredWidth: theme.em * 5.5
-                }
-                TpMeter {  // progress to next tier
+                spacing: 0
+                RowLayout {
+                    readonly property color rankColor: rankItem.rankColor
                     Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignVCenter
-                    value: modelData.progress
-                    tint: parent.rankColor
-                    name: modelData.label
+                    spacing: theme.em * 0.5
+                    TpText {
+                        id: rankLabel
+                        text: modelData.label
+                        textFormat: Text.PlainText
+                        color: theme.dimText
+                        font.pointSize: theme.fontSmall
+                        Layout.preferredWidth: theme.em * 6.5
+                        elide: Text.ElideRight
+                    }
+                    TpText {
+                        text: modelData.value
+                        textFormat: Text.PlainText
+                        color: parent.rankColor
+                        font.weight: Font.DemiBold
+                        font.pointSize: theme.fontSubtitle
+                        Layout.preferredWidth: theme.em * 5.5
+                    }
+                    TpMeter {  // progress to next tier
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        value: modelData.progress
+                        tint: parent.rankColor
+                        name: modelData.label
+                    }
+                    TpText {
+                        text: modelData.progressText
+                        textFormat: Text.PlainText
+                        color: theme.text
+                        font.pointSize: theme.fontSmall
+                        font.features: { "tnum": 1 }
+                        horizontalAlignment: Text.AlignRight
+                        Layout.preferredWidth: theme.em * 2.6
+                    }
+                    TpText {  // change since previous rank
+                        visible: modelData.change !== ""
+                        text: (modelData.changeTone > 0 ? "\u25B2 " : "\u25BC ") + modelData.change
+                        textFormat: Text.PlainText
+                        color: modelData.changeTone > 0 ? theme.gain : theme.loss
+                        font.pointSize: theme.fontCaption
+                        font.features: { "tnum": 1 }
+                    }
                 }
-                Text {
-                    text: modelData.progressText
-                    textFormat: Text.PlainText
-                    color: theme.text
-                    font.pointSize: theme.fontSmall
-                    font.features: { "tnum": 1 }
-                    horizontalAlignment: Text.AlignRight
-                    Layout.preferredWidth: theme.em * 2.6
+                TpRankLine {  // under the rank value & meter (rank name on the row above)
+                    visible: (rankItem.modelData.chart || []).length > 1
+                    Layout.fillWidth: true
+                    Layout.leftMargin: rankLabel.width + theme.space3  // under the rank value
+                    points: rankItem.modelData.chart
+                    tint: rankItem.rankColor
+                    label: rankItem.modelData.label
                 }
-                Text {  // change since previous rank
-                    visible: modelData.change !== ""
-                    text: (modelData.changeTone > 0 ? "\u25B2 " : "\u25BC ") + modelData.change
-                    textFormat: Text.PlainText
-                    color: modelData.changeTone > 0 ? theme.gain : theme.loss
-                    font.pointSize: theme.fontCaption
-                    font.features: { "tnum": 1 }
-                }
-            }
-        }
-        Repeater {  // rank over time, one line per rank seen at least twice (empty chart: no line)
-            model: card.driver.ranks || []
-            TpRankLine {  // rank name on the left, line in the rank color
-                required property var modelData
-                visible: (modelData.chart || []).length > 1
-                Layout.fillWidth: true
-                labelShown: true
-                points: modelData.chart
-                tint: (theme.dark ? modelData.color : modelData.lightColor) || theme.accent
-                label: modelData.label
             }
         }
         RowLayout {  // badge of game menu: game icon, name in its color, description
@@ -157,7 +161,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
             ColumnLayout {
                 spacing: 0
                 Layout.fillWidth: true
-                Text {
+                TpText {
                     text: parent.parent.badge.name || ""
                     textFormat: Text.PlainText
                     color: parent.parent.badgeColor
@@ -166,7 +170,8 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                     elide: Text.ElideRight
                     Layout.fillWidth: true
                 }
-                Text {
+                TpText {
+                    elide: Text.ElideNone
                     visible: text !== ""
                     text: parent.parent.badge.description || ""
                     textFormat: Text.PlainText
@@ -177,14 +182,28 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 }
             }
         }
-        Text {
-            visible: text !== ""
-            text: card.driver.ranksInfo || ""
-            textFormat: Text.PlainText
-            color: theme.dimText
-            font.pointSize: theme.fontCaption
-            wrapMode: Text.WordWrap
+        RowLayout {  // where ranks come from & when, read again on demand (RaceControl, a few minutes apart)
+            visible: (card.driver.ranksInfo || "") !== ""
             Layout.fillWidth: true
+            spacing: theme.space3
+            TpText {
+                elide: Text.ElideNone
+                text: card.driver.ranksInfo || ""
+                textFormat: Text.PlainText
+                color: theme.dimText
+                font.pointSize: theme.fontCaption
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            TpButton {
+                objectName: "statsRefreshRanks"
+                size: "xs"
+                flat: true
+                text: i18n.tr("Refresh")
+                tip: i18n.tr("Read driver & safety ranks again from RaceControl")
+                Layout.alignment: Qt.AlignTop
+                onClicked: backend.refreshRanks()
+            }
         }
     }
     ColumnLayout {  // other game accounts of this computer: last ranks seen, badge, date
@@ -210,7 +229,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                     asynchronous: true
                     smooth: true
                 }
-                Text {
+                TpText {
                     text: accountRow.modelData.name
                     textFormat: Text.PlainText
                     color: theme.text
@@ -221,7 +240,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 }
                 Repeater {
                     model: accountRow.modelData.ranks
-                    Text {
+                    TpText {
                         required property var modelData
                         text: modelData.label + " " + modelData.value
                         textFormat: Text.PlainText
@@ -230,7 +249,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                         font.pointSize: theme.fontSmall
                     }
                 }
-                Text {
+                TpText {
                     readonly property var badge: accountRow.modelData.badge || {}
                     visible: (badge.name || "") !== ""
                     text: badge.name || ""
@@ -238,7 +257,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                     color: (theme.dark ? badge.color : badge.lightColor) || theme.text
                     font.pointSize: theme.fontSmall
                 }
-                Text {  // when ranks were seen
+                TpText {  // when ranks were seen
                     text: accountRow.modelData.when
                     textFormat: Text.PlainText
                     color: theme.dimText
@@ -268,7 +287,8 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
             }
         }
     }
-    Text {
+    TpText {
+        elide: Text.ElideNone
         visible: text !== ""
         text: card.driver.info || ""
         textFormat: Text.PlainText
@@ -283,7 +303,8 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
         Layout.topMargin: theme.space1
         spacing: theme.em * 0.5
         Icon { glyph: "\uE916"; size: theme.iconSm; color: theme.accent }  // stopwatch
-        Text {
+        TpText {
+            elide: Text.ElideNone
             text: card.driver.fixText || ""
             textFormat: Text.PlainText
             color: theme.text
@@ -296,6 +317,29 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
             tip: i18n.tr("Add lap times of race results missing from your stats, or faster than them")
             enabled: !backend.editing
             onClicked: backend.completeLapTimes()
+        }
+    }
+    RowLayout {  // sessions of results files never recorded (driven before NeoPedal, stats module off)
+        visible: (card.driver.imports || 0) > 0
+        Layout.fillWidth: true
+        Layout.topMargin: theme.space1
+        spacing: theme.space3
+        Icon { glyph: ""; size: theme.iconSm; color: theme.accent }  // history
+        TpText {
+            elide: Text.ElideNone
+            text: card.driver.importText || ""
+            textFormat: Text.PlainText
+            color: theme.text
+            font.pointSize: theme.fontLabel
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+        TpButton {
+            objectName: "statsImportResults"
+            text: i18n.tr("Import…")
+            tip: i18n.tr("Add sessions kept by the game in its results files: laps, best laps, races. Fuel and road conditions are not in these files.")
+            enabled: !backend.editing
+            onClicked: backend.importResults()
         }
     }
 }

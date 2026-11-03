@@ -398,7 +398,7 @@ TpPage {
                                     fallback: i18n.tr("Copy")
                                     flat: true
                                     size: "sm"
-                                    tip: i18n.tr("Copy Address") + (row.sizeText !== "" ? "  (" + i18n.tr("Browser source size") + ": " + row.sizeText + ")" : "")
+                                    tip: i18n.tr("Copy Address") + (row.sizeText !== "" ? "  (" + i18n.tr("Browser source size") + i18n.colon() + row.sizeText + ")" : "")
                                     enabled: page.on && row.visibility !== 2
                                     onClicked: backend.copy(backend.overlayUrl(row.key))
                                 }

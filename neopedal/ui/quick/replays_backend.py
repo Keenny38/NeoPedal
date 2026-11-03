@@ -90,6 +90,7 @@ from .replays_common import (  # noqa: F401  (re-exported: replays_backend.size_
     INCIDENTS_RESOURCE,
     JUMP,
     LAP_SEARCH_STEPS,
+    LAUNCH_REFRESH_MS,
     LIVE_MS,
     MAP_TRIES,
     MAX_GO_TO_LAP,
@@ -175,6 +176,7 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.replays_answered = False
         self.pending_watch = ""  # replay to open once game lists it (race results page)
         self.pending_action: ReplayAction | None = None  # replay to open with what it does once game lists it
+        self.launching_until = 0.0  # monotonic time the game started from page is given to answer (0: not starting)
         self.action: ReplayAction | None = None  # done once replay opened by page is open in game
         self.action_deadline = 0.0  # monotonic time action is given up
         self.action_generation = 0  # state answers asked before replay was opened ignored for action
@@ -216,7 +218,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
         self.lap_starts: dict[int, dict[int, float]] = {}  # slot: lap number: session time of start
         self.replay_time = -1.0
         self.replay_rate = 0.0  # replay seconds per second, measured between answers
-        self.time_received = 0.0  # time.time() of replay time answer
+        self.time_received = 0.0  # time.time() of replay time answer (playhead moved from it by QML Date.now())
+        self._answered = 0.0  # time.monotonic() of last replay time answer, changed or not (rate measured from)
         self._jumped = False  # replay time moved by a command since last answer: no rate measured across it
         self.last_command = ""  # last playback command sent while replay open
         self.rewatching = False  # replay of live session opened from page (back to live possible)
@@ -396,8 +399,10 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
 
     def schedule_state(self):
         """Next state request, sooner while a replay is open, later while game does not answer"""
+        if self.launching_until and time.monotonic() > self.launching_until:  # game started from page never answered
+            self.watch_pending()
         if self._shown and not self.request_state.busy:
-            self._timer.start(REPLAY_REFRESH_MS if self.state == REPLAY
+            self._timer.start(REPLAY_REFRESH_MS if self.state == REPLAY else LAUNCH_REFRESH_MS if self.launching_until
                               else IDLE_REFRESH_MS if self.state == OFFLINE else REFRESH_MS)
 
     def received_replays(self, answer: dict):
@@ -548,6 +553,8 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
             self.send(*commands)
         if previous in (SESSION, REPLAY) and state == MENU:  # session ended: game saved its replay
             QTimer.singleShot(SESSION_END_DELAY_MS, self, self.ask_replays)  # context: never after page freed
+        elif previous == OFFLINE and not self.replays_answered:  # game started: its replays listed (asked before it
+            self.ask_replays()  # answered, or game answered state first)
         self.update_live_timer()
         self.statusChanged.emit()
 
@@ -559,16 +566,19 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
 
     def update_replay_time(self, replay_time: float):
         """Replay time & playback rate measured from last answer (playhead moves between answers)"""
-        now = time.time()
+        now, answered = time.time(), time.monotonic()
+        elapsed = answered - self._answered  # since last answer (a pause answers the same time again and again)
         if replay_time < 0:
             rate = 0.0
         elif self._jumped:  # jump (seek, lap, incident): rate of before kept, measured again from this answer
             rate, self._jumped = self.replay_rate, False
-        elif self.replay_time >= 0 and now - self.time_received > 0.2:
-            rate = (replay_time - self.replay_time) / (now - self.time_received)
+        elif self.replay_time >= 0 and elapsed > 0.2:
+            rate = (replay_time - self.replay_time) / elapsed
             rate = rate if abs(rate) < 50 else 0.0  # jumped: unknown
         else:
             rate = self.replay_rate
+        if elapsed > 0.2 or replay_time != self.replay_time:
+            self._answered = answered
         if replay_time == self.replay_time and rate == self.replay_rate:
             return
         self.replay_time, self.replay_rate, self.time_received = replay_time, rate, now
@@ -623,7 +633,14 @@ class GameReplaysBackend(ReplaysList, ReplaysFolder, ReplaysPlayback, ReplaysInc
 
     @Property(str, notify=ReplaysBase.statusChanged)
     def statusText(self) -> str:
+        if self.launching_until and self.state == OFFLINE:
+            return tr("Starting Le Mans Ultimate…")
         return tr(STATE_TEXTS[self.state])
+
+    @Property(bool, notify=ReplaysBase.statusChanged)
+    def gameStarting(self) -> bool:
+        """Game started from page, not listing its replays yet (replay asked meanwhile opened once it does)"""
+        return self.launching_until > 0.0
 
     @Property(str, notify=ReplaysBase.updatedChanged)
     def updatedText(self) -> str:

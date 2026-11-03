@@ -26,13 +26,11 @@ TpPopup {
         elide: Text.ElideRight
     }
 
-    parent: Overlay.overlay  // centered on page, wherever it is declared
+    anchors.centerIn: overlayItem  // in the middle of the window, wherever it is declared (TpPopup)
     modal: true
     dismissOnOutside: false  // search text kept: only Esc or the close button close it
-    width: Math.min((parent ? parent.width : theme.em * 60) - theme.em * 4, theme.em * 64)
-    height: Math.min((parent ? parent.height : theme.em * 40) - theme.em * 4, theme.em * 36)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 60) - theme.em * 4, theme.em * 64)
+    height: Math.min((overlayItem ? overlayItem.height : theme.em * 40) - theme.em * 4, theme.em * 36)
     onAboutToShow: library.open()
     onOpened: list.forceActiveFocus()
     onClosed: { library.closed(); keysBack() }

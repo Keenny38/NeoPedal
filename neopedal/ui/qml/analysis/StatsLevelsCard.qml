@@ -15,19 +15,10 @@ TpSectionCard {
             required property var modelData
             Layout.fillWidth: true
             spacing: theme.em * 0.5
-            Rectangle {
-                Layout.preferredWidth: theme.em * 1.3
-                Layout.preferredHeight: theme.em * 1.3
-                radius: width / 2
-                color: modelData.color
-                Text {
-                    anchors.centerIn: parent
-                    text: modelData.letter
-                    textFormat: Text.PlainText
-                    color: theme.inkOn(modelData.color)  // readable on level color
-                    font.pointSize: theme.fontTiny
-                    font.weight: Font.Bold
-                }
+            TpLetterBadge {
+                letter: modelData.letter
+                fill: modelData.color
+                size: theme.em * 1.3
             }
             Text { text: modelData.name; color: theme.text; elide: Text.ElideRight; Layout.preferredWidth: theme.em * 8; textFormat: Text.PlainText }
             TpMeter {  // share of best laps at this level (a few laps: still a visible bar)

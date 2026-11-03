@@ -596,9 +596,9 @@ def test_messages_translated(french):
     )
     assert i18n.trm("Preset <b>race</b> was loaded since this page was opened.<br><br>Save changed options to "
                     "<b>race</b>?").startswith("Le preset <b>race</b> a été chargé")
-    assert i18n.trm("Unable to save log: denied") == "Impossible d'enregistrer le journal : denied"
+    assert i18n.trm("Unable to save log: denied") == "Impossible d'enregistrer le journal\u00a0: denied"
     assert i18n.trm("Replay recorded with LMU API, select LMU API to play it.") == (
-        "Rejeu enregistré avec l'API LMU, sélectionnez l'API LMU pour le lire.")
+        "Replay enregistré avec l'API LMU, sélectionnez l'API LMU pour le lire.")
     assert i18n.trm("Already opened <b>Visionneuse de tours dialog</b>.") == (
         "La fenêtre <b>Visionneuse de tours</b> est déjà ouverte.")
 

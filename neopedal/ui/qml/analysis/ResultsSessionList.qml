@@ -89,6 +89,10 @@ Item {
             Keys.onEscapePressed: { clearSearch(); list.forceActiveFocus() }
             Keys.onReturnPressed: list.forceActiveFocus()
             Keys.onEnterPressed: list.forceActiveFocus()
+            Connections {  // search cleared by the page (session asked by another page): text emptied too
+                target: backend
+                function onSearchCleared() { if (searchField.text !== "") searchField.clearSearch() }
+            }
         }
 
         // Session kind, sessions without laps
@@ -268,7 +272,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: [row.kindText, row.clock, row.cars + " " + (row.cars === 1 ? i18n.tr("car") : i18n.tr("cars")),
+                            text: [row.kindText, row.clock, row.cars + " " + i18n.plural(row.cars, "car", "cars"),
                                    row.online ? i18n.tr("Online") : ""].filter(function(part) { return part !== "" }).join(" · ")
                             textFormat: Text.PlainText
                             color: theme.dimOn(surface.color)

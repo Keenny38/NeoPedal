@@ -26,12 +26,12 @@ import sys
 from contextlib import suppress
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QActionGroup, QDesktopServices, QFontMetrics, QKeySequence
-from PySide6.QtWidgets import QMenu, QMessageBox
+from PySide6.QtGui import QAction, QActionGroup, QDesktopServices, QFontMetrics, QKeySequence
+from PySide6.QtWidgets import QMenu, QMessageBox, QWidget
 
 from .. import app_signal, loader
 from ..api_control import api
-from ..const_app import PLATFORM, URL_FAQ, URL_PATREON, URL_USER_GUIDE
+from ..const_app import PLATFORM, URL_FAQ, URL_KOFI, URL_PATREON, URL_USER_GUIDE
 from ..const_file import ConfigType, FileExt
 from ..i18n import tr, trm
 from ..i18n.options import option_label
@@ -44,9 +44,27 @@ from .tools_view import LISTED_TOOL_SECTIONS, open_tool
 
 TRAY_PRESET_CHARS = 48  # loaded preset name in tray menu: whole, cut in the middle past this many characters
 TRAY_PRESETS = 30  # presets listed in tray menu (newest first)
+PALETTE_HIDDEN = "paletteHidden"  # action property: menu entry left out of command palette
 
 
 # Define menu command
+def menu_text(text: str) -> str:
+    """Menu entry text shown as is: "&" doubled (else taken as a mnemonic, "Results & Replays" shown "Results _Replays")"""
+    return text.replace("&", "&&")
+
+
+def shortcut_actions(menu: QWidget) -> list[QAction]:
+    """Actions with a keyboard shortcut of menu (bar) & its submenus"""
+    found = []
+    for action in menu.actions():
+        submenu = action.menu()
+        if isinstance(submenu, QMenu):
+            found.extend(shortcut_actions(submenu))
+        elif not action.shortcut().isEmpty():
+            found.append(action)
+    return found
+
+
 def menu_reload_preset():
     """Command - full reload"""
     loader.reload(reload_preset=True)
@@ -129,7 +147,7 @@ class OverlayMenu(QMenu):
         self.overlay_vr.triggered.connect(self.vr_compatibility)
 
         # Reload preset (check for opened config dialog)
-        reload_preset = self.addAction(tr("Reload"))
+        reload_preset = self.addAction(tr("Reload Overlays"))
         reload_preset.triggered.connect(parent.reload_preset)
         self.addSeparator()
 
@@ -137,11 +155,12 @@ class OverlayMenu(QMenu):
         menu_reset_data = ResetDataMenu(tr("Reset Data"), parent)
         self.destroyed.connect(menu_reset_data.deleteLater)  # parented to window: menu rebuilt (language change)
         self.addMenu(menu_reset_data)
-        self.addSeparator()
 
-        # Quit
-        app_quit = self.addAction(tr("Quit"))
-        app_quit.triggered.connect(parent.quit_app)
+        # Quit: tray only (window menus: Window menu, or end of the title bar menu)
+        if is_tray:
+            self.addSeparator()
+            app_quit = self.addAction(tr("Quit"))
+            app_quit.triggered.connect(parent.quit_app)
 
         # Refresh menu
         self.aboutToShow.connect(self.refresh_menu)
@@ -339,42 +358,28 @@ class ConfigMenu(QMenu):
         find_option = self.addAction(tr("Find Option…"))
         find_option.setShortcut(QKeySequence("Ctrl+Shift+F"))
         find_option.triggered.connect(self.open_option_finder)
+
+        # Sections of the Settings page (opened at that section)
+        self.menu_sections = self.addMenu(tr("Sections"))
+        sections = self.menu_sections
+        sections.addAction(tr("Application")).triggered.connect(self.open_config_application)
+        sections.addAction(tr("Compatibility")).triggered.connect(self.open_config_compatibility)
+        sections.addAction(tr("Notification")).triggered.connect(self.open_config_notification)
+        sections.addSeparator()
+        sections.addAction(tr("Units")).triggered.connect(self.open_config_units)
+        sections.addAction(tr("Global Font Override")).triggered.connect(self.open_config_font)
+        sections.addAction(tr("Overlay Style")).triggered.connect(self.open_config_overlay_style)
+        sections.addSeparator()
+        sections.addAction(tr("Remote Control")).triggered.connect(self.open_config_remote_control)
+        sections.addAction(tr("Web Dashboard")).triggered.connect(self.open_config_web_dashboard)
+        sections.addAction(tr("VR Overlay (Experimental)")).triggered.connect(self.open_config_vr_overlay)
+        sections.addSeparator()
+        sections.addAction(tr("User Path")).triggered.connect(self.open_config_userpath)
         self.addSeparator()
-
-        config_app = self.addAction(tr("Application"))
-        config_app.triggered.connect(self.open_config_application)
-
-        config_compat = self.addAction(tr("Compatibility"))
-        config_compat.triggered.connect(self.open_config_compatibility)
-
-        config_notify = self.addAction(tr("Notification"))
-        config_notify.triggered.connect(self.open_config_notification)
-        self.addSeparator()
-
-        config_units = self.addAction(tr("Units"))
-        config_units.triggered.connect(self.open_config_units)
-
-        config_font = self.addAction(tr("Global Font Override"))
-        config_font.triggered.connect(self.open_config_font)
-
-        config_style = self.addAction(tr("Overlay Style"))
-        config_style.triggered.connect(self.open_config_overlay_style)
-
-        config_remote = self.addAction(tr("Remote Control"))
-        config_remote.triggered.connect(self.open_config_remote_control)
-
-        config_web = self.addAction(tr("Web Dashboard"))
-        config_web.triggered.connect(self.open_config_web_dashboard)
 
         show_web = self.addAction(tr("Web Dashboard Address…"))
         show_web.triggered.connect(self.show_web_dashboard_address)
-
-        config_vr = self.addAction(tr("VR Overlay (Experimental)"))
-        config_vr.triggered.connect(self.open_config_vr_overlay)
         self.addSeparator()
-
-        config_userpath = self.addAction(tr("User Path"))
-        config_userpath.triggered.connect(self.open_config_userpath)
 
         open_folder = self.addMenu(tr("Open Folder"))
         for path_name in cfg.path.__slots__:
@@ -530,7 +535,7 @@ class APIMenu(QMenu):
         self.carsetup_backup.setCheckable(True)
         self.carsetup_backup.triggered.connect(self.toggle_carsetup_backup)
 
-        config_api = self.addAction(tr("Options"))
+        config_api = self.addAction(tr("API Options"))
         config_api.triggered.connect(self.open_config_api)
         self.addSeparator()
 
@@ -601,7 +606,8 @@ class APIMenu(QMenu):
 
 
 class ToolsMenu(QMenu):
-    """Tools menu: Pages submenu (pages left out of the navigation bar), then same entries as tools page"""
+    """Tools menu: Pages submenu (pages left out of the navigation bar), then tools of tools page left out of the
+    navigation bar (one click away there; every tool stays on the Tools page & in command palette)"""
 
     def __init__(self, title, parent):
         super().__init__(title, parent)
@@ -609,11 +615,27 @@ class ToolsMenu(QMenu):
         self.menu_pages = self.addMenu(tr("Pages"))
         self.menu_pages.aboutToShow.connect(self.refresh_pages)
         self.refresh_pages()
+        self.tool_actions: dict[str, QAction] = {}  # tool module name: entry
+        self.section_separators: list[tuple[QAction, tuple[str, ...]]] = []  # separator, tools of its section
         for _, tools in LISTED_TOOL_SECTIONS:
-            self.addSeparator()
-            for label, _, dialog_path in tools:
-                action = self.addAction(tr(label))
+            names = tuple(dialog_path.split(".", 1)[0] for _, _, dialog_path in tools)
+            self.section_separators.append((self.addSeparator(), names))
+            for (label, _, dialog_path), name in zip(tools, names):
+                action = self.addAction(menu_text(tr(label)))  # "Results & Replays": & shown, not a mnemonic
                 action.triggered.connect(lambda _=False, path=dialog_path: open_tool(path, self._parent))
+                self.tool_actions[name] = action
+        self.aboutToShow.connect(self.refresh_tools)
+        self.refresh_tools()
+
+    def refresh_tools(self):
+        """Tools in the navigation bar hidden (rail customized since: shown again), sections left empty too"""
+        from .nav_rail import current_rail_items
+
+        in_rail = set(current_rail_items())
+        for name, action in self.tool_actions.items():
+            action.setVisible(name not in in_rail)
+        for separator, names in self.section_separators:
+            separator.setVisible(any(name not in in_rail for name in names))
 
     def refresh_pages(self):
         """Pages not in the navigation bar (reachable from here, the More menu & the command palette)"""
@@ -624,7 +646,7 @@ class ToolsMenu(QMenu):
         shown = set(current_rail_items())
         for index, (key, *_) in enumerate(NAV_PAGES):
             if key not in shown:
-                menu.addAction(page_name(index)).triggered.connect(lambda _=False, page=index: self.select_page(page))
+                menu.addAction(menu_text(page_name(index))).triggered.connect(lambda _=False, page=index: self.select_page(page))
         if menu.isEmpty():
             menu.addAction(tr("Every page is in the navigation bar")).setEnabled(False)
 
@@ -636,9 +658,13 @@ class ToolsMenu(QMenu):
 
 
 class WindowMenu(QMenu):
-    """Window menu"""
+    """Window menu
 
-    def __init__(self, title, parent):
+    Args:
+        app_actions: Restart & Quit at the end (left out under the title bar drawn by the app: end of its menu).
+    """
+
+    def __init__(self, title, parent, app_actions: bool = True):
         super().__init__(title, parent)
         self.show_at_startup = self.addAction(tr("Show at Startup"))
         self.show_at_startup.setCheckable(True)
@@ -663,10 +689,13 @@ class WindowMenu(QMenu):
         reset_size = getattr(parent, "reset_window_size", None)
         if callable(reset_size):
             self.addAction(tr("Reset Window Size and Position")).triggered.connect(reset_size)
-        self.addSeparator()
 
-        restart_app = self.addAction(tr("Restart NeoPedal"))
-        restart_app.triggered.connect(getattr(parent, "restart_app", loader.restart))
+        if app_actions:
+            self.addSeparator()
+            restart_app = self.addAction(tr("Restart NeoPedal"))
+            restart_app.triggered.connect(getattr(parent, "restart_app", loader.restart))
+            app_quit = self.addAction(tr("Quit"))
+            app_quit.triggered.connect(parent.quit_app)
 
         self.aboutToShow.connect(self.refresh_menu)
 
@@ -721,9 +750,15 @@ class HelpMenu(QMenu):
         app_faq = self.addAction(tr("Frequently Asked Questions"))
         app_faq.triggered.connect(self.open_faq)
 
-        # Shortcut shown only (window shortcut runs it: one registered sequence, never ambiguous)
+        # Shortcuts shown only (window shortcut runs it: one registered sequence, never ambiguous)
         app_keys = self.addAction(f"{tr('Keyboard Shortcuts')}\tCtrl+/")
         app_keys.triggered.connect(self.show_shortcuts)
+
+        open_palette = getattr(parent, "open_command_palette", None)
+        if callable(open_palette):
+            app_palette = self.addAction(f"{tr('Command Palette')}\tCtrl+K")
+            app_palette.setProperty(PALETTE_HIDDEN, True)  # palette entry opening the palette: left out
+            app_palette.triggered.connect(open_palette)
         self.addSeparator()
 
         app_log = self.addAction(tr("Show Log"))
@@ -732,7 +767,7 @@ class HelpMenu(QMenu):
         app_report = self.addAction(tr("Create Bug Report…"))
         app_report.triggered.connect(self.show_bug_report)
 
-        app_wizard = self.addAction(tr("Setup Wizard"))
+        app_wizard = self.addAction(tr("Setup Wizard…"))
         app_wizard.triggered.connect(self.show_setup_wizard)
         self.addSeparator()
 
@@ -743,10 +778,7 @@ class HelpMenu(QMenu):
         app_notes.triggered.connect(self.show_whats_new)
         self.addSeparator()
 
-        app_patreon = self.addAction(tr("Support NeoPedal on Patreon"))
-        app_patreon.triggered.connect(self.open_patreon)
-
-        app_about = self.addAction(tr("About"))
+        app_about = self.addAction(tr("About NeoPedal"))
         app_about.triggered.connect(self.show_about)
 
     def show_about(self):
@@ -810,6 +842,21 @@ class HelpMenu(QMenu):
         """Open FAQ link"""
         QDesktopServices.openUrl(URL_FAQ)
 
-    def open_patreon(self):
+
+class SupportMenu(QMenu):
+    """Support menu (after Help): donation pages"""
+
+    def __init__(self, title, parent):
+        super().__init__(title, parent)
+        self.addAction("Patreon").triggered.connect(self.open_patreon)  # brand names, never translated
+        self.addAction("Ko-fi").triggered.connect(self.open_kofi)
+
+    @staticmethod
+    def open_patreon():
         """Open Patreon link"""
         QDesktopServices.openUrl(URL_PATREON)
+
+    @staticmethod
+    def open_kofi():
+        """Open Ko-fi link"""
+        QDesktopServices.openUrl(URL_KOFI)

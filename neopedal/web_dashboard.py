@@ -70,7 +70,7 @@ from .command_server import (
 )
 from .const_api import API_LMU_NAME
 from .const_file import ConfigType
-from .i18n import current_language, tr
+from .i18n import current_language, decimal_point, tr
 from .log_handler import ErrorThrottle
 from .setting import cfg
 from .template.setting_status_colors import colorblind_style, status_colors
@@ -95,6 +95,9 @@ SESSION_MAX_SECONDS = 7 * 24 * 3600  # session expires after this time anyway (L
 # Login on this computer: browser session cookie, at most this long (cookies ignore ports: sent to any local server)
 LOCAL_SESSION_MAX_SECONDS = 12 * 3600
 MAX_FORM_SIZE = 1024
+# Request body left unread: read & dropped before closing, this long & this much at most (see DashboardHandler.finish)
+LINGER_SECONDS = 1.0
+LINGER_BYTES = 64 * 1024
 # Session cookie name, port of server added: cookies are per host (not port), each dashboard (installed & source
 # copy, several instances) keeps its own session
 SESSION_COOKIE = "np_session"
@@ -382,6 +385,7 @@ class DashboardHandler(BoundedRequestHandler):
     lock = threading.Lock()
     secure = False  # HTTPS: TLS handshake in handler thread, secure cookie
     lan = False  # LAN access: IP addresses & names of this computer allowed in Host header
+    unread_body = False  # request body left unread (connection closed after the response), see finish
     host_names: frozenset[str] = frozenset()  # names of this computer (LAN access), see own_host_names
 
     def setup(self):
@@ -390,12 +394,41 @@ class DashboardHandler(BoundedRequestHandler):
             self.request.do_handshake()
         super().setup()
 
+    def leave_body_unread(self):
+        """Request body (or its rest) not read: connection closed after the response, body drained by finish()"""
+        self.close_connection = True
+        self.unread_body = True
+
+    def finish(self):
+        """Response sent, then a body left unread read & dropped before the connection closes (lingering close)
+
+        Closed with unread data, the socket sends a reset, which can reach the client before it read the response
+        (Windows drops received data on a reset): a login with an invalid length got a connection error now and
+        then instead of 400 / 401. Bounded: LINGER_SECONDS, LINGER_BYTES.
+        """
+        super().finish()
+        if not self.unread_body:
+            return
+        with suppress(OSError, ValueError):  # client gone, timed out (TimeoutError), socket closed
+            self.connection.shutdown(socket.SHUT_WR)  # end of the response: the client closes its side
+            deadline = time.monotonic() + LINGER_SECONDS
+            drained = 0
+            while drained < LINGER_BYTES:
+                left = deadline - time.monotonic()
+                if left <= 0:
+                    break
+                self.connection.settimeout(left)
+                chunk = self.connection.recv(4096)
+                if not chunk:  # client closed
+                    break
+                drained += len(chunk)
+
     def check_host(self) -> bool:
         """Verify Host header (DNS rebinding), send 403 if not allowed"""
         if is_allowed_host(self.headers.get("Host"), getattr(self.server, "server_port", 0), self.lan,
                            self.host_names):
             return True
-        self.close_connection = True  # body (login form) left unread: never read as next request
+        self.leave_body_unread()  # login form: never read as next request
         self.send_body(403, b"host not allowed", "text/plain")
         return False
 
@@ -440,22 +473,22 @@ class DashboardHandler(BoundedRequestHandler):
         if not self.check_host():
             return
         if urlparse(self.path).path != "/login":
-            self.close_connection = True  # body left unread
+            self.leave_body_unread()
             self.send_body(404, b"not found", "text/plain")
             return
         if self.cross_site():  # form posted by a page of another site: never counted as a wrong code
-            self.close_connection = True  # body left unread
+            self.leave_body_unread()
             self.send_body(403, b"cross-site request refused", "text/plain")
             return
         try:  # never read more than form size (negative length reads until connection closed)
             declared = int(self.headers.get("Content-Length") or 0)
         except ValueError:
-            self.close_connection = True  # body length unknown: never read as next request
+            self.leave_body_unread()  # length unknown: never read as next request
             self.send_body(400, b"invalid request", "text/plain")
             return
         length = max(min(declared, MAX_FORM_SIZE), 0)
         if length != declared:
-            self.close_connection = True  # rest of body left unread: never read as next request
+            self.leave_body_unread()  # rest of the body: never read as next request
         form = parse_qs(self.rfile.read(length).decode("utf-8", "replace"))
         if self.authorized(form.get("code", [""])[0].strip(), html=True):
             self.send_redirect_with_session()
@@ -858,7 +891,9 @@ def fill_page(template: str, labels: dict[str, str], texts: dict[str, str] | Non
     for key, text in labels.items():
         page = page.replace(f"@@{key}@@", escape(tr(text)))
     if texts is not None:
-        data = json.dumps({key: tr(text) for key, text in texts.items()}, ensure_ascii=False)
+        values = {key: tr(text) for key, text in texts.items()}
+        values["decimal"] = decimal_point()  # numbers of page script: "45,2" in French
+        data = json.dumps(values, ensure_ascii=False)
         page = page.replace("@@texts@@", data.replace("<", "\\u003c"))
     return page
 
@@ -955,8 +990,8 @@ $("position").textContent=d.position?d.position+"/"+d.vehicles:"-";
 $("invalid").style.display=d.lap_invalid?"inline-block":"none";
 $("lapcur").textContent=lap(d.lap_current);$("laplast").textContent=lap(d.lap_last);$("lapbest").textContent=lap(d.lap_best);
 $("fueltitle").textContent=v.energy?T.energy:T.fuel;
-$("fuel").textContent=(v.fuel||0).toFixed(1);$("fuelunit").textContent=v.fuel_unit||"";
-$("fuellaps").textContent=(v.fuel_laps||0).toFixed(1)+" "+T.laps;
+$("fuel").textContent=(v.fuel||0).toFixed(1).replace(".",T.decimal);$("fuelunit").textContent=v.fuel_unit||"";
+$("fuellaps").textContent=(v.fuel_laps||0).toFixed(1).replace(".",T.decimal)+" "+T.laps;
 $("thr").style.width=(d.throttle*100)+"%";$("brk").style.width=(d.brake*100)+"%";
 $("tyreunit").textContent=$("brakeunit").textContent=v.temperature_unit||"";
 $("tyres").innerHTML=quad(v.tyre_temp||[]);$("brakes").innerHTML=quad(v.brake_temp||[]);

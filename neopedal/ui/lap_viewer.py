@@ -38,7 +38,7 @@ from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import QVBoxLayout
 
 from .. import units
-from ..i18n import localized, tr, trm  # localized: shared with stream graphics
+from ..i18n import localized, percent_sign, tr, trm  # localized: shared with stream graphics
 from ..process.results_text import MINUS, laptime_text, number_text, signed_text
 from ..setting import cfg
 from ..userfile import atomic_replace, encode_text
@@ -348,7 +348,7 @@ def format_value(value: float) -> str:
 def format_channel_value(channel: Channel, value: float) -> str:
     """Value of channel for cursor & axis labels: pedals & steering in percent, signed deltas"""
     if channel.fixed_range in PERCENT_RANGES:
-        return f"{number_text(value * 100)}%"
+        return f"{number_text(value * 100)}{percent_sign()}"
     if channel.column == "delta":
         return signed(value, 3)
     if channel.column == "delta_rate":

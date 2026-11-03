@@ -104,7 +104,7 @@ class BadgeIcons:
         self._lock = threading.Lock()
         self._jobs: queue.SimpleQueue[str] = queue.SimpleQueue()
         self._queued: set[str] = set()
-        self._failed: dict[str, float] = {}  # badge -> time download failed
+        self._failed: dict[str, float] = {}  # badge -> time.monotonic() download failed (delay, not a date)
         self._thread: threading.Thread | None = None
         self.version = 0  # grows with each icon saved
 
@@ -127,7 +127,7 @@ class BadgeIcons:
 
     def request(self, key: str) -> None:
         with self._lock:
-            if key in self._queued or time.time() - self._failed.get(key, -RETRY_SECONDS) < RETRY_SECONDS:
+            if key in self._queued or time.monotonic() - self._failed.get(key, -RETRY_SECONDS) < RETRY_SECONDS:
                 return
             self._queued.add(key)
             self._jobs.put(key)  # under lock: thread never leaves with this job waiting
@@ -161,7 +161,7 @@ class BadgeIcons:
         body = download(icon_url(key))
         if not body.lstrip(b"\xef\xbb\xbf \r\n\t").startswith(b"<"):  # not an SVG
             with self._lock:
-                self._failed[key] = time.time()
+                self._failed[key] = time.monotonic()
             return False
         try:
             os.makedirs(os.path.dirname(target), exist_ok=True)

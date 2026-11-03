@@ -30,14 +30,15 @@ Item {
         anchors.margins: theme.padCard
         spacing: theme.space3
 
-        TpSegmented {
+        // Panels of the commentary: views, so tabs (counts in badges)
+        TpTabBar {
             objectName: "commentaryTabs"
             Layout.fillWidth: true
-            maxWidth: parent.width
             name: i18n.tr("Commentary")
-            options: [i18n.tr("Events") + (backend.unseenCount > 0 ? "  " + backend.unseenCount : ""),
-                      i18n.tr("Battles") + (backend.battleCount > 0 ? "  " + backend.battleCount : ""),
-                      i18n.tr("Classes"), i18n.tr("Pit Stops")]
+            readonly property var panels: [{ "text": i18n.tr("Events") }, { "text": i18n.tr("Battles") },
+                                           { "text": i18n.tr("Classes") }, { "text": i18n.tr("Pit Stops") }]
+            model: panels  // counts apart: unseen events change often, the tabs are never made again
+            counts: [backend.unseenCount > 0 ? backend.unseenCount : -1, backend.battleCount > 0 ? backend.battleCount : -1]
             currentIndex: root.tab
             onActivated: function(index) { backend.setCommentaryTab(index); root.tab = index }
         }
@@ -231,15 +232,17 @@ Item {
                     Accessible.role: Accessible.ListItem
                     Accessible.name: "P" + fight.position + ", " + fight.ahead + ", " + fight.behind + ", " + fight.gap
                                      + (fight.onAir ? ", " + i18n.tr("On Air") : "")
-                    Rectangle {  // card; on air: loss tint & thicker frame, both kept while hovered
+                    // Card of every list of cards (TpListRow card); on air: loss tint & thicker frame (not color alone),
+                    // both kept while hovered
+                    TpListRow {
                         id: fightBack
                         anchors.fill: parent
-                        radius: theme.radiusLg
-                        color: fight.onAir ? Qt.tint(theme.raised, theme.tint(theme.loss, fightArea.containsMouse ? "selected" : theme.tintSubtle * 1.4))
-                             : fightArea.containsMouse ? theme.hover : theme.raised
+                        card: true
+                        hovered: fightArea.containsMouse
+                        emphasized: fight.onAir
+                        tint: theme.loss
                         border.width: fight.onAir ? 2 : 1
-                        border.color: fight.onAir ? theme.loss : theme.border
-                        Behavior on color { ColorAnimation { duration: theme.motionFast } }
+                        border.color: fight.onAir ? theme.loss : theme.strokeSubtle
                     }
                     FocusRing { target: fightBack; visible: fight.current }
                     MouseArea {
@@ -336,8 +339,8 @@ Item {
                     height: Math.round(theme.rowTall)
                     radius: theme.radiusLg
                     border.width: 1
-                    border.color: theme.border
-                    color: theme.raised
+                    border.color: theme.strokeSubtle  // card tokens, as TpListRow card
+                    color: theme.surfaceCard
                     RowLayout {
                         anchors.fill: parent
                         anchors.rightMargin: theme.space3
@@ -410,7 +413,7 @@ Item {
                     width: ListView.view.width - (pitList.ScrollBar.vertical.visible ? pitList.ScrollBar.vertical.width : 0)
                     height: Math.round(theme.row)
                     Accessible.role: Accessible.ListItem
-                    Accessible.name: pitRow.driver + ", " + i18n.tr("%1 stops").arg(pitRow.stops) + (pitRow.inPit ? ", " + pitRow.status : "")
+                    Accessible.name: pitRow.driver + ", " + i18n.plural(pitRow.stops, "%1 stop", "%1 stops").arg(pitRow.stops) + (pitRow.inPit ? ", " + pitRow.status : "")
                     ListView.onPooled: live = false
                     ListView.onReused: live = true
                     TpListRow {  // in the pit lane: warning tint, status in bold
@@ -457,7 +460,7 @@ Item {
                             spacing: 0
                             Text {
                                 Layout.alignment: Qt.AlignRight
-                                text: i18n.tr("%1 stops").arg(pitRow.stops)
+                                text: i18n.plural(pitRow.stops, "%1 stop", "%1 stops").arg(pitRow.stops)
                                 textFormat: Text.PlainText
                                 color: theme.text
                                 font.pointSize: theme.fontSmall
@@ -467,7 +470,7 @@ Item {
                                 role: "caption"
                                 Layout.alignment: Qt.AlignRight
                                 color: theme.dimOn(pitBack.color)
-                                text: pitRow.stint >= 0 ? i18n.tr("Stint %1 laps").arg(pitRow.stint) : ""
+                                text: pitRow.stint >= 0 ? i18n.plural(pitRow.stint, "Stint %1 lap", "Stint %1 laps").arg(pitRow.stint) : ""
                                 tabular: true
                             }
                         }

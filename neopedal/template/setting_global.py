@@ -101,6 +101,7 @@ GLOBAL_DEFAULT = {
         # Broadcast Director & Race Calculator while enabled (they follow the session), see app.release_tool_pages
         "keep_director_and_calculator_running_while_hidden": True,
         "enable_high_dpi_scaling": True,
+        "enable_modern_title_bar": True,  # Windows: title bar drawn by the app, menus in it (see ui.title_bar)
         "enable_auto_load_preset": False,
         "enable_global_hotkey": False,
         "show_option_group_title": True,
@@ -287,10 +288,24 @@ GLOBAL_DEFAULT = {
             "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN03UvJDm99byA6vQPZHKOCYVvfxLu1zkJAzdaKyROykzEKY2-"
             "Xl1rl1q5znZEf36m88dxMKsY2eaO/pubhtml#gid=1766901750"
         ),
-        "hidden_columns": "penalty_rate,win_rate,podium_rate",
+        "hidden_columns": "penalty_rate,win_rate,podium_rate,penalties,starts,dnf",  # table fits the page
         "enable_sort_by_last_driven": False,
         "enable_colorblind_colors": False,
         "column_widths": "",
+        # Kept up to date by the page (not shown in Settings, see config.HIDDEN_OPTIONS)
+        "enable_group_by_class": False,
+        "show_level_limits": False,
+        "stats_tab": 0,
+        "activity_view": 0,
+        "activity_year": 0,
+        "condition_filter": 0,
+        "online_filter": 0,
+        "since_version": "",
+        "friend_file": "",
+        "goals": {},  # "track|vehicle": lap time goal in seconds
+        "goals_reached": [],  # goals announced once beaten
+        "lap_fixes_done": [],  # lap times of race results completed automatically (each once: undo keeps it out)
+        "goal_levels": {},  # "track|vehicle": level of personal best last seen (automatic goals: told once reached)
     },
     "tyre_strategy_planner": {
         "last_file_path": "",

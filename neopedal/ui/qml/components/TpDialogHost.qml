@@ -53,10 +53,25 @@ Item {
         dialog.open()
     }
     onRequestIdChanged: show()
+    function focusInput() {
+        if (!dialog.opened)
+            return
+        if (numberInput) {
+            number.forceActiveFocus()  // NumberField selects all once focused
+        } else if (textInput) {
+            (multiline ? area : field).forceActiveFocus()
+            if (!multiline)
+                field.selectAll()
+        }
+    }
 
     TpDialog {
         id: dialog
         objectName: "bridgeDialog"
+        // Overlay of the page's window now: a page made before the app shows it (Results & Replays) gets another
+        // window from QQuickWidget once in the app, the dialog's own Overlay.overlay stays on the former one (never
+        // shown, or gone: no parent, never opens)
+        parent: host.Overlay.overlay
         title: host.request.title || ""
         acceptText: host.request.acceptText || "OK"
         cancelText: host.request.cancelText || i18n.tr("Cancel")
@@ -67,16 +82,9 @@ Item {
         width: Math.min(parent ? parent.width - theme.em * 2 : theme.em * 28, host.multiline ? theme.em * 34 : theme.em * 28)
         onAccepted: host.accept()
         onCancelled: if (host.requestId > 0) dialogs.answer(host.requestId, false, "")
-        onOpened: {
-            if (host.numberInput) {
-                number.forceActiveFocus()  // NumberField selects all once focused
-            } else if (host.textInput) {
-                var input = host.multiline ? area : field
-                input.forceActiveFocus()
-                if (!host.multiline)
-                    field.selectAll()
-            }
-        }
+        // Field focused once the bindings follow the request: without an enter transition (Windows animation
+        // effects off) opened comes inside show(), while kind & the fields' visible still tell the previous request
+        onOpened: Qt.callLater(host.focusInput)
 
         RowLayout {
             Layout.fillWidth: true
@@ -89,7 +97,8 @@ Item {
                 fallback: host.request.level === "info" || host.request.level === "success" ? "i" : "!"
                 color: host.request.level === "error" ? theme.loss : host.request.level === "warning" ? theme.warning : theme.accent
             }
-            Text {
+            TpText {
+                elide: Text.ElideNone
                 id: messageText
                 objectName: "bridgeMessage"
                 Layout.fillWidth: true

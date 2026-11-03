@@ -75,7 +75,8 @@ def test_signed_in_for_each_read():
     assert "Game-Authorization" not in headers and headers["User-Agent"] == "NeoPedal/test"
     http.answers["POST"].append((200, {**AUTH, "player": {**PLAYER, "driverRank": {"rank": "Gold", "tier": 1,
                                                                                    "progress": 30.9}}}))
-    assert client.fetch(STEAM).driver.progress == 30 and len(tickets) == 2
+    assert client.fetch(STEAM) == ranks and len(tickets) == 1  # recent sign in: its ranks reused
+    assert client.fetch(STEAM, 0.0).driver.progress == 30 and len(tickets) == 2  # new sign in asked
     assert [call[0] for call in http.calls] == ["POST", "POST"]
 
 
@@ -121,8 +122,8 @@ def test_account_switch_and_forget_clear_failures():
     assert client.fetch(STEAM) is None
     assert client.fetch(STEAM) is None and len(http.calls) == 1  # waiting after failure
     assert client.fetch("76561190000000002") is not None  # other Steam account: read at once
-    assert client.fetch("76561190000000002") is None  # failed
-    client.forget()  # option turned off & on: read at once
+    assert client.fetch("76561190000000002", 0.0) is None  # new sign in failed
+    client.forget()  # option turned off & on: read at once (ranks of the last sign in forgotten)
     assert client.fetch("76561190000000002") is not None and len(http.calls) == 4
 
 
@@ -151,7 +152,7 @@ class FakeOnline:
     def game_running(self):
         return self.running
 
-    def fetch(self, account):
+    def fetch(self, account, max_age=0.0):
         self.fetched.append(account)
         return self.ranks
 

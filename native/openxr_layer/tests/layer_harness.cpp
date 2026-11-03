@@ -4,21 +4,25 @@
  * (an API without a device is skipped). Checks the layer loads & negotiates like the OpenXR loader does,
  * appends one quad per tile (one swapchain, imageRect per tile) placed like the app's canvas, uploads correct
  * pixels, merges tiles when the runtime has too few layer slots, and stays a pure pass-through when it should
- * (app of another protocol version included).
+ * (app of another protocol version included). D3D11: device multithread protection turned on only when
+ * xrEndFrame runs on another thread than xrCreateSession.
  *
  *   layer_harness <path to NeoPedalXrLayer.dll>
  */
 
 #include "../src/xr_includes.h"
 
+#include <d3d11_4.h>
 #include <dxgi1_4.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <map>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "neopedal_vr_shared.h"
@@ -209,6 +213,7 @@ struct Runtime {
     int spaces_alive = 0;
     bool refuse_extra_layers = false;
     bool runtime_failure = false;  // frames with overlay refused with XR_ERROR_RUNTIME_FAILURE
+    bool time_invalid = false;  // frames with overlay refused with XR_ERROR_TIME_INVALID (game's display time)
     bool game_error = false;  // every frame refused (game's own error: tracking loss)
     uint32_t max_layers = 16;
     bool limit_error = false;  // more layers than max_layers submitted
@@ -471,6 +476,9 @@ XRAPI_ATTR XrResult XRAPI_CALL rt_xrEndFrame(XrSession, const XrFrameEndInfo* in
     }
     if (runtime.runtime_failure) {
         return XR_ERROR_RUNTIME_FAILURE;
+    }
+    if (runtime.time_invalid) {
+        return XR_ERROR_TIME_INVALID;
     }
     for (const XrCompositionLayerQuad& quad : quads) {
         auto found = runtime.swapchains.find(quad.subImage.swapchain);
@@ -1353,6 +1361,121 @@ void run_dirty(Layer& layer, App& app, const void* binding, bool bgra, bool line
     }
 }
 
+bool multithread_protected(ID3D11Device* device) {
+    ID3D11DeviceContext* context = nullptr;
+    device->GetImmediateContext(&context);
+    ID3D11Multithread* multithread = nullptr;
+    const bool found = context != nullptr &&
+        SUCCEEDED(context->QueryInterface(__uuidof(ID3D11Multithread), reinterpret_cast<void**>(&multithread)));
+    const bool result = found && multithread->GetMultithreadProtected() != FALSE;
+    if (multithread != nullptr) {
+        multithread->Release();
+    }
+    if (context != nullptr) {
+        context->Release();
+    }
+    return result;
+}
+
+// frames run on a second thread (game calling xrEndFrame from a submission thread) while this thread keeps using
+// the device's immediate context (game render thread)
+template <class Frames>
+void frames_on_thread(ID3D11Device* device, Frames&& frames) {
+    ID3D11DeviceContext* context = nullptr;
+    device->GetImmediateContext(&context);
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = 256;
+    desc.Height = 256;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    ID3D11Texture2D* source = nullptr;
+    ID3D11Texture2D* target = nullptr;
+    CHECK(SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &source)) &&
+          SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &target)));
+    std::vector<uint8_t> block(static_cast<size_t>(desc.Width) * desc.Height * 4u, static_cast<uint8_t>(0x40));
+    std::atomic<bool> done{false};
+    std::thread thread([&] {
+        frames();
+        done.store(true);
+    });
+    uint32_t calls = 0;
+    while (!done.load()) {
+        if (source != nullptr && target != nullptr) {
+            context->UpdateSubresource(source, 0, nullptr, block.data(), desc.Width * 4u, 0);
+            context->CopyResource(target, source);
+            if (++calls % 64u == 0) {
+                context->Flush();
+            }
+        }
+    }
+    thread.join();
+    if (source != nullptr) {
+        source->Release();
+    }
+    if (target != nullptr) {
+        target->Release();
+    }
+    context->Release();
+}
+
+// B-004: D3D11 game calling xrEndFrame on another thread than xrCreateSession (device not protected): multithread
+// protection turned on by the layer at the first frame (nothing copied on that frame), uploads (dynamic texture
+// and UpdateSubresource) done under the lock from then on. Own device: protection stays on for the device's life.
+void run_d3d11_thread(Layer& layer, App& app, ID3D11Device* device) {
+    static const uint8_t kChanged[4] = {255, 0, 255, 255};
+    ID3D11Device* const runtime_device = runtime.d3d11;
+    runtime.d3d11 = device;
+    runtime.formats = {DXGI_FORMAT_R8G8B8A8_UNORM_SRGB};
+    runtime.submitted_counts.clear();
+    CHECK(!multithread_protected(device));
+    XrGraphicsBindingD3D11KHR binding = {};
+    binding.type = XR_TYPE_GRAPHICS_BINDING_D3D11_KHR;
+    binding.device = device;
+    app.write(256, 128, true, false);  // 128 KB: whole image through the dynamic texture
+    XrSession session = create_session(layer, &binding);
+    std::vector<XrResult> results;
+    frames_on_thread(device, [&] {
+        for (int frame = 0; frame < 2; ++frame) {
+            results.push_back(submit_frame(layer, session));
+        }
+    });
+    CHECK(multithread_protected(device));
+    CHECK(results.size() == 2 && results[0] == XR_SUCCESS && results[1] == XR_SUCCESS);
+    CHECK(runtime.submitted_counts.size() == 2);
+    if (runtime.submitted_counts.size() == 2) {
+        CHECK(runtime.submitted_counts[0] == 1);  // protection turned on: nothing copied, game frame alone
+        CHECK(runtime.submitted_counts[1] == 2);
+    }
+    FakeSwapchain* swapchain = quad_swapchain();
+    CHECK(swapchain != nullptr && swapchain->last_released >= 0);
+    if (swapchain != nullptr && swapchain->last_released >= 0) {
+        check_pixels(read_released(swapchain), swapchain->info.width, 256, 128, false, false);
+        // Small rect (UpdateSubresource): images never filled get the whole image, then this one only the rect
+        const int first = swapchain->last_released;
+        results.clear();
+        runtime.submitted_counts.clear();
+        frames_on_thread(device, [&] {
+            for (int frame = 0; frame < 3; ++frame) {
+                app.write_dirty(0, 0, 4, 2, kChanged);
+                results.push_back(submit_frame(layer, session));
+            }
+        });
+        CHECK(results.size() == 3 && std::all_of(results.begin(), results.end(), [](XrResult r) { return r == XR_SUCCESS; }));
+        CHECK(runtime.submitted_counts == std::vector<uint32_t>({2, 2, 2}));
+        CHECK(swapchain->last_released == first);
+        const std::vector<uint8_t> pixels = read_released(swapchain);
+        CHECK(pixel_is(pixels, swapchain->info.width, 1, 1, kChanged));
+        CHECK(pixel_is(pixels, swapchain->info.width, 3, 1, kChanged));
+    }
+    CHECK(app.header().layer_state == TPVR_LAYER_ACTIVE);
+    destroy_session(layer, session);
+    runtime.d3d11 = runtime_device;
+}
+
 // Full scenario on one graphics API
 void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, bool bgra, bool linear) {
     runtime.submitted_counts.clear();
@@ -1512,6 +1635,18 @@ void run_scenario(Layer& layer, App& app, const void* binding, uint32_t api_id, 
     runtime.runtime_failure = false;
     destroy_session(layer, session);
 
+    // Display time refused (the game's, while it loads): returned to the game, overlay never stopped for it
+    session = create_session(layer, binding);
+    CHECK(end_frame(layer, session) == 2);
+    runtime.time_invalid = true;
+    for (int frame = 0; frame < 5; ++frame) {
+        CHECK(submit_frame(layer, session) == XR_ERROR_TIME_INVALID);
+    }
+    runtime.time_invalid = false;
+    CHECK(end_frame(layer, session) == 2);
+    CHECK(header.layer_state != TPVR_LAYER_FAILED);
+    destroy_session(layer, session);
+
     run_tiles(layer, app, binding, bgra, linear);
     run_dirty(layer, app, binding, bgra, linear);
 }
@@ -1555,6 +1690,18 @@ int main(int argc, char** argv) {
         std::printf("D3D11 (B8G8R8A8_UNORM)\n");
         runtime.formats = {DXGI_FORMAT_R16G16B16A16_FLOAT, DXGI_FORMAT_B8G8R8A8_UNORM};
         run_scenario(layer, app, &binding, TPVR_GRAPHICS_D3D11, true, true);
+        CHECK(!multithread_protected(d3d11));  // xrEndFrame on the session thread: device left as the game made it
+        std::printf("D3D11 (xrEndFrame on another thread)\n");
+        ID3D11Device* threaded = nullptr;
+        if (SUCCEEDED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION,
+                                        &threaded, nullptr, nullptr)) ||
+            SUCCEEDED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0, nullptr, 0, D3D11_SDK_VERSION,
+                                        &threaded, nullptr, nullptr))) {
+            run_d3d11_thread(layer, app, threaded);
+            threaded->Release();
+        } else {
+            CHECK(threaded != nullptr);
+        }
     } else {
         std::printf("D3D11: SKIPPED (no device)\n");
         ++skipped;

@@ -360,9 +360,9 @@ Item {
                 width: hoverText.implicitWidth + theme.padCard
                 height: hoverText.implicitHeight + 2
                 radius: height / 2
-                color: theme.raised
+                color: theme.surfaceFlyout  // floating label over the timeline: flyout surface
                 border.width: 1
-                border.color: timeline.hoverKey !== "" ? theme.strokeStrong : theme.border
+                border.color: timeline.hoverKey !== "" ? theme.strokeStrong : theme.strokeSubtle
                 Text {
                     id: hoverText
                     anchors.centerIn: parent

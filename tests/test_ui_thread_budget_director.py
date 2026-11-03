@@ -10,9 +10,10 @@ from functools import partial
 
 from neopedal.process.game_info import Contact
 from neopedal.ui.quick import director_game as dgame
+from tests._speed import budget
 from tests.test_broadcast_director import TRACK, car, director_page, race_answers  # noqa: F401
 
-UI_BUDGET = 0.05  # seconds an answer may hold the UI thread
+UI_BUDGET = budget(0.05)  # seconds an answer may hold the UI thread (scaled by this machine's speed)
 CARS = 60
 CLASSES = ("Hyper", "LMP2", "GT3")
 

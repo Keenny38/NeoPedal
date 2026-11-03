@@ -18,14 +18,12 @@ TpPopup {
     readonly property bool dirty: nameField.text !== savedName || expressionField.text !== savedExpression
                                   || unitField.text !== savedUnit
 
-    parent: Overlay.overlay  // centered on page, wherever it is declared
+    anchors.centerIn: overlayItem  // in the middle of the window, wherever it is declared (TpPopup)
     modal: true
     // Typed changes: neither a click beside nor Esc closes it at once (Esc asks, see contentItem keys)
     closePolicy: dirty ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    width: Math.min((parent ? parent.width : theme.em * 50) - theme.em * 4, theme.em * 46)
-    height: Math.min((parent ? parent.height : theme.em * 40) - theme.em * 4, theme.em * 40)
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
+    width: Math.min((overlayItem ? overlayItem.width : theme.em * 50) - theme.em * 4, theme.em * 46)
+    height: Math.min((overlayItem ? overlayItem.height : theme.em * 40) - theme.em * 4, theme.em * 40)
     onOpened: edit(null)
 
     // Form filled with math channel (null: new one)

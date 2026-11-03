@@ -2,7 +2,7 @@
 
 The **Race Calculator** plans fuel, virtual energy and tyres of a race on one page: pit stop plan lap by lap, safety car and rain scenarios, several drivers, strategy comparison, and a live plan that follows the race. It replaces the former Fuel Calculator and Tyre Strategy Planner.
 
-Open it with the `Race` entry of the navigation bar, or `Tools` > `Race Calculator`.
+Open it with the `Race` entry of the navigation bar, or the `Tools` page.
 
 ![Race calculator: safety car, 2 drivers, strategy and pit stop plan](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.20.0-race-calculator.png)
 

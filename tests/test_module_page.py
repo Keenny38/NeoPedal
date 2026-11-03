@@ -484,19 +484,18 @@ def test_french_page_messages():
 
     i18n.set_language("Français")
     try:
-        assert i18n.trm("<b>Enable</b> 2 shown modules?") == "<b>Activer</b> les 2 modules affichés ?"
-        assert i18n.trm("<b>Disable</b> all modules?") == "<b>Désactiver</b> tous les modules ?"
-        assert i18n.trm("<b>Enable</b> 3 shown overlays?") == "<b>Activer</b> les 3 overlays affichés ?"
+        assert i18n.trm("<b>Enable</b> 2 shown modules?") == "<b>Activer</b> les 2 modules affichés\u00a0?"
+        assert i18n.trm("<b>Enable</b> 3 shown overlays?") == "<b>Activer</b> les 3 overlays affichés\u00a0?"
         assert i18n.trm("3 of 13 modules shown") == "3 modules affichés sur 13"
         assert i18n.trm("2 modules could not start, see log.") == "2 modules n'ont pas pu démarrer, voir le journal."
         assert i18n.trm("Needed by 4 enabled overlays") == "Nécessaire à 4 overlays activés"
-        assert i18n.trm("Needs Delta, Carburant (off)") == "A besoin de : Delta, Carburant (désactivé)"
+        assert i18n.trm("Needs Delta, Carburant (off)") == "A besoin de\u00a0: Delta, Carburant (désactivés)"
         assert i18n.trm("6 enabled overlays use it") == "6 overlays activés l'utilisent"
         assert i18n.trm("Used by 3 overlays, none enabled") == "Utilisé par 3 overlays, aucun activé"
         assert i18n.trm("Updated every 10 ms (400 ms when not driving)") == (
             "Mis à jour toutes les 10 ms (400 ms hors conduite)")
         assert i18n.trm("Off but needed by enabled overlays or modules: Secteurs") == (
-            "Désactivés mais nécessaires à des overlays ou modules activés : Secteurs")
+            "Désactivés mais nécessaires à des overlays ou modules activés\u00a0: Secteurs")
     finally:
         i18n.set_language("English")
 

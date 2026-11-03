@@ -24,6 +24,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from .i18n import tr_overlay
+
 
 def pass_value(v: float) -> float:
     """Pass value"""
@@ -215,7 +217,7 @@ def set_symbol_power(unit_name: str = "Kilowatt") -> str:
     if unit_name == "Horsepower":
         return "hp"
     if unit_name == "Metric Horsepower":
-        return "ps"
+        return tr_overlay("ps")  # "ch" in French
     return "kW"
 
 

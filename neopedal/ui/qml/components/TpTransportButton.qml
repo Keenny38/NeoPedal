@@ -57,7 +57,7 @@ AbstractButton {
             size: control.primary ? theme.em * 1.35 : theme.em
             color: control.primary ? theme.accentInk : control.current ? theme.accent : theme.text
         }
-        Text {
+        TpText {
             visible: control.caption !== ""
             anchors.right: parent.right
             anchors.bottom: parent.bottom

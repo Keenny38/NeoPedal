@@ -7,8 +7,11 @@
  * context, called from xrEndFrame on the game's render thread. Small rects by UpdateSubresource; big ones (a
  * whole atlas: up to 4 MB) through a dynamic texture (Map WRITE_DISCARD never waits, copied on the GPU), as an
  * UpdateSubresource of a few MB made the driver block the render thread (up to 28 ms). Neither changes any
- * pipeline state, nothing to save or restore. A game that turned on D3D11 multithread protection (xrEndFrame
- * on another thread) gets the context locked the same way.
+ * pipeline state, nothing to save or restore. A game that turned on D3D11 multithread protection gets the
+ * context locked the same way. OpenXR lets a D3D11 game call xrEndFrame on another thread than the one using
+ * the immediate context (submission thread): when xrEndFrame runs on another thread than xrCreateSession and
+ * the device is not protected, protection is turned on once for the device (the game's own calls then take
+ * the lock too) and that frame copies nothing. Same thread (most games): nothing changed, no lock.
  */
 
 #include "graphics.h"
@@ -30,9 +33,30 @@ const FormatCandidate kFormats[] = {
 
 constexpr uint64_t kDynamicBytes = 64u * 1024u;  // rects from this size copied through the dynamic texture
 
+// Device critical section held for the scope (nothing done when multithread is nullptr)
+class ContextLock {
+public:
+    explicit ContextLock(ID3D11Multithread* multithread) : multithread_(multithread) {
+        if (multithread_ != nullptr) {
+            multithread_->Enter();
+        }
+    }
+    ~ContextLock() {
+        if (multithread_ != nullptr) {
+            multithread_->Leave();
+        }
+    }
+    ContextLock(const ContextLock&) = delete;
+    ContextLock& operator=(const ContextLock&) = delete;
+
+private:
+    ID3D11Multithread* multithread_;
+};
+
 class D3D11Backend final : public GraphicsBackend {
 public:
-    explicit D3D11Backend(ID3D11Device* device) : device_(device) {
+    // Made in xrCreateSession: its thread taken as the one using the immediate context
+    explicit D3D11Backend(ID3D11Device* device) : device_(device), session_thread_(GetCurrentThreadId()) {
         device_->AddRef();
         device_->GetImmediateContext(&context_);
         if (context_ != nullptr &&
@@ -111,18 +135,32 @@ private:
             return false;
         }
         const uint8_t* first = pixels + (static_cast<size_t>(rect.y) * width + rect.x) * 4u;
-        const bool lock = multithread_ != nullptr && multithread_->GetMultithreadProtected() != FALSE;
-        if (lock) {
-            multithread_->Enter();
+        const bool protect = multithread_ != nullptr && multithread_->GetMultithreadProtected() != FALSE;
+        if (!protect && multithread_ != nullptr && !protection_refused_ && GetCurrentThreadId() != session_thread_) {
+            if (protect_device()) {
+                return false;  // a game call may have started without the lock: copied on the next frame
+            }
         }
+        const ContextLock lock(protect ? multithread_ : nullptr);
         const bool big = static_cast<uint64_t>(rect.width) * rect.height * 4u >= kDynamicBytes;
         if (!big || !copy_dynamic(textures_[image_index], first, width, rect)) {
             const D3D11_BOX box = {rect.x, rect.y, 0, rect.x + rect.width, rect.y + rect.height, 1};
             context_->UpdateSubresource(textures_[image_index], 0, &box, first, width * 4u, 0);
         }
-        if (lock) {
-            multithread_->Leave();
+        return true;
+    }
+
+    // xrEndFrame on another thread than xrCreateSession, device not protected: multithread protection turned on
+    // (kept for the device's life, the game may rely on it from now on). False when the device refuses it
+    // (device made single threaded): copies then done as before, without lock.
+    bool protect_device() {
+        multithread_->SetMultithreadProtected(TRUE);
+        if (multithread_->GetMultithreadProtected() == FALSE) {
+            protection_refused_ = true;
+            log_message("D3D11: xrEndFrame not on the session thread, multithread protection refused");
+            return false;
         }
+        log_message("D3D11: xrEndFrame not on the session thread, multithread protection turned on");
         return true;
     }
 
@@ -189,6 +227,8 @@ private:
     ID3D11Device* device_;
     ID3D11DeviceContext* context_ = nullptr;
     ID3D11Multithread* multithread_ = nullptr;
+    const DWORD session_thread_;  // thread of xrCreateSession
+    bool protection_refused_ = false;
     std::vector<ID3D11Texture2D*> textures_;
     DXGI_FORMAT format_ = DXGI_FORMAT_UNKNOWN;
     ID3D11Texture2D* dynamic_ = nullptr;

@@ -290,13 +290,14 @@ def test_storage_without_ranks_not_read_again_for_online_ranks(tmp_path, monkeyp
     watcher.check()
     assert len(reads) == 1 and watcher.online and len(located) == 1
     clock[0], wall[0] = dr.ONLINE_SECONDS, NOON + 300
-    watcher.check()  # online ranks read again, file unchanged: neither read nor game located again
-    assert len(online.fetched) == 2 and len(reads) == 1 and len(located) == 1
+    watcher.check()  # online ranks read again, file unchanged: not read (game located again only when due)
+    extra = int(dr.ONLINE_SECONDS >= dr.LOCATE_FOUND_SECONDS)
+    assert len(online.fetched) == 2 and len(reads) == 1 and len(located) == 1 + extra
     path = tmp_path / dr.STORAGE_FILE
     os.utime(path, (NOON + 400, NOON + 400))  # game wrote file (no ranks there): only a sign the game ran
     clock[0] += dr.CHECK_SECONDS
     watcher.check()
-    assert len(reads) == 1 and len(located) == 2 and watcher.online  # account looked for again, file not read
+    assert len(reads) == 1 and len(located) == 2 + extra and watcher.online  # account looked for again, not read
     online.on = False  # online ranks dropped: file read again
     clock[0] += dr.CHECK_SECONDS
     watcher.check()
@@ -438,12 +439,14 @@ def test_failed_sign_in_counted_once_for_waiting_callers():
 
 
 def test_token_of_last_sign_in_while_another_runs():
-    client, http, ticket, _clock = make_client()
+    client, http, ticket, clock = make_client()
     http.answers["POST"].extend([(200, AUTH), (200, {**AUTH, "accessToken": "token-2"})])
     assert client.fetch(STEAM) is not None
+    assert client.fetch(STEAM) is not None and len(http.calls) == 1  # recent sign in: its answer reused
+    clock[0] += raceos.SIGN_IN_SECONDS
     ticket.blocking = True
     results: dict = {}
-    reader = run_thread(lambda: client.fetch(STEAM), results, "fetch")
+    reader = run_thread(lambda: client.fetch(STEAM, 0.0), results, "fetch")
     assert ticket.entered.wait(5)
     assert client.token(STEAM) == "token-1"  # valid token given at once
     ticket.release.set()

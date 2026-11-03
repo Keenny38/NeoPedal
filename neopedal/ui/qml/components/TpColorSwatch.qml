@@ -35,7 +35,7 @@ AbstractButton {
         Behavior on border.color { ColorAnimation { duration: theme.motionFast } }
         FocusRing { visible: swatch.visualFocus }
     }
-    contentItem: Text {
+    contentItem: TpText {
         visible: swatch.color === ""
         text: "?"
         textFormat: Text.PlainText

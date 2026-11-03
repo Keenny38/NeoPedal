@@ -12,13 +12,13 @@ import "../components"
 TpPopup {
     id: popup
     objectName: "graphicsPopup"
-    width: Math.min(theme.em * 34, (Overlay.overlay ? Overlay.overlay.width : theme.em * 36) - theme.em * 2)
+    width: Math.min(theme.em * 34, (overlayItem ? overlayItem.width : theme.em * 36) - theme.em * 2)
     onOpened: backend.graphics.checkGraphics()
 
     readonly property var graphics: backend.graphics.graphicsSettings
     property int tab: 0
     property var partial: []  // graphics of a source with some graphics only
-    readonly property real maxTabHeight: Math.max(theme.em * 16, (Overlay.overlay ? Overlay.overlay.height : theme.em * 50) - theme.em * 24)  // header, notice & buttons kept in the window
+    readonly property real maxTabHeight: Math.max(theme.em * 16, (overlayItem ? overlayItem.height : theme.em * 50) - theme.em * 24)  // header, notice & buttons kept in the window
 
     function togglePartial(key) {
         const list = popup.partial.slice()
@@ -45,7 +45,7 @@ TpPopup {
         showRange: true
         onEdited: function(value) { backend.graphics.setGraphic(key, value) }
     }
-    component Line: Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: theme.border }
+    component Line: Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: theme.strokeSubtle }  // divider token
     component Heading: TpSectionLabel { Layout.fillWidth: true }
     // On demand graphic: "Show" while hidden, "Hide" (checked) while shown: a second click hides it
     component ShowButton: TpButton {

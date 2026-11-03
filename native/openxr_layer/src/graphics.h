@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * Graphics API of the game session: uploads the overlay image into the layer's own swapchain images.
- * Called from xrEndFrame only (game render thread), with the session lock held.
+ * Called from xrEndFrame only (usually the game render thread, else see graphics_d3d11.cpp), with the
+ * session lock held. Backends are made in xrCreateSession.
  */
 
 #ifndef NEOPEDAL_GRAPHICS_H

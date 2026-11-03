@@ -506,19 +506,27 @@ def test_settings_host_without_optional_methods(ui_env):
 
 
 # Wave 2: dialogs over the page (answers by callback), page toasts, tokens
-def test_reset_section_asked_over_the_page(settings):
-    asked = []
-    settings.host.ask = lambda text, action, on_result: asked.append((text, action, on_result))
+def test_reset_section_without_question_undo_in_toast(settings):
+    """Reset is pending & undoable (UI/UX audit 2026-11-01): done at once, toast with Undo (no dialog)"""
+    undos = []
+    settings.host.ask = lambda text, action, on_result: pytest.fail("reset asked a question")
+    settings.host.toast_undo = lambda text, undo: undos.append((text, undo))
     settings.selectCategory("units")
     key = "preset:units/speed_unit"
     settings.setChoice(key, rows(settings)[key]["choices"].index("mph"))
     settings.apply()
     settings.resetCategory()
-    assert asked and asked[0][1] == "Reset Section" and not settings._pending  # nothing until answered
-    asked[0][2](False)
-    assert not settings._pending
-    asked[0][2](True)
-    assert settings._pending[key] == "KPH"
+    assert settings._pending[key] == "KPH" and len(undos) == 1
+    assert "reset to default" in undos[0][0] and "Save Button" not in undos[0][0]
+    undos[0][1]()
+    assert not settings._pending  # reset taken back
+    settings.resetCategory()
+    settings.setChoice(key, rows(settings)[key]["choices"].index("mph"))  # edited after the reset
+    undos[-1][1]()
+    assert key not in settings._pending  # late Undo never takes a later edit back
+    settings.resetCategory()
+    settings.resetCategory()  # already default: nothing told
+    assert len(undos) == 3
 
 
 def test_preset_lock_and_repair_answered_by_callback(ui_env, monkeypatch):

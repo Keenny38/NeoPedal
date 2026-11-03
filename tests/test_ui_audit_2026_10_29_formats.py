@@ -67,7 +67,7 @@ def test_race_calculator_numbers_localized(french):
     from neopedal.ui.quick import race_results
 
     assert race_results.DASH == MISSING
-    assert race_results.trm_number("1.5 s behind ") == "à 1,5 s derrière "  # message rules, then comma
+    assert race_results.trm_number("1.5 s behind ") == "1,5 s derrière "  # message rules, then comma
     tile = race_results.tyre_life(100.0, 4.0, 0.0, 0, 90.0)
     assert tile["laps"] == "25,00" and tile["stints"] == MISSING
     source = qml("..", "quick", "race_results.py")

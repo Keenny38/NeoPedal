@@ -120,7 +120,7 @@ class SectionFeed(DirectorFeed):
             self._asked = time.monotonic()
             if after > self._version:  # page opened again (versions from 0): everything
                 after = 0
-            if 0 < after == self._version:
+            elif after == self._version:  # nothing new (nothing published yet too): waits for a change
                 self._condition.wait(timeout)
             if after <= 0:
                 return self._version, dict(self._sections), True

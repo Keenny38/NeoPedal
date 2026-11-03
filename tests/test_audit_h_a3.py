@@ -390,6 +390,7 @@ def test_track_map_predictions_in_update(widgets, monkeypatch, modern):
 
     monkeypatch.setattr(widget, "pitout_predictions", predictions)
     monkeypatch.setattr(minfo.vehicles, "playerIndex", 0)
+    monkeypatch.setattr(minfo.vehicles, "totalVehicles", 1)  # player car in the session (B-022: cars counted)
     widget.timerEvent(None)
     assert widget.predictions == sample and len(calls) == 1
     widget.grab()

@@ -31,7 +31,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from typing import NamedTuple
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QDialog, QVBoxLayout
 
 from .. import app_signal, loader
@@ -277,10 +277,14 @@ class SetupWizard(QDialog):
             cfg.save(0, config_type=ConfigType.CONFIG)
 
     def release_page(self):
-        """Rendering stopped, QML gone before the backend it binds to"""
-        self.backend.stop_previews()
-        with suppress(RuntimeError):
-            self.view.setSource(QUrl())
+        """Rendering stopped, QML gone before the backend it binds to (view deleted by the event loop, never
+        unloaded by setSource(QUrl()): overlay pictures load asynchronously from the Python preview provider,
+        see lazy_page.release_view)"""
+        from .lazy_page import release_view
+
+        with suppress(RuntimeError):  # app quit after the wizard was deleted
+            self.backend.stop_previews()
+            release_view(self.view)
 
     def done(self, result: int):
         """Closed"""

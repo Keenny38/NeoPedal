@@ -1056,23 +1056,37 @@ class DemoSession:
             set_scenario(self.sim, self.data, self.minfo, scenario)
 
 
-_session: tuple[dict, str, DemoSession] | None = None
+SESSIONS_KEPT = 6  # sessions used before kept: previews going back & forth between situations make none again
+_session: tuple[dict, str, DemoSession] | None = None  # last used
+_kept: list[tuple[dict, str, DemoSession]] = []  # used before, most recent last
 
 
 def demo_session(standings: Mapping[str, Any], scenario: str = "") -> DemoSession:
-    """Simulated session (in race situation), made again only when standings setting or situation changes"""
+    """Simulated session (in race situation), made only for standings setting & situation not used lately (each
+    one builds a game API: a new one per preview of another situation logged its release & cost its build)"""
     global _session
     if scenario not in SCENARIOS:
         scenario = ""
-    if _session is None or _session[0] != standings or _session[1] != scenario:
-        _session = (dict(standings), scenario, DemoSession(standings, scenario))
-    return _session[2]
+    if _session is not None and _session[0] == standings and _session[1] == scenario:
+        return _session[2]
+    for index, kept in enumerate(_kept):
+        if kept[0] == standings and kept[1] == scenario:
+            found = _kept.pop(index)
+            break
+    else:
+        found = (dict(standings), scenario, DemoSession(standings, scenario))
+    if _session is not None:
+        _kept.append(_session)
+        del _kept[:-SESSIONS_KEPT]
+    _session = found
+    return found[2]
 
 
 def release_session():
-    """Simulated session dropped (no page draws pictures), made again when next needed"""
+    """Simulated sessions dropped (no page draws pictures), made again when next needed"""
     global _session
     _session = None
+    _kept.clear()
 
 
 def widget_modules() -> Iterator[Any]:

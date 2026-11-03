@@ -302,6 +302,7 @@ class MMapDataSet:
         Args:
             access_mode: 0 = copy access, 1 = direct access.
         """
+        _sync.warn_elevated_mapping((LMUConstants.LMU_SHARED_MEMORY_FILE,))
         self.shmm.create(access_mode)
 
     def close_mmap(self) -> None:

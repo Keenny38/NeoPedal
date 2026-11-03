@@ -24,11 +24,13 @@ sent to the game in background, in order (cuts of the director & operator go thr
 from __future__ import annotations
 
 import json
+import threading
 import time
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Property, QTimer, Signal, Slot
 
+from ... import loader
 from ...game_rest import GameRequest
 from ...game_rest_cache import rest_cache
 from ...i18n import tr
@@ -38,6 +40,33 @@ from .director_shared import GAME_UI_DELAY_MS, HUD_RESOURCE, REPLAY, SESSION, Di
 
 if TYPE_CHECKING:
     from .director_backend import DirectorBackend
+
+
+BACK_TO_LIVE_SECONDS = 5.0  # app closing: game sent back to live waited this long (replay batch ~4.6 s at most)
+_back_to_live: list[threading.Thread] = []  # threads of closed pages still sending the game back to the player
+
+
+def wait_back_to_live(timeout: float = BACK_TO_LIVE_SECONDS) -> bool:
+    """App closing: game sent back to live & to the player by closed pages waited (process end never leaves it in
+    the replay), False if still sending after timeout"""
+    deadline = time.monotonic() + timeout
+    for thread in tuple(_back_to_live):
+        thread.join(max(0.0, deadline - time.monotonic()))
+    _back_to_live[:] = [thread for thread in _back_to_live if thread.is_alive()]
+    return not _back_to_live
+
+
+def send_in_order(sending: threading.Lock, batch: tuple[gc.Command, ...], address: tuple[str, int] | None) -> bool:
+    """Batch of commands sent once the one on its way is done (background thread), True if all accepted"""
+    with sending:
+        return gc.send_commands(batch, address)
+
+
+def moves_camera(batch: tuple[gc.Command, ...]) -> bool:
+    """Batch changing the car followed or the camera of the game (cut, camera desk, instant replay), not only
+    replay playback or HUD parts"""
+    return any(callable(command) or command[1].startswith("/rest/watch/focus/") or command[1] == gc.SET_CAMERA_RESOURCE
+               for command in batch)
 
 
 def is_cut(batch: tuple[gc.Command, ...]) -> bool:
@@ -64,6 +93,8 @@ class CameraDesk(DirectorPart):
         self.command_queue: list[tuple[gc.Command, ...]] = []
         self._current: tuple[gc.Command, ...] | None = None  # batch on its way
         self._instant: tuple[gc.Command, ...] | None = None  # batch of the instant replay (its own answer tells)
+        self._sending = threading.Lock()  # one batch on the game at a time, in order (also once page closed)
+        self.moved = False  # car followed or camera of the game changed since the page opened (see moves_camera)
 
     def stop(self):
         """Page closed: commands not sent yet dropped"""
@@ -72,6 +103,7 @@ class CameraDesk(DirectorPart):
     def send_instant(self, *commands: gc.Command):
         """Batch of an instant replay: kept or ended by the answer of this batch (see command_done)"""
         self._instant = commands
+        self.moved = True
         self.command_queue.append(commands)  # this very batch (told apart from same commands sent later)
         self.send()
 
@@ -80,6 +112,18 @@ class CameraDesk(DirectorPart):
         on air in turn)"""
         self.command_queue[:] = [batch for batch in self.command_queue if not is_cut(batch)]
         self.send(*commands)
+
+    def send_closed(self, *commands: gc.Command):
+        """Page closed: game given back to the player (live session, player's car in cockpit) once the batch on its
+        way is done (background thread: page never waits). Waited when the app closes right after (see
+        wait_back_to_live)"""
+        self.command_queue.clear()
+        thread = threading.Thread(target=send_in_order, args=(self._sending, commands, self.page.game.game_address()),
+                                  daemon=True, name="Director back to live")
+        _back_to_live[:] = [running for running in _back_to_live if running.is_alive()]
+        _back_to_live.append(thread)
+        loader.on_close(wait_back_to_live)
+        thread.start()
 
     def answered(self, state: dict[str, Any]):
         """Camera & HUD parts told by a new answer of the game"""
@@ -105,12 +149,14 @@ class CameraDesk(DirectorPart):
         """Commands to game in background, in order, after commands sent before"""
         if commands:
             self.command_queue.append(commands)
+            self.moved = self.moved or moves_camera(commands)
         if self.request_command.busy or not self.command_queue:
             return
         batch = self.command_queue.pop(0)
         self._current = batch
         address = self.page.game.game_address()
-        self.request_command.start(lambda: gc.send_commands(batch, address))
+        sending = self._sending
+        self.request_command.start(lambda: send_in_order(sending, batch, address))
 
     def command_done(self, accepted: bool):
         for resource in (gc.ACTIVE_RESOURCE, gc.FOCUS_RESOURCE, gc.CAMERA_RESOURCE, HUD_RESOURCE):  # changed: asked again

@@ -4,6 +4,7 @@
 # tools/check.py refuses a push to master when the installed versions differ.
 # Update (after changing requirements-dev.txt or requirements-lock.txt, or to take newer tools):
 #    uv pip compile --universal --python-version 3.11 --no-annotate requirements-dev.txt -c requirements-lock.txt -o requirements-dev-lock.txt
+# (uv writes its own header: put these comment lines back)
 ast-serialize==0.13.1
 cffi==2.1.1 ; platform_python_implementation != 'PyPy'
 cfgv==3.5.0
@@ -32,6 +33,7 @@ pyside6-addons==6.11.2
 pyside6-essentials==6.11.2
 pytest==9.2.0
 pytest-cov==7.1.0
+pytest-rerunfailures==16.7
 pytest-timeout==2.4.0
 pytest-xdist==3.8.0
 python-discovery==1.9.0

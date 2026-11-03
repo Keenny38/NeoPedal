@@ -309,7 +309,7 @@ class TyreTab(RaceBase):
                 info = self.tyres.cells[row_index][corner] if row_index < len(self.tyres.cells) else {}
                 line.append(f"{info['remaining'] * 100:.2f} - {max(info['end'], 0.0) * 100:.2f}" if info else "0.0")
             seconds = self.tyres.change_times[row_index] if row_index < len(self.tyres.change_times) else 0.0
-            line.append(f"{seconds:+.1f}s" if seconds > 0 else tr("N/A"))
+            line.append(f"{seconds:+.1f}s" if seconds > 0 else "N/A")  # data file: English like its headers
             plan_data.append(line)
         filepath = os.path.dirname(filename_full) + "/"
         try:
@@ -340,6 +340,9 @@ class TyreTab(RaceBase):
     def received_allocation(self, answers: list):
         allocation = game_tyre_allocation(answers[0])
         self.tyre_request.busy = False
+        if not self.game_data:  # turned off while asked: tyre rules left as they are
+            self.tyresChanged.emit()
+            return
         if allocation is None:
             self.tyresChanged.emit()
             self.host.toast(tr("No tyre allocation from game: LMU not running or not in a session"))

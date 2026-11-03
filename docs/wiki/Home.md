@@ -4,7 +4,7 @@ NeoPedal is a free, open-source telemetry overlay and analysis app for **Le Mans
 
 The app is built with PySide6 (Qt 6) and runs in English or French.
 
-![93 overlays with the modern design, on a simulated race at Road Atlanta](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_preview.png)
+![The 93 overlays with the modern design by category, on a simulated race at Road Atlanta](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_preview_wide.png)
 
 ## Key features
 
@@ -34,6 +34,7 @@ The app is built with PySide6 (Qt 6) and runs in English or French.
 | [Race Calculator](Race-Calculator.md) | Fuel, energy and tyre strategy, live race, Race plan overlay |
 | [Driver Stats](Driver-Stats.md) | Career, levels, progression, sessions |
 | [Results & Replays](Race-Results.md) | Classification, positions lap by lap, laps and events of every session, game replays linked to them |
+| [Upcoming Races](Upcoming-Races.md) | Online races of Le Mans Ultimate to come: daily, weekly, special, championships, co-op, hosted servers, Safety Rank needed |
 | [Broadcast Director](Broadcast-Director.md) | Cast a Le Mans Ultimate race: director, cameras, commentator screen, broadcast graphics for your stream |
 | [Connections](Connections.md) | Remote control, WebSocket, web dashboard, stream overlays, VR, session recorder, game replays |
 | [Updates and Security](Updates-and-Security.md) | In-app updates, release files, verifying downloads, reporting a vulnerability |
@@ -47,7 +48,7 @@ Every option of every overlay, module and tool is described in the [settings ref
 - [Download the latest release](https://github.com/Keenny38/NeoPedal/releases/latest) and [all releases](https://github.com/Keenny38/NeoPedal/releases)
 - [Issues](https://github.com/Keenny38/NeoPedal/issues): bug reports and ideas
 - [Changelog](https://github.com/Keenny38/NeoPedal/blob/master/CHANGELOG.md) (English) and [CHANGELOG.fr.md](https://github.com/Keenny38/NeoPedal/blob/master/CHANGELOG.fr.md) (French)
-- [Patreon](https://www.patreon.com/cw/keenny38): support NeoPedal
+- [Patreon](https://www.patreon.com/cw/keenny38) and [Ko-fi](https://ko-fi.com/neopedal): support NeoPedal
 - [Contributing](https://github.com/Keenny38/NeoPedal/blob/master/CONTRIBUTING.md)
 - [Security policy](https://github.com/Keenny38/NeoPedal/blob/master/SECURITY.md): report vulnerabilities privately, never in a public issue
 

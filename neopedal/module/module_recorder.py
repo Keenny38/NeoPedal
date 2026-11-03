@@ -127,7 +127,7 @@ class Realtime(DataModule):
             saver=save_lap_background,
             filepath=self.cfg.path.telemetry,
             min_lap_fraction=min(max(mcfg["minimum_lap_distance_percentage"], 0), 100) / 100,
-            max_saved_laps=max(int(mcfg["number_of_saved_laps_per_track"]), 1),
+            max_saved_laps=max(int(mcfg["number_of_saved_laps_per_track"]), 0),  # 0: no limit
             save_invalid=mcfg["save_invalid_laps"],
             keep_best=max(int(mcfg["number_of_best_laps_kept_per_track"]), 0),
             save_out_in=mcfg["enable_out_and_in_lap_recording"],
@@ -789,7 +789,10 @@ def remove_old_laps(folder: str, max_saved_laps: int, keep_best: int = 0):
     """Remove oldest recorded laps over limit (per track & class folder), fastest valid laps & kept laps are kept
 
     A lap that cannot be removed (open in lap viewer) is skipped, next oldest one is removed instead.
+    No lap removed if limit is 0 (no limit).
     """
+    if max_saved_laps <= 0:
+        return
     try:
         laps = lap_files(folder)
         if len(laps) <= max_saved_laps:

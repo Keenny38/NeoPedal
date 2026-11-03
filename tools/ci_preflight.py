@@ -7,6 +7,8 @@ matrix (3 Python versions x 2 OS), not only this PC. Uses a temporary git index:
 the current branch stay as they are (other sessions can keep editing). Run it at the end of each working day and
 before writing a release commit: tools/check.py refuses to push a release commit to master whose code had no
 passed Checks (0.28.0: nine days of work met the CI the night of the release, nine red runs).
+Failed only on tests marked runner_flaky: the failed jobs run again once (tools/release.py rerun_flaky).
+python tools/release.py --preflight does the same, then offers to write the release commit.
 
 Usage (from project root, GitHub CLI logged in):
     python tools/ci_preflight.py             snapshot, push, start Checks and wait for the result
@@ -20,12 +22,13 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import os
+import shutil
 import subprocess
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from release import REPO, checks_state, follow, gh_json
+from release import REPO, checks_runs, checks_state, follow, gh_json, rerun_flaky
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BRANCH_PREFIX = "preflight/"
@@ -47,7 +50,13 @@ def snapshot() -> tuple[str, list[str]]:
     index = os.path.join(ROOT, git("rev-parse", "--git-path", "preflight-index"))
     env = {"GIT_INDEX_FILE": index}
     try:
-        git("read-tree", "HEAD", env=env)
+        # Copy of the index: executable bits staged with update-index --chmod kept (core.fileMode off on Windows:
+        # add keeps the mode of the index entry, a tree read from HEAD would drop them)
+        staged = os.path.join(ROOT, git("rev-parse", "--git-path", "index"))
+        if os.path.exists(staged):
+            shutil.copyfile(staged, index)
+        else:
+            git("read-tree", "HEAD", env=env)
         git("add", "--all", ".", env=env)
         tree = git("write-tree", env=env)
         added = git("diff", "--cached", "--name-only", "--diff-filter=A", "HEAD", env=env).splitlines()
@@ -107,6 +116,43 @@ def prune_branches(current: str) -> None:
         git("push", "--quiet", "origin", "--delete", branch, check=False)
 
 
+def run_preflight(yes: bool = False, wait: bool = True) -> tuple[int, str]:
+    """Snapshot of the working tree, pushed to a preflight branch, Checks started on it & followed (failed jobs
+    of tests marked runner_flaky run again once): exit status (0: passed, or started without wait) & snapshot"""
+    sha, untracked = snapshot()
+    base = passed_base(sha)
+    if base:
+        print(f"Checks already passed on this code ({base[:7]}): nothing to run")
+        return 0, sha
+
+    if untracked:
+        print(f"New files included ({len(untracked)}), not in git yet:")
+        print("\n".join(f"  {path}" for path in untracked))
+        if not yes and input("Include them and push to GitHub? [y/N] ").strip().lower() not in (
+                "y", "yes", "o", "oui"):
+            print("Cancelled: add the files to .gitignore, or run again")
+            return 1, sha
+    branch = f"{BRANCH_PREFIX}{time.strftime('%Y-%m-%d-%H%M%S')}"
+    git("push", "--quiet", "origin", f"{sha}:refs/heads/{branch}")
+    run_id = start_checks(branch)
+    print(f"Checks on {branch} ({sha[:7]}): https://github.com/{REPO}/actions/runs/{run_id}")
+    prune_branches(branch)
+    if not wait:
+        return 0, sha
+    conclusion = follow(run_id)
+    if conclusion == "failure":
+        runs = checks_runs(sha)
+        if runs and rerun_flaky(runs[0]):
+            conclusion = follow(run_id)
+    if conclusion == "success":
+        print(f"\nChecks passed: this code can go to master and into a release ({sha[:7]})")
+        return 0, sha
+    _, failed = checks_state(sha)
+    print(f"\nChecks {conclusion}: {', '.join(failed)}")
+    print(f"Failed tests: gh run view {run_id} --repo {REPO} --log-failed")
+    return 1, sha
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     parser.add_argument("--no-wait", action="store_true", help="start Checks, do not wait for the result")
@@ -115,37 +161,11 @@ def main() -> int:
     options = parser.parse_args()
 
     subprocess.run(["gh", "auth", "status"], cwd=ROOT, capture_output=True, check=True)
-    sha, untracked = snapshot()
-    base = passed_base(sha)
     if options.status:
+        base = passed_base(snapshot()[0])
         print(f"Code passed Checks on {base[:7]}" if base else "Checks never passed on this code: run tools/ci_preflight.py")
         return 0 if base else 1
-    if base:
-        print(f"Checks already passed on this code ({base[:7]}): nothing to run")
-        return 0
-
-    if untracked:
-        print(f"New files included ({len(untracked)}), not in git yet:")
-        print("\n".join(f"  {path}" for path in untracked))
-        if not options.yes and input("Include them and push to GitHub? [y/N] ").strip().lower() not in (
-                "y", "yes", "o", "oui"):
-            print("Cancelled: add the files to .gitignore, or run again")
-            return 1
-    branch = f"{BRANCH_PREFIX}{time.strftime('%Y-%m-%d-%H%M%S')}"
-    git("push", "--quiet", "origin", f"{sha}:refs/heads/{branch}")
-    run_id = start_checks(branch)
-    print(f"Checks on {branch} ({sha[:7]}): https://github.com/{REPO}/actions/runs/{run_id}")
-    prune_branches(branch)
-    if options.no_wait:
-        return 0
-    conclusion = follow(run_id)
-    if conclusion == "success":
-        print(f"\nChecks passed: this code can go to master and into a release ({sha[:7]})")
-        return 0
-    _, failed = checks_state(sha)
-    print(f"\nChecks {conclusion}: {', '.join(failed)}")
-    print(f"Failed tests: gh run view {run_id} --repo {REPO} --log-failed")
-    return 1
+    return run_preflight(options.yes, not options.no_wait)[0]
 
 
 if __name__ == "__main__":

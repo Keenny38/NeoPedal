@@ -31,7 +31,7 @@ from typing import NamedTuple
 
 from .. import units
 from ..calculation import sec2laptime_full
-from ..i18n import localized, tr, trm
+from ..i18n import localized, percent_sign, tr, trm
 from ..setting import cfg
 from ..userfile.driver_history import SessionRecord, load_history
 from ..userfile.driver_stats import load_driver_stats
@@ -92,7 +92,23 @@ def read_session_history(record: SessionRecord, goal: float = 0.0) -> tuple[Debr
     """Debrief of the last session & the whole session history read for it (Home "This week" card made from
     the same records: one disk pass), worker thread"""
     records = load_history(cfg.path.config)
-    return read_debrief(record, goal, records), records
+    return read_debrief(record, goal or auto_goal(record.track, record.vehicle), records), records
+
+
+def auto_goal(track: str, vehicle: str) -> float:
+    """Automatic lap time goal of driver stats page (next level of community lap times), 0 if none (worker
+    thread: stats file & community lap times read, never downloaded)"""
+    from ..const_file import FileExt, StatsFile
+    from ..userfile import read_json
+    from .quick.stats_analysis import next_level_goals, reference_table
+    from .quick.stats_common import CONFIG_NAME
+
+    stats_user = read_json(f"{cfg.path.config}{StatsFile.DRIVER}{FileExt.STATS}", strict=False, dict_only=True)
+    if not stats_user or not isinstance(stats_user.get(track), dict) or vehicle not in stats_user[track]:
+        return 0.0
+    enabled = bool(cfg.user.config.get(CONFIG_NAME, {}).get("enable_lap_reference", True))
+    goals = next_level_goals({track: {vehicle: stats_user[track][vehicle]}}, reference_table(cfg.path.config, enabled))
+    return goals.get(f"{track}|{vehicle}", 0.0)
 
 
 def read_debrief(record: SessionRecord, goal: float = 0.0, records: list[SessionRecord] | None = None) -> DebriefData:
@@ -139,15 +155,16 @@ def cause_text(kind: str, value: float) -> str:
 
 def goal_text(progress: GoalProgress) -> str:
     """Goal line: lap time goal, then reached or time still to find with progress"""
-    line = f"{tr('Goal')} {sec2laptime_full(progress.goal)}"
+    goal = sec2laptime_full(progress.goal)
     if progress.reached:
-        return f"{line}: {tr('reached')}"
+        return tr("Goal %1: reached").replace("%1", goal)
     if progress.gap > 0:
-        text = f"{seconds_text(progress.gap).lstrip('+')} {tr('to find')}"
+        gap = seconds_text(progress.gap).lstrip("+")
         if progress.ratio >= 0:
-            text += f" ({localized(f'{progress.ratio * 100:.0f}')}%)"
-        return f"{line}: {text}"
-    return line
+            return tr("Goal %1: %2 to find (%3%)").replace("%1", goal).replace("%2", gap).replace(
+                "%3", localized(f"{progress.ratio * 100:.0f}"))
+        return tr("Goal %1: %2 to find").replace("%1", goal).replace("%2", gap)
+    return tr("Goal %1").replace("%1", goal)
 
 
 def goal_card(progress: GoalProgress) -> dict:
@@ -159,7 +176,7 @@ def goal_card(progress: GoalProgress) -> dict:
         "state": "reached" if progress.reached else "gap" if gap > 0 else "",
         "gap": f"{seconds_text(gap).lstrip('+')} {tr('to find')}" if gap > 0 else "",
         "ratio": progress.ratio,
-        "percent": f"{localized(f'{progress.ratio * 100:.0f}')}%" if progress.ratio >= 0 else "",
+        "percent": f"{localized(f'{progress.ratio * 100:.0f}')}{percent_sign()}" if progress.ratio >= 0 else "",
         "text": goal_text(progress),  # screen readers
     }
 

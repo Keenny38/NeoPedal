@@ -79,7 +79,7 @@ def test_config_dialog_search_and_french(ui_env):
             for row in range(dialog.layout_option.rowCount())
             if dialog.layout_option.itemAtPosition(row, 0)
         ]
-        assert "Couleur du texte : vitesse" in labels
+        assert "Couleur du texte\u00a0: vitesse" in labels
         dialog.edit_search.setText("couleur vitesse")
         shown = [key for key, editor in dialog.option_edit.items() if not editor.isHidden()]
         assert "font_color_speed" in shown and "update_interval" not in shown

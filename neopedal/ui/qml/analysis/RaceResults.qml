@@ -8,6 +8,7 @@ import "../components"
 // (races), laps of a car, session events, and the replay tab (game replay or live session: playback, camera,
 // incidents, standings, map). Session with a replay: watch it, or an event or a lap of it, in the game.
 // Replay picked: results of its session shown. F5: read files & ask game again.
+// Online list (LMU): races you drove online read from RaceControl ("online", see OnlineResults & OnlineResultView).
 // The replay tab shows under a session only when the game saved its replay, and plays only that replay there
 // (another replay or the live session: a button opens the session's replay instead). The replays list always
 // has the player (game replay or live session).
@@ -15,6 +16,8 @@ TpPage {
     id: page
 
     readonly property bool wide: width > theme.bpWide
+    // Narrow page (list above the details): the list can fold to its tabs, the details then take the height
+    property bool listFolded: false
     readonly property var header: backend.sessionHeader
     readonly property int replayTab: 4
     // Tabs shown (backend: 0 classification, 1 positions, 2 laps, 3 events, 4 replay): positions for races, replay
@@ -23,6 +26,10 @@ TpPage {
                                      i18n.tr("Events"), i18n.tr("Replay")]
     readonly property var tabKeys: backend.tabKeys
     readonly property var tabTexts: tabKeys.map(function(key) { return page.tabNames[key] })
+    readonly property var tabModel: tabTexts.map(function(text) { return { "text": text } })
+    readonly property var listTabs: [{ "text": i18n.tr("Sessions") }, { "text": i18n.tr("Replays") },
+                                     { "text": i18n.tr("Online") }]
+    readonly property bool onlineShown: backend.listMode === 2
     readonly property int tab: backend.shownTab
     // Replay saved by the game for the session shown, and whether the game plays it (opened from this page)
     readonly property string sessionReplay: header.replay || ""
@@ -50,29 +57,53 @@ TpPage {
             Layout.fillHeight: page.wide
             Layout.fillWidth: !page.wide
             Layout.preferredWidth: page.wide ? Math.min(Math.max(page.width * 0.3, theme.em * 24), theme.em * 34) : -1
-            Layout.preferredHeight: page.wide ? -1 : page.height * 0.34
+            Layout.preferredHeight: page.wide ? -1 : page.listFolded ? listMode.implicitHeight + theme.padCard * 2
+                                                                     : page.height * 0.34
             ColumnLayout {
                 anchors.fill: parent
                 spacing: 0
-                TpSegmented {
+                // Two lists of the column: views, so tabs (counts in badges)
+                TpTabBar {
+                    id: listMode
                     objectName: "listMode"
                     name: i18n.tr("List")
                     Layout.topMargin: theme.padCard
                     Layout.leftMargin: theme.padCard
                     Layout.rightMargin: theme.padCard
-                    options: [i18n.tr("Sessions") + (backend.sessionCount > 0 ? "  " + backend.sessionCount : ""),
-                              i18n.tr("Replays") + (replays.replayCount > 0 ? "  " + replays.replayCount : "")]
+                    model: page.listTabs
+                    counts: [backend.sessionCount > 0 ? backend.sessionCount : -1,
+                             replays.replayCount > 0 ? replays.replayCount : -1,
+                             online.rows.length > 0 ? online.rows.length : -1]
                     currentIndex: backend.listMode
-                    onActivated: function(index) { backend.setListMode(index) }
+                    onActivated: function(index) {
+                        page.listFolded = false  // a list picked: shown
+                        backend.setListMode(index)
+                    }
+                    TpButton {  // narrow page: list folded to its tabs, room for the details
+                        objectName: "listFold"
+                        visible: !page.wide
+                        flat: true
+                        size: "sm"
+                        glyph: page.listFolded ? "\uE70D" : "\uE70E"  // chevron down, up
+                        fallback: page.listFolded ? "▾" : "▴"
+                        tip: page.listFolded ? i18n.tr("Show the list") : i18n.tr("Fold the list (more room for the details)")
+                        onClicked: page.listFolded = !page.listFolded
+                        Accessible.name: tip
+                    }
                 }
                 StackLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    visible: page.wide || !page.listFolded
                     currentIndex: backend.listMode
                     ResultsSessionList { id: sessionList }
                     Loader {  // built when first shown, then kept
                         active: backend.listMode === 1 || item !== null
                         sourceComponent: ReplayList {}
+                    }
+                    Loader {  // online races: built when first shown, then kept
+                        active: page.onlineShown || item !== null
+                        sourceComponent: OnlineResults {}
                     }
                 }
             }
@@ -83,10 +114,17 @@ TpPage {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            Loader {  // online race picked
+                anchors.fill: parent
+                active: page.onlineShown || item !== null
+                visible: page.onlineShown
+                sourceComponent: OnlineResultView {}
+            }
+
             ColumnLayout {
                 anchors.fill: parent
                 spacing: theme.space4
-                visible: backend.hasSession || page.tab === page.replayTab
+                visible: !page.onlineShown && (backend.hasSession || page.tab === page.replayTab)
 
                 // Header: kind, track, date, settings
                 RowLayout {
@@ -108,7 +146,7 @@ TpPage {
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: theme.em * 0.5
-                            Text {
+                            TpText {
                                 Layout.fillWidth: true
                                 Layout.maximumWidth: implicitWidth
                                 text: page.header.title || ""
@@ -120,7 +158,7 @@ TpPage {
                                 Accessible.role: Accessible.Heading
                                 Accessible.name: text
                             }
-                            Text {
+                            TpText {
                                 text: page.header.kindText || ""
                                 textFormat: Text.PlainText
                                 color: theme.dimText
@@ -134,14 +172,14 @@ TpPage {
                                 tip: i18n.tr("No car had finished when this file was written (race left before its end): classification and gaps of that moment.")
                             }
                             Item { Layout.fillWidth: true }
-                            Text {
+                            TpText {
                                 text: page.header.when || ""
                                 textFormat: Text.PlainText
                                 color: theme.dimText
                                 font.features: { "tnum": 1 }
                             }
                         }
-                        Text {
+                        TpText {
                             Layout.fillWidth: true
                             text: [page.header.subtitle || "", page.header.details || ""]
                                   .filter(function(part) { return part !== "" }).join(" · ")
@@ -214,18 +252,18 @@ TpPage {
                     visible: backend.hasSession && page.tab !== page.replayTab && backend.sessionComments.length > 0
                 }
 
-                // Tabs & car classes
+                // Views of the session: tabs; car classes (a filter): chips below them
+                TpTabBar {
+                    objectName: "resultTabs"
+                    name: i18n.tr("Results")
+                    model: page.tabModel
+                    currentIndex: page.tabKeys.indexOf(page.tab)
+                    onActivated: function(index) { backend.setTab(page.tabKeys[index]) }
+                }
                 RowLayout {
                     Layout.fillWidth: true
+                    visible: page.tab !== page.replayTab && backend.classChips.length > 0
                     spacing: theme.space4
-                    TpSegmented {
-                        objectName: "resultTabs"
-                        name: i18n.tr("Results")
-                        options: page.tabTexts
-                        currentIndex: page.tabKeys.indexOf(page.tab)
-                        maxWidth: page.wide ? page.width * 0.45 : page.width * 0.7
-                        onActivated: function(index) { backend.setTab(page.tabKeys[index]) }
-                    }
                     Flickable {  // class filter chips: Tab reaches each, Space / Enter picks
                         Layout.fillWidth: true
                         visible: page.tab !== page.replayTab
@@ -311,15 +349,16 @@ TpPage {
                             TpStateView {
                                 objectName: "sessionReplayState"
                                 anchors.centerIn: parent
-                                loading: !page.playerShown && page.sessionReplayOpening
+                                loading: !page.playerShown && (page.sessionReplayOpening || replays.gameStarting)
                                 empty: !page.playerShown
-                                loadingText: i18n.tr("Opening the replay in the game…")
+                                loadingText: replays.gameStarting ? i18n.tr("Starting Le Mans Ultimate…")
+                                           : i18n.tr("Opening the replay in the game…")
                                 glyph: ""  // play
                                 title: i18n.tr("Replay of this session")
                                 text: replays.gameState === "offline"
-                                      ? i18n.tr("Start LMU to watch the replay of this session.")
+                                      ? i18n.tr("Le Mans Ultimate is not running: start it, the replay opens once it is ready.")
                                       : i18n.tr("Open it in the game to control playback, cameras and incidents from here.")
-                                actionText: replays.gameState === "offline" ? "" : i18n.tr("Watch Replay")
+                                actionText: replays.gameState === "offline" ? i18n.tr("Start and Watch") : i18n.tr("Watch Replay")
                                 onAction: backend.watchReplay()
                             }
                         }
@@ -336,6 +375,7 @@ TpPage {
                 readonly property bool noMatch: !failed && backend.folderText !== "" && backend.sessionCount > 0
                 readonly property bool noFolder: backend.loaded && backend.folderText === ""
                 anchors.centerIn: parent
+                visible: !page.onlineShown
                 loading: !backend.hasSession && page.tab !== page.replayTab && backend.busy && !backend.loaded
                 empty: !backend.hasSession && page.tab !== page.replayTab
                 loadingText: i18n.tr("Reading results files…")

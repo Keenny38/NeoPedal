@@ -1,6 +1,7 @@
 """Pytest shared setup"""
 
 import faulthandler
+import gc
 import os
 import sys
 import tempfile
@@ -21,7 +22,142 @@ from PySide6.QtWidgets import QApplication
 
 # QApplication must exist before collecting tests, as UI modules read font metrics on import
 QT_APP = QApplication.instance() or QApplication(sys.argv)
+
+# Qt's own QMessageBox methods kept by _common on import (to see when a test replaced them): imported before any
+# test patches them, else a replaced QMessageBox.question is taken for Qt's own and confirm_action shows a real
+# modal box, waiting forever (test_menu_import_requests_and_restarts as first UI test of an xdist worker)
+import neopedal.ui._common  # noqa: F401
+
 SESSION: list[pytest.Session] = []  # test session, its exit status ends the process (pytest_unconfigure)
+RUNNER_RERUNS = 2  # runs again of a failed runner_flaky test, on CI only (tests/FLAKY.md)
+
+
+def pytest_configure(config):
+    """Automatic garbage collection off, as in the app (loader.collect_on_ui_thread): cycles are freed between
+    tests on the main thread (pytest_runtest_teardown), never on whatever thread allocates at that moment. The CI
+    Bus error of 0.28.0 was a cycle holding a QObject freed by the GC on the Driver stats worker thread."""
+    gc.disable()
+
+
+def collect_between_tests():
+    """Generation automatic collection would have collected by now, collected on the main thread (same rule as
+    the app's UI thread timer: loader.due_generation); off again if a test turned it on"""
+    from neopedal.loader import due_generation
+
+    if gc.isenabled():
+        gc.disable()
+    generation = due_generation(gc.get_count(), gc.get_threshold())
+    if generation >= 0:
+        gc.collect(generation)
+
+
+def pytest_report_header(config):
+    from tests import _speed
+
+    reruns = f"{RUNNER_RERUNS} reruns of runner_flaky tests" if os.environ.get("CI") else "no reruns (CI not set)"
+    return f"NeoPedal: speed factor {_speed.factor():.2f} (time budgets x factor, tests/_speed.py), {reruns}"
+
+
+def pytest_collection_modifyitems(config, items):
+    """runner_flaky(reason=..., issue=...): failed test run again RUNNER_RERUNS times on CI (env CI set) by
+    pytest-rerunfailures, never locally: a flake of a shared runner never blocks a release, the test stays listed
+    in tests/FLAKY.md and red on this machine"""
+    rerun = bool(os.environ.get("CI")) and config.pluginmanager.hasplugin("rerunfailures")
+    for item in items:
+        marker = item.get_closest_marker("runner_flaky")
+        if marker is None:
+            continue
+        if marker.args or not marker.kwargs.get("reason") or "issue" not in marker.kwargs:
+            raise pytest.UsageError(f"{item.nodeid}: use runner_flaky(reason=\"...\", issue=\"...\") (keywords)")
+        if rerun:
+            item.add_marker(pytest.mark.flaky(reruns=RUNNER_RERUNS))
+
+
+# --- Patch leak guard (post-mortem 0.28.0, P1 #9): after each test, targets that ui_env & the autouse fixtures
+# patch must be back to what they were when the session started. A patch left behind (pytest 9.2: monkeypatch
+# undo aborted by a cleared instance dict) failed 17 to 26 later tests per CI cell; now the test that leaked it
+# fails at teardown, named, and the targets are put back for the next tests.
+_MISSING = object()
+_PATCH_BASELINE: dict[str, object] = {}  # target name: value at session start (patch_guard_baseline)
+
+
+def _patch_targets() -> dict[str, tuple[object, str]]:
+    """Name shown in the failure: (owner, attribute) patched by ui_env & the autouse fixtures"""
+    from neopedal import rank_info, vr_shared
+    from neopedal.api_control import api
+    from neopedal.game_rest_cache import rest_cache
+    from neopedal.process import results_file
+    from neopedal.setting import FilePath, Setting, cfg
+    from neopedal.userfile import game_images, lap_reference, track_geometry
+
+    targets: dict[str, tuple[object, str]] = {
+        f"Setting.{name}": (Setting, name) for name in vars(Setting) if not name.startswith("__")}
+    targets.update({f"cfg.path.{name}": (cfg.path, name) for name in FilePath.__slots__})
+    targets.update({
+        "api.read": (api, "read"),
+        "results_file.find_results_folders": (results_file, "find_results_folders"),
+        "vr_shared.WINDOWS": (vr_shared, "WINDOWS"),
+        "vr_shared.WRITER_LOCK_NAME": (vr_shared, "WRITER_LOCK_NAME"),
+        "lap_reference.fetch_sheet": (lap_reference, "fetch_sheet"),
+        "track_geometry.rest_get": (track_geometry, "rest_get"),
+        "rest_cache.fetch": (rest_cache, "fetch"),
+        "rank_info._game_get": (rank_info, "_game_get"),
+        "game_images.fetch_from_game": (game_images, "fetch_from_game"),
+    })
+    return targets
+
+
+def _own_value(owner: object, name: str) -> object:
+    """Value set on the owner itself (instance dict, class or module dict), not one found on its class"""
+    if hasattr(owner, "__dict__"):  # module, class, instance with a dict
+        return vars(owner).get(name, _MISSING)
+    return getattr(owner, name, _MISSING)  # slots (api, cfg.path)
+
+
+def _put_back_leaked_patches() -> list[str]:
+    """Targets not at their session start value, put back: their names"""
+    if not _PATCH_BASELINE:
+        return []
+    leaked = []
+    for name, (owner, attribute) in _patch_targets().items():
+        value = _own_value(owner, attribute)
+        original = _PATCH_BASELINE.get(name, _MISSING)
+        if name == "api.read":  # reader replaced by api.connect of tests: only ui_env's fake is a leak
+            if not isinstance(value, _FakeReader):
+                continue
+        elif value is original or (isinstance(value, str) and value == original):
+            continue
+        leaked.append(name)
+        if original is _MISSING:
+            delattr(owner, attribute)
+        else:
+            setattr(owner, attribute, original)
+    return leaked
+
+
+@pytest.fixture(scope="session", autouse=True)
+def patch_guard_baseline(isolated_user_paths):
+    """Values of the patch targets once user paths are isolated, before the first test patches anything"""
+    _PATCH_BASELINE.update({name: _own_value(owner, attribute) for name, (owner, attribute) in _patch_targets().items()})
+    yield
+    _PATCH_BASELINE.clear()
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_teardown(item, nextitem):
+    try:
+        result = yield
+    except BaseException:
+        _put_back_leaked_patches()
+        collect_between_tests()
+        raise
+    leaked = _put_back_leaked_patches()
+    collect_between_tests()
+    if leaked:
+        pytest.fail(f"{item.nodeid} left patched after its teardown (put back for the next tests): "
+                    f"{', '.join(leaked)}. Patches undone part way (monkeypatch.undo, an instance __dict__ "
+                    "cleared after monkeypatching it) or set without monkeypatch?", pytrace=False)
+    return result
 
 
 
@@ -108,6 +244,16 @@ def pytest_unconfigure(config):
         if stream is not None:
             stream.flush()
     os._exit(int(SESSION[0].exitstatus))
+
+
+@pytest.fixture(autouse=True)
+def loader_not_closed():
+    """A test closing the app (loader.close, restart) leaves the next ones a running app: close done once per
+    run (B-009 / B-030), never skipped by Quit in a later test"""
+    yield
+    loader = sys.modules.get("neopedal.loader")
+    if loader is not None:
+        loader._closed = False
 
 
 @pytest.fixture(autouse=True)

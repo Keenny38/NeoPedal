@@ -5,7 +5,16 @@ name: Build and Release
 # Refused unless Checks passed on the master commit and both changelogs have the version section.
 # Version is computed from commits since the last release (tools/next_version.py):
 # first release 0.10.0, then minor + 1 when a commit title starts with "Add", else patch + 1.
+#
+# Build while Checks run (0.28.0 post-mortem, item 18): a push to master whose changelogs have the section of the
+# next version (the release commit, or a fix after it) builds the installer & source ZIP like a release run, in
+# the "release" environment (master only), and keeps them as artifacts of the run: nothing is tagged, signed into
+# a manifest nor published by a push. tools/release.py then starts the publish run ("Run workflow" on master) with
+# build_run_id = that run once Checks and the build passed: the release job takes the files of that run (same
+# workflow, same commit, pushed to master, passed: checked by the version job) instead of building them again.
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
     inputs:
       bump:
@@ -17,10 +26,15 @@ on:
         description: "Test build (no release)"
         default: false
         type: boolean
+      build_run_id:
+        description: "Publish the files of this build run (push of the same master commit) instead of building again"
+        default: ""
+        type: string
 
+# Publish runs one after another; the build of a newer push replaces the build of an older one
 concurrency:
-  group: release
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'push' && 'release-build' || 'release' }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 # Read only by default, only the release job can write (tag & release)
 permissions:
@@ -50,7 +64,7 @@ jobs:
         persist-credentials: false
 
     - name: Release only from master, after Checks passed
-      if: ${{ !inputs.test_build }}
+      if: ${{ github.event_name == 'workflow_dispatch' && !inputs.test_build }}
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
@@ -77,26 +91,63 @@ jobs:
         TEST_BUILD: ${{ inputs.test_build }}
       run: |
         ver=$(python tools/next_version.py --bump "$BUMP")
-        echo "app_ver=${ver}" >> $GITHUB_OUTPUT
         echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
         echo "Next version: ${ver:-none (no change since last release)}"
         # Release notes of both app languages come from the changelogs: no release without them
-        # (a test build only warns)
+        # (a test build only warns, a push builds nothing: not a release commit)
         missing=0
         for changelog in CHANGELOG.md CHANGELOG.fr.md; do
           if [ -n "$ver" ] && ! python tools/gen_release_notes.py --check-changelog "$ver" --changelog "$changelog"; then
-            echo "::error::$changelog has no '## $ver' section"
+            if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+              echo "$changelog has no '## $ver' section: not a release commit, nothing built"
+            else
+              echo "::error::$changelog has no '## $ver' section"
+            fi
             missing=1
           fi
         done
-        if [ "$missing" = "1" ] && [ "$TEST_BUILD" != "true" ]; then
+        if [ "$missing" = "1" ] && [ "$GITHUB_EVENT_NAME" = "push" ]; then
+          ver=""
+        elif [ "$missing" = "1" ] && [ "$TEST_BUILD" != "true" ]; then
           exit 1
         fi
+        echo "app_ver=${ver}" >> $GITHUB_OUTPUT
+
+    # build_run_id: files built by the push of this very commit to master, by this workflow, passed
+    - name: Build run of the same commit
+      if: ${{ inputs.build_run_id }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+        BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        TEST_BUILD: ${{ inputs.test_build }}
+      run: |
+        if [ "$TEST_BUILD" = "true" ]; then
+          echo "::error::build_run_id publishes a release: not with test_build"
+          exit 1
+        fi
+        case "$BUILD_RUN_ID" in
+          ''|*[!0-9]*) echo "::error::build_run_id is not a run id: $BUILD_RUN_ID"; exit 1 ;;
+        esac
+        workflow=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .workflow_id)
+        found=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID" \
+          --jq '[.workflow_id, .event, .head_branch, .head_sha, .status, .conclusion] | map(tostring) | join(" ")')
+        wanted="$workflow push master $GITHUB_SHA completed success"
+        if [ "$found" != "$wanted" ]; then
+          echo "::error::Run $BUILD_RUN_ID is not a passed build of $GITHUB_SHA pushed to master ($found)"
+          exit 1
+        fi
+        artifacts=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID/artifacts" \
+          --jq '[.artifacts[] | select(.expired | not) | .name] | sort | join(" ")')
+        if [ "$artifacts" != "source windows" ]; then
+          echo "::error::Run $BUILD_RUN_ID has no build files (artifacts: ${artifacts:-none})"
+          exit 1
+        fi
+        echo "Files of build run $BUILD_RUN_ID published"
 
   # Source code archive
   linux:
     needs: version
-    if: needs.version.outputs.app_ver != ''
+    if: needs.version.outputs.app_ver != '' && !inputs.build_run_id
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -134,11 +185,12 @@ jobs:
   # Windows installer, published as is (with its .sha256 file) & zipped (setup.zip), beside the source ZIP
   windows:
     needs: version
-    if: needs.version.outputs.app_ver != ''
+    if: needs.version.outputs.app_ver != '' && !inputs.build_run_id
     runs-on: windows-latest
     timeout-minutes: 60
     # Signing secrets & variables belong to the "release" environment, open to master only:
-    # a test build (any branch) runs in "test-build", without them, and is never signed
+    # a test build (any branch) runs in "test-build", without them, and is never signed. A push build runs on
+    # master only (on: push) and signs like the publish run it replaces (same trusted code, owner pushes only)
     environment: ${{ inputs.test_build && 'test-build' || 'release' }}
     env:
       APP_VER: ${{ needs.version.outputs.app_ver }}
@@ -324,10 +376,16 @@ jobs:
           NeoPedal-${{ needs.version.outputs.app_ver }}-windows-setup.exe
           NeoPedal-${{ needs.version.outputs.app_ver }}-windows-setup.exe.sha256
 
-  # Tag the tested commit and publish release with notes (the changelog) & the signed manifest
+  # Tag the tested commit and publish release with notes (the changelog) & the signed manifest.
+  # Only a workflow_dispatch run publishes (never a push), with the files it built, or with the files of the push
+  # build run given as build_run_id (checked by the version job; linux & windows skipped then)
   release:
     needs: [version, linux, windows]
-    if: ${{ !inputs.test_build }}
+    if: >-
+      ${{ !cancelled() && github.event_name == 'workflow_dispatch' && !inputs.test_build
+      && needs.version.result == 'success' && needs.version.outputs.app_ver != ''
+      && ((!inputs.build_run_id && needs.linux.result == 'success' && needs.windows.result == 'success')
+      || (inputs.build_run_id && needs.linux.result == 'skipped' && needs.windows.result == 'skipped')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Release manifest signing key (secret RELEASE_SIGNING_KEY) belongs to the "release" environment, given to
@@ -337,6 +395,7 @@ jobs:
       contents: write  # create the tag & the release
       id-token: write  # sign the build provenance (Sigstore)
       attestations: write  # store the build provenance
+      actions: read  # download the files of the build run (build_run_id)
     env:
       APP_VER: ${{ needs.version.outputs.app_ver }}
     steps:
@@ -348,14 +407,33 @@ jobs:
         persist-credentials: false
 
     - name: Download builds
+      if: ${{ !inputs.build_run_id }}
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
       with:
         path: builds
         merge-multiple: true
 
-    # Published installer, the one inside setup.zip & its .sha256 file must all match
+    - name: Download builds of the build run
+      if: ${{ inputs.build_run_id }}
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+      with:
+        path: builds
+        merge-multiple: true
+        run-id: ${{ inputs.build_run_id }}
+        github-token: ${{ github.token }}
+
+    # Exactly the build files of this version (a build run of another version is refused here, before signing),
+    # published installer, the one inside setup.zip & its .sha256 file must all match
     - name: Check installer files
       run: |
+        expected=$(printf '%s\n' "NeoPedal-$APP_VER-setup.zip" "NeoPedal-$APP_VER-source.zip" \
+          "NeoPedal-$APP_VER-windows-setup.exe" "NeoPedal-$APP_VER-windows-setup.exe.sha256" | sort)
+        found=$(ls builds | sort)
+        if [ "$found" != "$expected" ]; then
+          echo "::error::Build files are not the ones of $APP_VER:"
+          echo "$found"
+          exit 1
+        fi
         mkdir extracted
         unzip -j "builds/NeoPedal-$APP_VER-setup.zip" -d extracted
         cmp "extracted/NeoPedal-$APP_VER-windows-setup.exe" "builds/NeoPedal-$APP_VER-windows-setup.exe"
@@ -397,12 +475,13 @@ jobs:
           builds/*.exe
           builds/*-manifest.json
 
+    # Hashes of the published files, "<hash>  <file>" as sha256sum prints them (as the build jobs print them; their
+    # outputs are empty when the files come from the build run)
     - name: Release notes from commits since previous release
-      env:
-        SOURCE_SHA256: ${{ needs.linux.outputs.sha256 }}
-        SETUP_SHA256: ${{ needs.windows.outputs.sha256 }}
-        INSTALLER_SHA256: ${{ needs.windows.outputs.installer_sha256 }}
       run: |
+        SOURCE_SHA256=$(cd builds && sha256sum "NeoPedal-$APP_VER-source.zip")
+        SETUP_SHA256=$(cd builds && sha256sum "NeoPedal-$APP_VER-setup.zip")
+        INSTALLER_SHA256=$(cd builds && sha256sum "NeoPedal-$APP_VER-windows-setup.exe")
         python3 tools/gen_release_notes.py "v$APP_VER" > release.txt
         {
           echo ""

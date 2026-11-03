@@ -249,7 +249,7 @@ TpPopup {
                             color: theme.accent
                         }
                     }
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: theme.border }
+                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: theme.strokeSubtle }  // divider token
 
                     ListView {
                         id: list

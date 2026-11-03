@@ -2,7 +2,7 @@
 
 The **Results & Replays** page shows the results of every session you played: classification, positions lap by lap, the laps of each car and what happened during the session (contacts, penalties, track limits, chat). It reads the results files that Le Mans Ultimate and rFactor 2 write at the end of each session, so it works for online races and single player sessions, and the game does not need to run. With Le Mans Ultimate, the same page lists the **replays saved by the game** and controls them in the `Replay` tab: each session is linked to its replay, so an event or a lap of the results opens the replay right there.
 
-Open it with the `Results` entry of the navigation bar, `Tools` > `Results & Replays`, or the command palette (`Ctrl+K`). It replaces the former `Race Results` and `Game Replays` pages (a `Replays` entry kept in your navigation bar or quick access opens it on the replays list).
+Open it with the `Results` entry of the navigation bar, the `Tools` page, or the command palette (`Ctrl+K`). It replaces the former `Race Results` and `Game Replays` pages (a `Replays` entry kept in your navigation bar or quick access opens it on the replays list).
 
 ![Race results: classification of a multiclass race](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.21.0-race-results.png)
 
@@ -77,6 +77,17 @@ The replay open in the game, or the live session: game state, playback (play / p
 ### Events
 
 Contacts (a contact reported by both cars is shown once, with its impact strength), penalties (kind, time and reason), track limits (warnings, invalidated laps, points; in the warning color with a flag, purple stays for best times) and chat, with the session time. Filter by kind (with counts), or show only the events of the car picked. Your events are in bold. Game texts such as retirement reasons and penalties are shown in the app language.
+
+## Online races (Le Mans Ultimate)
+
+The `Online` list shows the online races you drove, read from RaceControl with the game sign in (the game must run): daily races, weekly & special events, championships, newest first, `More Results` for older ones.
+
+- Each race: date, track, split, your place, your Driver Rank & Safety Rank changes.
+- The race picked: your place, class place, grid, best lap, **why your ranks changed** (RaceControl reasons, in the app language), the **positions lap by lap** of you, the winner and the cars around you, the whole classification (rank changes of every driver in its tooltip), export to CSV.
+- `Open Local Session`: the results file of the same race on this computer, with its replay, events and recorded laps.
+- `Your Online Races`: wins, podiums, average finish, clean races and Driver Rank change of the races read, with your Driver Rank & Safety Rank race after race.
+
+Names of other drivers are shown but never kept on disk.
 
 ## Used by other pages
 

@@ -312,7 +312,7 @@ def test_invalid_color_and_reason_translated(window, french):
     speedometer.option_edit["opacity"].setText("3")
     speedometer.option_edit["font_size"].setText("0")
     assert "Entre 0 et 1" in speedometer.error_marks["opacity"].text()
-    assert "Corrigez 2 valeur(s)" in speedometer.label_invalid.text()
+    assert "Corrigez 2 valeurs invalides" in speedometer.label_invalid.text()
     dialog.option_edit[key].setText("#123")
     speedometer.option_edit["opacity"].setText("1")
     speedometer.option_edit["font_size"].setText("15")
@@ -796,7 +796,7 @@ def test_track_notes_labels_translated(ui_env, french, monkeypatch):
         assert backend.textColumns == [{"key": "note", "label": "Note de pilotage"},
                                        {"key": "comment", "label": "Commentaire"}]  # batch replace columns
         labels = {field["label"] for field in backend.metadataFields}
-        assert {"Titre :", "Auteur :", "Date :", "Description :"} <= labels
+        assert {"Titre\u00a0:", "Auteur\u00a0:", "Date\u00a0:", "Description\u00a0:"} <= labels
     finally:
         editor.set_unmodified()
         editor.close()
@@ -855,14 +855,14 @@ def test_new_texts_translated(french):
 
     assert tr("Skip This Version") == "Ignorer cette version"
     assert tr("Unsaved changes") == "Modifications non enregistrées"
-    assert trm("Unsaved changes: 2") == "Modifications non enregistrées : 2"
+    assert trm("Unsaved changes: 2") == "Modifications non enregistrées\u00a0: 2"
     assert trm("Preset <b>race</b> moved to trash") == "Preset <b>race</b> mis à la corbeille"
     assert trm("Delete all <b>3</b> preset(s) in trash permanently?<br><br>This cannot be undone!") == (
-        "Supprimer définitivement les <b>3</b> preset(s) de la corbeille ?<br><br>Cette action est irréversible !")
-    assert trm("Fix 1 invalid value(s) to save") == "Corrigez 1 valeur(s) invalide(s) pour enregistrer"
+        "Supprimer définitivement les <b>3</b> presets de la corbeille\u00a0?<br><br>Cette action est irréversible\u00a0!")
+    assert trm("Fix 1 invalid value(s) to save") == "Corrigez 1 valeur invalide pour enregistrer"
     assert trm("Deleted presets are kept for 30 day(s), then removed.").startswith("Les presets supprimés")
     assert trm("race · deleted 05/10/2026 10:00 · 29 day(s) left") == (
-        "race · supprimé le 05/10/2026 10:00 · 29 jour(s) restant(s)")
+        "race · supprimé le 05/10/2026 10:00 · 29 jours restants")
     assert tr("Press a key, key combination, mouse or controller button").startswith("Appuyez")
 
 

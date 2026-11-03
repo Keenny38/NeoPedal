@@ -27,7 +27,7 @@ chips, values in their line color.
 
 from __future__ import annotations
 
-from math import cos, radians, sin
+from math import cos, radians, sin, sqrt
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
@@ -126,7 +126,8 @@ class Realtime(HeadingMixin, ModernOverlay):
         row_w = sum(widths) + gap * max(len(widths) - 1, 0)
         left = self.center.x() - row_w / 2
         # Below center, corners kept inside compass ring when room allows
-        room = (max(self.inner - unit * 0.15, 0) ** 2 - (row_w / 2) ** 2) ** 0.5 if row_w / 2 < self.inner else 0.0
+        reach, half_row = max(self.inner - unit * 0.15, 0.0), row_w / 2
+        room = sqrt(reach * reach - half_row * half_row) if half_row < reach else 0.0  # row wider: under center
         top = self.center.y() + max(min(self.inner * 0.3, room - chip_h), unit * 0.45)
         for (key, label), width in zip(readings, widths):
             box = QRectF(left, top, width, chip_h)

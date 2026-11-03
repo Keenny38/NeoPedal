@@ -11,6 +11,7 @@ import "../components"
 Item {
     id: tab
     readonly property var team: backend.teamInfo  // columns, drivers, count, canFill (rows: backend.teamRows)
+    readonly property alias list: teamGrid.list  // team stints rows (current row, keyboard focus)
     readonly property bool busy: backend.teamBusy
     readonly property int count: team.count || 0
     readonly property var columns: team.columns || []
@@ -160,7 +161,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: tab.plan.gameTeam ? i18n.tr("LMU team") + ": " + tab.plan.gameTeam
+                text: tab.plan.gameTeam ? i18n.tr("LMU team") + i18n.colon() + tab.plan.gameTeam
                                         : i18n.tr("Names of the LMU team replace the names typed once the game gives them.")
                 textFormat: Text.PlainText
                 color: theme.dimText
@@ -209,30 +210,26 @@ Item {
                     onClicked: backend.clearStintDrivers()
                 }
             ]
-            Row {  // header
-                Layout.fillWidth: true
-                visible: stintList.visible
-                TpHeaderCell { width: theme.em * 2.6; text: "#"; align: Qt.AlignHCenter }
-                TpHeaderCell { width: stintList.driverWidth; text: i18n.tr("Driver") }
-                TpHeaderCell { width: stintList.width - theme.em * 2.6 - stintList.driverWidth - stintList.timeWidth; text: i18n.tr("Laps") }
-                TpHeaderCell { width: stintList.timeWidth; text: i18n.tr("Start · Duration"); align: Qt.AlignRight }
-            }
-            ListView {
+            // Columns & rows, titles & keyboard of every table (TpTable)
+            TpTable {
                 id: stintList
-                objectName: "stintPlanList"
+                listName: "stintPlanList"
+                name: i18n.tr("Stint Plan")
                 readonly property real driverWidth: Math.min(Math.max(width * 0.4, theme.em * 9), theme.em * 14)
                 readonly property real timeWidth: theme.em * 9
+                readonly property real lapsWidth: width - theme.em * 2.6 - driverWidth - timeWidth
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: theme.em * 4
                 visible: tab.plan.team === true && tab.stints.length > 0
-                clip: true
-                spacing: 1
-                boundsBehavior: Flickable.StopAtBounds
+                pad: 0
+                divider: false
                 model: tab.stints.length  // rows kept when values change: open combo kept
-                Accessible.role: Accessible.Table
-                Accessible.name: i18n.tr("Stint Plan")
-                ScrollBar.vertical: ScrollBar {}
+                TpHeaderCell { width: theme.em * 2.6; text: "#"; align: Qt.AlignHCenter }
+                TpHeaderCell { width: stintList.driverWidth; text: i18n.tr("Driver") }
+                TpHeaderCell { width: stintList.lapsWidth; text: i18n.tr("Laps"); align: Qt.AlignRight }  // numbers: right
+                TpHeaderCell { width: stintList.timeWidth; text: i18n.tr("Start · Duration"); align: Qt.AlignRight }
+
                 delegate: Item {
                     id: stintRow
                     required property int index
@@ -304,13 +301,14 @@ Item {
                             }
                         }
                         Text {
-                            width: stintList.width - theme.em * 2.6 - stintList.driverWidth - stintList.timeWidth
+                            width: stintList.lapsWidth
                             height: stintRow.height
                             text: stintRow.stint.laps || ""
                             textFormat: Text.PlainText
                             color: stintRow.editable ? theme.text : theme.dimText
                             font.features: { "tnum": 1 }
-                            leftPadding: theme.space2
+                            rightPadding: theme.space2
+                            horizontalAlignment: Text.AlignRight  // numbers right aligned, as their title
                             verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
                         }
@@ -388,9 +386,21 @@ Item {
                 font.pointSize: theme.fontSmall
                 wrapMode: Text.Wrap
             }
-            Row {  // header
+            // Columns & rows, titles & keyboard of every table (TpTable)
+            TpTable {
+                id: teamGrid
+                listName: "teamStints"
+                name: i18n.tr("Team Stints")
                 Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.minimumHeight: theme.em * 4
                 visible: tab.count > 0
+                pad: 0
+                model: backend.teamRows  // synced in place: scroll position & rows kept at each refresh
+                currentOnFocus: true
+                // Space: select the current stint, Enter: fill in the calculator with the stints selected
+                Keys.onSpacePressed: if (list.currentItem && list.currentItem.usable) backend.selectStint(list.currentItem.stint, 1)
+                onActivated: if (tab.team.canFill === true) backend.fillInTeam()
                 Repeater {
                     model: tab.columns
                     TpHeaderCell {
@@ -401,28 +411,7 @@ Item {
                         align: index === 0 ? Qt.AlignLeft : Qt.AlignRight
                     }
                 }
-            }
-            ListView {
-                id: list
-                objectName: "teamStints"
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: theme.em * 4
-                visible: tab.count > 0
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                model: backend.teamRows  // synced in place: scroll position & rows kept at each refresh
-                activeFocusOnTab: true
-                currentIndex: -1
-                keyNavigationEnabled: true
-                highlightFollowsCurrentItem: false
-                Accessible.role: Accessible.Table
-                Accessible.name: i18n.tr("Team Stints")
-                ScrollBar.vertical: ScrollBar {}
-                onActiveFocusChanged: if (activeFocus && currentIndex < 0 && count > 0) currentIndex = 0
-                Keys.onSpacePressed: if (currentItem && currentItem.usable) backend.selectStint(currentItem.stint, 1)
-                Keys.onReturnPressed: if (tab.team.canFill === true) backend.fillInTeam()
-                Keys.onEnterPressed: if (tab.team.canFill === true) backend.fillInTeam()
+
                 delegate: Item {
                     id: stintRow
                     required property int index

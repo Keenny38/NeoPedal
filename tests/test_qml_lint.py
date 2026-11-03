@@ -22,7 +22,7 @@ COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
 OPENERS, CLOSERS = "([{", ")]}"
 CONTINUED_END = tuple("+-*/?:&|,([{.=<>!")
 CONTINUED_START = tuple("+-*/?:&|.)]}=<>")
-CHEAP_CALL = re.compile(r"(?:\bi18n\.tr|\bqsTr|\.arg|\bMath\.\w+|\.toFixed|\.replace|\.join|\bNumber|\bString)\s*\(")
+CHEAP_CALL = re.compile(r"(?:\bi18n\.(?:tr|colon|percentSign|plural)|\bqsTr|\.arg|\bMath\.\w+|\.toFixed|\.replace|\.join|\bNumber|\bString)\s*\(")
 HOVER_GUARD = re.compile(r"(?:\bhovered|\bcontainsMouse|\bToolTip\.visible)\s*\?")
 CONSTANT_WORDS = frozenset(("true", "false", "null", "undefined"))
 

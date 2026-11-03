@@ -33,7 +33,7 @@ from PySide6.QtCore import (
     Slot,
 )
 
-from ...i18n import tr, trm
+from ...i18n import colon, percent_sign, tr, trm
 from ...process.results_text import sector_text
 from ...userfile.lap_cache import (
     RECENT_SECONDS,
@@ -686,7 +686,7 @@ class LapLibrary(BackendBase):
         lines = []
         for key, label in (("vehicle", "Car"), ("class", "Class"), ("combo", "Layout")):
             if info.get(key):
-                lines.append(f"{tr(label)}: {info[key]}")
+                lines.append(f"{tr(label)}{colon()}{info[key]}")
 
         def number(key: str) -> float | None:
             value = info.get(key)
@@ -696,20 +696,20 @@ class LapLibrary(BackendBase):
         for key, label in (("track_temperature", "Track Temp"), ("ambient_temperature", "Air Temp")):
             value = number(key)
             if value is not None:
-                lines.append(f"{tr(label)}: {number_text(convert(value) if convert else value, 1)}{symbol}")
+                lines.append(f"{tr(label)}{colon()}{number_text(convert(value) if convert else value, 1)}{symbol}")
         wetness = number("wetness")
         if wetness is not None:
-            lines.append(f"{tr('Wetness')}: {wetness * 100:.0f}%")
+            lines.append(f"{tr('Wetness')}{colon()}{wetness * 100:.0f}{percent_sign()}")
         start, end = number("fuel_start"), number("fuel_end")
         if start is not None:
             convert, symbol = lap_viewer.display_units()["fuel"]
-            lines.append(f"{tr('Starting Fuel')}: {number_text(convert(start) if convert else start, 1)} {symbol}")
+            lines.append(f"{tr('Starting Fuel')}{colon()}{number_text(convert(start) if convert else start, 1)} {symbol}")
             if end is not None and start >= end:
                 used = start - end
-                lines.append(f"{tr('Fuel Used')}: {number_text(convert(used) if convert else used, 2)} {symbol}")
+                lines.append(f"{tr('Fuel Used')}{colon()}{number_text(convert(used) if convert else used, 2)} {symbol}")
         setup = setup_text(info)
         if setup:
-            lines.append(f"{tr('Setup')}: {setup}")
+            lines.append(f"{tr('Setup')}{colon()}{setup}")
         return "\n".join(lines)
 
     def all_entries(self) -> list[LapEntry]:

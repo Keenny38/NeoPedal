@@ -231,6 +231,16 @@ TpPage {
                 onClosed: chart.forceActiveFocus()  // keys back to charts (popup gives them to window)
             }
 
+            // Live: a lasting mode, its state always in view next to the track (never in the toolbar's "⋯" menu)
+            TpSwitch {
+                objectName: "liveSwitch"
+                text: i18n.tr("Live")
+                tip: i18n.tr("New recorded laps listed at once, newest lap compared with best lap")
+                checkable: false  // follows the backend
+                checked: backend.liveMode
+                onClicked: backend.setLiveMode(!backend.liveMode)
+            }
+
             // Simple view (pedals, steering wheel & values at cursor) shown over charts, or advanced view (charts)
             TpSegmented {
                 id: viewMode
@@ -321,26 +331,7 @@ TpPage {
                     enabled: backend.hasTrackLaps
                     onTriggered: backend.analyzeLastLap()
                 }
-                TpAction {
-                    name: "liveButton"
-                    text: i18n.tr("Live")
-                    tip: i18n.tr("New recorded laps listed at once, newest lap compared with best lap")
-                    priority: 3
-                    checkable: true
-                    checked: backend.liveMode
-                    onTriggered: backend.setLiveMode(!backend.liveMode)
-                }
-                TpAction {
-                    name: "timeAxisButton"
-                    shown: !backend.simpleView  // charts only
-                    text: i18n.tr("Time Axis")
-                    tip: i18n.tr("Charts along lap time instead of lap distance")
-                    priority: 3
-                    checkable: true
-                    checked: backend.timeAxis
-                    onTriggered: backend.setTimeAxis(!backend.timeAxis)
-                }
-                // Channels shown on charts & in simple view, chart options
+                // Channels shown on charts & in simple view, chart options (Time Axis among them)
                 TpAction {
                     name: "showButton"
                     text: i18n.tr("Show")
@@ -468,22 +459,24 @@ TpPage {
                         anchors.fill: parent
                         anchors.margins: theme.padCard
                         spacing: theme.space3
-                        // Six tool names fit as tabs (squeezed to caption size at most), else a drop-down list. Set on width
-                        // changes, not bound (switching control changes the layout, which would ask it again)
+                        // Six tools: views of the side panel, so tabs (TpTabBar), squeezed at most, else a drop-down list. Set
+                        // on width changes, not bound (switching control changes the layout, which would ask it again)
                         property bool tabsFit: true
+                        readonly property var toolNames: [i18n.tr("Track Map"), i18n.tr("G Circle"), i18n.tr("Corners"),
+                                                          i18n.tr("A-B Passage"), i18n.tr("Session"), i18n.tr("XY")]
+                        readonly property var toolTabs: toolNames.map(function(text) { return { "text": text } })
                         function fitTabs() {
-                            tabsFit = sideTabs.textsWidth * 0.75 + sideTabs.options.length * theme.em * 0.5 + theme.space4 <= width
+                            tabsFit = sideTabs.minimumWidth <= width
                         }
                         onWidthChanged: fitTabs()
                         Component.onCompleted: fitTabs()
-                        TpSegmented {
+                        TpTabBar {
                             id: sideTabs
-                            Layout.alignment: Qt.AlignHCenter
+                            objectName: "sideTabs"
                             visible: sideColumn.tabsFit
-                            maxWidth: parent.width
                             name: i18n.tr("Tools")
-                            onTextsWidthChanged: sideColumn.fitTabs()
-                            options: [i18n.tr("Track Map"), i18n.tr("G Circle"), i18n.tr("Corners"), i18n.tr("A-B Passage"), i18n.tr("Session"), i18n.tr("XY")]
+                            onMinimumWidthChanged: sideColumn.fitTabs()
+                            model: sideColumn.toolTabs
                             currentIndex: backend.sideTab
                             onActivated: function(index) { backend.setSideTab(index) }
                         }
@@ -493,7 +486,7 @@ TpPage {
                             visible: !sideColumn.tabsFit
                             Layout.fillWidth: true
                             tip: i18n.tr("Tools")
-                            model: sideTabs.options
+                            model: sideColumn.toolNames
                             currentIndex: backend.sideTab
                             onActivated: function(index) { backend.setSideTab(index) }
                             Connections {  // keys back to charts (closed popup gives them to window)

@@ -402,7 +402,7 @@ class Realtime(NavigationMixin, Overlay):
             draw_shape = painter.drawPolygon
 
         # Draw vehicle within view range
-        total = len(veh_info)
+        total = min(minfo.vehicles.totalVehicles, len(veh_info))  # vehicles data longer than the field
         for index in veh_draw_order:
             if index >= total:  # car left since relative order made
                 continue

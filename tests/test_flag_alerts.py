@@ -173,6 +173,16 @@ def test_damage_chip_and_classic_bar(widgets, monkeypatch):
     classic.hide()
 
 
+def test_classic_damage_bar_hidden_without_damage(widgets):
+    """Bar shown at creation (picture) is hidden by first update without damage (found live on LMU 2026-11-02:
+    DAMAGE stayed on an undamaged car until a first damage)"""
+    classic = widgets("flag", modern=False)
+    classic.show()
+    classic.timerEvent(None)
+    assert classic.bar_damage.isHidden()
+    classic.hide()
+
+
 # --- Blue flag: gap of car lapping
 def test_blue_flag_gap(widgets, monkeypatch):
     reader(monkeypatch, "session", "blue_flag", True)

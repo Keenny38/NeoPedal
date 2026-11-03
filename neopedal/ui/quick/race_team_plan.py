@@ -226,7 +226,8 @@ class TeamPlan(RaceBase):
             for index, (first, last) in enumerate(strategy.stint_bounds()):
                 number = strategy.driver_of(index) if team else 1
                 seconds = strategy.stint_seconds[index] if index < len(strategy.stint_seconds) else 0.0
-                laps = f"{tr('Laps')} {first}-{last} · {laps_text(last - first + 1)}"
+                laps = tr("Laps %1-%2 · %3").replace("%1", str(first)).replace("%2", str(last)).replace(
+                    "%3", laps_text(last - first + 1))
                 timing = f"{self.time_text(starts[index]) if index < len(starts) else ''} · {seconds / 60:.0f} min"
                 kind = "current" if state is not None and index == 0 else "plan"
                 stints.append(self.stint_row(offset + index, number, kind, laps, timing, planned))

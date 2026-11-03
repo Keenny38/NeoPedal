@@ -222,6 +222,39 @@ def test_consumption_cell_repaints_on_text_change_only():
     assert cell.text == "+0.0" and cell.paints == 4  # never "-0.0"
 
 
+def test_modern_consumption_panel_repaints_on_text_change_only():
+    """Modern Fuel/Energy panel: refresh state holds only what is drawn (seen live 2026-11-02: the raw
+    refill amount in the state made the panel repaint at every update while the car stood still)"""
+    from neopedal.widget._modern.consumption import ConsumptionPanel, Names
+
+    names = Names(title="Fuel", refill="Refuel", absolute="show_absolute_refueling",
+                  refill_decimals="decimal_places_refueling", warning_flash="show_low_fuel_warning_flash",
+                  low_threshold="low_fuel_lap_threshold", level_bar="show_fuel_level_bar",
+                  start_mark="show_starting_fuel_level_mark", refill_mark="show_refueling_level_mark",
+                  refill_shown="show_refueling")
+    source = SimpleNamespace(
+        estimatedValidConsumption=2.5, estimatedLaps=12.0, neededAbsolute=42.0, neededRelative=12.001,
+        amountCurrent=30.001, amountStart=50.0, estimatedMinutes=20.0, estimatedConsumption=2.5,
+        oneLessPitConsumption=0.0, estimatedNumPitStopsEnd=1.0, estimatedNumPitStopsEarly=1.2,
+        deltaConsumption=0.0, amountEndStint=3.0, capacity=63.0)
+    states = []
+    panel = SimpleNamespace(
+        wcfg={names.absolute: False, names.level_bar: True, names.low_threshold: 2},
+        theme=SimpleNamespace(negative="#F00", warning="#FA0", text_dim="#888", positive="#0F0", accent="#08F"),
+        source=source, warn_flash=None, convert=lambda value: value, names=names, dec_remaining=2,
+        refill_sign="+", dec_refill=2, keys=("laps", "minutes"), refresh=states.append)
+    read = ConsumptionPanel.read_panel
+    read(panel, [])
+    source.neededRelative = 12.004  # same "+12.00"
+    source.amountCurrent = 30.0012  # same "30.00", same level (3 decimals of the fraction)
+    read(panel, [])
+    assert states[0] == states[1], "state changed without any drawn text change: repaint for nothing"
+    assert states[0][2] == ("+12.00", True)  # refill text & sign flag (no raw amount)
+    source.neededRelative = -0.3  # no refill needed: sign flag changes the color
+    read(panel, [])
+    assert states[2] != states[1] and states[2][2] == ("-0.30", False)
+
+
 def test_tyre_wear_cell_repaints_on_text_change_only():
     from neopedal.widget._wear import WearSections
 

@@ -565,7 +565,7 @@ def test_drivers_and_comparison_cards(calculator):
     assert comparison["visible"] and len(comparison["rows"]) >= 2
     assert {stint["color"] for stint in calculator.timeline["stints"]} == {"#4C9AFF", "#F5A623"}  # driver colors
     calculator.setInput("input_saving_cost", 0.5)
-    assert "Saving Cost" in calculator.scenarios["oneLess"]
+    assert "Saving cost" in calculator.scenarios["oneLess"]
     assert calculator.setDriverValue(0, 0, 99) == 9.0 and calculator.setDriverValue(12, 0, 1) == 0.0
 
 
@@ -583,7 +583,7 @@ def test_estimate_from_history(calculator):
     calculator.estimateFromHistory()
     assert calculator.values["input_pit_seconds"] == pytest.approx(50, abs=1)
     assert calculator.values["input_fuel_effect"] == pytest.approx(0.3, abs=0.02)
-    assert "Pit Stop Time" in calculator.notes["estimate"]
+    assert "Pit stop time" in calculator.notes["estimate"]
 
 
 def test_history_serials_kept_for_new_laps(calculator):

@@ -11,6 +11,7 @@ import gc
 import logging
 import mmap
 import platform
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -23,6 +24,17 @@ except ImportError:  # standalone, not package
 
 PLATFORM = platform.system()
 MAX_VEHICLES = LMUConstants.MAX_MAPPED_VEHICLES
+LOCK_SIZE = 8  # waiters & busy of the lock of the game, 2 LONG
+LOCK_BUSY_OFFSET = 4
+LOCK_RETRY_SECONDS = 1.0  # lock of the game looked for again (game started after the app) at most this often
+# Lock busy longer than this: game stopped while writing (crashed), lock let go: copied without it, and its memory
+# never kept alive by the app (a game started again makes a fresh lock), looked for again after LOCK_STUCK_RETRY
+LOCK_STUCK_SECONDS = 0.5
+LOCK_STUCK_RETRY = 30.0
+# Data unchanged this long (game paused, in menus, closed or crashed, maybe while writing: busy flag left set): lock
+# let go, so its section never outlives the game because of the app (else a game started again finds it, skips its
+# reset and waits on the busy flag left set), opened again once data changes
+LOCK_IDLE_SECONDS = 2.0
 INVALID_INDEX = -1
 
 
@@ -67,6 +79,57 @@ def windows_mmap(name: str, size: int) -> mmap.mmap:
     return mmap.mmap(-1, size, name)
 
 
+def open_mapping(name: str) -> tuple[Any, int]:
+    """(kernel32, handle) of named shared memory made already (Windows), handle 0 if none, never made here:
+    a section the game makes itself must keep the game's rights (made by the app, an app run as administrator
+    could leave the game unable to write it)"""
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenFileMappingW.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.LPCWSTR)
+    kernel32.OpenFileMappingW.restype = wintypes.HANDLE
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    return kernel32, kernel32.OpenFileMappingW(0x0004, False, name) or 0  # FILE_MAP_READ
+
+
+def mapping_exists(name: str) -> bool:
+    """Named shared memory made already (Windows), see open_mapping"""
+    if PLATFORM != "Windows":
+        return False
+    kernel32, handle = open_mapping(name)
+    if not handle:
+        return False
+    kernel32.CloseHandle(handle)
+    return True
+
+
+def open_game_lock(name: str) -> mmap.mmap | None:
+    """Lock of the game opened read only (game writing while its busy flag is set), None if the game has none
+    (not started, older build, Linux)
+
+    Its section stays open (handle) while mapped: a game closing meanwhile never lets mmap make a new read only
+    section of that name, which the game started again could not map for writing. Never written by the app (read
+    only view), and let go once data stays unchanged (see LOCK_IDLE_SECONDS).
+    """
+    if PLATFORM != "Windows":
+        return None
+    kernel32, handle = open_mapping(name)
+    if not handle:
+        return None
+    try:
+        return mmap.mmap(-1, LOCK_SIZE, name, access=mmap.ACCESS_READ)
+    except (OSError, ValueError):
+        return None
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def lock_busy(lock: mmap.mmap) -> bool:
+    """Game writing its shared memory now (busy flag of its lock set)"""
+    return lock[LOCK_BUSY_OFFSET:LOCK_BUSY_OFFSET + 4] != b"\x00\x00\x00\x00"
+
+
 def linux_mmap(name: str, size: int) -> mmap.mmap:
     """Linux mmap - read data from '/dev/shm/filename' if available"""
     file = open("/dev/shm/" + name, "a+b")
@@ -86,18 +149,32 @@ class MMapControl:
         "_buffer",
         "_realtime",
         "_heads",
+        "_lock_name",
+        "_lock",
+        "_lock_retry",
+        "_busy_since",
+        "_idle_since",
+        "_scratch",
         "update",
         "data",
     )
 
-    def __init__(self, mmap_name: str, data_struct: type[Any]) -> None:
+    def __init__(self, mmap_name: str, data_struct: type[Any],
+                 lock_name: str = LMUConstants.LMU_SHARED_MEMORY_LOCK_FILE) -> None:
         """Initialize memory map setting
 
         Args:
             mmap_name: mmap filename.
             data_struct: ctypes data structure, ex. lmu_data.SharedMemoryEvent.
+            lock_name: lock the game holds while writing (copy access waits for it), empty: none.
         """
         self._mmap_name = mmap_name
+        self._lock_name = lock_name
+        self._lock: mmap.mmap | None = None
+        self._lock_retry = 0.0  # time.monotonic() lock of the game looked for again
+        self._busy_since = 0.0  # time.monotonic() lock of the game seen busy first, 0: free
+        self._idle_since = 0.0  # time.monotonic() data first seen unchanged while lock mapped, 0: changed
+        self._scratch = bytearray()  # copy taken while game lock free, kept once still free after it
         self._mmap_buffer = None
         self._struct = data_struct
         self._buffer = bytearray()
@@ -143,6 +220,11 @@ class MMapControl:
         self.data = self._struct.from_buffer_copy(self._mmap_buffer)
         self._realtime = None
         self._heads = None
+        if self._lock is not None:
+            self._lock.close()
+            self._lock = None
+        self._busy_since = self._idle_since = 0.0
+        self._scratch = bytearray()
         close_mmap(self._mmap_buffer, self._mmap_name)
         self.update = no_update  # unassign update method (for proper garbage collection)
 
@@ -161,9 +243,73 @@ class MMapControl:
             self._realtime.scoring.scoringInfo.mNumVehicles
             == self._realtime.telemetry.activeVehicles
         ) and self.__changed():
-            self._buffer[:] = self._mmap_buffer
+            self._idle_since = 0.0
+            if self.__game_lock() is None:
+                self._buffer[:] = self._mmap_buffer
+                return True
+            # Copied while the game does not write (its lock free before & after the copy, and no write done
+            # within the copy: sample times of scoring & first telemetry entry unchanged meanwhile): never data
+            # of two game ticks mixed, else copied at the next update
+            if self.__game_writing():
+                return False
+            live_scor, _, live_tele, _ = self._heads  # made by __changed
+            scor_time, tele_time = live_scor.mCurrentET, live_tele.mElapsedTime
+            self._scratch[:] = self._mmap_buffer
+            if (self.__game_writing() or live_scor.mCurrentET != scor_time
+                    or live_tele.mElapsedTime != tele_time):
+                return False
+            self._buffer[:] = self._scratch
             return True
+        if self._lock is not None:
+            self.__release_idle_lock(self._lock)
         return False
+
+    def __release_idle_lock(self, lock: mmap.mmap) -> None:
+        """Lock of the game let go once data stayed unchanged for LOCK_IDLE_SECONDS (checked on every update, even
+        with a busy flag left set by a game stopped while writing), looked for again at the next data change"""
+        now = time.monotonic()
+        if not self._idle_since:
+            self._idle_since = now
+            return
+        if now - self._idle_since < LOCK_IDLE_SECONDS:
+            return
+        logger.info("sharedmemory: lock of %s let go (data unchanged %.1f s)", self._mmap_name,
+                    now - self._idle_since)
+        lock.close()
+        self._lock = None
+        self._busy_since = self._idle_since = 0.0
+        self._lock_retry = 0.0
+
+    def __game_writing(self) -> bool:
+        """Game holding its lock now (False if no lock, or lock let go: held too long, see LOCK_STUCK_SECONDS)"""
+        lock = self._lock
+        if lock is None:
+            return False
+        if not lock_busy(lock):
+            self._busy_since = 0.0
+            return False
+        now = time.monotonic()
+        if not self._busy_since:
+            self._busy_since = now
+            return True
+        if now - self._busy_since < LOCK_STUCK_SECONDS:
+            return True
+        logger.warning("sharedmemory: lock of %s held %.1f s (game stopped while writing?): copied without it",
+                       self._mmap_name, now - self._busy_since)
+        lock.close()
+        self._lock = None
+        self._busy_since = 0.0
+        self._lock_retry = now + LOCK_STUCK_RETRY
+        return False
+
+    def __game_lock(self) -> mmap.mmap | None:
+        """Lock of the game, looked for again now and then while missing (game started after the app)"""
+        if self._lock is None and self._lock_name:
+            now = time.monotonic()
+            if now >= self._lock_retry:
+                self._lock_retry = now + LOCK_RETRY_SECONDS
+                self._lock = open_game_lock(self._lock_name)
+        return self._lock
 
     def __changed(self) -> bool:
         """Whether shared memory differs from data copy

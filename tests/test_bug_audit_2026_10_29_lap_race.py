@@ -48,8 +48,7 @@ def test_cached_lap_lazy_columns_read_from_cache(tmp_path, monkeypatch):
     lap = lap_cache.load_cached_lap(folder, path)
     calls = []
     monkeypatch.setattr(lap_cache, "load_lap", lambda name: calls.append(name))
-    stat = os.stat(target)
-    assert lap.columns._file == (stat.st_size, stat.st_mtime_ns)
+    assert lap.columns._file == lap_cache.cache_signature(target)  # size & header (B-008: not the time)
     assert len(lap.columns["tyre_pres_fl"]) == 100
     assert not calls
 

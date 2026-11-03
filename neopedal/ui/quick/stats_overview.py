@@ -23,42 +23,39 @@ Driver stats viewer part (StatsOverview, mixin of DriverStatsBackend): All Track
 from __future__ import annotations
 
 import logging
+import re
 import time
 from datetime import date, timedelta
 
-from PySide6.QtCore import Property, QDateTime, QLocale, QUrl, Slot
+from PySide6.QtCore import Property, QLocale, QUrl, Slot
 
 from ... import calculation as calc
 from ...i18n import current_language, tr, trm
 from ...process import results_index as ri
 from ...process.results_text import MISSING, laptime_text
-from ...rank_info import online_enabled, ranks
+from ...rank_info import ranks
 from ...setting import cfg
-from ...userfile.game_images import images
 from ..lap_viewer import signed
 from .formatting import country_name, date_locale, format_date, format_day, localized_number
 from .stats_analysis import (
-    Upcoming,
     average_gained,
     clean_streak,
     distribution,
     history_years,
+    next_level_goals,
     period_bounds,
     record_day,
     rivals,
-    stats_track,
     weekly_progress,
 )
 from .stats_common import (
+    ACTIVITY_MIN_WEEKS,
     ACTIVITY_STEPS,
     ACTIVITY_WEEKS,
     ALL_TRACKS,
     RECENT_SESSIONS,
-    UPCOMING_EVERY,
     badge_card,
     format_duration,
-    level_letter,
-    level_text,
     other_account_rows,
     plural,
     race_result,
@@ -71,10 +68,7 @@ from .stats_common import (
     valid_laptime,
 )
 from .stats_core import StatsCore
-from .stats_io import (
-    StatsHost,
-    read_official_races,
-)
+from .stats_io import StatsHost
 
 logger = logging.getLogger(__name__)
 MAX_WEEKLY_ROWS = 6  # rows of the progress card (most important first: goals reached, records, goals near)
@@ -91,26 +85,34 @@ def race_preparation():
     return prepare if callable(prepare) else None
 
 
+def display_name(name: str) -> str:
+    """Driver name without the number some services add to tell same names apart ("Paul Atreides#2773")"""
+    return re.sub(r"\s*#\d{2,6}$", "", name).strip() or name
+
+
 class StatsOverview(StatsHost):
     """All Tracks: driver card, daily driving activity, recent sessions"""
 
     def driver_card(self) -> dict:
-        """Driver card, made again only when results, fixes or ranks changed"""
+        """Driver card, made again only when results, fixes, sessions to import or ranks changed"""
         from ...userfile.badge_icons import icons
 
-        key = (self._results_serial, len(self._fixes), current_language(), ranks.serial, icons.version)
+        key = (self._results_serial, len(self._fixes), len(self._imports), current_language(), ranks.serial,
+               icons.version)
         if key != self._driver_key:
             self._driver_key = key
             self._driver = self.driver_data()
         return self._driver
 
     def driver_data(self) -> dict:
-        """Driver card (All Tracks): game profile, Steam picture, races of results files, lap times to complete"""
+        """Driver card (All Tracks): game profile, Steam picture, races of results files, lap times to complete,
+        sessions of results files to import"""
         profile = self.profile
         races = [summary for summary in self.results if summary.kind == "Race"]
         player = ranks.player
         others = ranks.others
-        if profile is None and not races and player is None and not others:
+        imports = len(self._imports)
+        if profile is None and not races and player is None and not others and not imports:
             return {"visible": False}
         if profile is not None:
             name = profile.name
@@ -124,10 +126,7 @@ class StatsOverview(StatsHost):
             record = ri.race_record(races)
             gained, counted = average_gained(races)
             streak = clean_streak(races)
-            figures = [
-                {"label": tr("Races"), "value": str(record.races)},
-                {"label": tr("Wins"), "value": str(record.wins)},
-                {"label": tr("Podiums"), "value": str(record.podiums)},
+            figures = [  # races, wins & podiums: Races key figure of the page (same results files)
                 {"label": tr("Avg. Finish"),
                  "value": f"P{localized_number(record.average_finish, 1)}" if record.average_finish else MISSING},
                 {"label": tr("Clean Races"), "value": f"{record.clean}/{record.races}"},
@@ -152,12 +151,27 @@ class StatsOverview(StatsHost):
             "info": trm(f"From {len(races)} race results of the game, class positions") if races else "",
             "fixes": fixes,
             "fixText": trm(f"{fixes} lap time(s) found in race results") if fixes else "",
+            "imports": imports,
+            "importText": trm(f"{imports} session(s) of the game not in your stats") if imports else "",
         }
+
+    @Slot()
+    def refreshRanks(self):
+        """Driver & safety ranks read again from RaceControl (online ranks option), at most every few minutes"""
+        from ...rank_info import online_enabled
+
+        if not online_enabled():
+            self.toast(tr("Online driver ranks are off (Settings): ranks come from the game menu only."))
+        elif ranks.read_now():
+            ranks.poll()
+            self.toast(tr("Ranks asked to RaceControl: shown in a moment (the game must be running)."))
+        else:
+            self.toast(tr("Ranks were asked a moment ago: try again in a few minutes."))
 
     @Property(dict, notify=StatsCore.driverChanged)
     def driver(self) -> dict:
         """Driver card: name, initials, detail, avatar URL, figures (label, value), ranks (see rank_rows), ranksInfo,
-        badge (see badge_card), info, fixes, fixText"""
+        badge (see badge_card), info, fixes, fixText, imports, importText"""
         return self._driver
 
     @Slot(str)
@@ -195,9 +209,11 @@ class StatsOverview(StatsHost):
         if year:
             start = first_day - timedelta(days=first_day.weekday())
             weeks = ((last_day - start).days + 7) // 7
-        else:
-            start = today - timedelta(days=today.weekday() + (ACTIVITY_WEEKS - 1) * 7)
-            weeks = ACTIVITY_WEEKS
+        else:  # last 12 months, from the week of the first session when later (empty months left out)
+            first_driven = next((day for record in self.history if (day := record_day(record)) is not None), today)
+            since = (today - timedelta(days=today.weekday()) - (first_driven - timedelta(days=first_driven.weekday()))).days
+            weeks = min(max(since // 7 + 1, ACTIVITY_MIN_WEEKS), ACTIVITY_WEEKS)
+            start = today - timedelta(days=today.weekday() + (weeks - 1) * 7)
         end = start + timedelta(days=weeks * 7 - 1)
         seconds: dict[date, float] = {}
         sessions: dict[date, int] = {}
@@ -280,7 +296,7 @@ class StatsOverview(StatsHost):
         for rival in rivals(self.results):
             track, vehicle = self.result_combo(summaries.get(rival.path))
             rows.append({
-                "name": rival.name, "races": rival.races, "ahead": rival.ahead, "behind": rival.behind,
+                "name": display_name(rival.name), "races": rival.races, "ahead": rival.ahead, "behind": rival.behind,
                 # last race together: results file, its track & your vehicle in stats ("" if not in stats)
                 "path": rival.path, "track": track, "vehicle": vehicle,
                 "record": f"{rival.ahead}-{rival.behind}",
@@ -320,102 +336,6 @@ class StatsOverview(StatsHost):
     def rivals(self) -> list[dict]:
         """People met in online races of your class: name, races, record, tone, gap, gapTone, last, tip"""
         return self._rivals
-
-    # Official races to come (RaceControl daily races, option: asks RaceControl with your game sign in)
-    @property
-    def upcoming_enabled(self) -> bool:
-        return bool(self.viewer_config().get("enable_upcoming_races", False))
-
-    def load_upcoming(self, force: bool = False):
-        """Races to come asked in background (option on, signed in to RaceControl), at most every UPCOMING_EVERY"""
-        if not self.upcoming_enabled or self._released or self.jobs.is_busy("upcoming"):
-            return
-        if not online_enabled():
-            self._upcoming_events, self._upcoming_note = [], tr(
-                "Turn on online ranks (RaceControl) in Configuration to see the official races to come.")
-            self.publish_upcoming()
-            return
-        if not force and time.monotonic() - self._upcoming_time < UPCOMING_EVERY and self._upcoming_time:
-            return
-        self._upcoming_time = time.monotonic()
-        self._upcoming_note = tr("Reading official races…") if not self._upcoming_events else self._upcoming_note
-        self.publish_upcoming()
-        self.jobs.run("upcoming", read_official_races, self.upcoming_read, self.upcoming_failed, key="upcoming")
-
-    def upcoming_read(self, result: tuple[list[Upcoming], dict[str, tuple[str, ...]]]):
-        if self._released:
-            return
-        self._upcoming_events, self._game_tracks = result
-        self._upcoming_note = "" if self._upcoming_events else tr(
-            "No official race to come found (game closed, or not signed in to RaceControl).")
-        self.publish_upcoming()
-
-    def upcoming_failed(self, error: BaseException):
-        logger.warning("DRIVER STATS: official races not read", exc_info=(type(error), error, error.__traceback__))
-        if not self._released:
-            self._upcoming_note = tr("Official races could not be read.")
-            self.publish_upcoming()
-
-    def publish_upcoming(self):
-        self.publish("upcoming", self.upcoming_data(), self.upcomingChanged)
-
-    def upcoming_data(self) -> dict:
-        """Races to come with your best lap of each class on their track: enabled, note, races"""
-        if not self.upcoming_enabled:
-            return {"enabled": False, "note": "", "races": []}
-        races = []
-        tracks = [key for key in self.stats_temp if key]
-        for event in self._upcoming_events:
-            track = stats_track(event, tracks, self._game_tracks)
-            bests = []
-            vehicles = self.stats_temp.get(track, {}) if track else {}
-            classes: dict[str, tuple[float, str]] = {}
-            for vehicle, data in vehicles.items() if isinstance(vehicles, dict) else ():
-                best = valid_laptime(data.get("pb", 0)) if isinstance(data, dict) else 0.0
-                name = self.class_of(str(vehicle))
-                if best and (name not in classes or best < classes[name][0]):
-                    classes[name] = (best, str(vehicle))
-            for name, (best, vehicle) in sorted(classes.items()):
-                reference = self.reference_for(track, vehicle)
-                level = reference.level(best) if reference else -1
-                bests.append({"vehicleClass": name, "best": calc.sec2laptime_full(best), "level": level_text(level),
-                              "color": self.level_color(level), "letter": level_letter(level), "vehicle": vehicle,
-                              "seconds": best})
-            driven = self.track_last_driven.get(track, 0.0) if track else 0.0
-            races.append({
-                "tier": tr(event.tier.capitalize()), "title": event.title,
-                "track": track or images.track_name(event.track, scene=event.scene),
-                "start": QDateTime.fromSecsSinceEpoch(int(event.start)).toString(
-                    date_locale().dateTimeFormat(QLocale.FormatType.ShortFormat)),
-                "classes": " · ".join(event.classes), "bests": bests, "known": bool(track),
-                "logo": self.logos.track(track) if track else "",
-                "note": trm(f"Last driven {format_date(driven)}") if driven else tr("Never driven here"),
-            })
-        return {"enabled": True, "note": self._upcoming_note, "races": races}
-
-    @Property(dict, notify=StatsCore.upcomingChanged)
-    def upcoming(self) -> dict:
-        """Official races to come: enabled, note, races (tier, title, track, start, classes, bests, known, logo, note)"""
-        return self._published.get("upcoming", {"enabled": False, "note": "", "races": []})
-
-    @Property(bool, notify=StatsCore.upcomingChanged)
-    def upcomingEnabled(self) -> bool:
-        return self._published.get("upcoming", {}).get("enabled", False)
-
-    @Slot(bool)
-    def setUpcomingEnabled(self, enabled: bool):
-        """Official races to come shown (asks RaceControl with your game sign in), saved"""
-        self.save_viewer_config(enable_upcoming_races=enabled)
-        if enabled:
-            self.load_upcoming(force=True)
-        else:
-            self.jobs.cancel("upcoming")
-            self._upcoming_events, self._upcoming_note = [], ""
-        self.publish_upcoming()
-
-    @Slot()
-    def refreshUpcoming(self):
-        self.load_upcoming(force=True)
 
     @Property(dict, notify=StatsCore.activityChanged)
     def activity(self) -> dict:
@@ -457,12 +377,16 @@ class StatsOverview(StatsHost):
         """Progress of the last WEEK_DAYS days: summary text, rows (kind, glyph, text, detail, tone, track,
         vehicle), more (rows left out); made again only when history, stats, goals, language or the hour changed"""
         now = time.time()
-        goals = self.goals()
+        references = self.references if self.compare else None
+        manual = self.goals()
+        # Automatic goals depend on stats & community lap times only: made again with them (every refresh: lap saved)
         key = (self._history_stamp, self._stats_serial, int(now // 3600), current_language(),
-               tuple(sorted(goals.items())))
+               tuple(sorted(manual.items())), id(references))
         if key == self._weekly_key:
             return self._weekly
         self._weekly_key = key
+        # Goals set, else automatic ones of next level (community lap times): goals near shown as on the goal card
+        goals = {**next_level_goals(self.stats_temp, references, self.classes), **manual}
         bests = {(str(track), str(vehicle)): valid_laptime(data.get("pb", 0))
                  for track, vehicles in self.stats_temp.items() if track and isinstance(vehicles, dict)
                  for vehicle, data in vehicles.items() if isinstance(data, dict)}

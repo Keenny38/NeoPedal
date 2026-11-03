@@ -649,6 +649,7 @@ class VehicleDataSet:
 
     __slots__ = (
         "isPlayer",
+        "slotID",
         "elapsedTime",
         "speed",
         "positionOverall",
@@ -713,6 +714,7 @@ class VehicleDataSet:
 
     def __init__(self):
         self.isPlayer: bool = False
+        self.slotID: int = -1  # game id of car (mID), keys data of game Rest API
         self.elapsedTime: float = 0.0
         self.speed: float = 0.0
         self.positionOverall: int = 0

@@ -43,10 +43,11 @@ from ...api_control import api
 from ...const_api import API_LMU_NAME, API_LMULEGACY_NAME, API_RF2_NAME
 from ...const_file import FileExt, FontFile, ImageFile
 from ...formatter import format_module_name, strip_filename_extension
-from ...i18n import LANGUAGES, current_language, language_pack, load_translation, trm
+from ...i18n import CONTEXT_SEPARATOR, LANGUAGES, current_language, language_pack, load_translation, trm
 from ...i18n.options import LABEL_LANGUAGES, load_data
 from ...module_control import wctrl
 from ...setting import cfg
+from ...template.widget.descriptions import OVERLAY_DESCRIPTIONS
 from ...validator import is_allowed_filename
 from ..setup_wizard import DEFAULT_STARTER, STARTER_WIDGETS, UNIT_SYSTEMS, UNITS_KEEP, SetupChoices
 from ..widget_preview import set_showing
@@ -107,7 +108,7 @@ MOCKUP_ROLES = {
     "raised": QPalette.ColorRole.Button,
 }
 TILE_ROLES = (
-    "key", "label", "category", "tint", "checked", "sample",
+    "key", "label", "category", "description", "tint", "checked", "sample",
     "preview", "previewWidth", "previewHeight", "previewState",
 )
 
@@ -226,7 +227,12 @@ class SetupTranslator(Translator):
         self.table = load_translation(self.code)
 
     @Slot(str, result=str)
-    def tr(self, text: str) -> str:  # type: ignore[override]  # replaces QObject.tr for QML
+    @Slot(str, str, result=str)
+    def tr(self, text: str, context: str = "") -> str:  # type: ignore[override]  # replaces QObject.tr for QML
+        if context:
+            value = self.table.get(f"{context}{CONTEXT_SEPARATOR}{text}")
+            if value is not None:
+                return value
         return self.table.get(text, text)
 
     @Slot(str, result=str)
@@ -394,7 +400,8 @@ class SetupBackend(PageBackend):
         if not self._name_edited:
             self._new_name = self.default_name()
         self.tiles.update_rows(lambda row: {
-            "label": self.widget_label(row["key"]), "category": self.tr(widget_category(row["key"]))})
+            "label": self.widget_label(row["key"]), "category": self.tr(widget_category(row["key"])),
+            "description": self.widget_description(row["key"])})
         self.languageChanged.emit()
         self.choicesChanged.emit()
         self.gamesChanged.emit()
@@ -402,6 +409,11 @@ class SetupBackend(PageBackend):
 
     def widget_label(self, name: str) -> str:
         return self._labels.get(name) or format_module_name(name)
+
+    def widget_description(self, name: str) -> str:
+        """What overlay shows (wizard language), "" if unknown"""
+        text = OVERLAY_DESCRIPTIONS.get(name, "")
+        return self.tr(text) if text else ""
 
     # Themes
     @Property(list, notify=languageChanged)
@@ -664,6 +676,7 @@ class SetupBackend(PageBackend):
             category = widget_category(name)
             rows.append({
                 "key": name, "label": self.widget_label(name), "category": self.tr(category),
+                "description": self.widget_description(name),
                 "tint": CATEGORY_COLORS.get(category, CATEGORY_COLORS["Other"]), "checked": name in checked,
                 "sample": name in STYLE_SAMPLES, **self.tile_preview(name),
             })

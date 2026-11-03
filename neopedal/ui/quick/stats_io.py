@@ -57,9 +57,7 @@ from ...userfile.lap_reference import LapReference, LapReferenceTable
 from .game_pictures import LogoCache
 from .models import DictListModel
 from .page_backend import PageBackend
-from .stats_analysis import Upcoming, read_upcoming, track_names
 from .stats_common import (
-    GAME_TRACKS_AGE,
     LAP_FOLDERS_KEPT,
     Cell,
     lap_matches_vehicle,
@@ -210,14 +208,15 @@ def save_edits_detached(edits: list[StatsJob], after: threading.Event | None) ->
         Event set once all edits are over.
     """
     finished = threading.Event()
+    works = [(job.work, job.args) for job in edits]  # done callbacks (methods of the page) never held by the thread
 
     def saving():
         try:
             if after is not None:
                 after.wait()
-            for job in edits:
+            for work, args in works:
                 try:
-                    run_holding_lock(job.work, *job.args)
+                    run_holding_lock(work, *args)
                 except Exception:  # next edits saved all the same (each one complete on its own)
                     logger.exception("DRIVER STATS: stats edit failed after page closed")
         finally:
@@ -306,16 +305,6 @@ class StatsEdit(NamedTuple):
 
 
 
-def read_official_races() -> tuple[list[Upcoming], dict[str, tuple[str, ...]]]:
-    """Official races to come (RaceControl, signed in with the game) & names of game tracks (worker thread)"""
-    from ...game_rest_cache import rest_cache
-    from ...rank_info import online_client, ranks
-
-    client = online_client()
-    events = read_upcoming(lambda path: client.get(path, ranks.account))
-    names = track_names(rest_cache.json("/rest/race/track", GAME_TRACKS_AGE)) if events else {}
-    return events, names
-
 if TYPE_CHECKING:
     _HostBase = PageBackend
 else:
@@ -331,7 +320,10 @@ class StatsHost(_HostBase):
 
     if TYPE_CHECKING:
         CANCEL_JOBS_ON_RELEASE: bool
-        _window: Any
+
+        @property
+        def _window(self) -> Any: ...
+
         stats_temp: dict
         selected_stats_key: str
         selected_stats_dict: dict
@@ -346,6 +338,7 @@ class StatsHost(_HostBase):
         references: LapReferenceTable
         reference_error: str
         _downloading: bool
+        _precise_asked: bool
         _loaded: bool
         _reading: bool
         _visible: bool
@@ -393,6 +386,8 @@ class StatsHost(_HostBase):
         _driver_key: tuple
         _driver: dict
         _fixes: list[ri.BestLapFix]
+        _imports_key: tuple
+        _imports: list[ri.ResultSummary]
         _published: dict[str, Any]
         _stints: dict
         _laps_key: str
@@ -426,19 +421,16 @@ class StatsHost(_HostBase):
         _search: str
         _class_filter: str
         _unfiltered_rows: int
+        _empty_columns: set[str]
+        _rust_shown: bool
         _table_classes: list[str]
         _rivals: list[dict]
         _rivals_key: tuple
-        _upcoming_events: list[Upcoming]
-        _game_tracks: dict[str, tuple[str, ...]]
-        _upcoming_note: str
-        _upcoming_time: float
         # Signals (StatsCore) & methods of other parts
         filtersChanged: Signal
         goalChanged: Signal
         rivalsChanged: Signal
         tableFilterChanged: Signal
-        upcomingChanged: Signal
         weeklyChanged: Signal
         def weekly_card(self) -> dict: ...
         def goals(self) -> dict[str, float]: ...
@@ -449,11 +441,10 @@ class StatsHost(_HostBase):
         @staticmethod
         def classification() -> str: ...
         def check_goals(self): ...
+        def auto_complete(self): ...
         def ask(self, message: str, on_yes: Callable[[], object], action_text: str = ""): ...
         def set_goal(self, key: str, laptime: float): ...
         def latest_version(self) -> str: ...
-        def load_upcoming(self, force: bool = False): ...
-        def publish_upcoming(self): ...
         def record_online(self, record: SessionRecord) -> int: ...
         def rivals_card(self) -> list[dict]: ...
         @property
@@ -465,6 +456,7 @@ class StatsHost(_HostBase):
         def publish(self, name: str, value: Any, signal) -> bool: ...
         def refresh_table(self): ...
         def warning(self, text: str): ...
+        def toast(self, text: str): ...
         def save_viewer_config(self, **values): ...
         def run_locked(self, job: StatsJob, now: bool = False) -> bool: ...
         lapsChanged: Signal
@@ -485,6 +477,7 @@ class StatsHost(_HostBase):
         def class_of(self, vehicle: str) -> str: ...
         def visible_keys(self) -> list[str]: ...
         def update_selection(self, keyboard: bool = False): ...
+        def publish_selection(self): ...
         tracksChanged: Signal
         def track_info(self) -> dict: ...
         trackInfoChanged: Signal
@@ -508,6 +501,7 @@ class StatsHost(_HostBase):
         def openLapViewer(self): ...
         levelsChanged: Signal
         def lap_time_fixes(self) -> list[ri.BestLapFix]: ...
+        def results_to_import(self) -> list[ri.ResultSummary]: ...
         def lap_folder(self, key: str = "") -> str: ...
         @staticmethod
         def game_track() -> str: ...

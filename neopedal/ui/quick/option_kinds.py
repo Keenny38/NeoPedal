@@ -30,7 +30,7 @@ from functools import lru_cache
 from typing import Any, NamedTuple
 
 from ... import regex_pattern as rxp
-from ...i18n import tr
+from ...i18n import localized, tr
 from ...validator import is_clock_format, is_hex_color, is_string_number
 from ..option_limits import limit_error, option_limit
 
@@ -158,7 +158,7 @@ def display_text(kind: OptionKind, value: Any) -> str:
     if kind.kind == KIND_CHOICE:
         return choice_label(kind, value)
     if kind.kind in NUMBER_KINDS:
-        return number_text(value)
+        return localized(number_text(value))  # decimal comma in French, like the number fields
     return str(value)
 
 

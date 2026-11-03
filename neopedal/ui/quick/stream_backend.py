@@ -36,7 +36,7 @@ from PySide6.QtWidgets import QApplication
 
 from ... import app_signal, realtime_state, safe_mode
 from ...const_file import ConfigType
-from ...i18n import tr
+from ...i18n import plural, tr
 from ...i18n.options import module_label
 from ...setting import cfg
 from ...stream_overlay import (
@@ -44,7 +44,10 @@ from ...stream_overlay import (
     STREAM_VISIBILITY,
     canvas_screen,
     layout_section,
+    overlay_streamed,
+    shown_on_stream,
     stream_layout,
+    stream_overlays,
     stream_visibility,
     streamoverlay,
 )
@@ -207,7 +210,11 @@ class StreamOverlaysBackend(PageBackend):
         """Live sources & sizes (every second while shown), each group of properties signaled only when changed
         (all if force)"""
         self.watched = streamoverlay.watched()
-        self.sources = streamoverlay.store.watched() if streamoverlay.running else set()
+        # Sources showing something (as on_air): a source left on an overlay disabled, shown on screen only or
+        # unknown is empty, never counted on air
+        self.sources = {
+            view for view in streamoverlay.store.watched() if view == LAYOUT or overlay_streamed(view)
+        } if streamoverlay.running else set()
         self.refresh_overlays()
         state = self.server_state()
         if force or state != self._server_state:
@@ -331,8 +338,9 @@ class StreamOverlaysBackend(PageBackend):
             if safe_mode.state.enabled and not streamoverlay.port_unavailable:  # never started in safe mode
                 return tr("Off in safe mode")
             return tr("Port %1 unavailable").replace("%1", str(self.port))
-        if self.watched:
-            return tr("On air: %1 sources shown").replace("%1", str(len(self.sources)))
+        if self.sources:
+            shown = len(self.sources)
+            return plural(shown, "On air: %1 source shown", "On air: %1 sources shown").replace("%1", str(shown))
         return tr("Ready")
 
     @Property(str, notify=addressesChanged)
@@ -382,8 +390,11 @@ class StreamOverlaysBackend(PageBackend):
 
     @staticmethod
     def screen_size() -> tuple[int, int]:
-        """Screen of layout canvas (holding most overlays), screen pixels"""
-        screen = canvas_screen(list(overlay_windows().values()))
+        """Screen of layout canvas, screen pixels: holding most overlays shown on stream now, as the capture finds
+        it (overlays hidden out of a session if none shown, Screen Only never)"""
+        widgets = [widget for _, widget in stream_overlays()] or [
+            widget for widget in overlay_windows().values() if shown_on_stream(widget.wcfg)]
+        screen = canvas_screen(widgets)
         if screen is None:
             return 0, 0
         ratio = screen.devicePixelRatio()

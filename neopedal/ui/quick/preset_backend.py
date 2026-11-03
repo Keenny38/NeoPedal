@@ -45,7 +45,7 @@ from ... import app_signal
 from ...const_app import VERSION
 from ...const_file import ConfigType, FileExt
 from ...formatter import strip_filename_extension
-from ...i18n import tr, trm
+from ...i18n import plural, tr, trm
 from ...i18n.options import module_label
 from ...module_control import mctrl, wctrl
 from ...setting import cfg
@@ -413,8 +413,9 @@ class PresetBackend(PageBackend):
         elif summary is None:
             content = f"{tr('Unreadable file')}  ·  {changed}"
         else:
-            content = (f"{changed}  ·  {trm(f'{len(summary.widgets)} overlays')}"
-                       f"  ·  {trm(f'{len(summary.modules)} modules')}")
+            overlays, modules = len(summary.widgets), len(summary.modules)
+            content = (f"{changed}  ·  {overlays} {plural(overlays, 'overlay', 'overlays')}"
+                       f"  ·  {modules} {plural(modules, 'module', 'modules')}")
         return {
             "key": filename,
             "name": name,

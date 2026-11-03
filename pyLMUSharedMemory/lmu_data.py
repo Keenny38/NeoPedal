@@ -14,6 +14,8 @@ class LMUConstants:
     """LMU constants"""
 
     LMU_SHARED_MEMORY_FILE: str = "LMU_Data"
+    # Lock the game holds while writing (SharedMemoryLock of SharedMemoryInterface.hpp): waiters, busy (2 LONG)
+    LMU_SHARED_MEMORY_LOCK_FILE: str = "LMU_SharedMemoryLockData"
     LMU_PROCESS_NAME: str = "Le Mans Ultimate"
 
     MAX_MAPPED_VEHICLES: int = 104

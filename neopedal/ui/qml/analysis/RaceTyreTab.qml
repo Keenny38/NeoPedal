@@ -337,7 +337,7 @@ Item {
                     columnSpacing: theme.em * 0.35
                     rowSpacing: theme.em * 0.35
                     Repeater {
-                        model: [i18n.tr("Stint")].concat(tab.wheels).concat([i18n.tr("Change"), ""])
+                        model: [i18n.tr("Stint")].concat(tab.wheels).concat([i18n.tr("Change", "noun"), ""])
                         TpHeaderCell {
                             required property var modelData
                             required property int index
@@ -426,7 +426,7 @@ Item {
                     Pill { text: i18n.trm("Stints: " + tab.stintCount); tint: theme.dimText }
                     Pill { text: i18n.trm("Pits: " + tab.pitCount); tint: theme.dimText }
                     Pill { text: i18n.trm("Changes: " + tab.changeCount); tint: theme.dimText }
-                    Pill { text: i18n.trm("Time: " + (tab.changeTime >= 0 ? "+" : "") + tab.changeTime.toFixed(2).replace(".", theme.decimalPoint) + "s"); tint: theme.dimText }
+                    Pill { text: i18n.trm("Time: " + (tab.changeTime >= 0 ? "+" : "") + tab.changeTime.toFixed(2).replace(".", theme.decimalPoint) + " s"); tint: theme.dimText }
                 }
             }
 

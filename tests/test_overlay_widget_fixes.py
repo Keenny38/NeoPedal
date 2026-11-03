@@ -376,8 +376,8 @@ def test_overlay_labels_translated():
     theme = build_theme(cfg.default.config["overlay_style"])
     i18n.set_language("Français")
     try:
-        assert pit_cell(theme, 1, False, False).text == "STAND"
-        assert pit_time_text(1, 123.4) == "STAND 123.4"
+        assert pit_cell(theme, 1, False, False).text == "STANDS"
+        assert pit_time_text(1, 123.4) == "STANDS 123.4"
         assert i18n.tr_overlay("FAIL") == "HS" and i18n.tr_overlay("now") == "act."
     finally:
         i18n.set_language("English")

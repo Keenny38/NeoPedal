@@ -39,6 +39,10 @@ Rectangle {
     function optionTip(option) {
         return option && typeof option === "object" ? String(option.tip || "") : ""
     }
+    // Items matching the option (filters: events of each kind), -1 for none: shown dim after the text
+    function optionCount(option) {
+        return option && typeof option === "object" && typeof option.count === "number" ? option.count : -1
+    }
     // Text shown: its text, else (icon only, no icon font) its fallback or tip
     function shownText(option) {
         var text = optionText(option)
@@ -46,10 +50,11 @@ Rectangle {
             return text
         return option.fallback ? String(option.fallback) : optionTip(option)
     }
-    // Name for screen readers: text, else tip
+    // Name for screen readers: text (and count), else tip
     function optionName(option) {
         var text = optionText(option)
-        return text !== "" ? text : optionTip(option)
+        var count = optionCount(option)
+        return text !== "" ? (count >= 0 ? text + " (" + count + ")" : text) : optionTip(option)
     }
 
     // Option picked: caller stores it (backend or own property), currentIndex follows through its binding
@@ -86,6 +91,10 @@ Rectangle {
             probe.text = shownText(options[i])
             sum += probe.advanceWidth + (optionGlyph(options[i]) !== "" && theme.iconFont !== ""
                                          ? glyphSize + (probe.text !== "" ? theme.space2 : 0) : 0)
+            if (optionCount(options[i]) >= 0) {
+                probe.text = String(optionCount(options[i]))
+                sum += probe.advanceWidth + theme.space2
+            }
         }
         textsWidth = sum
     }
@@ -131,6 +140,7 @@ Rectangle {
                 readonly property string label: control.shownText(modelData)
                 readonly property string glyph: control.optionGlyph(modelData)
                 readonly property string tip: control.optionTip(modelData)
+                readonly property int count: control.optionCount(modelData)
                 width: optionRow.implicitWidth + control.pad
                 height: row.height
                 Accessible.role: Accessible.RadioButton
@@ -152,7 +162,7 @@ Rectangle {
                         size: control.glyphSize * control.fontScale
                         color: option.current ? theme.accent : optionArea.containsMouse ? theme.text : theme.dimText
                     }
-                    Text {
+                    TpText {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: text !== ""
                         text: option.label
@@ -162,6 +172,15 @@ Rectangle {
                         font.weight: option.current ? Font.DemiBold : Font.Normal
                         Behavior on color { ColorAnimation { duration: theme.motionBase } }
                     }
+                    TpText {  // count: dim figures apart from the text (never "Contacts  4" glued)
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: option.count >= 0
+                        text: option.count
+                        textFormat: Text.PlainText
+                        font.pointSize: theme.fontPoint * control.fontScale
+                        font.features: { "tnum": 1 }
+                        color: theme.dimText
+                    }
                 }
                 Rectangle {  // hover, under text
                     z: -1
@@ -169,8 +188,8 @@ Rectangle {
                     anchors.topMargin: control.inset
                     anchors.bottomMargin: control.inset
                     radius: theme.radiusXs
-                    color: theme.hover
-                    opacity: optionArea.containsMouse && !option.current ? 0.6 : 0
+                    color: theme.hover  // hover of every control (Development.md: one hover recipe)
+                    opacity: optionArea.containsMouse && !option.current ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: theme.motionFast } }
                 }
                 MouseArea {

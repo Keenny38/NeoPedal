@@ -19,7 +19,7 @@ Rectangle {
     Accessible.role: Accessible.StaticText
     Accessible.name: tone === "error" ? i18n.tr("Error") + ", " + text : text
 
-    Text {
+    TpText {
         id: label
         anchors.centerIn: parent
         text: badge.tone === "error" ? "! " + badge.text : badge.text

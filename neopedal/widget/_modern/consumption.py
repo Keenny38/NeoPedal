@@ -167,7 +167,7 @@ class ConsumptionPanel(StatsMixin, ModernOverlay):
                                  self.unit * 2, value_rect.height())
             self.draw_text(painter, symbol_rect, self.symbol, "small", theme.text_muted, LEFT)
         if self.show_refill:
-            refill_color = theme.negative if low else (theme.accent if refill[1] > 0 else theme.positive)
+            refill_color = theme.negative if low else (theme.accent if refill[1] else theme.positive)
             self.draw_text(painter, value_rect, refill[0], "strong", refill_color, RIGHT)
         if self.rect_gauge.height() and level is not None:
             self.draw_gauge(painter, level, low)
@@ -206,7 +206,8 @@ class ConsumptionPanel(StatsMixin, ModernOverlay):
         data = consumption_data(source, self.convert, wcfg[self.names.absolute])
         remaining = f"{data.remaining:.{self.dec_remaining}f}"
         need = data.needed
-        refill = (f"{need:{self.refill_sign}.{self.dec_refill}f}", need if self.refill_sign else source.neededRelative)
+        # Sign kept as a flag, not the raw amount: state compared for repaint must only hold what is drawn (PERF-005)
+        refill = (f"{need:{self.refill_sign}.{self.dec_refill}f}", (need if self.refill_sign else source.neededRelative) > 0)
         level = None
         if wcfg[self.names.level_bar] and source.capacity:
             capacity = source.capacity

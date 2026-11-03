@@ -57,12 +57,14 @@ jobs:
 
     - name: Tests (coverage on Python 3.13)
       # A hung test (QML page load, worker process) fails after 5 minutes instead of blocking the runner.
-      # Linux: tests spread over every CPU (pytest-xdist, about 3x faster); Windows kept in one process until
-      # a run confirms its exit (see conftest pytest_unconfigure).
-      # Coverage measured on the 3.13 cells only: on 3.11 the C tracer of coverage (sys.monitoring from 3.12)
-      # crashed the process (access violation / segmentation fault) in Qt event processing of the driver
-      # stats viewer tests, on both OS, reproduced locally with coverage and never without.
-      run: pytest -v --timeout=300 ${{ runner.os == 'Linux' && '-n auto' || '' }} ${{ matrix.python-version == '3.13' && '--cov=neopedal --cov-report=term --cov-report=xml:coverage.xml' || '' }}
+      # Tests spread over every CPU (pytest-xdist) on both OS: Linux cells 3x faster, Windows cells were 24-32
+      # minutes in one process (0.28.0 post-mortem). Each worker ends with the forced exit of conftest
+      # pytest_unconfigure (Windows runners hung at interpreter exit), as tools/check.py runs locally.
+      # Coverage measured on the 3.13 cells only (pytest-cov combines the data of the xdist workers): on 3.11
+      # the C tracer of coverage (sys.monitoring from 3.12) crashed the process (access violation / segmentation
+      # fault) in Qt event processing of the driver stats viewer tests, on both OS, reproduced locally with
+      # coverage and never without.
+      run: pytest -v --timeout=300 -n auto ${{ matrix.python-version == '3.13' && '--cov=neopedal --cov-report=term --cov-report=xml:coverage.xml' || '' }}
 
     - name: Widget benchmark
       if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'

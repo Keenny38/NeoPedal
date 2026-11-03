@@ -8,6 +8,8 @@ import "../components"
 // Rows of the same track are moved in place when sorted or reloaded (animated, scroll kept); a cell is a
 // single text, its logo, level pill or letter badge made only in columns having any (backend column "extras").
 // Names at left, numbers at right (tabular digits). Vehicles grouped by class: line above the first row of each class.
+// Titles, sideways scroll, Tab stop & row picking keys (Up / Down, Page Up / Page Down, Home / End) of every table
+// (TpTable): picked rows go through backend.moveSelection (arrow held: page updated once it settles).
 FocusScope {
     id: table
 
@@ -24,10 +26,23 @@ FocusScope {
         return result
     }
     readonly property real totalWidth: edges[edges.length - 1]
+    readonly property alias list: grid.list  // the rows' ListView (current row, keyboard focus)
     readonly property int count: list.count
-    readonly property real neededHeight: rowHeight * (list.count + 1) + 2  // header & every row
+    readonly property real neededHeight: list.y + rowHeight * list.count + 2  // titles & every row
+    // Current row of the list (keyboard picking goes on from it) follows the selected row: picked, sorted, reloaded
+    readonly property int selectedIndex: backend.selectedIndex
+    onSelectedIndexChanged: syncCurrent()
     signal cellMenu(string key, string column, real x, real y)
     signal headerMenu(real x, real y)
+    // Table focused (page opened, menu closed): keys go to the rows
+    onActiveFocusChanged: if (activeFocus && !list.activeFocus) list.forceActiveFocus()
+    Keys.onPressed: function(event) {  // keys left by the rows' list (TpTable)
+        if (event.key === Qt.Key_Delete) backend.deleteSelected()
+        else if (event.key === Qt.Key_Backspace && !backend.allTracks) backend.showAllTracks()
+        else if (event.key === Qt.Key_Menu) table.openSelectedMenu()
+        else return
+        event.accepted = true
+    }
 
     function widthOf(index) {
         var column = columns[index]
@@ -40,12 +55,15 @@ FocusScope {
         }
         return columns.length - 1
     }
-    function showSelected() {
-        if (backend.selectedIndex >= 0) list.positionViewAtIndex(backend.selectedIndex, ListView.Contain)
+    function syncCurrent() {
+        list.currentIndex = backend.selectedIndex < list.count ? backend.selectedIndex : -1
     }
-    function moveBy(step) {
-        backend.moveSelection(step)
-        showSelected()
+    // Row picked by keyboard (TpTable): moved from the selected row (keyboard burst kept), first pick selects it
+    function pickRow(index) {
+        var from = backend.selectedIndex
+        if (from >= 0) backend.moveSelection(index - from)
+        else if (list.currentItem) backend.selectRow(list.currentItem.key)
+        syncCurrent()
     }
     function openSelectedMenu() {
         var index = backend.selectedIndex
@@ -99,158 +117,131 @@ FocusScope {
                 readonly property real textWidth: extrasItem.cellText ? extrasItem.cellText.width : 0
                 active: pill || letter !== ""
                 z: -1
-                x: pill ? -theme.em * 0.55 : textWidth + theme.em * 0.35
-                width: pill ? textWidth + theme.em * 1.1 : theme.em * 1.25
-                height: pill ? Math.round(theme.em * 1.5) : theme.em * 1.25
-                y: extrasItem.cellText ? (extrasItem.cellText.height - height) / 2 : 0
+                x: Math.round(pill ? -theme.em * 0.55 : textWidth + theme.em * 0.35)  // whole pixels: sharp badge
+                width: pill ? textWidth + theme.em * 1.1 : height
+                height: pill ? Math.round(theme.em * 1.5) : Math.round(theme.em * 1.3 / 2) * 2
+                y: extrasItem.cellText ? Math.round((extrasItem.cellText.height - height) / 2) : 0
                 sourceComponent: pill ? pillShape : badgeShape
             }
         }
     }
     Component {
         id: badgeShape
-        Rectangle {
-            radius: width / 2
-            color: parent.tint
-            Text {
-                anchors.centerIn: parent
-                text: parent.parent.letter
-                textFormat: Text.PlainText
-                color: theme.inkOn(parent.color)  // readable on level color
-                font.pointSize: theme.fontTiny
-                font.weight: Font.Bold
-            }
+        TpLetterBadge {
+            letter: parent.letter
+            fill: parent.tint
+            size: parent.height
         }
     }
 
-    ListView {
-        id: list
-        objectName: "statsList"
-        anchors.fill: parent
-        clip: true
-        focus: true
-        reuseItems: true
-        model: backend.rows
-        contentWidth: Math.max(table.totalWidth, width)
-        flickableDirection: Flickable.HorizontalAndVerticalFlick
-        boundsBehavior: Flickable.StopAtBounds
-        headerPositioning: ListView.OverlayHeader
-        Accessible.role: Accessible.Table
-        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-        ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AsNeeded }
-        Keys.onUpPressed: table.moveBy(-1)
-        Keys.onDownPressed: table.moveBy(1)
-        Keys.onPressed: function(event) {
-            var page = Math.max(1, Math.floor(list.height / table.rowHeight) - 2)
-            if (event.key === Qt.Key_PageUp) table.moveBy(-page)
-            else if (event.key === Qt.Key_PageDown) table.moveBy(page)
-            else if (event.key === Qt.Key_Home) table.moveBy(-list.count)
-            else if (event.key === Qt.Key_End) table.moveBy(list.count)
-            else if (event.key === Qt.Key_Delete) backend.deleteSelected()
-            else if (event.key === Qt.Key_Backspace && !backend.allTracks) backend.showAllTracks()
-            else if (event.key === Qt.Key_Menu) table.openSelectedMenu()
-            else return
-            event.accepted = true
+    // Other track with mostly the same vehicles: rows changed in place (delegates kept), shown from the top
+    // with a short fade instead of being made again
+    NumberAnimation {
+        id: switchFade
+        target: table.list.contentItem
+        property: "opacity"
+        from: 0.35
+        to: 1
+        duration: theme.motionBase
+    }
+    Connections {
+        target: backend
+        function onRowsSwitched() {
+            table.list.positionViewAtBeginning()
+            switchFade.restart()
         }
-        Keys.onReturnPressed: backend.openRow(table.selectedKey)
-        Keys.onEnterPressed: backend.openRow(table.selectedKey)
+    }
+    Connections {  // rows made again (other track): current row set once the list has them
+        target: backend.rows
+        function onModelReset() { Qt.callLater(table.syncCurrent) }
+    }
+    Connections {
+        target: table.list
+        function onCountChanged() { table.syncCurrent() }
+    }
 
+    // Columns of the backend: titles & cells at the edges of each column, scroll, keyboard of every table (TpTable)
+    TpTable {
+        id: grid
+        anchors.fill: parent
+        listName: "statsList"
+        name: backend.allTracks ? i18n.tr("Tracks") : i18n.tr("Vehicles")
+        model: backend.rows
+        rowWidth: Math.max(table.totalWidth, availableWidth)
+        pad: 0  // cells keep their own padding (cellPad)
+        onPicked: function(index) { table.pickRow(index) }
+        onActivated: backend.openRow(table.selectedKey)
         // Rows sorted again: slide to their new place; other track: rows fade in
         move: Transition { NumberAnimation { property: "y"; duration: theme.motionSlow; easing.type: Easing.OutCubic } }
         moveDisplaced: Transition { NumberAnimation { property: "y"; duration: theme.motionSlow; easing.type: Easing.OutCubic } }
         displaced: Transition { NumberAnimation { property: "y"; duration: theme.motionBase; easing.type: Easing.OutCubic } }
-        add: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: theme.motionBase } }
         populate: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: theme.motionBase } }
-        // Other track with mostly the same vehicles: rows changed in place (delegates kept), shown from the top
-        // with a short fade instead of being made again
-        NumberAnimation {
-            id: switchFade
-            target: list.contentItem
-            property: "opacity"
-            from: 0.35
-            to: 1
-            duration: theme.motionBase
-        }
-        Connections {
-            target: backend
-            function onRowsSwitched() {
-                list.positionViewAtBeginning()
-                switchFade.restart()
-            }
-        }
 
-        header: Rectangle {
-            z: 3
-            width: list.contentWidth
-            height: table.rowHeight
-            color: theme.surfaceCard
-            Repeater {
-                model: table.columns
-                Item {
-                    id: headerCell
-                    required property var modelData
-                    required property int index
-                    readonly property bool alignedLeft: modelData.align === "left"
-                    x: table.edges[index] || 0
-                    width: table.widthOf(index)
-                    height: table.rowHeight
-                    TpHeaderCell {  // sort: click, or Tab then Enter / Space
-                        anchors.fill: parent
-                        anchors.leftMargin: theme.space3
-                        anchors.rightMargin: theme.space4  // room for the resize edge
-                        text: headerCell.modelData.label
-                        tip: headerCell.modelData.tip || ""
-                        align: headerCell.alignedLeft ? Qt.AlignLeft : Qt.AlignRight
-                        sortable: true
-                        sorted: table.sortKey === headerCell.modelData.key
-                        descending: table.sortDescending
-                        onSortRequested: backend.sortBy(headerCell.modelData.key)
+        // Column titles (one per shown column, as wide as its cells)
+        Repeater {
+            model: table.columns
+            Item {
+                id: headerCell
+                required property var modelData
+                required property int index
+                readonly property bool alignedLeft: modelData.align === "left"
+                width: table.widthOf(index)
+                height: table.rowHeight
+                TpHeaderCell {  // sort: click, or Tab then Enter / Space
+                    anchors.fill: parent
+                    anchors.leftMargin: theme.space3
+                    anchors.rightMargin: theme.space4  // room for the resize edge
+                    text: headerCell.modelData.label
+                    tip: headerCell.modelData.tip || ""
+                    align: headerCell.alignedLeft ? Qt.AlignLeft : Qt.AlignRight
+                    sortable: true
+                    sorted: table.sortKey === headerCell.modelData.key
+                    descending: table.sortDescending
+                    onSortRequested: backend.sortBy(headerCell.modelData.key)
+                }
+                MouseArea {  // right click: columns menu (left clicks go to the header cell)
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    cursorShape: Qt.PointingHandCursor  // header cells sort on click
+                    onClicked: function(mouse) {
+                        var point = mapToItem(table, mouse.x, mouse.y)
+                        table.headerMenu(point.x, point.y)
                     }
-                    MouseArea {  // right click: columns menu (left clicks go to the header cell)
-                        anchors.fill: parent
-                        acceptedButtons: Qt.RightButton
-                        cursorShape: Qt.PointingHandCursor  // header cells sort on click
-                        onClicked: function(mouse) {
-                            var point = mapToItem(table, mouse.x, mouse.y)
-                            table.headerMenu(point.x, point.y)
-                        }
+                }
+                Rectangle {  // column edge
+                    anchors.right: parent.right
+                    width: 1
+                    height: parent.height * 0.45
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: edgeArea.containsMouse || edgeArea.pressed ? theme.accent : theme.border
+                }
+                MouseArea {  // drag to resize, saved when released
+                    id: edgeArea
+                    width: theme.em * 0.6
+                    height: parent.height
+                    anchors.right: parent.right
+                    hoverEnabled: true
+                    preventStealing: true
+                    cursorShape: Qt.SplitHCursor
+                    property real startX: 0
+                    property real startWidth: 0
+                    onPressed: function(mouse) {
+                        startX = mapToItem(table, mouse.x, 0).x
+                        startWidth = headerCell.width
                     }
-                    Rectangle {  // column edge
-                        anchors.right: parent.right
-                        width: 1
-                        height: parent.height * 0.45
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: edgeArea.containsMouse || edgeArea.pressed ? theme.accent : theme.border
+                    onPositionChanged: function(mouse) {
+                        if (!pressed) return
+                        var widths = Object.assign({}, table.dragWidths)
+                        widths[headerCell.modelData.key] = Math.max(theme.em * 2, startWidth + mapToItem(table, mouse.x, 0).x - startX)
+                        table.dragWidths = widths
                     }
-                    MouseArea {  // drag to resize, saved when released
-                        id: edgeArea
-                        width: theme.em * 0.6
-                        height: parent.height
-                        anchors.right: parent.right
-                        hoverEnabled: true
-                        preventStealing: true
-                        cursorShape: Qt.SplitHCursor
-                        property real startX: 0
-                        property real startWidth: 0
-                        onPressed: function(mouse) {
-                            startX = mapToItem(table, mouse.x, 0).x
-                            startWidth = headerCell.width
-                        }
-                        onPositionChanged: function(mouse) {
-                            if (!pressed) return
-                            var widths = Object.assign({}, table.dragWidths)
-                            widths[headerCell.modelData.key] = Math.max(theme.em * 2, startWidth + mapToItem(table, mouse.x, 0).x - startX)
-                            table.dragWidths = widths
-                        }
-                        onReleased: {
-                            var width = table.dragWidths[headerCell.modelData.key]
-                            if (width !== undefined) backend.setColumnWidth(headerCell.modelData.key, width)
-                            table.dragWidths = ({})
-                        }
+                    onReleased: {
+                        var width = table.dragWidths[headerCell.modelData.key]
+                        if (width !== undefined) backend.setColumnWidth(headerCell.modelData.key, width)
+                        table.dragWidths = ({})
                     }
                 }
             }
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: theme.border }
         }
 
         delegate: Item {
@@ -262,7 +253,7 @@ FocusScope {
             readonly property bool selected: key === table.selectedKey
             property int hoveredColumn: -1
             readonly property string tip: hoveredColumn >= 0 && cells[hoveredColumn] ? (cells[hoveredColumn].tip || "") : ""
-            width: list.contentWidth
+            width: grid.rowWidth
             height: table.rowHeight
             property bool live: true  // false while recycled: row look shown at once (no fade)
             ListView.onPooled: { hoveredColumn = -1; live = false }  // kept for another row (reuseItems)
@@ -301,7 +292,7 @@ FocusScope {
             FocusRing {
                 target: surface
                 anchors.margins: 0
-                visible: rowItem.selected && list.activeFocus
+                visible: rowItem.selected && table.list.activeFocus
             }
             Repeater {
                 model: table.columns.length
@@ -346,7 +337,7 @@ FocusScope {
                 onPositionChanged: function(mouse) { rowItem.hoveredColumn = table.columnIndexAt(mouse.x) }
                 onExited: rowItem.hoveredColumn = -1
                 onPressed: {
-                    list.forceActiveFocus()
+                    table.list.forceActiveFocus()
                     backend.selectRow(rowItem.key)
                 }
                 onClicked: function(mouse) {

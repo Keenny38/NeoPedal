@@ -28,7 +28,7 @@ from collections.abc import Callable
 from functools import partial
 
 import shiboken6
-from PySide6.QtCore import QEvent, QMetaObject, QRect, QSize, Qt, QTimer, QUrl, Slot
+from PySide6.QtCore import QEvent, QMetaObject, QRect, QSize, Qt, QTimer, Slot
 from PySide6.QtGui import (
     QGuiApplication,
     QIcon,
@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMainWindow,
+    QMenuBar,
     QMessageBox,
     QStatusBar,
     QSystemTrayIcon,
@@ -78,9 +79,19 @@ from .app_tab_view import (  # noqa: F401  (re-exported)
     show_restored,
 )
 from .lazy_page import release_quick_views
-from .menu import APIMenu, ConfigMenu, HelpMenu, OverlayMenu, ToolsMenu, WindowMenu
+from .menu import APIMenu, ConfigMenu, HelpMenu, OverlayMenu, SupportMenu, ToolsMenu, WindowMenu, shortcut_actions
 from .nav_rail import NAV_PAGES, PAGE_INDEX  # noqa: F401  (PAGE_INDEX re-exported)
 from .ordered_picker import icon_font_family  # noqa: F401  (re-exported)
+from .title_bar import (
+    DOCK_HISTORY,
+    DOCK_STATUS,
+    DOCK_TOOLS,
+    CaptionColors,
+    FrameHandler,
+    PageTitleState,
+    TitleBar,
+    app_title_bar_supported,
+)
 from .toast import show_toast
 from .window_geometry import (
     default_frame_rect,
@@ -137,6 +148,16 @@ def safe_mode_enabled() -> bool:
     from .. import safe_mode
 
     return safe_mode.state.enabled
+
+
+def use_app_title_bar() -> bool:
+    """Main window title bar drawn by the app (Windows, option on, not in safe mode)"""
+    return cfg.application["enable_modern_title_bar"] and not safe_mode_enabled() and app_title_bar_supported()
+
+
+def main_window() -> "AppWindow":
+    """Main window: FramedAppWindow when the app draws the title bar, else AppWindow"""
+    return FramedAppWindow() if use_app_title_bar() else AppWindow()
 
 
 def apply_title_bar_scheme(dark: bool) -> bool:
@@ -228,6 +249,10 @@ def startup_page_paths() -> list[str]:
 class AppWindow(QMainWindow):
     """Main application window"""
 
+    title_bar: TitleBar | None = None  # title bar drawn by the app (Windows), see __init__
+    _frame: FrameHandler | None = None  # its window messages, once native window is created
+    _caption_colors: CaptionColors | None = None  # native caption of dialogs in window colors, with the title bar
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{APP_NAME} v{VERSION}")
@@ -258,11 +283,24 @@ class AppWindow(QMainWindow):
         # Status bar
         self.setStatusBar(StatusButtonBar(self))
 
+        # Title bar drawn by the app (Windows), window menus in it: native frame without caption, see title_bar
+        if use_app_title_bar():
+            self.title_bar = TitleBar(self)
+            self.setMenuWidget(self.title_bar)
+            self.setProperty("modernFrame", True)  # title bar, rail & status bar one piece, see style sheet
+            PageTitleState.shown = True  # page headers leave out the page name shown in the title bar
+            self._caption_colors = CaptionColors(self)  # dialogs: native caption in window colors
+            app_signal.saving.connect(self.title_bar.set_saving)
+            # Window menus opened by keyboard (F10, Alt alone: see TitleBar.watch_alt_key), as Windows menu bars
+            shortcut = QShortcut(QKeySequence("F10"), self, partial(self.title_bar.show_menu, keyboard=True))
+            shortcut.setWhatsThis(tr("Menu"))
+
         # Menu bar
         self.set_menu_bar()
 
         # Tab view
         self.setCentralWidget(TabView(self, startup_tool=bool(startup_page_paths())))
+        self.dock_in_title_bar()
 
         # Tray icon
         self.set_tray_icon()
@@ -444,6 +482,8 @@ class AppWindow(QMainWindow):
         app_instance = QApplication.instance()
         if isinstance(app_instance, QApplication):
             app_instance.setStyleSheet(set_style_window(QApplication.font().pointSize()))
+        if self._caption_colors is not None:  # dialogs shown now
+            self._caption_colors.refresh()
         logger.info("GUI: loading window color theme: %s", style)
 
     @Slot(bool)  # type: ignore[operator]
@@ -491,11 +531,14 @@ class AppWindow(QMainWindow):
                 old_menu.deleteLater()
         self.menuBar().clear()
         self.set_menu_bar()
+        if self.title_bar is not None:
+            self.title_bar.retranslate()
         old_view = self.centralWidget()
         if old_view is not None:  # deleted by Qt once replaced: QML views unloaded before their backends
             release_quick_views(old_view)
         tab_view = TabView(self)
         self.setCentralWidget(tab_view)
+        self.dock_in_title_bar()
         if growth is not None:
             tab_view.adopt_window_growth(growth)
         tab_view.set_current_index(tab_index)
@@ -525,6 +568,29 @@ class AppWindow(QMainWindow):
         app_signal.refresh.emit(True)
         logger.info("GUI: language changed to %s", self.last_language)
 
+    def dock_in_title_bar(self):
+        """Title bar drawn by the app: Back & Forward of the view left of the menus (as a browser), status chips
+        & app tools (command palette, notifications, settings, help) left of the caption buttons, saving state drawn
+        in it (see TitleBar.set_saving), no status band"""
+        title_bar = self.title_bar
+        if title_bar is None:
+            return
+        view = self.centralWidget()
+        if isinstance(view, TabView):
+            title_bar.dock(DOCK_HISTORY, view.history_buttons())
+            title_bar.dock(DOCK_TOOLS, view.tool_buttons())
+            title_bar.customize_rail = view.open_rail_editor
+            title_bar.dock(DOCK_STATUS, (view.notify_bar(),))
+        status_bar = self.statusBar()
+        if isinstance(status_bar, StatusButtonBar):
+            status_bar.hide()
+
+    def menuBar(self) -> QMenuBar:
+        """Window menus: in the title bar drawn by the app if shown, else menu bar of the window"""
+        if self.title_bar is not None:
+            return self.title_bar.menu_bar
+        return super().menuBar()
+
     def set_menu_bar(self):
         """Set menu bar"""
         logger.info("GUI: loading window menu")
@@ -542,11 +608,16 @@ class AppWindow(QMainWindow):
         menu_tools = ToolsMenu(tr("Tools"), self)
         menu.addMenu(menu_tools)
         # Window menu
-        menu_window = WindowMenu(tr("Window"), self)
+        menu_window = WindowMenu(tr("Window"), self, app_actions=self.title_bar is None)
         menu.addMenu(menu_window)
         # Help menu
         menu_help = HelpMenu(tr("Help"), self)
         menu.addMenu(menu_help)
+        # Support menu
+        menu_support = SupportMenu(tr("Support NeoPedal"), self)
+        menu.addMenu(menu_support)
+        if self.title_bar is not None:  # menu bar of the title bar never shown: Qt runs its shortcuts only once
+            self.addActions(shortcut_actions(menu))  # added to the window (Ctrl+, & Ctrl+Shift+F)
 
     def set_tray_icon(self):
         """Set tray icon"""
@@ -560,6 +631,8 @@ class AppWindow(QMainWindow):
         tray_menu = OverlayMenu(tr("Overlay"), self, True)
         tray_icon.setContextMenu(tray_menu)
         tray_icon.show()
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            logger.warning("GUI: no notification area on this desktop, window minimized instead of hidden")
 
     def tray_activated(self, active_reason: QSystemTrayIcon.ActivationReason):
         """Tray click or double click: show window (right click opens tray menu)"""
@@ -575,6 +648,10 @@ class AppWindow(QMainWindow):
         """
         logger.info("GUI: loading window setting")
         self.winId()  # native window created: frame size (title bar) known to fit window inside screen
+        if self.title_bar is not None:
+            self._frame = FrameHandler(self, self.title_bar)
+            self._frame.attach()  # caption removed before window is sized
+            self.title_bar.watch_alt_key()  # Alt alone opens the window menus
         default = default_frame_rect(self)
         width, height = cfg.application["window_width"], cfg.application["window_height"]
         if cfg.application["remember_size"] and width > 0 and height > 0:
@@ -596,8 +673,8 @@ class AppWindow(QMainWindow):
             self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
         if cfg.application["show_at_startup"]:
             show_restored(self)
-        elif not cfg.application["minimize_to_tray"]:
-            self.showMinimized()
+        elif not cfg.application["minimize_to_tray"] or not QSystemTrayIcon.isSystemTrayAvailable():
+            self.showMinimized()  # no notification area: in the task bar, never hidden with no way back
         self._track_geometry = True
 
     def verify_window_position(self):
@@ -853,7 +930,8 @@ class AppWindow(QMainWindow):
             return False
         release_quick_views(self)  # QML views unloaded before their backends are deleted
         self.hide_while_closing()
-        loader.close()  # must close this first
+        if not loader.closed():  # app ended by the system: closed already (aboutToQuit, see loader.close_at_exit)
+            loader.close()  # must close this first
         cfg.flush()  # window state written before the process ends (as restart does)
         self.__break_signal()
         tray_icon = self.findChild(QSystemTrayIcon)
@@ -876,20 +954,27 @@ class AppWindow(QMainWindow):
 
         Rail pages (spectate, presets...) never get a close event: deleted with the window, their
         backend (created first) went before their QML view, whose bindings then read a null backend.
+        Views deleted by the event loop as it ends (QApplication.quit), before the window (see release_view).
         """
-        from PySide6.QtQuickWidgets import QQuickWidget
-
-        for view in self.findChildren(QQuickWidget):
-            view.setSource(QUrl())
+        release_quick_views(self)
 
     def closeEvent(self, event):
-        """Minimize to tray, else quit: window kept (with tray icon & pages) if quit is cancelled"""
+        """Minimize to tray, else quit: window kept (with tray icon & pages) if quit is cancelled. No notification
+        area on this desktop (some Linux desktops): window minimized instead, never hidden with no way back"""
         if cfg.application["minimize_to_tray"]:
             event.ignore()
-            self.hide()
-            self.tell_closed_to_tray()
+            if self.tray_shown():
+                self.hide()
+                self.tell_closed_to_tray()
+            else:
+                self.showMinimized()
         elif not self.quit_app():
             event.ignore()
+
+    def tray_shown(self) -> bool:
+        """Tray icon shown in a notification area (desktop may have none, known only once running)"""
+        tray_icon = self.findChild(QSystemTrayIcon)
+        return QSystemTrayIcon.isSystemTrayAvailable() and tray_icon is not None and tray_icon.isVisible()
 
     def tell_closed_to_tray(self):
         """First close to tray: tray message telling the app still runs (once, saved)"""
@@ -956,3 +1041,21 @@ class AppWindow(QMainWindow):
         app_signal.quitapp.disconnect()
         app_signal.reload.disconnect()
         logger.info("GUI: disconnect signals")
+
+
+class FramedAppWindow(AppWindow):
+    """Main window with the title bar drawn by the app: its window messages handled in nativeEvent
+
+    Kept out of AppWindow: a Python nativeEvent is called for every message of the window (several per mouse move)
+    and each call waits for the GIL while another thread runs Python code (driving, page loading). A window
+    without the app title bar never pays it.
+    """
+
+    def nativeEvent(self, event_type, message):
+        """Window messages of the title bar drawn by the app (caption removed, hit test), see FrameHandler"""
+        frame = self._frame
+        if frame is not None:
+            result = frame.handle(int(message))
+            if result is not None:
+                return result
+        return False, 0  # left to Qt (QWidget.nativeEvent returns False)

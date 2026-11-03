@@ -38,6 +38,7 @@ from itertools import pairwise
 from typing import NamedTuple
 
 from ...const_app import FORMAT_PREFIX, LEGACY_FORMAT_PREFIX
+from ...const_common import MAX_LAPTIME
 from ...userfile import write_json
 from ...userfile.driver_history import SessionRecord
 from ...userfile.telemetry_lap import group_sessions, lap_files, lap_number_of, lap_timestamp_of, read_lap_info
@@ -386,7 +387,7 @@ def best_by_class(stats: dict, track: str, class_of: Callable[[str], str]) -> di
         return best
     for vehicle, values in vehicles.items():
         laptime = values.get("pb") if isinstance(values, dict) else None
-        if not isinstance(laptime, (int, float)) or isinstance(laptime, bool) or not 0 < laptime < 86400:
+        if not isinstance(laptime, (int, float)) or isinstance(laptime, bool) or not 0 < laptime < MAX_LAPTIME:
             continue
         vehicle_class = class_of(str(vehicle)) or str(vehicle)
         if laptime < best.get(vehicle_class, math.inf):

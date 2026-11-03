@@ -5,7 +5,6 @@ time distribution, rivals, official races to come, rank history, personal best c
 
 import csv
 import json
-import time
 from datetime import date, datetime
 from types import SimpleNamespace
 
@@ -21,7 +20,7 @@ from neopedal.process import driver_ranks as dr
 from neopedal.process import results_file as rf
 from neopedal.process import results_index as ri
 from neopedal.setting import cfg
-from neopedal.ui.quick import formatting, stats_analysis, stats_card, stats_common, stats_overview
+from neopedal.ui.quick import formatting, stats_analysis, stats_card, stats_common
 from neopedal.userfile import driver_history, pb_code
 from neopedal.userfile.driver_history import SessionRecord, parse_record, record_line, session_record
 from tests.test_driver_stats_viewer import (  # noqa: F401  (fixtures)
@@ -233,25 +232,12 @@ def test_distribution_and_years():
     assert stats_analysis.period_bounds(0, date(2026, 10, 20))[0] == date(2025, 10, 21)
 
 
-def test_official_races_parsed_and_matched():
-    event = {"configuration": {"title": "Sprint", "starts": "2026-10-21T18:00:00Z",
-                               "content": {"track": {"name": "PORTIMAO", "friendly": "",
-                                                     "subItems": [{"name": "Portimao_WEC", "scn": "PORTIMAOWEC"}]}}},
-             "registered": {"total": 3, "class": {"Hypercar": 2, "LMGT3": 1}}}
-    races = stats_analysis.parse_events("advanced", [event, {"configuration": {}}, "junk"])
-    assert len(races) == 1 and races[0].scene == "PORTIMAOWEC" and races[0].track == "Portimao WEC"
-    assert races[0].classes == ("Hypercar", "LMGT3")
-    assert races[0].start == datetime(2026, 10, 21, 18, tzinfo=stats_analysis.UTC).timestamp()
+def test_game_track_names():
+    # names of each game track scene (personal bests of the Upcoming Races page, tests/test_race_schedule.py)
     names = stats_analysis.track_names([{"sceneDesc": "PORTIMAOWEC", "name": "6 Hours of Portimao",
                                          "shortName": "Algarve International Circuit 1.27",
                                          "displayProperties": {"shortName": "Algarve International Circuit"}}])
-    assert stats_analysis.stats_track(races[0], ["Monza", "Algarve International Circuit"], names) == \
-        "Algarve International Circuit"
-    assert stats_analysis.stats_track(races[0], ["Monza"], names) == ""
-    asked = []
-    read = stats_analysis.read_upcoming(lambda path: asked.append(path) or ([event] if "advanced" in path else None),
-                                        now=races[0].start - 3600)  # an hour before the race
-    assert len(read) == 1 and len(asked) == 3 and asked[0].startswith("api/v1/daily/list/beginner")
+    assert names == {"portimaowec": ("6 Hours of Portimao", "Algarve International Circuit")}
 
 
 def test_pb_code_round_trip():
@@ -320,6 +306,18 @@ def test_history_columns_and_rust(stats):
     assert stats.cell(FERRARI, "last").value is None
 
 
+def test_vehicle_of_no_class_has_no_chip_nor_column(backend):  # noqa: F811
+    """" - Brand" (recorded while car loading by older versions): "" is every class, never a second chip"""
+    # Laps driven: shown (an empty vehicle is hidden, see test_driver_stats_display_2026_11_02)
+    write_stats({**STATS, SPA: {**STATS[SPA], " - Ferrari": {"pb": 99999.0, "starts": 1, "valid": 2, "meters": 9000.0}}})
+    backend.reload_stats()
+    settle(backend)
+    backend.selectTrack(SPA)
+    assert backend.tableClasses == ["Hyper", "LMP2_ELMS"] and " - Ferrari" in backend.row_keys()
+    backend.selectTrack("")
+    assert "" not in backend.tableClasses and "class:" not in backend.table_header_key
+
+
 def test_table_search_class_filter_and_groups(stats):
     assert stats.tableClasses == ["Hyper", "LMP2_ELMS"]
     stats.setSearch("ferr")
@@ -347,7 +345,7 @@ def test_goal_set_reached_once(stats, monkeypatch):
     toasts = []
     monkeypatch.setattr(toast, "show_toast", lambda host, text, **kwargs: toasts.append(text))
     monkeypatch.setattr(stats, "_page_visible", True)  # page shown: goals beaten told at once (else once shown)
-    assert stats.goal["visible"] and not stats.goal["set"] and stats.goal["suggestion"].startswith("Suggested:")
+    assert stats.goal["visible"] and stats.goal["auto"] and stats.goal["source"].startswith("Automatic goal")
     stats.set_goal(f"{SPA}|{OREGA}", 121.0)
     goal = stats.goal
     assert goal["set"] and goal["time"] == "2:01.000" and goal["gap"] == "+0.500 s to find"
@@ -365,7 +363,7 @@ def test_goal_set_reached_once(stats, monkeypatch):
     settle(stats)
     assert len(toasts) == 1
     stats.clearGoal()
-    assert not stats.goal["set"] and f"{SPA}|{OREGA}" not in stats.goals()
+    assert stats.goal["auto"] and f"{SPA}|{OREGA}" not in stats.goals()  # automatic goal again
 
 
 def test_activity_year_and_distribution(stats):
@@ -391,30 +389,6 @@ def test_driver_card_figures_and_rivals(stats):
     assert figures["Clean Streak"] == "2" and figures["Places Gained"] == "+2.0"
     assert stats.rivals[0]["name"] == "Ann" and stats.rivals[0]["record"] == "0-2"
     assert stats.rivals[0]["tone"] == "loss" and stats.rivals[0]["gap"] == "+1.000"
-
-
-def test_official_races_option(stats, monkeypatch):
-    monkeypatch.setattr(stats_overview, "online_enabled", lambda: True)
-    reads = []
-    event = stats_analysis.Upcoming("advanced", "Sprint", time.time() + 3600, "Spa", "SPASCENE", ("LMP2",))
-    monkeypatch.setattr(stats_overview, "read_official_races", lambda: reads.append(1) or (
-        [event], {"spascene": (SPA,)}))
-    stats.selectTrack("")
-    assert not stats.upcomingEnabled and not reads
-    stats.setUpcomingEnabled(True)
-    settle(stats)
-    races = stats.upcoming["races"]
-    assert reads == [1] and races[0]["track"] == SPA and races[0]["tier"] == "Advanced"
-    bests = {best["vehicleClass"]: best["best"] for best in races[0]["bests"]}
-    assert bests == {"Hyper": "1:59.000", "LMP2_ELMS": "2:01.500"} and races[0]["known"]
-    stats.load_upcoming()  # read again only after a while
-    settle(stats)
-    assert reads == [1]
-    monkeypatch.setattr(stats_overview, "online_enabled", lambda: False)
-    stats.refreshUpcoming()
-    assert "Turn on online ranks" in stats.upcoming["note"]
-    stats.setUpcomingEnabled(False)
-    assert not stats.upcoming["enabled"]
 
 
 def test_share_code_card_and_compare(stats, dialogs, monkeypatch):  # noqa: F811
@@ -447,9 +421,6 @@ def test_history_csv_rows_match_header(stats, tmp_path):
 
 
 def test_page_new_parts_without_qml_warnings(page, monkeypatch):  # noqa: F811
-    monkeypatch.setattr(stats_overview, "online_enabled", lambda: True)
-    event = stats_analysis.Upcoming("beginner", "Daily", time.time() + 3600, SPA, "", ())
-    monkeypatch.setattr(stats_overview, "read_official_races", lambda: ([event], {}))
     driver_history.save_history(cfg.path.config, HISTORY)
     messages = []
     previous = qInstallMessageHandler(lambda mode, context, text: messages.append(text))
@@ -464,7 +435,7 @@ def test_page_new_parts_without_qml_warnings(page, monkeypatch):  # noqa: F811
                      lambda: backend.clearFilters(), lambda: backend.setGroupByClass(True),
                      lambda: backend.setSearch("ore"), lambda: backend.setClassFilter("LMP2_ELMS"),
                      lambda: backend.setSearch(""), lambda: backend.setClassFilter(""),
-                     lambda: backend.selectTrack(""), lambda: backend.setUpcomingEnabled(True),
+                     lambda: backend.selectTrack(""),
                      lambda: backend.setActivityYear(1), lambda: page.resize(860, 640), lambda: page.resize(1400, 860),
                      lambda: backend.setStatsTab(0)):  # Progression tab, then Overview (cards kept once made)
             step()
@@ -472,7 +443,7 @@ def test_page_new_parts_without_qml_warnings(page, monkeypatch):  # noqa: F811
             for _ in range(3):
                 QCoreApplication.processEvents()
         texts = item_texts(page.view)
-        assert "Official Races to Come" in texts and "Driving time by track" in texts
+        assert "Driving time by track" in texts and "Official Races to Come" not in texts
         backend.selectTrack(SPA)
         QCoreApplication.processEvents()
         texts = item_texts(page.view)

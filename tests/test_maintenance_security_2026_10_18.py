@@ -495,6 +495,104 @@ def test_change_visual_long_title_never_cut(ui_env, tmp_path):
     assert QImage(output).width() > 400
 
 
+def test_change_visual_label_never_cut(ui_env, tmp_path):
+    """Narrow render (vertical LEDs): column as wide as its "Before · name" label"""
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QFont, QFontMetrics, QImage, QPixmap
+
+    from tools.make_change_visual import GAP, MARGIN, compose
+
+    for folder in ("before", "after"):
+        (tmp_path / folder).mkdir()
+        pixmap = QPixmap(20, 80)
+        pixmap.fill(Qt.GlobalColor.yellow if folder == "after" else Qt.GlobalColor.white)
+        pixmap.save(str(tmp_path / folder / "lift_and_coast.classic.png"))
+    output = str(tmp_path / "change.png")
+    compose(["lift_and_coast.classic"], str(tmp_path / "before"), str(tmp_path / "after"), "LED", output)
+    label = QFontMetrics(QFont("JetBrains Mono", 12)).horizontalAdvance("Before · lift_and_coast (classic)")
+    image = QImage(output)
+    assert image.width() >= MARGIN * 2 + label * 2 + GAP
+    assert image.text("Widgets") == "lift_and_coast"  # coverage read by --scan
+
+
+def _fill_rect(image, rect, color: str):
+    from PySide6.QtGui import QColor, QPainter
+
+    painter = QPainter(image)
+    painter.fillRect(rect, QColor(color))
+    painter.end()
+
+
+def test_change_visual_changed_areas(ui_env):
+    """Changed spots framed one by one, noise and same renders ignored, no frame when size or whole look changed"""
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QColor, QImage
+
+    from tools.make_change_visual import CHANNEL_TOLERANCE, changed_areas
+
+    def image(width=200, height=100):
+        result = QImage(width, height, QImage.Format.Format_ARGB32)
+        result.fill(QColor("#202020"))
+        return result
+
+    before, after = image(), image()
+    assert changed_areas(before, after) == (0.0, [])
+    after.setPixelColor(5, 5, QColor(0x20 + CHANNEL_TOLERANCE, 0x20, 0x20))  # antialiasing noise
+    assert changed_areas(before, after)[0] == 0.0
+    after.fill(QColor("#202020"))
+    _fill_rect(after, QRect(10, 10, 12, 6), "#FFFFFF")
+    _fill_rect(after, QRect(150, 70, 10, 10), "#FFFFFF")
+    ratio, areas = changed_areas(before, after)
+    assert 0 < ratio < 0.1 and len(areas) == 2
+    assert areas[0].contains(QRect(10, 10, 12, 6)) and areas[1].contains(QRect(150, 70, 10, 10))
+    assert all(QRect(0, 0, 200, 100).contains(area) for area in areas)
+    assert changed_areas(before, image(210, 100)) == (1.0, [])
+    after.fill(QColor("#202020"))
+    for index in range(8):  # layout reflowed: changes everywhere, no frame
+        _fill_rect(after, QRect(index * 25, (index % 3) * 35, 4, 4), "#FFFFFF")
+    ratio, areas = changed_areas(before, after)
+    assert ratio > 0 and areas == []
+    after.fill(QColor("#FFFFFF"))
+    assert changed_areas(before, after) == (1.0, [])
+
+
+def test_change_visual_same_render(ui_env, tmp_path):
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QPixmap
+
+    from tools.make_change_visual import same_render
+
+    pixmap = QPixmap(30, 20)
+    pixmap.fill(Qt.GlobalColor.red)
+    pixmap.save(str(tmp_path / "a.png"))
+    pixmap.save(str(tmp_path / "b.png"))
+    pixmap.fill(Qt.GlobalColor.blue)
+    pixmap.save(str(tmp_path / "c.png"))
+    assert same_render(str(tmp_path / "a.png"), str(tmp_path / "b.png"))
+    assert not same_render(str(tmp_path / "a.png"), str(tmp_path / "c.png"))
+    assert not same_render(str(tmp_path / "missing.png"), str(tmp_path / "a.png"))  # new widget
+
+
+def test_change_visual_crop_page_screenshots(ui_env):
+    """App page screenshots: empty window background cut, same box on both sides (changes stay aligned)"""
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QColor, QImage
+
+    from tools.make_change_visual import crop_to_content
+
+    def page(card: QRect):
+        result = QImage(400, 300, QImage.Format.Format_ARGB32)
+        result.fill(QColor("#101010"))
+        _fill_rect(result, card, "#505050")
+        return result
+
+    before, after = crop_to_content(page(QRect(20, 20, 100, 40)), page(QRect(20, 20, 160, 60)))
+    assert before.size() == after.size()
+    assert 160 <= after.width() <= 160 + 16 + 1 and 60 <= after.height() <= 60 + 16 + 1
+    alone, _ = crop_to_content(page(QRect(20, 20, 100, 40)), QImage(10, 10, QImage.Format.Format_ARGB32))
+    assert alone.width() <= 100 + 16 + 1
+
+
 def test_version_file_read_and_written(tools_path, tmp_path, monkeypatch):
     from next_version import file_version, write_version
 
@@ -517,6 +615,7 @@ def test_version_file_read_and_written(tools_path, tmp_path, monkeypatch):
     ("README.md", True),
     ("CHANGELOG.fr.md", True),
     ("images/readme_preview.png", True),
+    ("images/readme_preview_wide.png", True),
     ("docs/customization.md", False),  # option help generated from it: app changes
     ("neopedal/widget/gear.py", False),
     ("README.md.bak", False),

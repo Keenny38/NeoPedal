@@ -14,6 +14,7 @@
 - [Race Calculator](Race-Calculator.md)
 - [Driver Stats](Driver-Stats.md)
 - [Results & Replays](Race-Results.md)
+- [Upcoming Races](Upcoming-Races.md)
 - [Broadcast Director](Broadcast-Director.md)
 - [Connections](Connections.md)
 

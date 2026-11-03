@@ -163,7 +163,7 @@ def toolbar_buttons(root, names):
 
 
 def test_stats_header_actions_fit_page_width(stats_view):  # noqa: F811
-    names = ("mapButton", "telemetryButton", "undoButton", "redoButton", "exportButton", "viewButton",
+    names = ("mapButton", "telemetryButton", "undoButton", "redoButton", "shareButton", "viewButton",
              "referenceButton", "moreButton")
     stats_view.show()
     root = stats_view.view.rootObject()
@@ -174,7 +174,7 @@ def test_stats_header_actions_fit_page_width(stats_view):  # noqa: F811
     for _ in range(5):
         QCoreApplication.processEvents()
     assert not toolbar.property("overflowing")
-    assert buttons["exportButton"].property("text") == "Export"
+    assert buttons["shareButton"].property("text") == "Share"  # export entries in its menu (UI/UX audit 2026-11-01)
     stats_view.resize(700, 860)
     for _ in range(5):
         QCoreApplication.processEvents()

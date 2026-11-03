@@ -3,8 +3,9 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "../components"
 
-// Lap time goal of selected vehicle: progress since first lap time, told once beaten
-TpSectionCard {  // lap time goal of selected vehicle: progress since first lap time, told once beaten
+// Lap time goal of selected vehicle: set by the driver, else automatic (limit of next level of community lap
+// times); progress since first lap time, told once beaten (automatic: once the level is reached)
+TpSectionCard {
     id: card
     readonly property var goal: backend.goal
     // Backend tone name in its status color (gain, loss), else fallback
@@ -13,18 +14,20 @@ TpSectionCard {  // lap time goal of selected vehicle: progress since first lap 
     visible: card.goal.visible === true
     title: i18n.tr("Lap Time Goal")
     glyph: ""  // target
-    tip: i18n.tr("Lap time to beat with this car, saved: a message tells you once it is beaten")
+    tip: i18n.tr("Lap time to beat with this car: automatic (next level of community lap times) unless you set one. A message tells you once it is beaten.")
     actions: [
-        TpButton {
-            visible: card.goal.set === true
+        TpButton {  // goal set by the driver: back to the automatic one
+            visible: card.goal.set === true && card.goal.auto !== true
             flat: true
             size: "sm"
-            text: i18n.tr("Remove")
+            text: i18n.tr("Automatic")
+            tip: i18n.tr("Remove your goal: automatic goal again (next level of community lap times)")
             onClicked: backend.clearGoal()
         },
         TpButton {
             size: "sm"
-            text: card.goal.set === true ? i18n.tr("Change…") : i18n.tr("Set…")
+            text: card.goal.set === true && card.goal.auto !== true ? i18n.tr("Change…") : i18n.tr("Set…")
+            tip: i18n.tr("Your own lap time to beat, instead of the automatic goal")
             onClicked: backend.editGoal()
         }
     ]
@@ -59,8 +62,10 @@ TpSectionCard {  // lap time goal of selected vehicle: progress since first lap 
     }
     Text {
         Layout.fillWidth: true
-        text: card.goal.set === true ? i18n.tr("Personal best") + " " + (card.goal.best || "—")
-                                     : (card.goal.suggestion || i18n.tr("No goal yet: set a lap time to beat."))
+        // Personal best, what an automatic goal is (next level...)
+        text: card.goal.set === true
+              ? i18n.tr("Personal best") + " " + (card.goal.best || "—") + (card.goal.auto === true ? " · " + card.goal.source : "")
+              : i18n.tr("No goal yet: set a lap time to beat.")
         textFormat: Text.PlainText
         color: theme.dimText
         font.pointSize: theme.fontLabel

@@ -21,7 +21,8 @@ Item {
 
     // Game state: replay open (accent), live session (one Live color for every page), menu, offline
     function stateColor(name) {
-        return name === "replay" ? theme.accent : name === "session" ? theme.live : name === "menu" ? theme.warning : theme.loss
+        return name === "replay" ? theme.accent : name === "session" ? theme.live
+             : name === "menu" || replays.gameStarting ? theme.warning : theme.loss
     }
 
     // Text being typed (search, seconds before): Space is a character, not play / pause
@@ -73,7 +74,7 @@ Item {
                 text: replays.statusText
                 tint: page.stateColor(page.gameState)
                 dot: true
-                pulsing: page.gameState === "replay"
+                pulsing: page.gameState === "replay" || replays.gameStarting
                 maximumTextWidth: page.width * 0.6 - theme.em * 2
             }
             Text {
@@ -89,6 +90,28 @@ Item {
             TpToolbar {  // texts while they fit, then icons only, then "⋯"
                 objectName: "replayToolbar"
                 Layout.fillWidth: true
+                TpAction {  // game not running: started by Steam, page follows it once it answers
+                    name: "startGameButton"
+                    shown: page.gameState === "offline" && !replays.gameStarting
+                    accent: true
+                    pinned: true
+                    priority: 3
+                    text: i18n.tr("Start LMU")
+                    glyph: "\uE768"  // play
+                    fallback: "▶"
+                    tip: i18n.tr("Start Le Mans Ultimate through Steam")
+                    onTriggered: replays.startGame()
+                }
+                TpAction {
+                    name: "cancelStartButton"
+                    shown: replays.gameStarting
+                    pinned: true
+                    priority: 3
+                    text: i18n.tr("Stop Waiting")
+                    glyph: theme.glyphs.close
+                    tip: i18n.tr("Stop waiting for the game: the replay asked is not opened (the game keeps starting)")
+                    onTriggered: replays.cancelStart()
+                }
                 TpAction {
                     name: "openFolderButton"
                     text: i18n.tr("Open Folder")
@@ -413,7 +436,8 @@ Item {
             Text {
                 Layout.fillWidth: true
                 visible: !replays.replayActive
-                text: page.gameState === "offline" ? i18n.tr("Start LMU: replays, playback & incidents come from the game.")
+                text: replays.gameStarting ? i18n.tr("Le Mans Ultimate is starting: the page follows it once it answers.")
+                    : page.gameState === "offline" ? i18n.tr("Start LMU: replays, playback & incidents come from the game.")
                     : page.gameState === "menu" ? i18n.tr("Watch a replay from the list to control it from here.")
                     : i18n.tr("Open the replay of this session in the game, or watch one from the list.")
                 textFormat: Text.PlainText
@@ -431,13 +455,18 @@ Item {
             ColumnLayout {
                 anchors.fill: parent
                 spacing: theme.space3
-                TpSegmented {
+                // Panels of the replay: views, so tabs (counts in badges)
+                TpTabBar {
+                    objectName: "replayPanels"
                     Layout.topMargin: theme.padCard
                     Layout.leftMargin: theme.padCard
+                    Layout.rightMargin: theme.padCard
                     name: i18n.tr("Replay")
-                    options: [i18n.tr("Incidents") + (replays.incidentCount > 0 ? "  " + replays.incidentCount : ""),
-                              i18n.tr("Drivers") + (replays.carCount > 0 ? "  " + replays.carCount : ""),
-                              i18n.tr("Map")]
+                    readonly property var panels: [{ "text": i18n.tr("Incidents") }, { "text": i18n.tr("Drivers") },
+                                                   { "text": i18n.tr("Map") }]
+                    model: panels
+                    counts: [replays.incidentCount > 0 ? replays.incidentCount : -1,
+                             replays.carCount > 0 ? replays.carCount : -1]
                     currentIndex: replays.panelIndex
                     onActivated: function(index) { replays.setPanel(index) }
                 }

@@ -487,13 +487,13 @@ class TyrePlan:
             return tr("Invalid tyre name.")
         for column, other in enumerate(self.rows[row]):
             if column != corner and other == name:
-                return trm(f"<b>{name}</b> already installed on <b>{HEADER_TYREPLAN[column]}</b> wheel.<br><br>"
+                return trm(f"<b>{name}</b> already installed on <b>{tr(HEADER_TYREPLAN[column])}</b> wheel.<br><br>"
                            f"Cannot install the same tyre on two wheels at the same time.")
         if self.rule["enable_restricted_allocation"]:
             for row_index, tyres in enumerate(self.rows):
                 for column, other in enumerate(tyres):
                     if other == name and column != corner and (row_index, column) != (row, corner):
-                        return trm(f"<b>{name}</b> already used on <b>{HEADER_TYREPLAN[column]}</b> wheel.<br><br>"
+                        return trm(f"<b>{name}</b> already used on <b>{tr(HEADER_TYREPLAN[column])}</b> wheel.<br><br>"
                                    f"Cannot allocate already used tyre on a different wheel.")
         self.rows[row][corner] = name
         self.forget_stints()

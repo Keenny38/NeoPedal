@@ -33,7 +33,7 @@ The app checks GitHub for a new release at startup (`check_for_updates_on_startu
 4. checks the installer's **Authenticode signature** when it is signed, and refuses an invalid signature. An unsigned installer is accepted (and logged) only from the official repository, because its manifest was verified. With a custom update repository, the installer must be signed by a certificate that is not revoked (checked online, see below), and you are always asked first, with the repository and the signer name shown. The repository checked is the one the update was found in, even if the setting changed since;
 5. runs the installer silently: it closes the app, updates it and starts it again. Your presets and data are kept. From its last checks until it is started, the installer file is held open so that no other program can change, replace or delete it: its SHA-256 and signature are checked again through that open file, then it is started from it.
 
-The downloaded installer and its folder are deleted when you decline the install or when it fails to start.
+The downloaded installer and its folder are deleted when you decline the install or when it fails to start. After an install (the installer cannot delete itself), the next start of the app removes the download folders older than an hour.
 
 ### Signed releases
 
@@ -170,7 +170,7 @@ Once published, a release cannot be modified: its files and tag stay as they wer
 
 Use GitHub private vulnerability reporting: [Report a vulnerability](https://github.com/Keenny38/NeoPedal/security/advisories/new) (repository `Security` tab). Only you and the maintainer see the report. Include:
 
-- the app version (`Help` > `About`), your system and game;
+- the app version (`Help` > `About NeoPedal`), your system and game;
 - what the vulnerability allows, and to whom (another program on the PC, a device on the local network, a website, an imported file...);
 - steps to reproduce it, with an example file or script if possible.
 

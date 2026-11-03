@@ -3,8 +3,6 @@ most 3 cards beside the table, filters as removable chips, official races & riva
 laps, race calculator, results), menus closed by a second click, progress of the last days (pure function shared
 with the Home page)"""
 
-import os
-import sys
 import time
 from types import SimpleNamespace
 
@@ -141,7 +139,8 @@ def test_weekly_card_rows_open_their_combo(stats):
     weekly = stats.weekly
     assert weekly["summary"].startswith("2 sessions") and "30 min" in weekly["summary"]
     kinds = {row["kind"] for row in weekly["rows"]}
-    assert kinds == {"record"} and all(row["track"] == SPA for row in weekly["rows"])
+    # New personal bests, automatic goals near (next level of community lap times)
+    assert "record" in kinds and kinds <= {"record", "goal_near"} and all(row["track"] == SPA for row in weekly["rows"])
     oreca = next(row for row in weekly["rows"] if row["vehicle"] == OREGA)
     assert oreca["detail"].startswith("New personal best 2:01.500") and oreca["tone"] == "gain"
     assert weekly is stats.weekly_card()  # made again only when something changed
@@ -220,7 +219,7 @@ def test_open_laps_of_another_track(stats, monkeypatch):
     assert stats.open_laps(SPA, FERRARI) and lap_backend.currentTrack == folder
 
 
-# --- Page: tabs, 3 cards at most beside the table, menus, French
+# --- Page: one view (cards beside the table), menus, French
 def side_cards(view) -> list:
     """Titles of the section cards shown in the side column"""
     side = view.rootObject().findChild(QObject, "statsSide")
@@ -246,9 +245,6 @@ def test_every_tab_without_qml_warnings(dialogs, language, monkeypatch):  # noqa
     from neopedal.ui.driver_stats_viewer import DriverStatsViewer
     from tests.test_driver_stats_viewer import STATS, write_stats
 
-    monkeypatch.setattr(stats_overview, "online_enabled", lambda: True)
-    event = stats_analysis.Upcoming("beginner", "Daily", time.time() + 3600, SPA, "", ())
-    monkeypatch.setattr(stats_overview, "read_official_races", lambda: ([event], {}))
     now = time.time()
     driver_history.save_history(cfg.path.config, [SessionRecord(now - DAY, SPA, OREGA, 1, 121.0, valid=4),
                                                   SessionRecord(now - 30 * DAY, SPA, OREGA, 1, 122.0)])
@@ -264,21 +260,19 @@ def test_every_tab_without_qml_warnings(dialogs, language, monkeypatch):  # noqa
         backend = viewer.backend
         backend.reload_stats()
         settle(backend)
-        backend.setUpcomingEnabled(True)
-        settle(backend)
+        # One view (no tabs): every card of the track or of All Tracks in the side column
         for track in (SPA, ""):
             backend.selectTrack(track)
-            for tab in (0, 1, 2):
-                backend.setStatsTab(tab)
-                for _ in range(3):
-                    QCoreApplication.processEvents()
-                cards = side_cards(viewer.view)
-                assert len(cards) <= 3, (track, tab, cards)
-                if tab == 1 and track:
-                    assert cards == []  # progression card takes the whole width under the table
+            for _ in range(3):
+                QCoreApplication.processEvents()
+            cards = side_cards(viewer.view)
+            expected = ({"Lap Time Goal", "Friends & Codes"} if track else {"This Week", "Friends & Codes"})
+            if language == "English":
+                assert expected <= set(cards), (track, cards)
+            else:
+                assert len(cards) >= 2, (track, cards)
         backend.selectTrack(SPA)
         backend.selectRow(OREGA)
-        backend.setStatsTab(1)
         backend.setConditionFilter(1)
         for _ in range(3):
             QCoreApplication.processEvents()
@@ -286,11 +280,10 @@ def test_every_tab_without_qml_warnings(dialogs, language, monkeypatch):  # noqa
         assert chips is not None and chips.property("visible")
         texts = item_texts(viewer.view)
         if language == "English":
-            assert {"Overview", "Compare", "This Week", "Friends & Codes", "Dry Road"} <= texts
+            assert {"Lap Time Goal", "Friends & Codes", "Dry Road"} <= texts and "Overview" not in texts
         else:
-            assert {"Vue d'ensemble", "Comparaison", "Cette semaine", "Amis et codes", "Sur piste sèche"} <= texts
+            assert {"Objectif de temps", "Amis et codes", "Sur piste sèche"} <= texts
         backend.clearFilters()
-        backend.setStatsTab(0)
         viewer.resize(860, 640)  # narrow: cards below the table
         for _ in range(3):
             QCoreApplication.processEvents()
@@ -303,8 +296,6 @@ def test_every_tab_without_qml_warnings(dialogs, language, monkeypatch):  # noqa
     assert not [text for text in messages if ".qml" in text], messages
 
 
-@pytest.mark.skipif(os.environ.get("CI") == "true" and sys.platform == "win32",
-                    reason="GitHub Windows runner: popup menus & keyboard focus behave differently there (offscreen); checked locally")
 def test_menu_closed_by_second_click(page):  # noqa: F811
     from PySide6.QtCore import Q_ARG, QMetaObject, Qt
 

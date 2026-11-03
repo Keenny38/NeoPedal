@@ -39,15 +39,15 @@ import logging
 import os
 import time
 import weakref
-from collections.abc import Callable, Collection, Iterator, Mapping
-from contextlib import contextmanager
+from collections.abc import Collection, Iterator, Mapping
+from contextlib import contextmanager, suppress
 from types import SimpleNamespace
 from typing import Any, NamedTuple, Protocol
 
 from PySide6.QtCore import Property, QObject, QPoint, QTimer, Signal, Slot
 
 from ... import app_signal
-from ...i18n import tr, trm
+from ...i18n import colon, localized, tr, trm
 from ...i18n.options import module_label, option_help_specific, option_label
 from ...module_control import ModuleControl
 from ...setting import cfg
@@ -152,6 +152,7 @@ class OverlayOptionsHost(Protocol):
     def edit_table(self, text: str) -> str | None: ...
     def open_folder(self, folder: str) -> None: ...
     def notify(self, text: str) -> None: ...
+    # Optional: notify_undo(text, undo) shows the notice with an Undo button
     def applied(self, names: list[str]) -> None: ...
     def export_overlays(self, names: list[str]) -> None: ...
     def import_overlays(self) -> None: ...
@@ -316,7 +317,10 @@ class OverlayOptionsBackend(PageBackend):
         self._preview_zoom = 1.0  # size asked by page (zoomed preview), see setPreviewScale
         self._preview_scenario = ""  # race situation of preview (demo_data.SCENARIOS), "" racing
         self._preview_compare = False  # preview of the other design (classic or modern) with same values
-        self._test_connected = False  # page told when test on screen ends (see testOnScreen)
+        from ..overlay_test import overlay_test
+
+        # Test on screen started or ended anywhere (this page, Overlays page, wizard, by itself): button follows
+        overlay_test().changed.connect(self.previewChanged)
         self._preview_signature: object = None  # inputs of picture shown (see render_preview)
         self._preview_bytes = 0  # size of picture in store
         # Preview played on a moving simulated race (a corner in a loop), on unless animation effects are off
@@ -685,9 +689,10 @@ class OverlayOptionsBackend(PageBackend):
             source = ui.override_source if ui is not None else ""
             if ui is not None and ui.fixed_source and ui.release is not None and key not in ui.release(values):
                 source = ui.fixed_source  # set by auto compact mode, not by the profile (B-037)
-            row["note"] = f"{tr('Set by')} {option_label(source)}: {tr(str(values.get(source, '')))} ({state})"
+            row["note"] = tr("Set by %1: %2 (%3)").replace("%1", option_label(source)).replace(
+                "%2", tr(str(values.get(source, "")))).replace("%3", state)
             if not locked:
-                row["note"] += f"  ·  {tr('Changing it switches to')} {tr('Custom')}"
+                row["note"] += "  ·  " + tr("Changing it switches to %1").replace("%1", tr("Custom"))
             row["checked"] = bool(overrides[key]) if kind.kind == KIND_BOOL else row["checked"]
         else:
             note = self._unused_note(layout, values, overrides, key)
@@ -956,7 +961,7 @@ class OverlayOptionsBackend(PageBackend):
         if ui is not None and ui.override_source and ui.override_source in cfg.user.setting[name]:
             value = self.value(name, ui.override_source)
             if value != self.default(name, ui.override_source):
-                profile = f"{option_label(ui.override_source)}: {tr(str(value))}"
+                profile = f"{option_label(ui.override_source)}{colon()}{tr(str(value))}"
                 profile_option = option_id(name, ui.override_source)
         return {
             "name": name,
@@ -1000,7 +1005,7 @@ class OverlayOptionsBackend(PageBackend):
         if not oid:
             return ""
         name, key = split_id(oid)
-        return f"{module_label(name)} {chr(0x203A)} {option_label(key)}: {trm(tr(self._invalid[oid][1]))}"
+        return f"{module_label(name)} {chr(0x203A)} {option_label(key)}{colon()}{trm(tr(self._invalid[oid][1]))}"
 
     def first_error_id(self) -> str:
         for name in self._names:
@@ -1474,47 +1479,48 @@ class OverlayOptionsBackend(PageBackend):
 
     @Slot(str)
     def resetSection(self, sid: str):
-        """Options of a section back to default (row key of its header), after confirmation"""
+        """Options of a section back to default (row key of its header): pending & undoable, so no question
+        (Development.md, Feedback), a notice with Undo instead"""
         name, _, section_key = sid.partition("#")
         if name not in self._names:
             return
         section = next((section for section in self.layout(name).sections if section.key == section_key), None)
         if section is None:
             return
-        text = (f"Reset <b>{section_title(section)}</b> options to default?<br><br>"
-                "Changes are only saved after clicking Apply or Save Button.")
-        keys = section.keys
-        self._ask_then(trm(text), lambda backend: backend._reset_if_known(name, keys))
+        self._reset_with_undo(name, section.keys, section_title(section))
 
     @Slot()
     def resetOverlay(self):
-        """Every option of selected overlay back to default ("enable" kept), after confirmation"""
+        """Every option of selected overlay back to default (on/off state & position kept), notice with Undo"""
         name = self._overlay
-        if not name:
-            return
-        text = (f"Reset all <b>{module_label(name)}</b> options to default?<br><br>"
-                "Changes are only saved after clicking Apply or Save Button.")
-        ui = self.layout(name).option_ui
-        hidden = ui.hidden if ui is not None else frozenset()  # user profiles of black box (B-011)
-        keys = [key for key in default_keys(name) if key not in NOT_CUSTOMIZED and key not in hidden]  # position kept (B-009)
-        self._ask_then(trm(text), lambda backend: backend._reset_if_known(name, keys))
+        if name:
+            ui = self.layout(name).option_ui
+            hidden = ui.hidden if ui is not None else frozenset()  # user profiles of black box (B-011)
+            keys = [key for key in default_keys(name) if key not in NOT_CUSTOMIZED and key not in hidden]  # position kept (B-009)
+            self._reset_with_undo(name, keys, module_label(name))
 
-    def _ask_then(self, text: str, then: Callable[[OverlayOptionsBackend], object]):
-        """Reset asked in the page (host ask: dialog bridge, answered later), else answered now by host confirm;
-        then(backend) once chosen, never once the page is gone (weak reference: no cycle through the dialog)"""
-        ask = getattr(self._host, "ask", None)
-        if not callable(ask):
-            if self._host.confirm(text):
-                then(self)
-            return
-        page = weakref.ref(self)
+    def _reset_with_undo(self, name: str, keys, title: str):
+        """Options back to default (one undo step), then a notice whose Undo takes that step back while nothing
+        was edited since (never undoes a later edit)"""
+        before = self._snapshot()
+        self._reset_if_known(name, keys)
+        after = self._snapshot()
+        if after == before:
+            return  # already default: nothing to tell
 
-        def answered(chosen: bool):
+        page = weakref.ref(self)  # the toast never keeps the page backend (no QObject freed by the collector)
+
+        def undo():
             backend = page()
-            if chosen and backend is not None and not backend.page_released:
-                then(backend)
+            if backend is not None and not backend.page_released and backend._snapshot() == after:
+                backend.undo()
 
-        ask(text, tr("Reset"), answered)
+        text = trm(f"<b>{title}</b> options reset to default, saved with Apply")
+        notify_undo = getattr(self._host, "notify_undo", None)
+        if callable(notify_undo):
+            notify_undo(text, undo)
+        else:
+            self._host.notify(text)
 
     def _reset_if_known(self, name: str, keys):
         """Options back to default (one undo step) if overlay still listed"""
@@ -2037,9 +2043,6 @@ class OverlayOptionsBackend(PageBackend):
         from ..overlay_test import TEST_SECONDS, overlay_test
 
         test = overlay_test()
-        if not self._test_connected:
-            self._test_connected = True
-            test.changed.connect(self.previewChanged)
         if test.running:
             test.stop()
             return
@@ -2153,6 +2156,10 @@ class OverlayOptionsBackend(PageBackend):
         self.release()
 
     def release_resources(self):
+        from ..overlay_test import overlay_test
+
+        with suppress(RuntimeError, TypeError):  # test object of the app outlives the page
+            overlay_test().changed.disconnect(self.previewChanged)
         self.live.stop()
         self._preview_timer.stop()
         self._warm_timer.stop()
@@ -2239,8 +2246,8 @@ def text_value(kind: OptionKind, text: str) -> Any:
 
 def range_text(minimum: float, maximum: float) -> str:
     """Allowed values of a number option ("Allowed: 0 - 4000"), "" if not limited"""
-    low = format_number(minimum) if minimum > -1e8 else ""
-    high = format_number(maximum) if maximum < 1e8 else ""
+    low = localized(format_number(minimum)) if minimum > -1e8 else ""
+    high = localized(format_number(maximum)) if maximum < 1e8 else ""
     if low and high:
         return f"{tr('Allowed:')} {low} - {high}"
     if low:

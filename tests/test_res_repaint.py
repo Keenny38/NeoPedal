@@ -90,6 +90,7 @@ def test_track_map_repaints_on_visible_move_only(make_widget, monkeypatch, moder
     widget.max_repaint_rate = 0
     calls = count_updates(monkeypatch, widget)
     monkeypatch.setattr(minfo.relative, "drawOrder", [0, 1])
+    monkeypatch.setattr(minfo.vehicles, "totalVehicles", 2)  # cars of the session (B-022: cars counted)
     car = minfo.vehicles.dataSet[1]
     monkeypatch.setattr(car, "worldPositionX", 600.0)
     monkeypatch.setattr(car, "worldPositionY", 0.0)

@@ -262,7 +262,7 @@ Card {
 
             // Content
             SectionTitle {  // content read meanwhile: no count yet
-                text: details.info.pending === true ? i18n.tr("Overlays") : i18n.trm((details.info.overlays || 0) + " overlays")
+                text: details.info.pending === true ? i18n.tr("Overlays") : (details.info.overlays || 0) + " " + i18n.plural(details.info.overlays || 0, "overlay", "overlays")
             }
             Flow {
                 Layout.fillWidth: true
@@ -274,7 +274,7 @@ Card {
                 Pill { visible: (details.info.overlayMore || 0) > 0; text: "+" + details.info.overlayMore; tint: theme.dimText }
             }
             SectionTitle {
-                text: details.info.pending === true ? i18n.tr("Module") : i18n.trm((details.info.modules || 0) + " modules")
+                text: details.info.pending === true ? i18n.tr("Module") : (details.info.modules || 0) + " " + i18n.plural(details.info.modules || 0, "module", "modules")
             }
             Flow {
                 Layout.fillWidth: true

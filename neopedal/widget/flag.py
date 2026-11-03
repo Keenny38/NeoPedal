@@ -438,6 +438,7 @@ class Realtime(Overlay):
                 offset_y=font_m.voffset,
                 fg_color=self.wcfg["font_color_damage"],
                 bg_color=self.wcfg["background_color_damage"],
+                last="",  # never a value shown: first update hides bar without damage (None)
             )
             self.set_primary_orient(
                 target=self.bar_damage,

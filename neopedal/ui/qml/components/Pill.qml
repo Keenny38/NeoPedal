@@ -50,7 +50,7 @@ Rectangle {
             color: pill.ink
             anchors.verticalCenter: parent.verticalCenter
         }
-        Text {
+        TpText {
             id: label
             text: pill.text
             textFormat: Text.PlainText

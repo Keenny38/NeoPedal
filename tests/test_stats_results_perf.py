@@ -16,6 +16,7 @@ from neopedal.setting import cfg
 from neopedal.ui.quick import stats_core, stats_edits, stats_io, stats_sharing
 from neopedal.userfile import driver_history
 from neopedal.userfile.driver_history import SessionRecord, record_line
+from tests._speed import budget
 from tests.test_driver_stats_viewer import OREGA, SPA, backend, dialogs, settle, window, write_stats  # noqa: F401
 from tests.test_race_results import (  # noqa: F401
     RACE_NAME,
@@ -26,7 +27,7 @@ from tests.test_race_results import (  # noqa: F401
     write_results,
 )
 
-UI_BUDGET = 0.05  # seconds a slot may hold the UI thread (generous: slow CI machines)
+UI_BUDGET = budget(0.05)  # seconds a slot may hold the UI thread (scaled by this machine's speed)
 HISTORY_RECORDS = 50000
 RESULTS = 500
 TRACKS = [f"Track {number}" for number in range(40)]
@@ -96,7 +97,7 @@ def test_matcher_timing():
     summaries = synthetic_summaries()
     records = synthetic_records(HISTORY_RECORDS)
     elapsed = timed(lambda: ri.link_records(records, summaries))
-    assert elapsed < 1.0  # match_session over every record: about 1 s on a fast machine
+    assert elapsed < budget(1.0)  # match_session over every record: about 1 s on a fast machine
 
 
 # --- Results files parsed once for both pages, released once no page uses them
@@ -150,7 +151,7 @@ def test_scan_running_while_released_keeps_nothing(results_folder, monkeypatch):
     thread = threading.Thread(target=ri.read_summaries, args=((str(results_folder),),))
     thread.start()
     assert started.wait(5)
-    assert timed(ri.forget_summaries) < 0.05  # page closed: never waits for the scan
+    assert timed(ri.forget_summaries) < UI_BUDGET  # page closed: never waits for the scan
     go_on.set()
     thread.join(5)
     assert ri.kept_files() == 0
@@ -163,7 +164,7 @@ def test_forget_records_never_waits_for_parse(tmp_path):
     driver_history.forget_records(folder)
     holder = threading.Thread(target=lambda: None)
     with driver_history._parsed_lock:  # parse running on a worker thread
-        assert timed(lambda: driver_history.forget_records(folder)) < 0.05
+        assert timed(lambda: driver_history.forget_records(folder)) < UI_BUDGET
     holder.start()
     holder.join()
     generation = driver_history.records_generation()

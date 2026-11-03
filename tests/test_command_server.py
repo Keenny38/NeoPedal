@@ -18,7 +18,8 @@ from neopedal.setting import cfg
 from neopedal.userfile.json_setting import copy_setting
 
 # Own port per test process (pytest-xdist workers "gw0", "gw1"... run at once)
-PORT = 18337 + 10 * int(os.environ.get("PYTEST_XDIST_WORKER", "gw0")[2:] or 0)
+PORT = (18337 + 10 * int(os.environ.get("PYTEST_XDIST_WORKER", "gw0")[2:] or 0)
+        + int(os.environ.get("NEOPEDAL_TEST_PORT_OFFSET", "0")))  # runs at once (tools/check.py --matrix)
 
 
 @pytest.fixture
