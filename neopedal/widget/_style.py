@@ -19,7 +19,7 @@
 """
 Overlay themes & style
 
-Themes: Modern Dark, Modern Light, Legacy Dark (classic look), Legacy Light,
+Themes: Modern Dark, Modern Grey, Modern White, Legacy Grey (classic look),
 each with an optional colorblind safe variant. Only options that still use default value
 are restyled, any user customized option is kept as it is.
 """
@@ -101,8 +101,29 @@ MODERN_PALETTE = MappingProxyType({
 })
 
 
-# Light themes: classic grays (panels & text) inverted, colors on panels darkened to stay readable.
-# Modern Light grays: slate scale of Modern Dark, reversed
+# Modern Grey: neutral gray scale (no blue tint) in place of the slate one of Modern Dark, panels a little lighter
+MODERN_GREY_NEUTRALS = MappingProxyType({
+    "000000": "161616",
+    "111111": "1C1C1C",
+    "222222": "252525",
+    "2A2A2A": "2C2C2C",
+    "333333": "343434",
+    "444444": "414141",
+    "555555": "515151",
+    "666666": "5F5F5F",
+    "777777": "6C6C6C",
+    "888888": "7B7B7B",
+    "999999": "8A8A8A",
+    "AAAAAA": "A0A0A0",
+    "BBBBBB": "B3B3B3",
+    "CCCCCC": "C7C7C7",
+    "DDDDDD": "D9D9D9",
+    "EEEEEE": "EAEAEA",
+    "FFFFFF": "F5F5F5",
+})
+
+# Modern White (light theme): classic grays (panels & text) inverted, colors on panels darkened to stay readable.
+# Grays: slate scale of Modern Dark, reversed
 MODERN_LIGHT_NEUTRALS = MappingProxyType({
     "000000": "FFFFFF",
     "111111": "FAFBFC",
@@ -122,8 +143,7 @@ MODERN_LIGHT_NEUTRALS = MappingProxyType({
     "EEEEEE": "171B22",
     "FFFFFF": "0E1116",
 })
-MODERN_LIGHT_PANEL = "E5E9EF"  # darkest modern light panel: colors drawn on panels stay readable on it
-LEGACY_LIGHT_PANEL = "CCCCCC"  # darkest legacy light panel (classic #333333 inverted)
+MODERN_LIGHT_PANEL = "E5E9EF"  # darkest light panel: colors drawn on panels stay readable on it
 MINIMUM_CONTRAST = 3.0  # WCAG minimum for large text & graphics
 NEUTRAL_SPREAD = 24  # gray: RGB channels differ by this much at most
 
@@ -164,7 +184,7 @@ COLORBLIND_COLORS = MappingProxyType({
     "FFC400": _CB["gold"], "3D8BFF": "0072B2", "B0106A": "CC79A7",
 })
 
-# Overlay themes: design (modern, or legacy: classic look) & dark or light colors
+# Overlay themes: design (modern, or legacy: classic look) & colors (dark slate, gray or light)
 THEME_NAMES = rxp.THEME_NAMES
 DEFAULT_THEME = THEME_NAMES[0]
 
@@ -184,11 +204,12 @@ class OverlayTheme(NamedTuple):
     modern: bool  # modern design, else legacy (classic look)
     light: bool  # light panels & dark text
     colorblind: bool  # colorblind safe colors
+    grey: bool = False  # neutral gray panels (Modern Grey)
 
     @property
     def recolors(self) -> bool:
         """Whether classic colors are changed"""
-        return self.modern or self.light or self.colorblind
+        return self.modern or self.light or self.colorblind  # grey is a modern theme
 
 
 def overlay_theme(style: dict) -> OverlayTheme:
@@ -198,8 +219,9 @@ def overlay_theme(style: dict) -> OverlayTheme:
         name = DEFAULT_THEME
     return OverlayTheme(
         modern=not name.startswith("Legacy"),
-        light=name.endswith("Light"),
+        light=name == "Modern White",
         colorblind=bool(style.get("enable_colorblind_colors", False)),
+        grey=name == "Modern Grey",
     )
 
 
@@ -259,17 +281,58 @@ def theme_rgb(rgb: str, theme: OverlayTheme, role: str = FOREGROUND) -> str:
         color = COLORBLIND_COLORS[rgb]
     elif theme.modern:
         color = MODERN_PALETTE.get(rgb, rgb)
+        if theme.grey:
+            color = MODERN_GREY_NEUTRALS.get(rgb, color)
     else:
         color = rgb
     if not theme.light or role == ON_COLOR:
         return color
     if _is_neutral(rgb):
-        if theme.modern and rgb in MODERN_LIGHT_NEUTRALS:
-            return MODERN_LIGHT_NEUTRALS[rgb]
-        return _inverted(color)
+        return MODERN_LIGHT_NEUTRALS.get(rgb) or _inverted(color)
     if role == BACKGROUND:
         return color
-    return _darkened(color, MODERN_LIGHT_PANEL if theme.modern else LEGACY_LIGHT_PANEL)
+    return _darkened(color, MODERN_LIGHT_PANEL)
+
+
+# Web pages (dashboard, stream editor, Broadcast Director) are drawn in the slate grays of Modern Dark; with the Modern
+# Grey overlay theme they use the neutral grays of the overlays (same table as the overlays, one source)
+_PAGE_HEX = re.compile(r"#[0-9A-Fa-f]{6}\b")
+SLATE_TO_GREY = MappingProxyType({MODERN_PALETTE[key]: grey for key, grey in MODERN_GREY_NEUTRALS.items()
+                                  if key in MODERN_PALETTE})
+
+
+def grey_of(rgb: str) -> str:
+    """Neutral gray of a slate (low saturation, blue) color RRGGBB: the Modern Grey gray of the overlays, else a gray of
+    the same lightness; other colors unchanged"""
+    rgb = rgb.upper()
+    if rgb in SLATE_TO_GREY:
+        return SLATE_TO_GREY[rgb]
+    hue, lightness, saturation = _hls(rgb)
+    if 0 < saturation < 0.4 and 0.5 < hue < 0.75:
+        level = round(lightness * 255)
+        return f"{level:02X}{level:02X}{level:02X}"
+    return rgb
+
+
+def is_grey_theme(style: Mapping[str, Any] | None) -> bool:
+    """Overlay theme of global overlay style is Modern Grey"""
+    return bool(style) and style.get("overlay_theme") == "Modern Grey"  # type: ignore[union-attr]
+
+
+def grey_page(page: str) -> str:
+    """Page text with its slate colors (#RRGGBB) turned neutral gray, case of the hex digits kept"""
+    def swap(match: re.Match) -> str:
+        text = match.group()
+        gray = grey_of(text[1:])
+        gray = gray.lower() if text[1:] == text[1:].lower() else gray
+        return f"#{gray}"
+
+    return _PAGE_HEX.sub(swap, page)
+
+
+def themed_page(page: str, style: Mapping[str, Any] | None) -> str:
+    """Page in the colors of the overlay theme (Modern Grey: neutral grays, else unchanged)"""
+    return grey_page(page) if is_grey_theme(style) else page
 
 
 def _option_rgb(value: Any) -> str | None:

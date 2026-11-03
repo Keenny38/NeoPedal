@@ -51,7 +51,9 @@ from ... import app_signal
 from ...const_file import ConfigType
 from ...i18n import colon, current_language, tr, trm
 from ...i18n.options import option_help_specific, option_label
+from ...regex_pattern import THEME_NAMES
 from ...setting import cfg
+from .. import theme_swatch
 from ..config import HIDDEN_OPTIONS
 from ..module_view import highlight, sort_key
 from . import font_override
@@ -83,8 +85,9 @@ GROUP_SEPARATOR = chr(0x203A)  # single right-pointing angle quotation mark
 ROLES = (
     "key", "section", "option", "label", "help", "kind", "group", "first", "last",
     "checked", "choices", "choiceIndex", "text", "number", "decimals", "step", "minimum", "maximum",
-    "color", "modified", "changed", "error", "defaultText", "applies", "marked",
+    "color", "modified", "changed", "error", "defaultText", "applies", "marked", "swatch",
 )
+THEME_OPTIONS = frozenset(("window_color_theme", "overlay_theme"))  # choice shown with the colors of the theme
 TYPING_GROUP_SECONDS = 1.5  # keys typed in one option within this time: one undo step
 TYPING_REFRESH_MS = 150  # typing paused this long: counts, navigation entries & font preview updated (see typed)
 # When an option takes effect, if not at Apply: read when app starts (restart offered) or at next start only
@@ -578,6 +581,7 @@ class SettingsBackend(QObject):
                             else display_text(kind, default)) if default is not None else "",
             "applies": APPLIES_AT.get(info.id, ""),
             "marked": highlight(self.label(info), self._words) if self._words else "",  # searched words in bold
+            "swatch": theme_swatch(value) if info.key in THEME_OPTIONS and value in THEME_NAMES else [],
         }
         if kind.kind in (KIND_CHOICE, KIND_FONT):
             values = self.choices(info)

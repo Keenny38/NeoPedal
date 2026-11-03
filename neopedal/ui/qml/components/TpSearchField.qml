@@ -65,7 +65,7 @@ TextField {
         radius: theme.radiusSm
         color: theme.surfaceSunken
         border.width: field.activeFocus ? 1.5 : 1
-        border.color: field.activeFocus ? theme.accent : field.hovered ? theme.strokeStrong : theme.border
+        border.color: field.activeFocus ? theme.accent : field.hovered ? theme.strokeStrong : theme.controlBorder
         Behavior on border.color { ColorAnimation { duration: theme.motionFast } }
     }
     Icon {

@@ -395,7 +395,7 @@ def test_consistency_map(backend):
     line = MapLine([0.0, 500.0, 1500.0, 2500.0], [0.0] * 4, [0.0] * 4)
     colors = lap_map.spread_colors(line, [0.0, 1000.0, 2000.0, 3000.0], [0.1, -1.0, 0.3])
     assert colors[0] == lap_map.CONSISTENCY_COLORS[0] and colors[-1] == lap_map.CONSISTENCY_COLORS[-1]
-    assert colors[2].name() == "#9ca3af"  # unknown spread
+    assert colors[2].name() == "#9e9e9e"  # unknown spread
 
 
 def test_map_g_circle_and_xy_zoom(backend):

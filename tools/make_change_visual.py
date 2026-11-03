@@ -45,7 +45,7 @@ MARGIN = 24
 GAP = 48
 LABEL_HEIGHT = 34
 # Overlay theme of each look (render file "<widget>.<look>.png", modern look: "<widget>.png")
-THEMES = {"modern": "Modern Dark", "classic": "Legacy Dark"}
+THEMES = {"modern": "Modern Dark", "classic": "Legacy Grey"}
 # Same pixel noise tolerance as the CI visual check (tools/visual_diff.py)
 CHANNEL_TOLERANCE = 24
 CHANGED_RATIO = 0.002

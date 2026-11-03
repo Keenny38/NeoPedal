@@ -195,7 +195,7 @@ def test_partial_first_lap_not_in_consumption_history(session, monkeypatch):
     assert partial[0] not in {int(row["lapNumber"]) for row in history_rows()}
 
 
-@pytest.mark.parametrize("theme", ["Modern Dark", "Legacy Dark"])
+@pytest.mark.parametrize("theme", ["Modern Dark", "Legacy Grey"])
 @pytest.mark.parametrize("session", SESSIONS, indirect=True)
 def test_overlays_update_and_paint(session, theme, bundled_fonts, monkeypatch):
     """Every overlay updated on every frame and painted along the session, no error"""

@@ -32,7 +32,7 @@ def make_widget(name: str, modern: bool, monkeypatch, **options):
     """Widget of design with options"""
     from neopedal.widget._modern import create_widget
 
-    monkeypatch.setitem(cfg.user.config["overlay_style"], "overlay_theme", "Modern Dark" if modern else "Legacy Dark")
+    monkeypatch.setitem(cfg.user.config["overlay_style"], "overlay_theme", "Modern Dark" if modern else "Legacy Grey")
     for key, value in options.items():
         monkeypatch.setitem(cfg.user.setting[name], key, value)
     return create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)

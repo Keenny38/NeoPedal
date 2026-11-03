@@ -45,7 +45,7 @@ SetupStep {
                         y: 1
                         width: Math.round(parent.width * 0.27)
                         height: parent.height - 2
-                        color: Qt.darker(windowCard.modelData.window, windowCard.modelData.name.indexOf("Light") >= 0 ? 1.04 : 1.18)
+                        color: Qt.darker(windowCard.modelData.window, windowCard.modelData.name === "Modern White" ? 1.04 : 1.18)
                         Column {
                             x: 5
                             y: 7

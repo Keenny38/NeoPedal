@@ -147,7 +147,7 @@ def test_b006_steering_meter_classic_huge_range_drawn_at_once(ui_env, bundled_fo
 
     from neopedal.ui.widget_preview import render_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     values = dict(cfg.user.setting["steering_meter"], enable_classic_layout=True, show_scale_mark=True)
     normal = render_widget(cfg, "steering_meter", dict(values, manual_steering_range=900)).toImage()
     started = time.perf_counter()
@@ -521,7 +521,7 @@ def test_b007_module_switched_on_during_reload_follows_loaded_preset(ui_env, mon
 def picture(name: str, modern: bool, **values) -> bytes:
     from neopedal.ui.widget_preview import render_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     shown = dict(cfg.user.setting[name], enable_classic_layout=not modern, **values)
     render_widget(cfg, name, shown)  # first render of a process: glyphs drawn slightly differently
     image = render_widget(cfg, name, shown).toImage()
@@ -539,7 +539,7 @@ def test_b018_delta_range_kept_positive(ui_env, bundled_fonts, name, modern):
 def picture_width(name: str, modern: bool, **values) -> int:
     from neopedal.ui.widget_preview import render_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     return render_widget(cfg, name, dict(cfg.user.setting[name], enable_classic_layout=not modern, **values)).width()
 
 
@@ -615,7 +615,7 @@ def test_b017_line_width_limited(ui_env):
     from neopedal.ui.widget_preview import _with_preview_widget
 
     assert option_limit("throttle_line_width").maximum == 50 and clamp_to_limit("start_line_width", 4000) == 50
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     values = dict(cfg.user.setting["trailing"], enable_classic_layout=True, throttle_line_width=4000)
     assert _with_preview_widget(cfg, "trailing", values, 1.0, lambda widget: widget.samples_offset) <= 51
 
@@ -1037,7 +1037,7 @@ def test_b056_delta_graph_mark_on_delta(ui_env, bundled_fonts, modern):
     from neopedal.demo_data import demo_session
     from neopedal.ui.widget_preview import _with_preview_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     session = demo_session(cfg.user.setting["standings"])
 
     def mark_y(widget):
@@ -1244,7 +1244,7 @@ def test_b075_preview_race_from_edited_standings(ui_env, bundled_fonts, monkeypa
                         lambda standings, scenario="": seen.append(dict(standings)) or real_session(standings, scenario))
     monkeypatch.setattr(demo_data, "DemoSession",
                         lambda standings, scenario="": seen.append(dict(standings)) or real_class(standings, scenario))
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     saved = cfg.user.setting["standings"]["minimum_top_vehicles"]
     edited = dict(cfg.user.setting["standings"], enable_classic_layout=True, minimum_top_vehicles=saved + 2)
     render_widget(cfg, "standings", edited)

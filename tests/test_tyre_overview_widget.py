@@ -42,7 +42,7 @@ def make(ui_env, bundled_fonts, monkeypatch):
     created = []
 
     def build(modern: bool, **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
         cfg.user.setting["tyre_overview"].update(options)
         widget = create_widget(import_module("neopedal.widget.tyre_overview"), cfg, "tyre_overview")
         created.append(widget)

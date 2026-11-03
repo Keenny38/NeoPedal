@@ -8,7 +8,7 @@ import pytest
 from neopedal.ui.quick import qml_files as qml_paths
 from neopedal.ui.quick import qml_folder_imports
 
-PALETTES = ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light")
+PALETTES = ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey")
 
 
 def qml_files() -> dict[str, list[str]]:
@@ -157,7 +157,7 @@ def test_theme_tokens_copied_to_qml(ui_env):
         parent.deleteLater()
 
 
-@pytest.mark.parametrize("palette", ("Modern Dark", "Modern Light"))
+@pytest.mark.parametrize("palette", ("Modern Dark", "Modern White"))
 def test_theme_functions_same_in_qml_and_python(themed, palette):
     """compound / inkOn / rowColor: JavaScript of the theme copy gives the Python slot results"""
     from PySide6.QtCore import QUrl
@@ -205,7 +205,7 @@ def test_compound_letters_and_light_variants(themed):
     theme = Theme()
     assert theme.compound("S").name() == "#ededed" and theme.compound("Soft") == theme.compound("S")
     assert theme.compound("H").name() == "#e5484d" and theme.compound("M").name() == "#f5c518"
-    themed("Modern Light")
+    themed("Modern White")
     assert theme.compound("S").name() == "#777777"  # white soft: gray, else white on white
     assert theme.compound("Unknown") == theme.dimText
 
@@ -515,7 +515,7 @@ def test_surface_elevation_order(themed, palette):
     assert theme.legacy == palette.startswith("Legacy")
     assert theme.headerTint == (theme.dimText if theme.legacy else theme.accent)
     legacy_radius = theme.radiusLg
-    themed("Modern Dark" if theme.dark else "Modern Light")
+    themed("Modern Dark" if theme.dark else "Modern White")
     assert legacy_radius == pytest.approx(theme.radiusLg / 2 if palette.startswith("Legacy") else theme.radiusLg)
 
 
@@ -590,7 +590,7 @@ def test_colorblind_option_updates_pages(ui_env):
     assert theme.gain == normal
 
 
-@pytest.mark.parametrize("palette", ("Modern Dark", "Legacy Light"))
+@pytest.mark.parametrize("palette", ("Modern Dark", "Modern Grey", "Legacy Grey"))
 def test_new_theme_functions_same_in_qml_and_python(themed, palette):
     """tint / dimOn / tone / sessionColor: JavaScript of the theme copy gives the Python slot results"""
     from PySide6.QtCore import QUrl
@@ -877,3 +877,18 @@ def test_conditional_focus_on_tab_kept_while_focused():
     on the active focus item ("Cannot set activeFocusOnTab to false once item is the active focus item" in the app
     log: chart focused, then a filter left it without points)"""
     assert matches(r"activeFocusOnTab:\s*(?=\S)(?!true\b|false\b)(?!.*\|\|\s*activeFocus\s*$)") == []
+
+
+def test_modern_grey_stage_is_neutral(themed):
+    """Overlay preview stage: neutral gray on Modern Grey (no blue tint), slate on the other themes, follows the theme"""
+    from neopedal.ui.quick import Theme
+
+    themed("Modern Dark")
+    theme = Theme()
+    slate = theme.stageTop
+    assert slate.blue() > slate.red()
+    themed("Modern Grey")
+    for color in (theme.stageTop, theme.stageBottom, theme.stageText):
+        assert color.red() == color.green() == color.blue()
+    themed("Modern Dark")
+    assert theme.stageTop == slate

@@ -273,7 +273,7 @@ CHOICE_UNITS = MappingProxyType({
     "wind_speed_unit": ("m/s", "KPH", "MPH"),
 })
 # App window & overlay themes: modern or legacy (classic look) design, dark or light colors
-THEME_NAMES = ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light")
+THEME_NAMES = ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey")
 # Built-in languages, language packs are added when loaded (see i18n.load_language_packs)
 LANGUAGE_NAMES: list[str] = ["English", "Français"]
 

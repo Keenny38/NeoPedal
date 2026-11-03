@@ -76,6 +76,7 @@ from .log_handler import ErrorThrottle
 from .setting import cfg
 from .template.setting_status_colors import colorblind_style, status_colors
 from .userfile.tls_cert import server_context
+from .widget._style import themed_page
 
 logger = logging.getLogger(__name__)
 snapshot_errors = ErrorThrottle()  # telemetry asked every second: warning once a minute
@@ -911,12 +912,25 @@ def fill_page(template: str, labels: dict[str, str], texts: dict[str, str] | Non
     return page
 
 
+# Surfaces & text of the pages (CSS variables), slate of Modern Dark; Modern Grey overlay theme: neutral grays of overlays
+PAGE_COLORS = {"bg": "#0e1116", "panel": "#1b1f27", "line": "#2a303c", "outline": "#373e4c", "text": "#e9ecf1",
+               "muted": "#9aa3b2"}
+
+
+def page_vars() -> str:
+    """CSS variables of page surfaces & text in the colors of the overlay theme"""
+    style = cfg.user.config.get("overlay_style")
+    return "".join(f"--{name}:{themed_page(color, style)};" for name, color in PAGE_COLORS.items())
+
+
 def login_html() -> str:
-    return fill_page(LOGIN_HTML, LOGIN_LABELS)
+    return fill_page(LOGIN_HTML.replace("@@page@@", page_vars()), LOGIN_LABELS)
 
 
 def dashboard_html() -> str:
-    page = DASHBOARD_HTML.replace("@@status@@", status_vars(colorblind_style(cfg.user.config.get("overlay_style"))))
+    page = DASHBOARD_HTML.replace("@@page@@", page_vars()).replace(
+        "@@themecolor@@", themed_page(PAGE_COLORS["bg"], cfg.user.config.get("overlay_style")))
+    page = page.replace("@@status@@", status_vars(colorblind_style(cfg.user.config.get("overlay_style"))))
     return fill_page(page, PAGE_LABELS, SCRIPT_TEXTS)
 
 
@@ -930,17 +944,18 @@ def status_vars(colorblind: bool = False) -> str:
 
 LOGIN_HTML = """<!doctype html><html lang="@@lang@@"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>NeoPedal</title>
-<style>body{background:#0e1116;color:#e9ecf1;font-family:system-ui,sans-serif;display:flex;
+<style>:root{@@page@@}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;
 align-items:center;justify-content:center;height:100vh;margin:0}form{display:flex;gap:8px}
-input,button{font-size:20px;padding:10px;border-radius:8px;border:1px solid #373e4c;background:#1b1f27;color:#e9ecf1}
+input,button{font-size:20px;padding:10px;border-radius:8px;border:1px solid var(--outline);background:var(--panel);color:var(--text)}
 </style></head><body><form method="post" action="/login"><input name="code" placeholder="@@access_code@@" autofocus
 autocomplete="off"><button>OK</button></form></body></html>"""
 
 DASHBOARD_HTML = """<!doctype html><html lang="@@lang@@"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0e1116"><title>@@title@@</title>
+<meta name="theme-color" content="@@themecolor@@"><title>@@title@@</title>
 <style>
-:root{--bg:#0e1116;--panel:#1b1f27;--line:#2a303c;--text:#e9ecf1;--muted:#9aa3b2;
+:root{@@page@@
 @@status@@}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}

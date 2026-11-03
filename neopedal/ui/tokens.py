@@ -95,7 +95,7 @@ def lift(palette: QPalette, surface: QColor, share: str) -> QColor:
 def surface_card(palette: QPalette) -> QColor:
     """Cards, panels & tiles (theme.surfaceCard)"""
     window, base = _color(palette, QPalette.ColorRole.Window), _color(palette, QPalette.ColorRole.Base)
-    if is_dark(palette) and luminance(base) <= luminance(window):  # Legacy Dark: base darker than the page
+    if is_dark(palette) and luminance(base) <= luminance(window):  # Legacy Grey: base darker than the page
         return lift(palette, window, "card")
     return base
 
@@ -106,12 +106,40 @@ def surface_flyout(palette: QPalette) -> QColor:
     return lift(palette, card, "flyout") if is_dark(palette) else card
 
 
-def stroke_subtle(palette: QPalette, legacy: bool) -> QColor:
-    """Border of cards, menus, dividers (theme.strokeSubtle)"""
+GREY_STROKE_LIFT = 0.2  # Modern Grey: share of white mixed into the card color for its border (about 2:1 on it)
+
+
+def stroke_subtle(palette: QPalette, legacy: bool, grey: bool = False) -> QColor:
+    """Border of cards, menus, dividers (theme.strokeSubtle); grey: Modern Grey, a firmer border than the slate theme"""
     mid = _color(palette, QPalette.ColorRole.Mid)
     if legacy:  # classic look: firmer outlines
         return mid.lighter(115) if is_dark(palette) else mid.darker(112)
+    if grey and is_dark(palette):
+        return blended(QColor("white"), surface_card(palette), GREY_STROKE_LIFT)
     return surface_card(palette).lighter(135) if is_dark(palette) else mid
+
+
+CONTROL_BORDER_CONTRAST = 3.0  # WCAG 1.4.11: outline of a field, combo or switch against its surroundings
+
+
+def contrast(first: QColor, second: QColor) -> float:
+    """WCAG contrast ratio (1 to 21) of two colors"""
+    high, low = sorted((luminance(first), luminance(second)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def control_border(palette: QPalette) -> QColor:
+    """Outline of fields, combo boxes & switches (theme.controlBorder): the palette border color (Mid), moved toward
+    the text color until it keeps 3:1 against the page, the cards & the menus it sits on"""
+    color = QColor(_color(palette, QPalette.ColorRole.Mid))
+    toward = _color(palette, QPalette.ColorRole.Text)
+    surfaces = (_color(palette, QPalette.ColorRole.Window), surface_card(palette),
+                _color(palette, QPalette.ColorRole.Base), surface_flyout(palette))
+    for step in range(1, 41):
+        if min(contrast(color, surface) for surface in surfaces) >= CONTROL_BORDER_CONTRAST:
+            break
+        color = blended(toward, _color(palette, QPalette.ColorRole.Mid), step * 0.02)
+    return color
 
 
 def hover_fill(palette: QPalette) -> QColor:

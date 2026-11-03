@@ -2962,9 +2962,10 @@ TRANSLATION = MappingProxyType({
     "Stream Only": "Stream seulement",
     "Screen Only": "Écran seulement",
     "Modern Dark": "Moderne sombre",
-    "Modern Light": "Moderne clair",
-    "Legacy Dark": "Classique sombre",
-    "Legacy Light": "Classique clair",
+    "Modern Grey": "Moderne gris",
+    "Use": "Utiliser",
+    "Modern White": "Moderne blanc",
+    "Legacy Grey": "Classique gris",
     "Classic": "Classique",
     # Phase 2 (package E2)
     # Charts: value fitting, math channels, laps aligned on braking point, time base CSV

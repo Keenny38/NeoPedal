@@ -79,17 +79,17 @@ def test_setup_choices_apply(ui_env, monkeypatch):
     cfg.user.setting["relative"]["enable"] = False
     cfg.user.setting["radar"]["enable"] = True
     choices = setup_wizard.SetupChoices(
-        language="Français", api_name="", window_theme="Modern Light", overlay_theme="Legacy Dark",
+        language="Français", api_name="", window_theme="Modern White", overlay_theme="Legacy Grey",
         modern_font=False, preset="", new_preset="my overlay", widgets=("relative",), colorblind=True,
         units="Imperial", disabled=("radar", "relative"),
     )
     try:
         setup_wizard.run_setup(choices)
         assert cfg.application["language"] == "Français"
-        assert cfg.application["window_color_theme"] == "Modern Light"
+        assert cfg.application["window_color_theme"] == "Modern White"
         assert cfg.application["show_setup_wizard_at_startup"] is False
         style = cfg.user.config["overlay_style"]
-        assert style["overlay_theme"] == "Legacy Dark" and style["enable_colorblind_colors"] is True
+        assert style["overlay_theme"] == "Legacy Grey" and style["enable_colorblind_colors"] is True
         assert cfg.user.setting["relative"]["enable"] is True  # checked wins over disabled
         assert cfg.user.setting["radar"]["enable"] is False
         assert cfg.user.setting["units"]["speed_unit"] == "MPH"
@@ -302,10 +302,10 @@ def test_previews_rendered_in_chosen_style(wizard, renders):
     assert all(row["previewState"] == setup_backend.PREVIEW_READY for row in backend.tiles.rows)
     assert all(row["previewState"] == setup_backend.PREVIEW_READY for row in backend.overlayThemes)
     count = len(renders)
-    backend.setOverlayTheme("Legacy Light")
+    backend.setOverlayTheme("Modern Grey")
     render_all(backend)
-    assert ("relative", "Legacy Light") in renders[count:]
-    assert renders.count(("session", "Legacy Light")) == 1  # theme card picture reused by the tile
+    assert ("relative", "Modern Grey") in renders[count:]
+    assert renders.count(("session", "Modern Grey")) == 1  # theme card picture reused by the tile
     count = len(renders)
     backend.setOverlayTheme("Modern Dark")  # pictures kept per style
     render_all(backend)
@@ -320,7 +320,7 @@ def test_render_overlay_keeps_running_overlay_style(ui_env, bundled_fonts):
     from neopedal.widget._painter import OverlayStyle
 
     OverlayStyle.corner_scale, OverlayStyle.depth_effects = 0.05, True
-    style = {**cfg.user.config["overlay_style"], "overlay_theme": "Legacy Light"}
+    style = {**cfg.user.config["overlay_style"], "overlay_theme": "Modern Grey"}
     image = setup_backend.render_overlay("deltabest", cfg.user.setting["deltabest"], style)
     assert image is not None and not image.isNull()
     assert image.width() <= setup_backend.PREVIEW_MAX.width() * image.devicePixelRatio()
@@ -330,11 +330,11 @@ def test_render_overlay_keeps_running_overlay_style(ui_env, bundled_fonts):
 def test_summary_and_jump_back(wizard):
     backend = wizard.backend
     backend.setUnits("Imperial")
-    backend.setWindowTheme("Legacy Light")
+    backend.setWindowTheme("Modern Grey")
     backend.goTo(setup_backend.STEP_READY)
     rows = {row["label"]: row for row in backend.summary}
     assert rows["Units"]["value"].startswith("Imperial (mph")
-    assert rows["Window theme"]["value"] == "Legacy Light"
+    assert rows["Window theme"]["value"] == "Modern Grey"
     assert rows["Preset to use"]["value"] == "my overlay (new)"
     backend.goTo(rows["Units"]["step"])
     assert backend.step == setup_backend.STEP_UNITS
@@ -364,14 +364,14 @@ def test_window_theme_cards_use_theme_palettes(ui_env, renders):
     backend = setup_backend.SetupBackend(detect_games=False)
     cards = {card["name"]: card for card in backend.windowThemes}
     assert list(cards) == list(setup_wizard.WINDOW_THEMES)
-    assert cards["Modern Light"]["window"] != cards["Modern Dark"]["window"]
-    assert cards["Legacy Dark"]["legacy"] and not cards["Modern Dark"]["legacy"]
+    assert len({cards[name]["window"] for name in cards}) == 4  # each theme its own window color
+    assert cards["Legacy Grey"]["legacy"] and not cards["Modern Dark"]["legacy"]
     assert all(cards["Modern Dark"][part].startswith("#") for part in setup_backend.MOCKUP_ROLES)
 
 
 def test_wizard_opens_in_app_language_with_current_choices(ui_env, renders):
-    cfg.application["window_color_theme"] = "Modern Light"
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.application["window_color_theme"] = "Modern White"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     i18n.set_language("Français")
     cfg.application["language"] = "Français"
     try:
@@ -380,11 +380,11 @@ def test_wizard_opens_in_app_language_with_current_choices(ui_env, renders):
         assert wizard.testAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         assert wizard.windowTitle() == "Assistant de configuration"
         labels = {card["name"]: card["label"] for card in backend.windowThemes}
-        assert labels["Modern Light"] == "Moderne clair" and labels["Legacy Dark"] == "Classique sombre"
+        assert labels["Modern White"] == "Moderne blanc" and labels["Legacy Grey"] == "Classique gris"
         assert backend.newName == "mon overlay"
         choices = backend.choices()
         assert (choices.language, choices.window_theme, choices.overlay_theme) == (
-            "Français", "Modern Light", "Legacy Dark")
+            "Français", "Modern White", "Legacy Grey")
         wizard.deleteLater()
         flush()
     finally:

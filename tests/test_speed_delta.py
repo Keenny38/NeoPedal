@@ -59,7 +59,7 @@ def make(name: str, modern: bool, **options):
     from neopedal.setting import cfg
     from neopedal.widget._modern import create_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     cfg.units["speed_unit"] = "KPH"
     cfg.user.setting[name].update(options)
     return create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)

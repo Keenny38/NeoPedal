@@ -176,7 +176,7 @@ def test_chat_lines_wrap_hide_and_highlight():
 def test_chat_widget(ui_env, monkeypatch, modern):
     from neopedal.widget._modern import create_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     cfg.user.setting["chat"]["number_of_lines"] = 3
     monkeypatch.setattr(api.read.session, "chat_messages",
                         lambda: tuple(game_info.parse_chat(CHAT, ())))
@@ -207,7 +207,7 @@ def test_chat_overlay_picture_shows_sample_conversation(ui_env, bundled_fonts, m
     from neopedal.ui import widget_preview
     from neopedal.widget.chat import SAMPLE_MESSAGES
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     image = widget_preview.render_widget(cfg, "chat", cfg.user.setting["chat"]).toImage()
     shown = sum(1 for y in range(0, image.height(), 3) for x in range(0, image.width(), 3)
                 if image.pixelColor(x, y).alpha() > 0)

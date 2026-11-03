@@ -361,11 +361,11 @@ def test_choice_lists_translated_value_kept(window, french):
     page = open_config_page(window, "application", ConfigType.CONFIG, cfg.user.config, cfg.default.config)
     dialog = page.dialog
     combo = dialog.option_edit["window_color_theme"]
-    combo.setCurrentText("Modern Light")
-    assert combo.currentText() == i18n.tr("Modern Light") != "Modern Light"
-    assert combo.validate() == "Modern Light"  # English value saved
+    combo.setCurrentText("Modern White")
+    assert combo.currentText() == i18n.tr("Modern White") != "Modern White"
+    assert combo.validate() == "Modern White"  # English value saved
     texts = [combo.itemText(index) for index in range(combo.count())]
-    assert texts == ["Moderne sombre", "Moderne clair", "Classique sombre", "Classique clair"]
+    assert texts == ["Moderne sombre", "Moderne gris", "Moderne blanc", "Classique gris"]
     language = dialog.option_edit["language"]
     assert language.validate() in i18n.LANGUAGES  # names never translated
     combo.reset_to_default()
@@ -377,7 +377,7 @@ def test_choice_undo_restores_translated_choice(window, french):
     dialog = page.dialog
     combo = dialog.option_edit["window_color_theme"]
     before = combo.validate()
-    combo.setCurrentText("Legacy Light" if before != "Legacy Light" else "Modern Light")
+    combo.setCurrentText("Legacy Grey" if before != "Legacy Grey" else "Modern White")
     dialog.history.undo()
     assert combo.validate() == before and not page.is_modified()
 
@@ -914,7 +914,7 @@ def test_focus_ring_on_new_buttons(ui_env, monkeypatch, theme):
     finally:
         button.deleteLater()
         app.setStyleSheet(style_sheet)
-        set_style_palette("Dark")
+        set_style_palette("Modern Dark")
         flush_deleted()
 
 

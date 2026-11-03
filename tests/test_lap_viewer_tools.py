@@ -536,7 +536,7 @@ def test_track_limits_trackout_zones_grid():
     colors = lap_map.corner_delta_colors(base, [(100.0, 200.0, 0.2), (300.0, 400.0, -0.1)])
     from neopedal.ui.lap_viewer import GAIN_COLOR, LOSS_COLOR
 
-    assert colors[30] == LOSS_COLOR and colors[70] != LOSS_COLOR and colors[0].name() == "#6b7280"
+    assert colors[30] == LOSS_COLOR and colors[70] != LOSS_COLOR and colors[0].name() == "#707070"
     assert lap_map.corner_delta_colors(base, [(100.0, 200.0, 0.2)], colorblind=True)[30].name() == "#f97316"
     assert GAIN_COLOR != LOSS_COLOR
 

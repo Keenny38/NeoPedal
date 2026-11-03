@@ -380,7 +380,7 @@ def test_default_reminder_minutes_option(ui_env):
 def test_race_notifications_show_app_messages(ui_env, bundled_fonts, modern):
     from neopedal.widget._modern import create_widget as make
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     overlay_messages.post("Reminder", "before start")  # posted before the overlay started: never shown
     widget = make(import_module("neopedal.widget.race_notifications"), cfg, "race_notifications")
     try:

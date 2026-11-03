@@ -614,9 +614,9 @@ def contrast(first: str, second: str) -> float:
 
 
 def test_status_text_colors_contrast():
-    from neopedal.ui import STATUS_COLORS, palette_dark, palette_light
+    from neopedal.ui import STATUS_COLORS, palette_dark, palette_grey, palette_light
 
-    for theme, palette in (("Dark", palette_dark()), ("Light", palette_light())):
+    for theme, palette in (("Dark", palette_dark()), ("Dark", palette_grey()), ("Light", palette_light())):
         backgrounds = [row[0] for row in palette if row[3].name in ("Window", "Base")]
         for name in ("success", "danger", "warning", "info"):
             for background in backgrounds:
@@ -629,13 +629,13 @@ def test_running_pill_follows_theme(ui_env):
     from neopedal.ui import set_style_palette, set_style_window, status_color
 
     try:
-        set_style_palette("Light")
+        set_style_palette("Modern White")
         assert status_color("success") == "#16702F"
         assert "#16702F" in set_style_window(9) and "#3DDC84" not in set_style_window(9)
-        set_style_palette("Dark")
+        set_style_palette("Modern Dark")
         assert status_color("success") == "#3DDC84"
     finally:
-        set_style_palette("Dark")
+        set_style_palette("Modern Dark")
 
 
 # Item 31: keyboard
@@ -678,8 +678,8 @@ def test_message_icons_follow_theme(window):
     from neopedal.ui import STATUS_COLORS, set_style_palette
 
     try:
-        for theme in ("Dark", "Light"):
-            set_style_palette(theme)
+        for theme, name in (("Dark", "Modern Dark"), ("Dark", "Modern Grey"), ("Light", "Modern White")):
+            set_style_palette(name)
             box = QMessageBox()
             box.setIcon(QMessageBox.Icon.Critical)  # icon of message box (app style sheet applied)
             pixmap = box.iconPixmap()
@@ -689,7 +689,7 @@ def test_message_icons_follow_theme(window):
             edge = image.pixelColor(round(image.width() * 0.12), image.height() // 2)
             assert edge.name().upper() == STATUS_COLORS[theme]["badge_danger"]
     finally:
-        set_style_palette("Dark")
+        set_style_palette("Modern Dark")
 
 
 # Item 33: VR mirror window kept on reload, position remembered

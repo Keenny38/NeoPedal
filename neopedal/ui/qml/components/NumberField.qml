@@ -102,7 +102,7 @@ TextField {
         color: theme.surfaceSunken
         border.width: field.activeFocus || clampFlash.running ? 1.5 : 1
         border.color: clampFlash.running ? theme.warning
-                    : field.activeFocus ? theme.accent : field.hovered ? theme.strokeStrong : theme.border
+                    : field.activeFocus ? theme.accent : field.hovered ? theme.strokeStrong : theme.controlBorder
         Behavior on border.color { ColorAnimation { duration: theme.motionFast } }
     }
 

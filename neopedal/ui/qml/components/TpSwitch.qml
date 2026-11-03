@@ -39,7 +39,7 @@ AbstractButton {
             color: control.checked ? (control.hovered ? theme.accentHover : theme.accentFill)
                  : (control.hovered ? theme.hover : theme.raised)
             border.width: control.checked ? 0 : 1
-            border.color: theme.border
+            border.color: theme.controlBorder
             Behavior on color { ColorAnimation { duration: theme.motionBase } }
             FocusRing { visible: control.visualFocus }
             Rectangle {
@@ -50,6 +50,14 @@ AbstractButton {
                 x: control.checked ? parent.width - width - theme.em * 0.2 : theme.em * 0.2
                 color: control.checked ? theme.accentInk : theme.dimText
                 Behavior on x { NumberAnimation { duration: theme.motionBase; easing.type: Easing.OutCubic } }
+                Icon {  // check mark: on & off also differ by shape, not only by color
+                    anchors.centerIn: parent
+                    visible: control.checked
+                    glyph: "\ue73e"
+                    fallback: "\u2713"
+                    size: parent.width * 0.62
+                    color: theme.accentFill
+                }
             }
         }
         TpText {

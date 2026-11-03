@@ -254,7 +254,7 @@ def test_gap_trend_preview_has_trend(ui_env, bundled_fonts, modern):
     from neopedal.ui.widget_preview import _with_preview_widget
 
     assert registry.demo_names(registry.DEMO_GAPS) == ("gap_trend",) == demo_data.GAP_WIDGETS
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     rows = _with_preview_widget(cfg, "gap_trend", dict(cfg.user.setting["gap_trend"]), 1.0,
                                 lambda widget: (widget.read_gaps(), widget.charts))
     (ahead, behind), charts = rows

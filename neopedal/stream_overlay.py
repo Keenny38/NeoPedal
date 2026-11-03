@@ -84,6 +84,7 @@ from .template.setting_status_colors import colorblind_style, status_css
 from .userfile.custom_image import brand_logo_file
 from .userfile.game_images import images
 from .validator import load_json_strict
+from .widget._style import themed_page
 
 logger = logging.getLogger(__name__)
 request_errors = ErrorThrottle()  # frames asked many times a second: warning once a minute
@@ -964,6 +965,7 @@ class StreamHandler(BoundedRequestHandler):
         self.send_body(200, data, PICTURE_TYPES[path.rsplit(".", 1)[-1].lower()], cache=True)
 
     def send_html(self, page: str):
+        page = themed_page(page, cfg.user.config.get("overlay_style"))  # slate grays of the editor pages: Modern Grey
         self.send_body(200, page.encode("utf-8"), "text/html; charset=utf-8")
 
     def send_body(self, status: int, body: bytes, content_type: str, cache: bool = False):

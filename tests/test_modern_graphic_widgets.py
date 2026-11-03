@@ -39,7 +39,7 @@ def widgets(ui_env, bundled_fonts, monkeypatch):
     created = []
 
     def make(name: str, modern: bool = True, theme: str = "Modern Dark", **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = theme if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = theme if modern else "Legacy Grey"
         cfg.user.setting[name].update(options)
         widget = create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
         created.append(widget)
@@ -109,10 +109,10 @@ def test_own_design_reads_existing_options(name):
 
 
 @pytest.mark.parametrize("name", GRAPHIC_WIDGETS)
-@pytest.mark.parametrize("theme", ["Modern Dark", "Modern Light"])
+@pytest.mark.parametrize("theme", ["Modern Dark", "Modern White"])
 def test_renders_in_both_themes(widgets, name, theme):
     widget = widgets(name, theme=theme, **({"enable_auto_hide": False} if name == "radar" else {}))
-    assert widget.theme.surface.lightness() > 128 if theme == "Modern Light" else widget.theme.surface.lightness() < 128
+    assert widget.theme.surface.lightness() > 128 if theme == "Modern White" else widget.theme.surface.lightness() < 128
     update(widget, 3)
     assert widget.width() > 10 and widget.height() > 10
 
@@ -450,7 +450,7 @@ def test_weather_icons_for_every_sky(widgets):
     from neopedal.widget._modern.theme import build_theme
     from neopedal.widget._modern.weather_forecast import weather_icon
 
-    for theme_name in ("Modern Dark", "Modern Light"):
+    for theme_name in ("Modern Dark", "Modern White"):
         theme = build_theme({"overlay_theme": theme_name})
         for sky in range(11):
             pixmap = QPixmap(40, 40)

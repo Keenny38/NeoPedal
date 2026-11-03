@@ -169,7 +169,7 @@ def test_overheating_option_shown_for_both_designs(ui_env):
 
     for name in ("engine", "engine_temperature"):
         keys = list(cfg.user.setting[name])
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
         classic = design_option_keys(cfg, name, keys)
         cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
         modern = design_option_keys(cfg, name, keys)

@@ -35,6 +35,8 @@ Item {
     required property string defaultText
     required property string applies  // "restart", "next_start" or ""
     required property string marked  // label with searched words in bold (rich text), "" if not searching
+    required property var swatch  // colors of the theme chosen (window, card, text, accent), [] for other options
+    readonly property bool hasSwatch: !!swatch && swatch.length === 4  // row going away: roles read undefined
     readonly property real editorWidth: Math.min(theme.em * 19, Math.max(theme.em * 11, width * 0.42))
     signal menuRequested(var data, Item anchor, real x, real y)  // x < 0: menu below anchor, right aligned
 
@@ -222,6 +224,43 @@ Item {
                     color: theme.loss
                     font.pointSize: theme.fontSmall
                     wrapMode: Text.WordWrap
+                }
+            }
+
+            Rectangle {  // theme choice: the colors of the theme chosen
+                visible: row.hasSwatch
+                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: theme.em * 3.2
+                Layout.preferredHeight: theme.em * 1.9
+                radius: theme.radiusSm
+                color: row.hasSwatch ? row.swatch[0] : "transparent"
+                border.width: 1
+                border.color: theme.controlBorder
+                Accessible.ignored: true
+                Rectangle {
+                    x: theme.em * 0.35
+                    y: theme.em * 0.35
+                    width: parent.width - theme.em * 0.7
+                    height: parent.height - theme.em * 0.7
+                    radius: theme.radiusXs
+                    color: row.hasSwatch ? row.swatch[1] : "transparent"
+                    Rectangle {
+                        x: theme.em * 0.3
+                        y: (parent.height - height) / 2
+                        width: theme.em * 0.7
+                        height: theme.em * 0.22
+                        radius: height / 2
+                        color: row.hasSwatch ? row.swatch[2] : "transparent"
+                    }
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.rightMargin: theme.space1
+                        y: (parent.height - height) / 2
+                        width: theme.em * 0.5
+                        height: theme.em * 0.5
+                        radius: width / 2
+                        color: row.hasSwatch ? row.swatch[3] : "transparent"
+                    }
                 }
             }
 

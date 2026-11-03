@@ -239,7 +239,7 @@ def test_overlay_style_applied_to_running_overlays(settings, bundled_fonts):
         assert old.theme.surface.name() == "#1b1f27" and old.corner == 1 and old.depth_effects
         settings.selectCategory("overlay_style")
         settings.setChoice("overlay_style/overlay_theme", row(settings, "overlay_style/overlay_theme")[
-            "choices"].index("Modern Light"))
+            "choices"].index("Modern White"))
         settings.setBool("overlay_style/enable_depth_effects", False)
         settings.setBool("overlay_style/enable_fade_animation", False)
         settings.setNumber("overlay_style/corner_radius_scale", 0.1)
@@ -681,3 +681,17 @@ def test_feature_switches_saved_at_once(settings, monkeypatch):
     assert applied[-1] == settings_backend.SWITCH_SERVERS and settings.pendingCount == 1
     cfg.user.config["web_dashboard"]["enable_web_dashboard"] = web
     assert set(settings_backend.IMMEDIATE_SWITCHES) <= set(settings._infos)  # every switch is an option shown
+
+
+def test_theme_choice_shows_theme_colors(settings):
+    """Window & overlay theme rows carry the colors of the theme chosen (window, card, text, accent), others none"""
+    from neopedal.ui import theme_swatch
+
+    settings.selectCategory("application")
+    swatch = row(settings, "application/window_color_theme")["swatch"]
+    assert swatch == theme_swatch(cfg.application["window_color_theme"]) and len(swatch) == 4
+    settings.setChoice("application/window_color_theme", row(settings, "application/window_color_theme")[
+        "choices"].index("Modern Grey"))
+    grey = row(settings, "application/window_color_theme")["swatch"]
+    assert grey == theme_swatch("Modern Grey") and grey != swatch
+    assert row(settings, "application/language")["swatch"] == []

@@ -54,7 +54,7 @@ def test_default_background_keeps_todays_panel():
     # Same colors as before the options existed (style without them)
     before = {key: value for key, value in default.items()
               if key not in ("background_opacity_percentage", "enable_black_background")}
-    for theme_name in ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light"):
+    for theme_name in ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey"):
         assert rgba(build_theme({**default, "overlay_theme": theme_name})) == rgba(
             build_theme({**before, "overlay_theme": theme_name})), theme_name
     assert build_theme(default).surface.alpha() == 235
@@ -90,7 +90,7 @@ def test_black_background_on_dark_themes_only():
     slate = build_theme(style())
     assert {name: getattr(black, name) for name in TOKEN_COLORS if name not in SURFACES} == {
         name: getattr(slate, name) for name in TOKEN_COLORS if name not in SURFACES}  # text & accents kept
-    light = style(overlay_theme="Modern Light")
+    light = style(overlay_theme="Modern White")
     assert rgba(build_theme({**light, "enable_black_background": True})) == rgba(build_theme(light))
 
 
@@ -125,7 +125,7 @@ def test_classic_options_off_by_default_modern_options_kept():
 @pytest.mark.parametrize("name", sorted(CLASSIC_OPTIONS))
 def test_options_page_shows_each_design_its_options(ui_env, name):
     keys = list(cfg.user.setting[name])
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     classic = design_option_keys(cfg, name, keys)
     cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark"
     modern = design_option_keys(cfg, name, keys)

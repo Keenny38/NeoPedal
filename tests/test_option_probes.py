@@ -127,7 +127,7 @@ def number_keys(name: str, values: dict) -> list[str]:
 
 
 def set_design(name: str, modern: bool) -> dict:
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     values = dict(cfg.user.setting[name])
     values["enable_classic_layout"] = not modern
     return values

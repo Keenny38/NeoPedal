@@ -41,7 +41,7 @@ def widgets(ui_env, bundled_fonts, monkeypatch):
     created = []
 
     def make(name: str, modern: bool = True, theme: str = "Modern Dark", **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = theme if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = theme if modern else "Legacy Grey"
         cfg.user.setting[name].update(options)
         widget = create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
         created.append(widget)
@@ -120,7 +120,7 @@ def test_own_design_reads_existing_options(name):
 
 
 @pytest.mark.parametrize("name", OWN_DESIGNS)
-@pytest.mark.parametrize("theme", ["Modern Dark", "Modern Light"])
+@pytest.mark.parametrize("theme", ["Modern Dark", "Modern White"])
 def test_renders_in_both_themes(widgets, name, theme):
     cfg.overlay["fixed_position"] = False  # overlays drawn only with data are previewed
     widget = widgets(name, theme=theme)

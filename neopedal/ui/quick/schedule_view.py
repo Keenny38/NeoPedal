@@ -51,7 +51,7 @@ TIER_LABELS = {"beginner": "Beginner", "intermediate": "Intermediate", "advanced
 KIND_LABELS = {"solo": "Solo", "endurance": "Endurance", "team": "Team"}
 REGIONS = (("eu-", "Europe"), ("us-west", "US West"), ("us-east", "US East"), ("ap-", "Asia Pacific"),
            ("sa-", "South America"), ("ca-", "Canada"), ("me-", "Middle East"), ("af-", "Africa"))
-RANK_COLORS = {"Bronze": "#B87333", "Silver": "#A8B0BA", "Gold": "#D4A72C", "Platinum": "#7FD1C8"}
+RANK_COLORS = {"Bronze": "#B87333", "Silver": "#B0B0B0", "Gold": "#D4A72C", "Platinum": "#7FD1C8"}
 
 Logo = Callable[[str], str]  # track name -> logo url ("" if none)
 
@@ -463,7 +463,7 @@ def field_view(field: rs.FieldLevel) -> dict:
     color: never told by color alone, rank names written)"""
     def shares(ranks: tuple[tuple[str, int], ...]) -> list[dict]:
         total = sum(count for _, count in ranks) or 1
-        return [{"rank": rank, "count": count, "ratio": count / total, "color": RANK_COLORS.get(rank, "#8B949E")}
+        return [{"rank": rank, "count": count, "ratio": count / total, "color": RANK_COLORS.get(rank, "#8E8E8E")}
                 for rank, count in ranks]
 
     drivers = counted(field.drivers, "driver registered", "drivers registered")

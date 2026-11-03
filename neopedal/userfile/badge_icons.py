@@ -54,7 +54,7 @@ class Badge(NamedTuple):
     light_color: str
 
 
-ROOKIE = Badge("Rookie", "New to Le Mans Ultimate", "#9AA3AE", "#5F6873")
+ROOKIE = Badge("Rookie", "New to Le Mans Ultimate", "#A0A0A0", "#666666")
 WARNING = Badge("Warning", "Has recently been involved in a higher number of incidents", "#F0A23C", "#B26A00")
 # Badges of game (menu code)
 BADGES = {

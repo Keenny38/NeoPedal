@@ -67,7 +67,7 @@ def click(view, item, point=None):
 
 
 # --- Shared components load in every theme without warnings
-@pytest.mark.parametrize("palette", ("Modern Dark", "Legacy Light"))
+@pytest.mark.parametrize("palette", ("Modern Dark", "Modern Grey", "Legacy Grey"))
 def test_new_components_load_without_warnings(page, palette):
     from neopedal.ui import set_style_palette
 

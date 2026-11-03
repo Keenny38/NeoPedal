@@ -40,7 +40,9 @@ from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QMessageBox, QVBoxLayout
 
 from .. import app_signal, loader
-from ..i18n import current_language, tr, trm
+from ..const_file import ConfigType
+from ..i18n import colon, current_language, tr, trm
+from ..setting import cfg
 from ._common import BaseDialog, UIScaler, page_host, run_after_saving
 from .settings_host import SettingsHostMixin
 from .toast import show_toast
@@ -62,6 +64,29 @@ RELOAD_OPTIONS = frozenset((  # options of a refreshed section read by overlays 
 ))
 
 
+def offer_matching_overlay_theme():
+    """Window theme just changed: offer the same theme for the overlays (a separate setting that stays on the former
+    theme otherwise, overlay previews & web pages included), with a button"""
+    from PySide6.QtWidgets import QApplication
+
+    theme = cfg.application["window_color_theme"]
+    style = cfg.user.config["overlay_style"]
+    if style.get("overlay_theme") == theme:
+        return
+    window = next((widget for widget in QApplication.topLevelWidgets()
+                   if "AppWindow" in type(widget).__name__ and widget.isVisible()), None)
+    if window is None:
+        return
+
+    def match():
+        style["overlay_theme"] = theme
+        cfg.save(config_type=ConfigType.CONFIG)
+        run_after_saving(apply_saved_sections(("overlay_style",)))
+
+    text = f"{tr('Overlay theme')}{colon()}<b>{tr(style.get('overlay_theme', ''))}</b>"
+    show_toast(window, text, action_text=f"{tr('Use')} {tr(theme)}", action=match)
+
+
 def apply_saved_sections(sections: Iterable[str], options: Iterable[str] = ()) -> Callable[[], object]:
     """What applies config.json sections just saved (to run once saving is finished, see run_after_saving)
 
@@ -78,6 +103,7 @@ def apply_saved_sections(sections: Iterable[str], options: Iterable[str] = ()) -
         return menu_reload_preset
     switches = sorted({SWITCH_SECTIONS[section] for section in saved if section in SWITCH_SECTIONS})
     restart_overlays = bool(saved & OVERLAY_SECTIONS)
+    theme_changed = "application/window_color_theme" in set(options)
 
     def apply():
         if switches:
@@ -90,6 +116,8 @@ def apply_saved_sections(sections: Iterable[str], options: Iterable[str] = ()) -
 
             wctrl.reload()
         app_signal.refresh.emit(True)  # pages, menus & notices read the saved settings
+        if theme_changed:
+            offer_matching_overlay_theme()
 
     return apply
 

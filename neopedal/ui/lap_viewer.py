@@ -328,7 +328,7 @@ def part_label(column: str) -> str:
 
 def part_color(column: str) -> str:
     """Sub-channel color of a combined panel (one lap shown)"""
-    return PART_COLORS.get(column[-2:] if column[-3:-2] == "_" else column, "#9CA3AF")
+    return PART_COLORS.get(column[-2:] if column[-3:-2] == "_" else column, "#9E9E9E")
 
 
 def shade(color: QColor, index: int, count: int) -> QColor:
@@ -541,7 +541,7 @@ def gain_color(rate: float, colorblind: bool = False) -> QColor:
             target = COLORBLIND_LOSS if rate > 0 else COLORBLIND_GAIN
         else:
             target = LOSS_COLOR if rate > 0 else GAIN_COLOR
-        neutral = QColor("#9CA3AF")
+        neutral = QColor("#9E9E9E")
         shades = _gain_shades[(rate > 0, colorblind)] = [QColor(
             round(neutral.red() + (target.red() - neutral.red()) * level / GAIN_SHADES),
             round(neutral.green() + (target.green() - neutral.green()) * level / GAIN_SHADES),

@@ -55,7 +55,7 @@ def changes(field):
     yield "brand", lambda: setattr(cars[2], "vehicleBrand", "Other")
 
 
-@pytest.mark.parametrize("theme", ["Modern Dark", "Modern Light"])
+@pytest.mark.parametrize("theme", ["Modern Dark", "Modern White"])
 @pytest.mark.parametrize("name", TABLES)
 def test_changed_rows_match_full_repaint(ui_env, bundled_fonts, monkeypatch, name, theme):
     from neopedal.setting import cfg

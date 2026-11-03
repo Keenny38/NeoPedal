@@ -37,6 +37,7 @@ def preupdate_global_setting(preset_version: tuple[int, int, int], dict_user: di
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 12), _global_prior_2_51_12),  # 2026-11-03
         ((2, 51, 11), _global_prior_2_51_11),  # 2026-11-03
         ((2, 51, 8), _global_prior_2_51_8),  # 2026-11-02
         ((2, 51, 6), _global_prior_2_51_6),  # 2026-10-30
@@ -92,6 +93,18 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
 
 
 # Global setting update function
+RENAMED_THEMES = {"Modern Light": "Modern White", "Legacy Dark": "Legacy Grey", "Legacy Light": "Legacy Grey"}
+
+
+def _global_prior_2_51_12(dict_user: dict):
+    # Themes are Modern Dark, Modern Grey, Modern White & Legacy Grey: Modern Light became Modern White, Legacy Dark &
+    # Legacy Light became Legacy Grey (app window & overlays), Modern Dark kept
+    for section, key in (("application", "window_color_theme"), ("overlay_style", "overlay_theme")):
+        setting = dict_user.get(section)
+        if isinstance(setting, dict) and setting.get(key) in RENAMED_THEMES:
+            setting[key] = RENAMED_THEMES[setting[key]]
+
+
 def _global_prior_2_51_11(dict_user: dict):
     # Main pages merged: Home, Overlays & Presets left (Modules & Hotkeys: Settings categories, Spectate: tab of
     # Broadcast Director, Pace Notes: Notes tab of Data Editors, Tools: Tools menu). Page shown at quit: same page,

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication, QGridLayout, QWidget
 
 from tests.test_audit_g_qml_keys import component  # noqa: F401  (fixture)
 
-PALETTES = ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light")
+PALETTES = ("Modern Dark", "Modern White", "Legacy Grey", "Legacy Light")
 QML = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "neopedal", "ui", "qml")
 
 

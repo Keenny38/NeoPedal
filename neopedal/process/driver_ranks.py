@@ -58,7 +58,7 @@ MAX_FILE_SIZE = 64 * 1024 * 1024  # never read a huge file whole
 MAX_DEPTH = 40  # nested items & JSON text values (team members of registered events: 13 levels deep)
 RANK_ORDER = ("Bronze", "Silver", "Gold", "Platinum")  # lowest first
 RANK_COLORS = {"bronze": "#CD8A4B", "silver": "#C9CED6", "gold": "#E8C14A", "platinum": "#7FD6DF"}  # readable on dark
-RANK_COLORS_LIGHT = {"bronze": "#9A5B22", "silver": "#6B7380", "gold": "#A07A00", "platinum": "#1C8A96"}  # on light
+RANK_COLORS_LIGHT = {"bronze": "#9A5B22", "silver": "#707070", "gold": "#A07A00", "platinum": "#1C8A96"}  # on light
 
 
 class Rank(NamedTuple):

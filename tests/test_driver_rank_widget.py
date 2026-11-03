@@ -23,7 +23,7 @@ def make(ui_env, bundled_fonts, monkeypatch):
     monkeypatch.setattr(api.read.session, "in_race", lambda: True)
 
     def build(modern: bool, **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
         cfg.user.setting["driver_rank"].update(options)
         widget = create_widget(import_module("neopedal.widget.driver_rank"), cfg, "driver_rank")
         created.append(widget)

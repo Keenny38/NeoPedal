@@ -44,10 +44,11 @@ from ...i18n import colon, percent_sign, plural, tr, trm
 from ...regex_pattern import COMMON_TYRE_COMPOUNDS
 from ...template.setting_compounds import COMPOUND_COLORS, COMPOUND_SYMBOLS, compound_letter
 from ...template.setting_status_colors import COLORBLIND_STATUS_COLORS, STATUS_COLORS
-from .. import UIScaler, colorblind_state, legacy_style, set_colorblind, status_color  # noqa: F401  # set_colorblind: tests & pages
+from .. import UIScaler, colorblind_state, grey_style, legacy_style, set_colorblind, status_color  # noqa: F401  # set_colorblind: tests & pages
 
 # Tokens shared with the Qt Widgets shell (rail, menus): one source, see ui/tokens.py
 from ..tokens import (  # also read from here by tests & pages
+    GREY_STROKE_LIFT,
     LEGACY_RADIUS,
     MOTION,
     RADIUS_SCALE,
@@ -58,6 +59,7 @@ from ..tokens import (  # also read from here by tests & pages
     TOAST_ERROR_FACTOR,
     TOAST_TIMES,
     blended,
+    control_border,
     luminance,
 )
 
@@ -112,6 +114,7 @@ INK_DARK = "#111111"  # text on light fills
 COLORBLIND_STATUS = COLORBLIND_STATUS_COLORS  # one source with overlays & stream pages (setting_status_colors)
 # Overlay preview stage (always dark: overlays are drawn for a game screen)
 STAGE_COLORS = {"stageTop": "#2B313A", "stageBottom": "#14171C", "stageText": "#AEB5BF"}
+STAGE_COLORS_GREY = {"stageTop": "#343434", "stageBottom": "#161616", "stageText": "#B4B4B4"}  # Modern Grey: no blue tint
 STAGE_INK = "#FFFFFF"  # icons & texts drawn over an overlay preview
 STAGE_SCRIM = (0, 0, 0, 0.45)  # backdrop of buttons & badges over an overlay preview (r, g, b, alpha)
 # Session kind colors: race, qualifying, practice (theme color names), others dim
@@ -272,8 +275,9 @@ def _motion_token(name: str) -> Property:
     return Property(int, lambda self: MOTION[name] if _ANIMATIONS[0] else 0, constant=True, doc=f"Duration (ms) {name}")
 
 
-def _stage_token(name: str) -> Property:
-    return Property(QColor, lambda self: QColor(STAGE_COLORS[name]), constant=True, doc=f"Preview stage color {name}")
+def _stage_token(name: str, notify: Signal) -> Property:
+    return Property(QColor, lambda self: QColor((STAGE_COLORS_GREY if grey_style() else STAGE_COLORS)[name]),
+                    notify=notify, doc=f"Preview stage color {name}")
 
 
 def _radius_token(name: str, notify: Signal) -> Property:
@@ -382,6 +386,11 @@ class Theme(QObject):
         return self._color(QPalette.ColorRole.Mid)
 
     @Property(QColor, notify=changed)
+    def controlBorder(self) -> QColor:
+        """Outline of fields, combo boxes & switches: 3:1 against page & cards (WCAG 1.4.11)"""
+        return control_border(QApplication.palette())
+
+    @Property(QColor, notify=changed)
     def raised(self) -> QColor:
         return self._color(QPalette.ColorRole.Button)
 
@@ -429,7 +438,7 @@ class Theme(QObject):
     @Property(QColor, notify=changed)
     def silver(self) -> QColor:
         """Second place"""
-        return self._status("#C3CAD4", "#64748B")
+        return self._status("#C4C4C4", "#6E6E6E")
 
     @Property(QColor, notify=changed)
     def bronze(self) -> QColor:
@@ -529,7 +538,7 @@ class Theme(QObject):
 
     def _surface_card(self) -> QColor:
         window, base = self._color(QPalette.ColorRole.Window), self._color(QPalette.ColorRole.Base)
-        if self._is_dark() and luminance(base) <= luminance(window):  # Legacy Dark: base darker than the page
+        if self._is_dark() and luminance(base) <= luminance(window):  # Legacy Grey: base darker than the page
             return self._lift(window, "card")
         return base
 
@@ -564,6 +573,8 @@ class Theme(QObject):
         mid = self._color(QPalette.ColorRole.Mid)
         if legacy_style():  # classic look: firmer outlines
             return mid.lighter(115) if self._is_dark() else mid.darker(112)
+        if grey_style() and self._is_dark():  # Modern Grey: firmer than the slate theme (tokens.GREY_STROKE_LIFT)
+            return blended(QColor("white"), self._surface_card(), GREY_STROKE_LIFT)
         return self._surface_card().lighter(135) if self._is_dark() else mid
 
     @Property(QColor, notify=changed)
@@ -574,7 +585,7 @@ class Theme(QObject):
     @Property(QColor, notify=changed)
     def strokeStrong(self) -> QColor:
         """Border of a hovered control, outlines that must show (3:1 kind of use)"""
-        mid = self._color(QPalette.ColorRole.Mid)
+        mid = self.controlBorder
         if self._is_dark():
             return mid.lighter(150 if legacy_style() else 125)
         return mid.darker(135 if legacy_style() else 118)
@@ -751,9 +762,9 @@ class Theme(QObject):
     iconMd = _size_token(ICON_SCALE, "iconMd")
     iconLg = _size_token(ICON_SCALE, "iconLg")
     iconHero = _size_token(ICON_SCALE, "iconHero")
-    stageTop = _stage_token("stageTop")
-    stageBottom = _stage_token("stageBottom")
-    stageText = _stage_token("stageText")
+    stageTop = _stage_token("stageTop", changed)
+    stageBottom = _stage_token("stageBottom", changed)
+    stageText = _stage_token("stageText", changed)
     stageInk = Property(QColor, lambda self: QColor(STAGE_INK), constant=True, doc="Icons & texts over an overlay preview")
     stageScrim = Property(QColor, lambda self: QColor.fromRgbF(*STAGE_SCRIM), constant=True,
                           doc="Backdrop of buttons & badges over an overlay preview")

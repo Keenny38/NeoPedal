@@ -430,7 +430,7 @@ def test_map_colored_by_time_gain():
     assert line is not None
     colors = dict(zip(line.distances, lap_map.gain_colors(reference, compared, line)))
     assert colors[500.0] == LOSS_COLOR and colors[1500.0] == GAIN_COLOR  # losing then gaining
-    assert gain_color(0.0).name() == "#9ca3af"
+    assert gain_color(0.0).name() == "#9e9e9e"
 
 
 def test_map_mode_saved(open_viewer):

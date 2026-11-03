@@ -1021,7 +1021,7 @@ class MapView(BackendBase):
             if not mini:
                 return None, []
             bounds, winners = mini["bounds"], mini["winners"]
-            neutral = QColor("#9CA3AF")
+            neutral = QColor("#9E9E9E")
             laps = self.data.laps
             colors = []
             for distance in line.distances:

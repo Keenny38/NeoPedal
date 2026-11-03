@@ -480,7 +480,7 @@ def test_toolbar_follows_style_and_drag_updates_position_only(editing, monkeypat
     toolbar = controller.toolbar
     first_theme = toolbar.theme
     cfg.user.config["overlay_style"]["overlay_theme"] = (
-        "Modern Light" if cfg.user.config["overlay_style"].get("overlay_theme") != "Modern Light" else "Modern Dark")
+        "Modern White" if cfg.user.config["overlay_style"].get("overlay_theme") != "Modern White" else "Modern Dark")
     controller.show_toolbar()  # edit mode entered again: style of now
     assert toolbar.theme is not first_theme
     refreshed = []

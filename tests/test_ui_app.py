@@ -139,17 +139,17 @@ def test_window_color_themes(ui_env):
 
     from neopedal.ui import palette_theme, resolve_color_theme, set_style_palette
 
-    assert resolve_color_theme("Modern Dark") == resolve_color_theme("Legacy Dark") == "Dark"
-    assert resolve_color_theme("Modern Light") == resolve_color_theme("Legacy Light") == "Light"
+    assert resolve_color_theme("Modern Dark") == resolve_color_theme("Modern Grey") == resolve_color_theme("Legacy Grey") == "Dark"
+    assert resolve_color_theme("Modern White") == "Light"
     windows = {}
     try:
-        for theme in ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light"):
+        for theme in ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey"):
             set_style_palette(theme)
             assert palette_theme() == resolve_color_theme(theme)
             windows[theme] = QApplication.palette().color(QPalette.ColorRole.Window).name().upper()
     finally:
         set_style_palette("Modern Dark")
-    assert windows["Legacy Dark"] == "#202124" and windows["Modern Dark"] == "#111318"  # classic colors
+    assert windows["Legacy Grey"] == "#202124" and windows["Modern Dark"] == "#111318" and windows["Modern Grey"] == "#1E1E1E"
     assert len(set(windows.values())) == 4
 
 

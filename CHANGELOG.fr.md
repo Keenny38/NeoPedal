@@ -9,7 +9,13 @@ Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en p
 
 ### Nouveautés
 
-- **Thème Moderne gris**, pour la fenêtre et pour les overlays : des gris neutres, sans la teinte bleue de Moderne sombre. Les thèmes sont maintenant `Modern Dark` (par défaut), `Modern Grey`, `Modern White` et `Legacy Grey`, chacun pour la fenêtre (`window_color_theme`) et pour les overlays (`overlay_theme`), choisis séparément. `Modern Light` devient `Modern White` ; `Legacy Dark` et `Legacy Light` deviennent `Legacy Grey` (look classique, sombre) : le thème que tu avais est converti une fois, `Modern Dark` ne change pas.
+- **Thème Moderne gris**, pour la fenêtre et pour les overlays : des surfaces gris neutre, sans la teinte bleue de Moderne sombre, avec l'accent bleu gardé pour la sélection, les boutons, les interrupteurs et les liens ; aperçus d'overlays en gris neutre et, avec le thème des overlays, le tableau de bord web, l'éditeur de stream et la page de la Régie dans les mêmes gris. Les thèmes sont maintenant `Modern Dark` (par défaut), `Modern Grey`, `Modern White` et `Legacy Grey`, chacun pour la fenêtre (`window_color_theme`) et pour les overlays (`overlay_theme`), choisis séparément. `Modern Light` devient `Modern White` ; `Legacy Dark` et `Legacy Light` deviennent `Legacy Grey` (look classique, sombre) : le thème que tu avais est converti une fois, `Modern Dark` ne change pas.
+
+### Améliorations
+
+- **Contraste des quatre thèmes** : le contour des champs, des listes déroulantes et des interrupteurs atteint 3:1 contre la page, les cartes et les menus dans chaque thème (il était de 1,4 à 2:1 en Moderne sombre, Moderne blanc et Classique gris) ; le bleu de Classique gris est plus clair sur les menus (4,5:1) ; gains, pertes, alertes et le violet du meilleur atteignent 4,5:1 sur toutes les surfaces. Un interrupteur activé montre aussi une coche.
+- **Choisir un thème de fenêtre propose le même thème pour les overlays** (un réglage séparé, resté sur l'ancien thème avec ses aperçus et ses pages web) : un message avec un bouton, depuis les Réglages ou la palette de commandes. Le choix du thème dans les Réglages montre les couleurs du thème.
+- Les gris des cartes de tours, des rangs et des badges sont neutres dans tous les thèmes.
 
 ### Corrections
 

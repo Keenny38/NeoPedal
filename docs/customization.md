@@ -623,7 +623,7 @@ Set refresh rate for module while idling for conserving resources.
 Define widget position on screen in pixels. Those values will be auto updated and saved.
 
     enable_classic_layout
-Every widget has a modern design, used with `Modern Dark` and `Modern Light` overlay themes. Enable this option to keep classic layout of this widget (with modern colors) instead. Default is disabled.
+Every widget has a modern design, used with `Modern Dark`, `Modern Grey` and `Modern White` overlay themes. Enable this option to keep classic layout of this widget (with modern colors) instead. Default is disabled.
 
     opacity
 Set opacity for entire widget. By default, all widgets have a 90% opacity setting, which equals value `0.9`. Lower value adds more transparency to widget. Acceptable value range in `0.0` to `1.0`. Note, opacity can also be set by adjusting alpha value in `color` options for individual elements.
@@ -812,7 +812,7 @@ Define main window size on screen in pixels. Those values will be auto updated a
 Whether main window was maximized at last quit, shown maximized again at startup. This value will be auto updated and saved while `remember_size` option is enabled.
 
     window_color_theme
-Set color theme for main window and dialog: `Modern Dark` (default), `Modern Light`, `Legacy Dark` or `Legacy Light` (classic colors). This option does not affect overlay widget, see `overlay_theme` in Overlay Style.
+Set color theme for main window and dialog: `Modern Dark` (default), `Modern Grey`, `Modern White` or `Legacy Grey` (classic colors). This option does not affect overlay widget, see `overlay_theme` in Overlay Style.
 
 Also chosen from the command palette (`Ctrl+K`, type `theme`). On Windows, the title bar of the window follows the theme (dark or light), whatever the Windows setting.
 
@@ -895,11 +895,11 @@ Themes only restyle options that still use their default value, any customized f
 Set overlay theme, applied to default colors only (alpha channel is kept):
 
 * `Modern Dark`: modern design, slate neutrals with softer accent colors (default).
-* `Modern Light`: modern design, light panels and dark text.
-* `Legacy Dark`: classic look: classic layout, colors and fonts.
-* `Legacy Light`: classic look with light panels and dark text.
+* `Modern Grey`: modern design, neutral gray panels (no blue tint).
+* `Modern White`: modern design, light panels and dark text.
+* `Legacy Grey`: classic look: classic layout, colors and fonts.
 
-Light themes invert gray panels and text, keep colored backgrounds (flags, warnings) and darken colors drawn on panels so they stay readable.
+Modern White inverts gray panels and text, keeps colored backgrounds (flags, warnings) and darkens colors drawn on panels so they stay readable.
 
     enable_colorblind_colors
 Colorblind safe variant of overlay theme (Okabe-Ito palette): red / green pairs become orange / blue, on every theme. Default is disabled.
@@ -911,7 +911,7 @@ Set opacity of every overlay at once, in percent, text included: multiplies `opa
 Set panel background opacity of modern design widgets, in percent: `100` for opaque panels, lower values let the game show through. Value range in `0` to `100`. Widget `opacity` option still applies to the whole widget. Default is `92`.
 
     enable_black_background
-Draw modern design panels in neutral black and dark grays instead of the slate (blue tinted) grays of `Modern Dark` theme. `Modern Light` theme keeps its light panels. Default is disabled.
+Draw modern design panels in neutral black and dark grays instead of the slate (blue tinted) grays of `Modern Dark` theme. `Modern White` theme keeps its light panels. Default is disabled.
 
     enable_modern_font
 Use modern fonts while a `Modern` overlay theme is selected. Modern design widgets draw labels and names in `modern_design_font_name`, and values (times, gaps, speeds, temperatures, fuel...) in `modern_font_name`, a monospace font that keeps digits steady and aligned. Classic layout widgets (`enable_classic_layout` enabled) replace their default font with `modern_font_name`; width of text bar is calculated from digit width to avoid clipping numbers. Disable to draw every widget, modern design included, in its own `font_name` option. Default is enabled.
@@ -2227,7 +2227,7 @@ This option may be used if weight cannot be automatically measured or inaccurate
 Each widget can be configured by accessing `Config` button from `Overlays` tab in main window.
 
 ## Modern design
-With `Modern Dark` or `Modern Light` overlay theme in [Overlay Style](#overlay-style), every widget uses its modern design: one panel with rounded corners, short labels above or beside values, values colored by meaning (gain, loss, warning, best), gauges, tyre & brake tiles in heatmap colors, class colored pills. Labels follow application language. Colors follow `overlay_theme` and `enable_colorblind_colors`.
+With `Modern Dark`, `Modern Grey` or `Modern White` overlay theme in [Overlay Style](#overlay-style), every widget uses its modern design: one panel with rounded corners, short labels above or beside values, values colored by meaning (gain, loss, warning, best), gauges, tyre & brake tiles in heatmap colors, class colored pills. Labels follow application language. Colors follow `overlay_theme` and `enable_colorblind_colors`.
 
 Modern design reads fewer options than classic layout: per cell colors, fonts and paddings are set by design, so Overlay Options page shows only the options the design reads. Fonts follow `enable_modern_font`: labels in `modern_design_font_name` and values in `modern_font_name` while enabled, else every text in widget `font_name` (then shown in Overlay Options page). Relative, standings and rivals choose their columns with `column_*` options. Each widget keeps its classic options: select a `Legacy` overlay theme (all widgets) or enable `enable_classic_layout` (one widget) to use classic layout again.
 

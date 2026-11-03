@@ -9,7 +9,13 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 
 ### New
 
-- **Modern Grey theme**, for the window and for the overlays: neutral grays without the blue tint of Modern Dark. The themes are now `Modern Dark` (default), `Modern Grey`, `Modern White` and `Legacy Grey`, each for the window (`window_color_theme`) and for the overlays (`overlay_theme`), chosen separately. `Modern Light` became `Modern White`; `Legacy Dark` and `Legacy Light` became `Legacy Grey` (classic look, dark): the theme you had is converted once, `Modern Dark` stays as it is.
+- **Modern Grey theme**, for the window and for the overlays: neutral gray surfaces, without the blue tint of Modern Dark, and the blue accent kept for selection, buttons, switches and links; overlay previews in neutral gray and, with the overlay theme, the web dashboard, the stream editor and the Broadcast Director page in the same grays. The themes are now `Modern Dark` (default), `Modern Grey`, `Modern White` and `Legacy Grey`, each for the window (`window_color_theme`) and for the overlays (`overlay_theme`), chosen separately. `Modern Light` became `Modern White`; `Legacy Dark` and `Legacy Light` became `Legacy Grey` (classic look, dark): the theme you had is converted once, `Modern Dark` stays as it is.
+
+### Improvements
+
+- **Contrast of the four themes**: the outline of fields, combo boxes and switches reaches 3:1 against the page, the cards and the menus in every theme (it was 1.4 to 2:1 in Modern Dark, Modern White and Legacy Grey); the blue of Legacy Grey is lighter on menus (4.5:1); gains, losses, warnings and the best purple reach 4.5:1 on every surface. A switch that is on also shows a check mark.
+- **Choosing a window theme offers the same theme for the overlays** (a separate setting, which stayed on the former theme with its previews and web pages): a message with a button, from Settings or the command palette. The theme choice of Settings shows the colors of the theme.
+- Grays of lap maps, ranks and badges are neutral in every theme.
 
 ### Fixes
 

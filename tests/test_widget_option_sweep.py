@@ -66,7 +66,7 @@ def switch_options(options: dict, mode: str, rng: random.Random):
 @pytest.mark.parametrize("modern", [True, False], ids=["modern", "classic"])
 @pytest.mark.parametrize("mode", MODES)
 def test_widget_option_sweep(live, mode, modern):
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     failures = []
     event = QTimerEvent(0)
     for name in WIDGET_DISPLAY_ORDER:

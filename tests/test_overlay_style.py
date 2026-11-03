@@ -36,11 +36,11 @@ def test_theme_color():
 
 
 def test_overlay_theme():
-    assert THEME_NAMES == ("Modern Dark", "Modern Light", "Legacy Dark", "Legacy Light")
-    assert overlay_theme({"overlay_theme": "Legacy Light"}) == (False, True, False)
-    assert overlay_theme({"overlay_theme": "Modern Light", "enable_colorblind_colors": True}) == (True, True, True)
+    assert THEME_NAMES == ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey")
+    assert overlay_theme({"overlay_theme": "Modern Grey"}) == (True, False, False, True)
+    assert overlay_theme({"overlay_theme": "Modern White", "enable_colorblind_colors": True}) == (True, True, True, False)
     assert overlay_theme({"overlay_theme": "High Contrast"}) == overlay_theme({})  # removed theme: Modern Dark
-    assert not overlay_theme({"overlay_theme": "Legacy Dark"}).recolors  # classic colors
+    assert not overlay_theme({"overlay_theme": "Legacy Grey"}).recolors  # classic colors
 
 
 def test_only_default_values_are_restyled():
@@ -68,9 +68,23 @@ def test_custom_font_and_gap_kept():
 
 def test_legacy_themes_keep_classic_look():
     default = {"font_name": "Consolas", "bar_gap": 0, "font_color": "#FFFFFF"}
-    assert theme_overrides(dict(default), default, dict(STYLE, overlay_theme="Legacy Dark")) == {}
-    light = theme_overrides(dict(default), default, dict(STYLE, overlay_theme="Legacy Light"))
-    assert light == {"font_color": "#000000"}  # colors only: no modern font, no bar gap
+    assert theme_overrides(dict(default), default, dict(STYLE, overlay_theme="Legacy Grey")) == {}
+    default["font_color"] = "#FF2200"
+    colorblind = theme_overrides(dict(default), default, dict(STYLE, overlay_theme="Legacy Grey", enable_colorblind_colors=True))
+    assert list(colorblind) == ["font_color"]  # colors only: no modern font, no bar gap
+
+
+def test_modern_grey_is_neutral():
+    """Modern Grey: gray scale without the blue tint of Modern Dark's slate, colors of Modern Dark"""
+    from neopedal.widget._style import MODERN_GREY_NEUTRALS, _channels
+
+    default = {"background_color": "#222222", "font_color": "#FF2200"}
+    grey = theme_overrides(dict(default), default, dict(STYLE, overlay_theme="Modern Grey"))
+    dark = theme_overrides(dict(default), default, STYLE)
+    assert grey["background_color"] == "#252525" != dark["background_color"]
+    assert grey["font_color"] == dark["font_color"]  # colors are the ones of Modern Dark
+    for rgb in MODERN_GREY_NEUTRALS.values():
+        assert len(set(_channels(rgb))) == 1  # R = G = B
 
 
 def test_styled_config_writes_through():
@@ -85,7 +99,7 @@ def test_styled_config_writes_through():
 @pytest.mark.parametrize(("theme", "colorblind", "expected"), [
     ("Modern Dark", False, "#F87171"),  # loss of status colors (app pages, stream graphics)
     ("Modern Dark", True, "#F08A50"),  # colorblind loss, same as app pages & stream pages
-    ("Legacy Dark", True, "#F08A50"),
+    ("Legacy Grey", True, "#F08A50"),
 ])
 def test_colorblind_variant(theme, colorblind, expected):
     default = {"font_color": "#FF2200"}
@@ -93,7 +107,7 @@ def test_colorblind_variant(theme, colorblind, expected):
     assert theme_overrides(dict(default), default, style) == {"font_color": expected}
 
 
-@pytest.mark.parametrize("theme", ["Modern Light", "Legacy Light"])
+@pytest.mark.parametrize("theme", ["Modern White"])
 def test_light_themes_stay_readable(theme):
     """Panels & text inverted, colors on panels darkened, text on colored background kept"""
     from neopedal.widget._style import _contrast
@@ -137,9 +151,9 @@ def test_theme_selects_design(ui_env):
     style = cfg.user.config["overlay_style"]
     saved = style["overlay_theme"]
     try:
-        style["overlay_theme"] = "Legacy Light"
+        style["overlay_theme"] = "Legacy Grey"
         assert not uses_modern_design(cfg, "speedometer")
-        style["overlay_theme"] = "Modern Light"
+        style["overlay_theme"] = "Modern White"
         assert uses_modern_design(cfg, "speedometer")
         theme = build_theme(style)
         assert theme.surface.lightness() > 200 and theme.text.lightness() < 60
@@ -156,7 +170,7 @@ def test_theme_selects_design(ui_env):
     ({"overlay_theme": "Classic"}, False),
     ({"overlay_theme": "High Contrast"}, False),
     ({"overlay_theme": "My custom theme"}, False),
-    ({"overlay_theme": "Legacy Light"}, False),  # dev build saved before update
+    ({"overlay_theme": "Legacy Light"}, False),  # dev build saved before update (Legacy Light existed)
 ])
 def test_overlay_theme_migration(before, colorblind):
     """Update: Modern Dark for everyone, former Colorblind Safe theme kept as colorblind safe colors"""
@@ -176,10 +190,27 @@ def test_window_theme_migration():
         setting = {"application": {"window_color_theme": before}}
         preupdate_global_setting((2, 50, 3), setting)
         assert setting["application"]["window_color_theme"] == "Modern Dark"  # update: Modern Dark for everyone
-    setting = {"application": {"window_color_theme": "Legacy Light"}, "overlay_style": {"overlay_theme": "Modern Light"}}
-    preupdate_global_setting((2, 50, 4), setting)  # chosen after update: kept
-    assert setting["application"]["window_color_theme"] == "Legacy Light"
-    assert setting["overlay_style"]["overlay_theme"] == "Modern Light"
+    setting = {"application": {"window_color_theme": "Legacy Light"}, "overlay_style": {"overlay_theme": "Modern White"}}
+    preupdate_global_setting((2, 50, 4), setting)  # chosen after update: kept (renamed by the 2.51.12 update)
+    assert setting["application"]["window_color_theme"] == "Legacy Grey"
+    assert setting["overlay_style"]["overlay_theme"] == "Modern White"
+
+
+@pytest.mark.parametrize(("before", "after"), [
+    ("Modern Dark", "Modern Dark"), ("Modern Grey", "Modern Grey"), ("Modern White", "Modern White"),
+    ("Legacy Grey", "Legacy Grey"), ("Modern Light", "Modern White"), ("Legacy Dark", "Legacy Grey"),
+    ("Legacy Light", "Legacy Grey"),
+])
+def test_theme_names_migration(before, after):
+    """Update 2.51.12: Modern Light is Modern White, Legacy Dark & Legacy Light are Legacy Grey, others kept"""
+    from neopedal.setting_preupdate import preupdate_global_setting
+
+    setting = {"application": {"window_color_theme": before}, "overlay_style": {"overlay_theme": before}}
+    preupdate_global_setting((2, 51, 11), setting)
+    assert setting["application"]["window_color_theme"] == after
+    assert setting["overlay_style"]["overlay_theme"] == after
+    preupdate_global_setting((2, 51, 12), setting)  # done once, current setting untouched
+    assert setting["application"]["window_color_theme"] == after
 
 
 def test_overlay_scale_overrides():
@@ -600,3 +631,19 @@ def test_raw_text_background_redrawn_after_screen_scale_change(ui_env):
         assert cell._bg_pixmap is not None and cell._bg_pixmap.devicePixelRatio() == 1.5
     finally:
         _painter.OverlayStyle.corner_scale, _painter.OverlayStyle.depth_effects = saved
+
+
+def test_web_pages_follow_modern_grey():
+    """Web dashboard, stream editor & Director pages: slate grays become the neutral grays of the overlays"""
+    from neopedal.widget._style import MODERN_GREY_NEUTRALS, grey_of, themed_page
+
+    page = "body{background:#0E1116;color:#e9ecf1;border:1px solid #3a4150;fill:#38bdf8;stroke:#FF2200}"
+    assert themed_page(page, {"overlay_theme": "Modern Dark"}) == page
+    assert themed_page(page, None) == page
+    grey = themed_page(page, {"overlay_theme": "Modern Grey"})
+    assert "#161616" in grey and "#eaeaea" in grey  # table of the overlays (case of the page kept)
+    assert "#3a4150" not in grey and "#38bdf8" in grey and "#FF2200" in grey  # saturated colors kept
+    other = grey_of("3A4150")  # slate not in the table: gray of the same lightness
+    assert len({other[0:2], other[2:4], other[4:6]}) == 1 and other != "3A4150"
+    assert grey_of("FF2200") == "FF2200" and grey_of("222222") == "222222"  # neutral & colored: unchanged
+    assert grey_of("0E1116") == MODERN_GREY_NEUTRALS["000000"]

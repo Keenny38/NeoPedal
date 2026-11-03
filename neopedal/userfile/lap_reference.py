@@ -73,7 +73,7 @@ XLSX_FORMATS = {0: "General", 1: "0", 2: "0.00", 9: "0%", 10: "0.00%", 20: "h:mm
 # of its step (step + 0.5%: 101% column is 101.5% of class reference).
 LEVELS = ("Alien", "Competitive", "Good", "Midpack", "Tail-ender", "Offline")
 LADDER_LEVEL = (0, 1, 2, 2, 3, 3, 4, 5)
-LEVEL_COLORS = ("#C060FF", "#4C8DFF", "#3FB950", "#D4A72C", "#F0883E", "#8B949E")
+LEVEL_COLORS = ("#C060FF", "#4C8DFF", "#3FB950", "#D4A72C", "#F0883E", "#8E8E8E")
 
 # Columns of sheet rows: key, track, patch, class best, ladder x8, fastest car, its lap time, best/avg,
 # average, class, cars

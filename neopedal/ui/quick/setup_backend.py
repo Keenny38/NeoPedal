@@ -160,12 +160,9 @@ def option_labels(code: str) -> dict[str, str]:
 
 def theme_mockup(name: str) -> dict[str, str]:
     """Colors of window theme card, from palette of theme"""
-    from .. import palette_dark, palette_legacy_dark, palette_legacy_light, palette_light
+    from .. import window_palette
 
-    if name.startswith("Legacy"):
-        palette = palette_legacy_light() if name.endswith("Light") else palette_legacy_dark()
-    else:
-        palette = palette_light() if name.endswith("Light") else palette_dark()
+    palette = window_palette(name)
     colors = {role: active for active, _, _, role in palette}
     return {part: str(colors.get(role, "#808080")) for part, role in MOCKUP_ROLES.items()}
 
@@ -444,7 +441,7 @@ class SetupBackend(PageBackend):
             else:
                 state = PREVIEW_READY if preview.url else PREVIEW_UNAVAILABLE
             rows.append({
-                "name": name, "label": self.tr(name), "light": name.endswith("Light"),
+                "name": name, "label": self.tr(name), "light": name == "Modern White",
                 "preview": preview.url if preview else "", "previewWidth": preview.width if preview else 0,
                 "previewHeight": preview.height if preview else 0, "previewState": state,
             })

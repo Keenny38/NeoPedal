@@ -328,7 +328,7 @@ def test_palette_has_every_menu_command(window):
     for title in ("Restart NeoPedal", "Quit", "Check for Updates", "Create Bug Report…", "Show Log", "About NeoPedal",
                   "Setup Wizard…", "What's New", "Keyboard Shortcuts", "Reset Navigation Bar…", "Restart API",
                   "Notifications", "Reset Window Size and Position", "Minimize to Tray", "Delta Best",
-                  "Window theme: Modern Light", "Settings", "Find Option…", "Back", "Forward"):
+                  "Window theme: Modern White", "Settings", "Find Option…", "Back", "Forward"):
         assert title in titles, title
 
 
@@ -364,10 +364,10 @@ def test_palette_scoring_prefixes_and_recent(window, qml_warnings):  # noqa: F81
 def test_palette_runs_theme_command(window):
     from neopedal.ui.command_palette import build_commands
 
-    command = next(command for command in build_commands(window) if command.title == "Window theme: Legacy Light")
+    command = next(command for command in build_commands(window) if command.title == "Window theme: Modern Grey")
     try:
         command.run()
-        assert cfg.application["window_color_theme"] == "Legacy Light"
+        assert cfg.application["window_color_theme"] == "Modern Grey"
     finally:
         cfg.application["window_color_theme"] = "Modern Dark"
         app_signal.refresh.emit(True)
@@ -459,7 +459,7 @@ def test_title_bar_follows_window_theme(window, monkeypatch):
     asked = []
     monkeypatch.setattr(app_module, "apply_title_bar_scheme", asked.append)
     try:
-        for theme, dark in (("Modern Light", False), ("Legacy Dark", True)):
+        for theme, dark in (("Modern White", False), ("Legacy Grey", True)):
             cfg.application["window_color_theme"] = theme
             app_signal.refresh.emit(True)
             assert asked[-1] is dark

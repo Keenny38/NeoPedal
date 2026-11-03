@@ -106,15 +106,15 @@ ELEVATION_COLORS = (QColor("#1E40AF"), QColor("#0D9488"), QColor("#84CC16"), QCo
 GEAR_COLORS = tuple(QColor(color) for color in (  # gear 1 to 8 (reverse & neutral grey)
     "#EF4444", "#F97316", "#FACC15", "#84CC16", "#22C55E", "#06B6D4", "#3B82F6", "#A855F7",
 ))
-LINE_COLORS = {"inside": QColor("#3B82F6"), "outside": QColor("#F97316"), "same": QColor("#9CA3AF")}
+LINE_COLORS = {"inside": QColor("#3B82F6"), "outside": QColor("#F97316"), "same": QColor("#9E9E9E")}
 LINE_FULL_SCALE = 3.0  # meters off reference line shown with full color (line mode)
 LINE_SAME = 0.4  # meters off reference line counted as same line
 PEDAL_COLORS = {
-    "throttle": QColor("#22C55E"), "brake": QColor("#EF4444"), "both": QColor("#F59E0B"), "coast": QColor("#9CA3AF"),
+    "throttle": QColor("#22C55E"), "brake": QColor("#EF4444"), "both": QColor("#F59E0B"), "coast": QColor("#9E9E9E"),
 }
 # Pedals told apart with red-green color blindness (map "Colorblind Colors" option): blue throttle, orange brake
 PEDAL_COLORS_COLORBLIND = {
-    "throttle": QColor("#3B82F6"), "brake": QColor("#F97316"), "both": QColor("#FACC15"), "coast": QColor("#9CA3AF"),
+    "throttle": QColor("#3B82F6"), "brake": QColor("#F97316"), "both": QColor("#FACC15"), "coast": QColor("#9E9E9E"),
 }
 # Gain / loss as text on the page (corner labels, sector gaps, corner card) with colorblind colors:
 # (dark theme, light theme) shades readable on the page background
@@ -308,7 +308,7 @@ def gear_colors(lap: LapData, line: MapLine) -> list[QColor]:
     gears = lap.columns.get("gear")
     if not gears:
         return []
-    neutral = QColor("#9CA3AF")
+    neutral = QColor("#9E9E9E")
     return [
         GEAR_COLORS[gear - 1] if 1 <= (gear := round(interpolate(lap.distance, gears, distance))) <= len(GEAR_COLORS)
         else neutral
@@ -545,7 +545,7 @@ def spread_colors(line: MapLine, bounds: Sequence[float], spreads: Sequence[floa
     spread), grey where unknown (-1)"""
     known = [spread for spread in spreads if spread >= 0]
     low, high = min(known, default=0.0), max(known, default=0.0)
-    neutral = QColor("#9CA3AF")
+    neutral = QColor("#9E9E9E")
     colors = []
     for distance in line.distances:
         sector = min(max(bisect.bisect_right(bounds, distance) - 1, 0), len(spreads) - 1) if spreads else -1
@@ -696,7 +696,7 @@ def corner_delta_colors(line: MapLine, corners: Sequence[tuple[float, float, flo
     Largest corner delta shown with full color.
     """
     scale = max((abs(delta) for _, _, delta in corners), default=0.0)
-    neutral = QColor("#6B7280")
+    neutral = QColor("#707070")
     colors = []
     for distance in line.distances:
         color = neutral

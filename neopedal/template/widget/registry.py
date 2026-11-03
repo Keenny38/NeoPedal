@@ -78,7 +78,7 @@ CATEGORY_COLORS: Mapping[str, str] = MappingProxyType({
     ENGINE: "#F0883E",
     CHASSIS: "#22B8C8",
     TRACK: "#D4A72C",
-    OTHER: "#8B949E",
+    OTHER: "#8E8E8E",
 })
 
 # Overlay previews on simulated race (see demo_data.update_widget)

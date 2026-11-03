@@ -334,7 +334,7 @@ def classic_overlay(name: str, **options):
     from neopedal.setting import cfg
     from neopedal.widget._modern import create_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     cfg.user.setting[name].update(options)
     return create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
 

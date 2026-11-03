@@ -258,7 +258,7 @@ def make(ui_env, bundled_fonts, monkeypatch):
     created = []
 
     def build(modern: bool, reference: CoachReference | None = None, **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
         cfg.user.setting["corner_coach"].update(options)
         widget = create_widget(import_module("neopedal.widget.corner_coach"), cfg, "corner_coach")
         if reference is not None:
@@ -329,7 +329,7 @@ def test_french_labels(make, french):
 def test_preview_on_simulated_race(ui_env, bundled_fonts, modern):
     from neopedal.ui.widget_preview import render_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     image = render_widget(cfg, "corner_coach", dict(cfg.user.setting["corner_coach"])).toImage()
     assert not image.isNull() and image.width() > 100
 
@@ -353,7 +353,7 @@ def test_registered_everywhere():
 def test_corner_numbers_drawn_when_on(ui_env, bundled_fonts, monkeypatch, name, modern):
     from neopedal.ui.widget_preview import render_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     calls = []
     real = corner_coach.map_corners
     for module in ("neopedal.widget.track_map", "neopedal.widget.elevation", "neopedal.widget._modern.elevation"):
@@ -373,7 +373,7 @@ def test_corner_numbers_follow_new_map(ui_env, bundled_fonts, monkeypatch):
     mapping = demo_mapping()
     monkeypatch.setattr(minfo, "mapping", mapping)
     set_reader(monkeypatch, "session", "track_name", TRACK_NAME)
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     cfg.user.setting["track_map"]["show_corner_numbers"] = True
     widget = create_widget(import_module("neopedal.widget.track_map"), cfg, "track_map")
     widget.timerEvent(None)

@@ -9,7 +9,7 @@ from neopedal import i18n
 SAMPLES = (
     "Delete <b>race</b> preset permanently?<br><br>This cannot be undone!",
     "<b>Disable</b> all modules?",
-    "UI: Legacy Light",
+    "UI: Legacy Grey",
     "Saving section: 45%",
     "Replay recording stopped: [Errno 28] No space left on device",
     "Unknown message stays",

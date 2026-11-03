@@ -20,7 +20,7 @@
 Modern overlay design: color tokens
 
 Each token is a role (panel surface, dim text, gain, loss...) instead of a per cell color.
-Tokens are defined as classic colors and remapped by the overlay theme (Modern Dark or Light,
+Tokens are defined as classic colors and remapped by the overlay theme (Modern Dark, Grey or White,
 colorblind variant), so themes recolor modern widgets the same way they recolor classic ones.
 """
 

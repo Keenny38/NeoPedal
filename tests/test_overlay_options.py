@@ -1063,7 +1063,7 @@ def test_standings_options_unused_in_class_mode_told(options):
 def layout_of(name, modern, **options):
     from neopedal.ui.quick.overlay_options_backend import build_layout
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     return build_layout(name, dict(cfg.user.setting[name], enable_classic_layout=not modern, **options))
 
 
@@ -1132,7 +1132,7 @@ def test_negative_display_order_classic_overlay(ui_env, bundled_fonts):
 
     from neopedal.widget._modern import create_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     cfg.user.setting["tyre_wear"]["display_order_remaining"] = -1000
     widget = create_widget(import_module("neopedal.widget.tyre_wear"), cfg, "tyre_wear")
     widget.grab()
@@ -1273,7 +1273,7 @@ def test_preview_of_other_design_to_compare(options, monkeypatch):
     options.render_preview()
     assert drawn == [False, True] and options.previewCompare  # same values, classic layout drawn
     assert not options.value("speedometer", "enable_classic_layout")  # nothing edited
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"  # one design only with this theme
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"  # one design only with this theme
     options.refresh()
     assert not options.overlayInfo["canCompare"]
 

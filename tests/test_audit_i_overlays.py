@@ -398,7 +398,7 @@ def test_paint_serial_counted_without_event_override(ui_env, bundled_fonts, monk
     cfg.overlay["auto_hide"] = False
     cfg.overlay["fixed_position"] = True
     for name in ("gear", "fuel"):  # overlay drawing itself (modern) & overlay of cells (classic)
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if name == "gear" else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if name == "gear" else "Legacy Grey"
         widget = create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
         try:
             widget.start()

@@ -63,7 +63,7 @@ OLD_CATEGORY_COLORS = {
     "Engine & Energy": "#F0883E",
     "Chassis": "#22B8C8",
     "Track & Traffic": "#D4A72C",
-    "Other": "#8B949E",
+    "Other": "#8E8E8E",
 }
 OLD_TOOL_SECTIONS = (
     ("Utilities", (

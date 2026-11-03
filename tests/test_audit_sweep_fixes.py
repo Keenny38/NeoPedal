@@ -22,7 +22,7 @@ def widgets(ui_env, bundled_fonts):
     created = []
 
     def make(name: str, modern: bool = True, **options):
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
         cfg.user.setting[name].update(options)
         widget = create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
         created.append(widget)
@@ -444,7 +444,7 @@ def test_vr_placement_within_layer_limits():
 
 
 # --- Overlay Options preview: pace & track notes drawn on sample notes (was: empty, auto hidden without notes)
-@pytest.mark.parametrize("theme", ["Modern Dark", "Legacy Dark"])
+@pytest.mark.parametrize("theme", ["Modern Dark", "Legacy Grey"])
 @pytest.mark.parametrize("name", ["pace_notes", "track_notes"])
 def test_notes_preview_not_empty(ui_env, bundled_fonts, name, theme):
     from neopedal.ui.widget_preview import render_widget

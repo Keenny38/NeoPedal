@@ -20,7 +20,7 @@ def laps_widget(ui_env, bundled_fonts, monkeypatch):
     created = []
 
     def make(modern: bool):
-        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+        cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
         cfg.user.setting["laps_and_position"].update(show_track_limits_points=True)
         widget = create_widget(import_module("neopedal.widget.laps_and_position"), cfg, "laps_and_position")
         created.append(widget)

@@ -45,7 +45,7 @@ ALLOWED_SHARED: dict[tuple[str, str], int] = {
     # Theme tokens (palette, status & series colors, surfaces, strokes, shadow, legacy look, chart & map colors) of
     # the one Theme object: changed together, only by a theme or colorblind switch; pages read the QML theme copy
     # (theme_copy), which this signal refreshes
-    ("__init__.py", "changed"): 49,  # theme colors (info: 2026-11-03)
+    ("__init__.py", "changed"): 50,  # theme colors (info: 2026-11-03, controlBorder: 2026-11-03)
     ("director_backend.py", "settingsChanged"): 8,
     ("lap_backend.py", "chartChanged"): 11,
     ("lap_backend.py", "mapChanged"): 9,

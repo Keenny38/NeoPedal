@@ -262,7 +262,7 @@ def app_commands(window) -> list[Command]:
         title = f"{tr('Window theme')}{colon()}{tr(theme)}"
         commands.append(Command(
             f"{title}  ({tr('On', 'current')})" if theme == current else title, group,
-            search_text(title, "window color theme ui dark light modern legacy", theme), partial(set_color_theme, theme),
+            search_text(title, "window color theme ui dark grey gray white modern legacy", theme), partial(set_color_theme, theme),
             "\ue790", key=f"theme:{theme}"))
     view = window.centralWidget()
     for label, english, run, glyph, shortcut in (
@@ -414,6 +414,9 @@ def set_color_theme(theme: str):
         cfg.application["window_color_theme"] = theme
         cfg.save(config_type=ConfigType.CONFIG)
         app_signal.refresh.emit(True)
+        from .app_settings import offer_matching_overlay_theme
+
+        offer_matching_overlay_theme()
 
 
 def open_whats_new(window):

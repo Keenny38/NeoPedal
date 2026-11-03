@@ -129,3 +129,17 @@ def test_laptime_formatters_same():
 
     for seconds in (59.9996, 83.4567, 0.0, -1.0, 3599.9999):
         assert live_text(seconds) == model_text(seconds) == calc.sec2laptime_full(max(seconds, 0.0))
+
+
+def test_dashboard_follows_modern_grey_overlay_theme(ui_env):
+    """Web dashboard & its login page: neutral grays with the Modern Grey overlay theme, slate otherwise"""
+    from neopedal.setting import cfg
+    from neopedal.web_dashboard import dashboard_html, login_html
+
+    style = cfg.user.config["overlay_style"]
+    style["overlay_theme"] = "Modern Dark"
+    assert "--bg:#0e1116" in dashboard_html() and "#0e1116" in login_html()
+    style["overlay_theme"] = "Modern Grey"
+    page = dashboard_html()
+    assert "--bg:#161616" in page and "#0e1116" not in page and "#9aa3b2" not in page
+    assert "#161616" in login_html() and "#373e4c" not in login_html()

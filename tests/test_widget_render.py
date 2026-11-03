@@ -47,7 +47,7 @@ def default_setting(bundled_fonts):
 
 
 def render(name: str, modern: bool) -> QImage:
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Modern Dark" if modern else "Legacy Grey"
     widget = create_widget(import_module(f"neopedal.widget.{name}"), cfg, name)
     widget.adjustSize()
     image = widget.grab().toImage()

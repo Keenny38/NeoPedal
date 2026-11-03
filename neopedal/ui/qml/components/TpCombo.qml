@@ -27,7 +27,7 @@ ComboBox {
         radius: theme.radiusSm
         color: box.hovered ? theme.hover : theme.raised
         border.width: 1
-        border.color: box.popup.visible ? theme.accent : box.hovered ? theme.strokeStrong : theme.border
+        border.color: box.popup.visible ? theme.accent : box.hovered ? theme.strokeStrong : theme.controlBorder
         Behavior on color { ColorAnimation { duration: theme.motionFast } }
         FocusRing { visible: box.visualFocus }  // keyboard focus as on buttons (a button-like control)
     }

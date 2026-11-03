@@ -32,7 +32,7 @@ TextField {
         border.width: field.activeFocus || field.invalid ? 1.5 : 1
         border.color: field.invalid ? theme.loss
                     : field.activeFocus ? theme.accent
-                    : field.hovered ? theme.strokeStrong : theme.border
+                    : field.hovered ? theme.strokeStrong : theme.controlBorder
         Behavior on border.color { ColorAnimation { duration: theme.motionFast } }
     }
 

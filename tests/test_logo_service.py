@@ -254,7 +254,7 @@ def test_classic_logo_read_in_background_same_pixels(ui_env, tmp_path, fmt):
 def new_classic_standings(cfg):
     from neopedal.widget._modern import create_widget
 
-    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Dark"
+    cfg.user.config["overlay_style"]["overlay_theme"] = "Legacy Grey"
     cfg.user.setting["standings"]["show_brand_logo"] = True
     return create_widget(import_module("neopedal.widget.standings"), cfg, "standings")
 

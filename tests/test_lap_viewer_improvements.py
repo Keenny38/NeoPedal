@@ -619,12 +619,12 @@ def test_theme_copy_follows_palette(ui_env):
     assert not isinstance(theme, Theme)
     assert theme.property("em") == original.em and theme.property("iconFont") == original.iconFont
     try:
-        for name in ("Light", "Dark"):
+        for name in ("Modern White", "Modern Dark"):
             set_style_palette(name)
-            assert theme.property("dark") == (name == "Dark") == original.dark
+            assert theme.property("dark") == (name == "Modern Dark") == original.dark
             assert theme.property("window") == original.window and theme.property("loss") == original.loss
     finally:
-        set_style_palette("Dark")
+        set_style_palette("Modern Dark")
         parent.deleteLater()
 
 
