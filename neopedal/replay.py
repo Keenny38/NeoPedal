@@ -814,12 +814,32 @@ class ReplayFile:
             with suppress(zlib.error):
                 raw = bounded_decompress(payload, self.frame_size)
         if len(raw) != self.frame_size:
-            if index not in self._corrupt:
-                self._corrupt.add(index)
-                logger.warning(
-                    "replay: %s: damaged frame %s skipped, until next keyframe", os.path.basename(self.filename), index)
+            self._frame_damaged(index)
             return None
         return raw if self.keyframes[index] else xor_bytes(raw, previous)
+
+    def _decode_start(self, index: int, size: int) -> bytes | None:
+        """First size bytes of frame payload, decompressed only up to them (keyframe, or XOR of previous frame
+        to apply), None if damaged (CRC, decompression)
+
+        Format 2 only: whole payload checked by its CRC, so the rest of it decompresses as well (see _decode).
+        """
+        payload, crc = self._payload(index)
+        raw = b""
+        if zlib.crc32(payload) == crc:
+            with suppress(zlib.error):
+                raw = zlib.decompressobj().decompress(payload, size)
+        if len(raw) != size:
+            self._frame_damaged(index)
+            return None
+        return raw
+
+    def _frame_damaged(self, index: int) -> None:
+        """Log damaged frame, once"""
+        if index not in self._corrupt:
+            self._corrupt.add(index)
+            logger.warning(
+                "replay: %s: damaged frame %s skipped, until next keyframe", os.path.basename(self.filename), index)
 
     def frame(self, index: int) -> bytes:
         """Get decoded frame, sequential access is fast, seeking starts from nearest keyframe
@@ -948,7 +968,13 @@ class RecordedStream:
         indexes, streams, starts = array("q"), [], array("q", [0])
         last_stream = b""
         last_elapsed = float("-inf")
-        frame = b""
+        elapsed_end = elapsed_offset + 8
+        # Format 2: frames decompressed only up to elapsed time & stream, only these XORed with previous frame
+        # (a fraction of a whole frame decode, less time holding the GIL while playback decodes frames)
+        size = max(elapsed_end, stream_end)
+        partial = replay._frame_header is FRAME_HEADER and size <= replay.frame_size
+        frame = b""  # whole decoded frame (format 1)
+        elapsed_part = stream_part = b""  # elapsed time & stream bytes of last decoded frame
         broken = True
         try:
             for index in range(len(replay)):
@@ -958,17 +984,30 @@ class RecordedStream:
                     time.sleep(0.001)
                 if broken and not replay.keyframes[index]:
                     continue
-                decoded = replay._decode(index, frame)
-                if decoded is None:  # damaged: skipped until next keyframe, as played
-                    broken = True
-                    continue
-                frame, broken = decoded, False
-                elapsed = struct.unpack_from("<d", frame, elapsed_offset)[0]
+                if partial:
+                    raw = replay._decode_start(index, size)
+                    if raw is None:  # damaged: skipped until next keyframe, as played
+                        broken = True
+                        continue
+                    if replay.keyframes[index]:
+                        elapsed_part, stream_part = raw[elapsed_offset:elapsed_end], raw[stream_offset:stream_end]
+                    else:
+                        elapsed_part = xor_bytes(raw[elapsed_offset:elapsed_end], elapsed_part)
+                        stream_part = xor_bytes(raw[stream_offset:stream_end], stream_part)
+                else:
+                    decoded = replay._decode(index, frame)
+                    if decoded is None:  # damaged: skipped until next keyframe, as played
+                        broken = True
+                        continue
+                    frame = decoded
+                    elapsed_part, stream_part = frame[elapsed_offset:elapsed_end], frame[stream_offset:stream_end]
+                broken = False
+                elapsed = struct.unpack("<d", elapsed_part)[0]
                 if elapsed < last_elapsed - 0.001:  # next session of recording
                     starts.append(index)
                     last_stream = b""
                 last_elapsed = elapsed
-                stream = frame[stream_offset:stream_end].split(b"\0", 1)[0]
+                stream = stream_part.split(b"\0", 1)[0]
                 if stream != last_stream:  # same stream on following frames read once, as live
                     last_stream = stream
                     if stream:
