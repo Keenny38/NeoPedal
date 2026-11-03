@@ -336,10 +336,12 @@ def copy_tree(target: str) -> None:
     remove_tree(target)
     os.makedirs(target)
     files = tree_files()
-    for path, _ in files:
+    for path, flag in files:
         destination = os.path.join(target, path)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         shutil.copy2(os.path.join(ROOT, path), destination)
+        # Mode on disk as in the index: git compares them where core.filemode is on (Linux: "M run.sh" otherwise)
+        os.chmod(destination, 0o755 if flag else 0o644)
 
     def copy_git(*args: str) -> None:
         subprocess.run(["git", *GIT_IDENTITY, *args], cwd=target, capture_output=True, check=False)

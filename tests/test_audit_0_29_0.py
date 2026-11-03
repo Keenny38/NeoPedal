@@ -26,6 +26,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -83,9 +84,15 @@ def test_driver_stats_page_settings_not_in_settings_page():
 
 @pytest.fixture
 def title_bar_on(monkeypatch):
+    if sys.platform != "win32":  # app title bar draws over the Win32 frame (title_bar.FrameHandler): Windows only
+        pytest.skip("app title bar: Windows only")
     from neopedal.ui import app as app_module
+    from neopedal.ui.title_bar import PageTitleState
 
     monkeypatch.setattr(app_module, "use_app_title_bar", lambda: True)
+    # Set by the window with the title bar, never reset: given back after the test, else page headers of later tests
+    # left out their name (CI preflight 2026-11-03: test_ui_audit_2026_10_29_shell headers on every cell)
+    monkeypatch.setattr(PageTitleState, "shown", PageTitleState.shown)
 
 
 def test_menu_shortcuts_run_under_app_title_bar(title_bar_on, window, monkeypatch):  # noqa: F811

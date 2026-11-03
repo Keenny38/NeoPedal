@@ -19,6 +19,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from neopedal.setting import cfg
 from neopedal.ui.quick import overlay_backend
 from neopedal.ui.quick.overlay_backend import VIEW_SCREEN, OverlayBackend
+from tests.test_audit_c_editors import wait_until
 from tests.test_overlays_page_more import NAMES, FakeControl, settle, solid
 from tests.test_release_notes import notes_page, qml_warnings, update_repo  # noqa: F401  (fixtures)
 from tests.test_stream_overlay import page_backend, process_events, server  # noqa: F401  (fixtures)
@@ -697,9 +698,8 @@ def test_view_selector_and_page_toast_with_undo(overlays_page, control, monkeypa
     assert toast.property("shown")
     from neopedal.ui.quick.dialogs import page_bridge
 
-    page_bridge(quick).toastAction()  # Undo of the toast
-    settle(3)
-    assert undone == [1]
+    page_bridge(quick).toastAction()  # Undo of the toast (queued: run once the toast is hidden)
+    assert wait_until(lambda: undone == [1], 2.0)  # 3 rounds of events were not enough on CI Linux 3.11
 
 
 def test_error_badges_are_pills(overlays_page, control):
