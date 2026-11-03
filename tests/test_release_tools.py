@@ -214,3 +214,24 @@ def test_changelog_draft_from_commits(git_repo):
     assert draft.index("- Add test on screen of overlays") < draft.index("- Add preview race situations")  # oldest first
     assert new < draft.index("### Improvements") < draft.index("- Show limits") < draft.index("### Fixes")
     assert "Fix old thing" not in draft  # released before
+
+
+def test_long_release_notes_link_commits(git_repo, monkeypatch):
+    import gen_release_notes
+
+    (git_repo / "CHANGELOG.md").write_text("# Changelog\n\n## 0.11.0 (2026-10-15)\n\n- Big release\n",
+                                           encoding="utf-8")
+    commit(git_repo, "Fix old thing")
+    run_git(git_repo, "tag", "v0.10.0")
+    for number in range(30):
+        commit(git_repo, f"Fix thing number {number}")
+    notes = gen_release_notes.release_notes("v0.11.0")
+    assert "Fix thing number 29" in notes
+    monkeypatch.setattr(gen_release_notes, "MAX_NOTES_SIZE", len(notes) - 1)
+    notes = gen_release_notes.release_notes("v0.11.0")  # body too long for GitHub: commits become a link
+    assert "Fix thing number" not in notes
+    assert notes.startswith("- Big release\n\n## Commits\n\n")
+    assert "30 commits: [full list](https://github.com/Keenny38/NeoPedal/compare/v0.10.0...v0.11.0)" in notes
+    monkeypatch.setattr(gen_release_notes, "MAX_NOTES_SIZE", 10)
+    notes = gen_release_notes.release_notes("v0.11.0")  # changelog section alone too long: cut, then linked
+    assert notes.endswith("[Full changelog](https://github.com/Keenny38/NeoPedal/blob/v0.11.0/CHANGELOG.md)\n")

@@ -37,6 +37,7 @@ VISUALS_DIR = "docs/changes"
 CHANGELOG = "CHANGELOG.md"
 CHANGELOG_VERSION = re.compile(r"^## (\d+\.\d+\.\d+)\b")
 VISUALS_HEADING = "### Visuals"  # app shows it folded, after the commits (see neopedal/ui/release_notes.py)
+MAX_NOTES_SIZE = 120_000  # GitHub release body limit is 125000 characters, the workflow adds SHA256 lines
 TAG_PATTERN = re.compile(r"^v\d+\.\d+\.\d+$")
 SKIP_PATTERN = re.compile(r"\[skip ci\]|^Merge |^Update changelog", re.IGNORECASE)
 KINDS = (
@@ -224,12 +225,23 @@ def release_notes(tag: str) -> str:
         previous = tags[0] if tags else ""
         end = "HEAD"
     revision_range = f"{previous}..{end}" if previous else end
-    notes = format_notes(commits(revision_range))
+    items = commits(revision_range)
+    notes = format_notes(items)
     summary = pin_image_urls(changelog_section(tag.removeprefix("v")), git("rev-parse", end).strip())
-    if summary:  # written changelog first, then commits
-        notes = f"{summary}\n## Commits\n\n{notes}"
     images = format_visuals(unshown_visuals(visuals(revision_range), summary))
-    return f"{notes}\n{images}" if images else notes
+    compare = f"{REPO_URL}/compare/{previous}...{tag}" if previous else f"{REPO_URL}/commits/{tag}"
+    heading = "\n## Commits\n\n" if summary else ""
+    # GitHub refuses a longer body (0.29.0: 89k changelog + 311 commits): commits, then visuals become links
+    if len(summary + heading + notes) + 1 + len(images) > MAX_NOTES_SIZE:
+        notes = f"{len(items)} commits: [full list]({compare})\n"
+    if len(summary + heading + notes) + 1 + len(images) > MAX_NOTES_SIZE:
+        images = ""
+    notes = f"{summary}{heading}{notes}"  # written changelog first, then commits
+    notes = f"{notes}\n{images}" if images else notes
+    if len(notes) > MAX_NOTES_SIZE:  # changelog section alone too long
+        cut = notes[:MAX_NOTES_SIZE].rsplit("\n", 1)[0]
+        notes = f"{cut}\n\n[Full changelog]({REPO_URL}/blob/{tag}/{CHANGELOG})\n"
+    return notes
 
 
 def main() -> int:
