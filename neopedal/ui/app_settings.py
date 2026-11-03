@@ -23,7 +23,8 @@ Settings page: every global option (config.json) by category, and the settings o
 Qt Quick page (qml/Settings.qml), state & actions in quick/settings_backend.py. Replaces the config
 pages of Application, Compatibility, Notification, Overlay Style, Remote Control, Web Dashboard,
 VR Overlay & User Path (Config menu entries open their category), of units, API options, global font
-and module options (Modules page gear opens the module category).
+and module options (module gear opens the module category). Hotkeys & Modules categories show their own page
+(former main pages, see HotkeysHost & ModulesHost): backends made with the page, told when their page shows.
 """
 
 from __future__ import annotations
@@ -141,9 +142,17 @@ class AppSettings(SettingsHostMixin, BaseDialog):
         self._help_held = True
         self.backend = SettingsBackend(self, self)
         self.backend.stateChanged.connect(self.refresh_modified)
+        # Pages of page categories (context names of Hotkeys.qml & Modules.qml): told when shown or hidden
+        from .hotkey_view import HotkeysHost
+        from .module_view import ModulesHost
+
+        self.hosts: dict[str, ModulesHost | HotkeysHost] = {
+            "modules": ModulesHost(self, self.open_section), "hotkeys": HotkeysHost(self)}
+        self._host_shown = ""  # page category whose page is shown
+        self.backend.categoryChanged.connect(self.update_page_host)
         self._language = current_language()
         self._stale = False  # changed while hidden, see refresh
-        self.view: QQuickWidget = create_quick_view(self, "Settings.qml", {"backend": self.backend}, samples=0)
+        self.view: QQuickWidget = create_quick_view(self, "Settings.qml", self.view_context(), samples=0)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.view)
@@ -153,6 +162,30 @@ class AppSettings(SettingsHostMixin, BaseDialog):
         QShortcut(QKeySequence(QKeySequence.StandardKey.Redo), self, self.backend.redo)
         QShortcut(QKeySequence("Ctrl+Shift+Z"), self, self.backend.redo)
         app_signal.refresh.connect(self.refresh)
+
+    def view_context(self) -> dict:
+        return {"backend": self.backend, "moduleBackend": self.hosts["modules"].backend,
+                "hotkeyBackend": self.hosts["hotkeys"].backend}
+
+    def open_section(self, section: str):
+        """Category of a section shown (module gear: module options)"""
+        self.backend.open_section(section)
+
+    def update_page_host(self):
+        """Page category shown or left (category changed, page shown or hidden): its backend told"""
+        category = self.backend._category
+        key = category if self.isVisible() and category in self.hosts else ""
+        if key == self._host_shown:
+            return
+        if self._host_shown:
+            self.hosts[self._host_shown].page_hidden()
+        self._host_shown = key
+        if key:
+            self.hosts[key].page_shown()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.update_page_host()
 
     # Page state
     def is_modified(self) -> bool:
@@ -174,6 +207,8 @@ class AppSettings(SettingsHostMixin, BaseDialog):
         (navigation bar page kept open behind other pages)"""
         if self.view is None:
             return
+        for host in self.hosts.values():  # once shown if hidden
+            host.refresh()
         if not self.isVisible():
             self._stale = True
             return
@@ -192,6 +227,7 @@ class AppSettings(SettingsHostMixin, BaseDialog):
         if self._stale:
             self.refresh_now()
         super().showEvent(event)
+        self.update_page_host()
 
     def retranslate(self):
         """QML texts & page title in new app language, pending edits kept"""
@@ -207,7 +243,7 @@ class AppSettings(SettingsHostMixin, BaseDialog):
             page.show_modified()
         from .quick import reload_in_language
 
-        self.view = reload_in_language(self.view, "Settings.qml", {"backend": self.backend})
+        self.view = reload_in_language(self.view, "Settings.qml", self.view_context())
 
     def closeEvent(self, event):
         if self.is_modified():
@@ -225,6 +261,8 @@ class AppSettings(SettingsHostMixin, BaseDialog):
         view, self.view = self.view, None  # type: ignore[assignment]
         if view is not None:  # closed twice (nested event loop while asking to save)
             view.setSource(QUrl())  # QML gone before the backend it binds to
+            for host in self.hosts.values():  # key capture closed, jobs & timers stopped
+                host.release()
         if self._help_held:  # option help texts freed once no option page is open (closed twice: once)
             self._help_held = False
             release_help_texts()

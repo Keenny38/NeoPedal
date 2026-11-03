@@ -133,7 +133,7 @@ def run_supervised(
                 break
             attempt += 1
             logger.warning("ERROR: restarting %s", name)
-            app_signal.error.emit(f"{name} crashed and was restarted, see log for details.")
+            app_signal.warning.emit(f"{name} crashed and was restarted, see log for details.")
             continue
         if not retry_delays:
             break

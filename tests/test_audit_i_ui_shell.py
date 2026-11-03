@@ -346,8 +346,8 @@ def test_palette_commands_fold_title_once(window):
 
     commands = build_commands(window)
     assert commands and all(command.folded for command in commands)
-    tools = next(command for command in commands if command.title == "Tools")
-    assert command_score(tools, search_text("tools").split()) > 200
+    tools = next(command for command in commands if command.title == "Hotkeys")
+    assert command_score(tools, search_text("hotkeys").split()) > 200
 
 
 # --- PERF-066: a key typed updates its row alone, the rest once typing pauses
@@ -573,10 +573,7 @@ def test_lazy_page_release_calls_release_page_or_backend(ui_env):
 
 @pytest.mark.parametrize("module_name, class_name, args", [
     ("overlay_view", "OverlayView", ()),
-    ("module_view", "ModuleList", ("mctrl",)),
     ("preset_view", "PresetList", ()),
-    ("hotkey_view", "HotkeyList", ()),
-    ("pace_notes_view", "PaceNotesControl", ()),
 ])
 def test_main_pages_release_backend(ui_env, module_name, class_name, args):
     from importlib import import_module
@@ -593,6 +590,25 @@ def test_main_pages_release_backend(ui_env, module_name, class_name, args):
         if backend is not None and hasattr(backend, "_page_released"):
             assert backend._page_released
         page.release_page()  # twice: no error
+    finally:
+        parent.deleteLater()
+        flush()
+
+
+@pytest.mark.parametrize("module_name, class_name", [
+    ("module_view", "ModulesHost"), ("hotkey_view", "HotkeysHost")])
+def test_settings_category_hosts_release_backend(ui_env, module_name, class_name):
+    """Modules & Hotkeys (categories of Settings since 2026-11-03): host releases its backend, twice without error"""
+    from importlib import import_module
+
+    module = import_module(f"neopedal.ui.{module_name}")
+    parent = QWidget()
+    host_type = getattr(module, class_name)
+    host = host_type(parent, lambda section: None) if class_name == "ModulesHost" else host_type(parent)
+    try:
+        host.release()
+        assert host.backend._page_released
+        host.release()  # twice: no error
     finally:
         parent.deleteLater()
         flush()

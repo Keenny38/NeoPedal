@@ -334,7 +334,7 @@ def app_window(ui_env, monkeypatch):
 
     monkeypatch.setattr(app_module.AppWindow, "set_window_state", lambda self: None)
     cfg.application["show_setup_wizard_at_startup"] = False
-    cfg.application["last_page_index"] = app_module.PAGE_INDEX["module"]
+    cfg.application["last_page_index"] = app_module.PAGE_INDEX["widget"]
     window = app_module.AppWindow()
     yield window
     cfg.application["last_page_index"] = 0
@@ -353,10 +353,11 @@ def test_only_shown_page_built_at_startup(app_window):
 
     view = app_window.centralWidget()
     built = {key for key, page in view._lazy_pages.items() if page.page is not None}
-    assert built == {"module"}
+    assert built == {"widget"}
     assert view.preset_tab is view._lazy_pages["preset"].page  # built when asked for
-    view.set_current_index(app_module.PAGE_INDEX["hotkey"])
-    assert view._lazy_pages["hotkey"].page is not None
+    assert view._lazy_pages["home"].page is None
+    view.set_current_index(app_module.PAGE_INDEX["home"])
+    assert view._lazy_pages["home"].page is not None
 
 
 @pytest.fixture
@@ -370,7 +371,7 @@ def tray_window(ui_env, monkeypatch):
     cfg.application["minimize_to_tray"] = True
     cfg.application["remember_open_pages"] = True
     cfg.application["open_pages"] = "*brake_editor.BrakeEditor"
-    cfg.application["last_page_index"] = app_module.PAGE_INDEX["module"]
+    cfg.application["last_page_index"] = app_module.PAGE_INDEX["widget"]
     window = app_module.AppWindow()
     yield window
     view = window.centralWidget()
@@ -406,23 +407,23 @@ def test_started_in_tray_pages_built_once_shown_and_released_when_hidden(tray_wi
 
     tray_window.show()
     process_events()
-    assert [page.title for page in view.dialog_pages()] == ["Brake Editor"]
+    assert [page.title for page in view.dialog_pages()] == ["Data Editors"]  # former editor: its tab
     assert view._pages.currentWidget() is view.dialog_pages()[0]
-    assert view._lazy_pages["module"].page is not None  # page shown behind tool page at startup
+    assert view._lazy_pages["widget"].page is not None  # page shown behind tool page at startup
 
     # Hidden for a while: restored tool page released too, reopened when shown again
     tray_window.hide()
     view._page_release.release()
     flush_deleted()
     assert not view.dialog_pages() and all(page.page is None for page in view._lazy_pages.values())
-    assert cfg.application["open_pages"] == "*brake_editor.BrakeEditor"
+    assert cfg.application["open_pages"] == "*data_editors.DataEditors"
     tray_window.show()
     process_events()
-    assert [page.title for page in view.dialog_pages()] == ["Brake Editor"]
+    assert [page.title for page in view.dialog_pages()] == ["Data Editors"]
     assert view._pages.currentWidget() is view.dialog_pages()[0]
 
     # Unsaved changes, or page opened by user: kept as they are
-    editor = view.dialog_pages()[0].dialog
+    editor = view.dialog_pages()[0].dialog.current_editor()
     editor.set_modified()
     tray_window.hide()
     assert not view.release_tool_pages() and view.dialog_pages()

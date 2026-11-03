@@ -78,6 +78,8 @@ OPTION_LIMITS: tuple[tuple[str, OptionLimit], ...] = (
     ("^number_of_automatic_backups$", OptionLimit(0, 1000, True)),
     ("^number_of_days_to_keep_deleted_presets$", OptionLimit(1, 3650, True)),
     ("^number_of_hours_between_update_checks$", OptionLimit(0, 168, True)),  # 0 = startup only
+    ("^number_of_minutes_before_race_reminder$", OptionLimit(1, 120, True)),
+    ("^number_of_minutes_before_last_race_reminder$", OptionLimit(0, 60, True)),  # 0 = none
     ("^(snap_distance|snap_gap|grid_move_size)$", OptionLimit(0, 1000, True)),
     ("^minimum_node_distance$", OptionLimit(0.1, 50)),  # track map recording: meters between nodes
     ("_samples$", OptionLimit(1, 10000, True)),

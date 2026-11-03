@@ -22,7 +22,8 @@ Web dashboard: show live telemetry on phone or tablet (browser), disabled by def
     GET  /                            dashboard page (session cookie), or login form
     POST /login                       login form, access code in request body
     GET  /?code=<access code>         login link shown in app, redirects to "/" with session cookie
-    GET  /api/telemetry               live data (JSON), requires session cookie or "X-Access-Code" header
+    GET  /api/telemetry               live data (JSON) & latest app messages (race reminders, server ready, errors:
+                                      banner of the page), requires session cookie or "X-Access-Code" header
 
 Listens on 127.0.0.1 only, unless LAN access is enabled. Access code is always required (8 characters at least),
 and repeated wrong codes from same address are blocked for a while; many wrong codes from LAN addresses (any
@@ -323,6 +324,18 @@ def official_delta(read) -> float | None:
     return round(_safe(read.timing.delta_best), 3)
 
 
+MESSAGES_SENT = 3  # latest app messages sent with each telemetry answer (see overlay_messages)
+
+
+def app_messages() -> list[dict]:
+    """Latest app messages (race reminders, server ready, errors) for the page banner, titles in app language"""
+    from . import overlay_messages
+    from .i18n import tr_overlay
+
+    return [{"serial": message.serial, "title": tr_overlay(message.title), "detail": message.detail,
+             "level": message.level} for message in overlay_messages.since(0)[-MESSAGES_SENT:]]
+
+
 def telemetry_snapshot() -> dict:
     """Current telemetry for dashboard"""
     from .api_control import api
@@ -447,7 +460,7 @@ class DashboardHandler(BoundedRequestHandler):
         if url.path == "/api/telemetry":
             if self.authorized(self.headers.get("X-Access-Code", "")):
                 try:
-                    body = json.dumps(telemetry_snapshot()).encode("utf-8")
+                    body = json.dumps({**telemetry_snapshot(), "messages": app_messages()}).encode("utf-8")
                 except Exception:  # never drop connection on data error
                     snapshot_errors.log(logger, "WEB DASHBOARD: snapshot error")
                     body = b'{"active": false}'
@@ -940,8 +953,12 @@ main{display:grid;gap:10px;padding:12px;grid-template-columns:repeat(auto-fit,mi
 #status{padding:6px 12px;color:var(--muted);font-size:13px}.pos{color:var(--green)}.neg{color:var(--red)}
 .unit{font-size:18px;color:var(--muted)}.badge{display:none;margin-left:6px;padding:1px 6px;border-radius:6px;
 background:var(--red);color:var(--bg);font-size:12px;letter-spacing:0}
+.note{display:none;margin:0 12px;padding:10px 12px;border-radius:12px;background:var(--panel);
+border:2px solid var(--blue);font-family:system-ui,sans-serif;font-size:18px}.note.error{border-color:var(--red)}
+.note.warning{border-color:var(--yellow)}
 </style></head><body>
 <div id="status">@@connecting@@</div>
+<div id="note" class="note" role="alert"></div>
 <main>
 <div class="card big"><div class="label">@@gear_speed@@</div>
 <div class="value huge"><span id="gear">N</span> <span id="speed" style="font-size:48px">0</span>
@@ -974,10 +991,18 @@ const hms=t=>{if(!(t>0))return"--:--";t=Math.floor(t);const h=Math.floor(t/3600)
 return(h?h+":"+String(m).padStart(2,"0"):m)+":"+String(s).padStart(2,"0")};
 const quad=v=>v.map(x=>"<div>"+Math.round(x)+"</div>").join("");
 const signed=x=>(x>=0?"+":"")+x.toFixed(3);
+let seen=-1;  // last app message shown (messages of before the page was opened never shown)
+const note=$("note");note.onclick=()=>{note.style.display="none"};
+function notes(list){if(!Array.isArray(list))return;const last=list.reduce((m,x)=>Math.max(m,x.serial),0);
+if(seen<0){seen=last;return}
+for(const m of list){if(m.serial>seen){note.textContent=m.title+" \u00b7 "+m.detail;note.className="note "+m.level;
+note.style.display="block";if(navigator.vibrate)navigator.vibrate(200);clearTimeout(note.timer);
+note.timer=setTimeout(()=>{note.style.display="none"},12000)}}
+seen=Math.max(seen,last)}
 async function tick(){
 try{const r=await fetch("/api/telemetry",{credentials:"same-origin",cache:"no-store"});
 if(r.status===401){$("status").textContent=T.expired;return setTimeout(()=>location.replace("/"),1500)}
-if(!r.ok)throw new Error(r.status);const d=await r.json();const v=d.display||{};
+if(!r.ok)throw new Error(r.status);const d=await r.json();const v=d.display||{};notes(d.messages);
 $("status").textContent=d.active?(d.track||T.on_track):T.waiting;
 $("gear").textContent=d.gear>0?d.gear:(d.gear<0?"R":"N");$("speed").textContent=Math.round(v.speed||0);
 $("speedunit").textContent=v.speed_unit||"";

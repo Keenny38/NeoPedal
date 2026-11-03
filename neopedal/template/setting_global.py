@@ -103,7 +103,6 @@ GLOBAL_DEFAULT = {
         "enable_high_dpi_scaling": True,
         "enable_modern_title_bar": True,  # Windows: title bar drawn by the app, menus in it (see ui.title_bar)
         "enable_auto_load_preset": False,
-        "enable_global_hotkey": False,
         "show_option_group_title": True,
         "show_overlay_previews": True,  # Overlays page: cards with preview, compact list if off
         "show_overlay_screen_view": False,  # Overlays page: running overlays on a map of the screens instead
@@ -147,8 +146,7 @@ GLOBAL_DEFAULT = {
         # see ui.home_view.quick_access_entries
         # (default: entries not in the default navigation bar, see page_registry.PageSpec.rail)
         "home_quick_access": (
-            "perf_view,track_map_viewer,module,spectate,pacenotes,"
-            "hotkey,tools,app_settings,bug_report,check_updates"
+            "data_editors,app_settings,broadcast_director,perf_view,bug_report"
         ),
         "enable_layout_per_screen_setup": True,
         # Tool pages open at quit, reopened at startup: dialog paths separated by comma, shown one marked "*"
@@ -238,24 +236,22 @@ GLOBAL_DEFAULT = {
         "game_image_path": set_default_data_path("gameimage/"),
     },
     "notification": {
+        # Modes on listed under "Now" in the notification center (bell)
         "notify_locked_preset": True,
-        "font_color_locked_preset": "#FFFFFF",
-        "background_color_locked_preset": "#767676",  # white text 4.5:1 (WCAG AA)
         "notify_spectate_mode": True,
-        "font_color_spectate_mode": "#FFFFFF",
-        "background_color_spectate_mode": "#007ABC",  # white text 4.5:1 (WCAG AA)
         "notify_pace_notes_playback": True,
-        "font_color_pace_notes_playback": "#FFFFFF",
-        "background_color_pace_notes_playback": "#228800",
-        "notify_global_hotkey": True,
-        "font_color_global_hotkey": "#FFFFFF",
-        "background_color_global_hotkey": "#885544",
         "notify_auto_backup_car_setup": True,
-        "font_color_auto_backup_car_setup": "#FFFFFF",
-        "background_color_auto_backup_car_setup": "#334499",
         "notify_broadcast_director": True,
-        "font_color_broadcast_director": "#FFFFFF",
-        "background_color_broadcast_director": "#AA2233",
+        # Windows notifications (tray icon messages) while the window is hidden or for race reminders
+        "show_tray_messages_for_errors": True,
+        "show_tray_messages_for_race_reminders": True,
+        "show_tray_messages_for_updates": True,
+        "enable_hold_notifications_while_driving": False,
+        # Race reminders (Upcoming Races page)
+        "number_of_minutes_before_race_reminder": 10,
+        "number_of_minutes_before_last_race_reminder": 0,  # 0: none
+        "race_reminder_sound": "When Windows Hides Notifications",
+        "race_reminder_sound_file_name": "",  # Windows information sound if empty
     },
     "fuel_calculator": {
         "show_consumption_history": True,

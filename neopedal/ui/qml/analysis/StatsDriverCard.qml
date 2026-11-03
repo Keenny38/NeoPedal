@@ -51,15 +51,21 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 elide: Text.ElideRight
                 Layout.fillWidth: true
             }
-            TpText {
-                elide: Text.ElideNone
-                visible: text !== ""
-                text: card.driver.detail || ""
-                textFormat: Text.PlainText
-                color: theme.dimText
-                font.pointSize: theme.fontLabel
-                wrapMode: Text.WordWrap
+            RowLayout {  // flag of game profile nationality, then country, team & number
                 Layout.fillWidth: true
+                visible: detailText.text !== ""
+                spacing: theme.space2
+                TpFlag { flag: card.driver.flag || ({}); Layout.alignment: Qt.AlignTop; Layout.topMargin: theme.space1 }
+                TpText {
+                    id: detailText
+                    elide: Text.ElideNone
+                    text: card.driver.detail || ""
+                    textFormat: Text.PlainText
+                    color: theme.dimText
+                    font.pointSize: theme.fontLabel
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
             }
         }
     }

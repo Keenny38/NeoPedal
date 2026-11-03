@@ -20,9 +20,6 @@
 Loader function
 
 Important: DO NOT call those functions in non-main thread.
-
-Safe mode (see safe_mode): overlays (widgets & VR overlay) not started at start and reload,
-a widget can still be turned on by hand; restart starts normally.
 """
 
 import gc
@@ -35,7 +32,7 @@ from collections.abc import Callable
 from time import monotonic
 from typing import Any
 
-from . import realtime_state, safe_mode
+from . import realtime_state
 from .api_control import api
 from .const_app import EXECUTABLE, RESTART_ENVIRONMENT, RESTART_PID_ENVIRONMENT
 from .const_file import FileExt
@@ -55,6 +52,7 @@ logger = logging.getLogger(__name__)
 # reload, restart & quit, else lost (preset file loaded again) or written late, see write_pending
 _pending_writers: list[Callable[[], object]] = []
 _close_waiters: list[Callable[[], object]] = []
+SETTLE_MS = 5000  # main window & overlays up for this long: start finished
 LAP_SAVER_TIMEOUT = 10.0  # seconds to wait for lap files being written before restart
 REPLAY_CLOSE_TIMEOUT = 10.0  # seconds to wait more for a replay recording still closing (quit, restart)
 # Objects of a started app (window, overlays, settings) moved out of garbage collection: full collections scan
@@ -112,11 +110,10 @@ def start():
     # 3 start modules
     mctrl.start()
     # 4 start widgets
-    if not safe_mode.state.enabled:
-        wctrl.start()
+    wctrl.start()
     # 5 start main window
     from .ui.app import main_window
-    window = main_window()
+    main_window()
     # Finalize loading after main GUI fully loaded
     logger.info("FINALIZING............")
     # 1 Enable overlay control
@@ -125,28 +122,22 @@ def start():
     kctrl.enable()
     # 3 Enable remote control & VR overlay
     enable_servers()
-    if not safe_mode.state.enabled:
-        vroverlay().enable()
-        enable_stream_overlay()
-    else:
-        vroverlay().disable()  # OpenXR layer left registered (0.22.3) removed in safe mode too
+    vroverlay().enable()
+    enable_stream_overlay()
     # 4 Check for updates
     if cfg.application["check_for_updates_on_startup"]:
         update_checker.check(False)
-    # 5 Start finished once window & overlays are up for a while (startup marker removed)
+    # 5 Start finished once window & overlays are up for a while
     from PySide6.QtCore import QCoreApplication, QTimer
-    QTimer.singleShot(safe_mode.SETTLE_MS, finish_start)
+    QTimer.singleShot(SETTLE_MS, finish_start)
     app = QCoreApplication.instance()
     if app is not None:  # ended by the system (no Quit menu): saved all the same
         app.aboutToQuit.connect(close_at_exit)
-    if safe_mode.state.enabled:
-        QTimer.singleShot(0, lambda: show_safe_mode_notice(window))
 
 
 def finish_start():
-    """Start finished (main window & overlays up): next start is a normal one"""
-    safe_mode.clear_marker(cfg.path.config)
-    logger.info("STARTED: startup marker removed")
+    """Start finished (main window & overlays up)"""
+    logger.info("STARTED")
     freeze_collected()
     start_idle_collect_timer()
     import threading
@@ -264,7 +255,7 @@ def request_idle_collect(trim: bool = False):
     _gc_collect_due = True
     from PySide6.QtCore import QTimer
 
-    QTimer.singleShot(safe_mode.SETTLE_MS, collect_parked_idle)
+    QTimer.singleShot(SETTLE_MS, collect_parked_idle)
 
 
 def park_collected():
@@ -284,7 +275,7 @@ def collect_parked_idle():
     global _gc_collect_due
     if realtime_state.active:
         from PySide6.QtCore import QTimer
-        QTimer.singleShot(safe_mode.SETTLE_MS, collect_parked_idle)
+        QTimer.singleShot(SETTLE_MS, collect_parked_idle)
         return
     _gc_collect_due = False
     if unfreeze_collected():
@@ -328,35 +319,6 @@ def unfreeze_collected() -> bool:
     _gc_frozen = False
     gc.unfreeze()
     return True
-
-
-def show_safe_mode_notice(window):
-    """Safe mode: shown in window title, notice offering to restart normally"""
-    import shiboken6
-    from PySide6.QtWidgets import QMessageBox
-
-    from .i18n import tr
-
-    if window is not None and not shiboken6.isValid(window):
-        window = None
-    if window is not None:
-        window.setWindowTitle(f"{window.windowTitle()} - {tr('Safe Mode')}")
-    box = QMessageBox(window if window is not None and window.isVisible() else None)
-    box.setIcon(QMessageBox.Icon.Warning)
-    box.setWindowTitle(tr("Safe Mode"))
-    box.setText(tr("Safe mode: plugins are not loaded and overlays are not started.\n\n"
-                   "Fix the settings that stopped NeoPedal from starting, "
-                   "then restart normally."))
-    button_restart = box.addButton(tr("Restart Normally"), QMessageBox.ButtonRole.AcceptRole)
-    box.addButton(QMessageBox.StandardButton.Close)
-    box.exec()
-    if box.clickedButton() is not button_restart:
-        return
-    restart_app = getattr(window, "restart_app", None)
-    if callable(restart_app):
-        restart_app()  # open pages may ask to save first
-    else:
-        restart()
 
 
 def on_pending_write(writer: Callable[[], object]):
@@ -422,9 +384,7 @@ def close():
     api.stop()
     api.close()
     logger.info("API: closed")
-    # 5 quitting or restarting before start finished is no crash
-    safe_mode.clear_marker(cfg.path.config)
-    # 6 settings saved by stopped modules (track info, brands, brakes) written before the process ends:
+    # 5 settings saved by stopped modules (track info, brands, brakes) written before the process ends:
     # quit never waited for the saving thread (restart does, see restart)
     cfg.flush()
 
@@ -497,8 +457,8 @@ def close_for_restart():
 
 
 def restart_command() -> list[str]:
-    """Command line to relaunch APP, normal start (safe mode flag left out)"""
-    arguments = safe_mode.restart_arguments(sys.argv)
+    """Command line to relaunch APP"""
+    arguments = sys.argv
     if getattr(sys, "frozen", False) or os.path.basename(sys.executable).lower() == EXECUTABLE:  # if run as exe
         return [sys.executable, *arguments[1:]]
     return [sys.executable, *arguments]  # if run as script
@@ -693,18 +653,14 @@ def sync_screen_layout():
 
 
 def load_modules():
-    """Load modules, widgets (overlays kept off in safe mode)"""
+    """Load modules, widgets"""
     octrl.enable()  # 1 overlay control
     mctrl.start()  # 2 module
-    if not safe_mode.state.enabled:
-        wctrl.start()  # 3 widget
+    wctrl.start()  # 3 widget
     kctrl.enable()  # 4 hotkey
     enable_servers()  # 5 remote control & web dashboard
-    if not safe_mode.state.enabled:
-        vroverlay().enable()  # 6 vr overlay
-        enable_stream_overlay()  # 7 stream overlay
-    elif imported(streamoverlay) and streamoverlay.running:  # 7 started from stream page: capture resumed
-        streamoverlay.enable()
+    vroverlay().enable()  # 6 vr overlay
+    enable_stream_overlay()  # 7 stream overlay
 
 
 def enable_servers():

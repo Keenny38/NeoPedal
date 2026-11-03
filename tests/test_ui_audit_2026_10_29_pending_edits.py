@@ -195,7 +195,7 @@ def test_screen_view_snapping_follows_edit_mode_options(ui_env, monkeypatch):
 
 
 # --- V8, V9
-@pytest.mark.parametrize("name", ["Hotkeys", "Spectate", "StreamOverlays", "Settings", "OverlayOptions"])
+@pytest.mark.parametrize("name", ["Spectate", "StreamOverlays", "Settings", "OverlayOptions"])  # Hotkeys: no switch
 def test_main_switches_say_enabled_or_disabled(name):
     """One state text for switches: Enabled / Disabled (French: Activé / Désactivé, "On" reads "Oui")"""
     text = qml_text(name)

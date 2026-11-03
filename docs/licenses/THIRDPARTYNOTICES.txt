@@ -50,4 +50,8 @@ NeoPedal (a modified version of TinyPedal, see NOTICE.md) relies on following th
   website: https://github.com/jpt/barlow
   license: https://github.com/jpt/barlow/blob/main/OFL.txt
 
+- flag-icons (country flags, images/flags.png), the MIT license.
+  website: https://github.com/lipis/flag-icons
+  license: https://github.com/lipis/flag-icons/blob/main/LICENSE
+
 For licenses and notices of each software, see LICENSE file in "docs\licenses" folder, or visit website.

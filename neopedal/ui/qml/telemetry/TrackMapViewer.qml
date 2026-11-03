@@ -130,7 +130,7 @@ TpPage {
                 TpAction {
                     name: "configButton"
                     text: i18n.tr("Config")
-                    glyph: ""  // settings
+                    glyph: theme.glyphs.settings
                     fallback: "⚙"
                     priority: 1
                     onTriggered: backend.openConfig()
@@ -261,6 +261,31 @@ TpPage {
                         readonly property real size: page.settings.centerMark || 1000
                         Rectangle { x: -parent.size; y: -0.5; width: parent.size * 2; height: 1; color: page.colors.center_mark_color || "#808080"; opacity: 0.6; antialiasing: true }
                         Rectangle { x: -0.5; y: -parent.size; width: 1; height: parent.size * 2; color: page.colors.center_mark_color || "#808080"; opacity: 0.6; antialiasing: true }
+                    }
+
+                    // Places marked (Tracks tab of Data Editors: pit entry, pit exit, speed trap)
+                    Repeater {
+                        model: page.loaded ? backend.marks : []
+                        Rectangle {
+                            required property var modelData
+                            readonly property real size: Math.round(theme.em * 0.8)
+                            x: canvas.screenX(modelData.x) - size / 2
+                            y: canvas.screenY(modelData.y) - size / 2
+                            width: size
+                            height: size
+                            radius: size / 2
+                            color: modelData.color
+                            border.width: 1
+                            border.color: theme.window
+                            TpText {
+                                anchors.left: parent.right
+                                anchors.leftMargin: theme.space1
+                                anchors.verticalCenter: parent.verticalCenter
+                                role: "caption"
+                                text: modelData.text
+                                elide: Text.ElideNone
+                            }
+                        }
                     }
 
                     // Official corners: click to move position there

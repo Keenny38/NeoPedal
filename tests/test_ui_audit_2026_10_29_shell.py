@@ -9,7 +9,6 @@ from contextlib import suppress
 
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QAbstractButton, QApplication, QLabel, QSystemTrayIcon
 
 from neopedal import app_signal, i18n
@@ -49,7 +48,7 @@ def window(ui_env, monkeypatch):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         for signal in (app_signal.hotkey, app_signal.refresh, app_signal.quitapp, app_signal.reload, app_signal.updates,
-                       app_signal.error):
+                       app_signal.error, app_signal.warning):
             with suppress(RuntimeError, TypeError):
                 signal.disconnect()
     notification_store().clear()
@@ -87,7 +86,8 @@ def test_settings_one_name_and_out_of_tools_list():
     listed = [path for _, tools in LISTED_TOOL_SECTIONS for _, _, path in tools]
     every = [path for _, tools in TOOL_SECTIONS for _, _, path in tools]
     assert "app_settings.AppSettings" not in listed and "app_settings.AppSettings" in every  # still a known page
-    assert len(every) == len(listed) + 1
+    assert set(every) - set(listed) == {  # own buttons (Overlays page, Settings > Modules) & palette
+        "app_settings.AppSettings", "plugin_manager.PluginManager", "perf_view.PerformanceView"}
     assert rail_entries()["app_settings"].tooltip == "Settings"
 
 
@@ -96,12 +96,12 @@ def test_rail_labels_plural_and_calculator(french):
 
     entries = rail_entries()
     i18n.set_language("English")
-    assert [rail_text(entries[key].label, entries[key].tooltip) for key in ("module", "preset", "hotkey")] == [
-        "Modules", "Presets", "Hotkeys"]
+    assert [rail_text(entries[key].label, entries[key].tooltip) for key in ("widget", "preset", "app_settings")] == [
+        "Overlays", "Presets", "Settings"]
     assert rail_text(entries["race_calculator"].label, entries["race_calculator"].tooltip) == "Calculator"
     i18n.set_language("Français")  # French names are plural already: full name used, never an English word
-    assert [rail_text(entries[key].label, entries[key].tooltip) for key in ("module", "preset", "hotkey")] == [
-        "Modules", "Presets", "Raccourcis"]
+    assert [rail_text(entries[key].label, entries[key].tooltip) for key in ("widget", "preset", "app_settings")] == [
+        "Overlays", "Presets", "Paramètres"]
     assert rail_text(entries["race_calculator"].label, entries["race_calculator"].tooltip) == "Calculateur"
 
 
@@ -110,25 +110,24 @@ def test_quick_access_default_has_no_rail_entry():
     from neopedal.ui.nav_rail import default_rail_items
 
     assert not set(default_quick_items()) & set(default_rail_items())
-    assert "app_settings" in default_quick_items() and "tools" in default_quick_items()
+    assert "app_settings" in default_quick_items() and "data_editors" in default_quick_items()
+    assert "tools" not in default_quick_items() and "pacenotes" not in default_quick_items()  # pages merged
 
 
 # --- Rail: back & forward, More, help, notifications (N2, N4, minors)
-def test_rail_buttons_and_more_menu(window):
+def test_rail_buttons_and_more(window):
     from neopedal.ui.app import NavButton
 
     view = window.centralWidget()
-    for name in ("railBack", "railForward", "railMore", "railHelp", "railNotifications", "railSettings"):
+    for name in ("railBack", "railForward", "railMoreToggle", "railHelp", "railNotifications", "railSettings"):
         assert window.findChild(NavButton, name) is not None, name
+    assert window.findChild(NavButton, "railMore") is None  # former More menu: More of the rail lists every page
     assert window.findChild(NavButton, "railSettings").toolTip() == "Settings (Ctrl+,)"
-    pages, tools = view.hidden_entries()
-    titles = [title for _, title in pages]
-    assert {"Modules", "Spectate", "Pacenotes", "Hotkeys", "Tools"} <= set(titles) and "Home" not in titles
-    assert all(not path.startswith("app_settings") for path, _ in tools)
-    menu = view.more_menu()
-    shown = [action.text() for action in menu.actions()]
-    assert "Spectate" in shown and "Customize Navigation Bar…" in shown
-    menu.deleteLater()
+    view.toggle_rail_more()
+    titles = [button.text() for button in view._rail_more_buttons[1:]]
+    assert {"Broadcast", "Editors", "Settings"} <= set(titles) and "Home" not in titles
+    # merged pages (2026-11-03): Modules & Hotkeys in Settings, Spectate in Broadcast Director
+    assert not {"Pacenotes", "Tools", "Modules", "Spectate", "Hotkeys"} & set(titles)
 
 
 def test_back_and_forward(window):
@@ -142,7 +141,7 @@ def test_back_and_forward(window):
     assert view.go_forward() and view.current_index() == 2
     assert not view._button_forward.isEnabled()
     view.go_back()
-    view.select_page(3)  # another page: Forward cleared, like a browser
+    view.select_page(0)  # another page: Forward cleared, like a browser
     assert not view.can_go_forward() and not view.go_forward()
 
 
@@ -156,7 +155,8 @@ def test_forward_reopens_closed_tool_page(window):
     flush()
     assert not view.dialog_pages()  # left page closed...
     assert view.can_go_forward() and view.go_forward()  # ...opened again by Forward
-    assert type(view.current_page().dialog).__name__ == "HeatmapEditor"
+    assert type(view.current_page().dialog).__name__ == "DataEditors"
+    assert view.current_page().dialog.tabs.current_key() == "heatmap_editor"  # at the tab left
 
 
 def test_mouse_forward_button_and_alt_right(window):
@@ -180,18 +180,11 @@ def test_window_title_follows_page_and_unsaved_marker(window):
     view = window.centralWidget()
     view.select_page(1)
     assert window.windowTitle().startswith("Overlays[*] - ") and APP_NAME in window.windowTitle()
-    open_tool("brake_editor.BrakeEditor", window)
-    page = page_of(window, "BrakeEditor")
-    page.dialog.set_modified()
-    assert window.windowTitle().startswith("Brake Editor[*]") and window.isWindowModified()
-    page.dialog.set_unmodified()
+    editor = open_tool("brake_editor.BrakeEditor", window)  # Brakes tab of Data Editors
+    editor.set_modified()
+    assert window.windowTitle().startswith("Data Editors[*]") and window.isWindowModified()
+    editor.set_unmodified()
     assert not window.isWindowModified()
-
-
-def test_safe_mode_suffix_kept_in_window_title(window):
-    window.setWindowTitle(f"{window.windowTitle()} - Safe Mode")
-    window.centralWidget().select_page(2)
-    assert window.windowTitle().endswith(" - Safe Mode") and window.windowTitle().count("Safe Mode") == 1
 
 
 # --- Shell header of tool pages (N3)
@@ -200,22 +193,24 @@ def test_tool_page_header_breadcrumb_and_single_close(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
-    view.select_page(PAGE_INDEX["tools"])
-    open_tool("brake_editor.BrakeEditor", window)
-    page = page_of(window, "BrakeEditor")
+    view.select_page(PAGE_INDEX["preset"])
+    open_tool("brake_editor.BrakeEditor", window)  # former editor: its tab of Data Editors (2026-11-03)
+    page = page_of(window, "DataEditors")
     crumb = page._button_crumb
-    assert not crumb.isHidden() and crumb.text() == "Tools" and not page._label_title.isHidden()
+    assert not crumb.isHidden() and crumb.text() == "Presets" and not page._label_title.isHidden()
     title = page.findChild(QLabel, "dialogPageTitle")
     assert title.font().pointSizeF() > page.font().pointSizeF()  # page title look of Qt Quick pages (N2)
     closes = [button for button in page.findChildren(QAbstractButton) if button.text() == "Close" and not button.isHidden()]
     assert closes == [page._button_close]  # dialog's own Close hidden: no double Close
     crumb.click()
-    assert view.current_index() == PAGE_INDEX["tools"]
+    assert view.current_index() == PAGE_INDEX["preset"]
 
 
 def test_rail_tool_page_has_title_without_breadcrumb_or_close(window):
     from neopedal.ui.tools_view import open_tool
 
+    cfg.application["rail_items"] = "home,race_calculator"  # under More by default
+    window.centralWidget().build_rail_items()
     open_tool("race_calculator.RaceCalculator", window)
     page = page_of(window, "RaceCalculator")
     assert not page._header.isHidden() and page.title_height() > 0  # same title as out of the rail (N2)
@@ -243,7 +238,7 @@ def test_escape_kept_by_broadcast_director(window):
     from neopedal.ui.tools_view import open_tool
 
     open_tool("heatmap_editor.HeatmapEditor", window)
-    page = page_of(window, "HeatmapEditor")
+    page = page_of(window, "DataEditors")
     page.dialog.ESC_CLOSES = False  # same flag on any page
     event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
     assert page.eventFilter(page.dialog, event) is True  # Esc taken: page stays
@@ -276,24 +271,14 @@ def test_background_error_kept_in_notification_center(window, qml_warnings):  # 
     assert not [warning for warning in qml_warnings if "NotificationCenter" in warning], qml_warnings
 
 
-def test_status_chips_listed_in_center_and_readable():
-    from neopedal.ui.notification import MIN_CONTRAST, contrast, readable_colors
-
-    for font, background in (("#FFFFFF", "#0088CC"), ("#FFFFFF", "#777777"), ("#FFFFFF", "#FFFF00"),
-                             ("#000000", "#111111"), ("bogus", "#334499"), ("#FFFFFF", "#767676")):
-        text, fill = readable_colors(font, background)
-        assert contrast(QColor(text), QColor(fill)) >= MIN_CONTRAST, (font, background)
-    assert readable_colors("#FFFFFF", "#334499") == ("#ffffff", "#334499")  # readable: kept as chosen
-
-
-def test_notification_defaults_readable():
+def test_modes_each_have_an_option():
     from neopedal.template.setting_global import GLOBAL_DEFAULT
-    from neopedal.ui.notification import MIN_CONTRAST, NOTICE_CHIPS, contrast
+    from neopedal.ui.notification import MODE_NOTICES
 
     notification = GLOBAL_DEFAULT["notification"]
-    for _, name, _, _ in NOTICE_CHIPS:
-        ratio = contrast(QColor(notification[f"font_color_{name}"]), QColor(notification[f"background_color_{name}"]))
-        assert ratio >= MIN_CONTRAST, name
+    for name, _, action in MODE_NOTICES:
+        assert notification[f"notify_{name}"] is True and action, name
+    assert not [key for key in notification if "color" in key]  # no chip colors left
 
 
 def test_one_status_band(window):
@@ -302,13 +287,15 @@ def test_one_status_band(window):
     from neopedal.ui.notification import NotifyBar, notification_store
 
     bar = window.statusBar()
-    assert window.findChild(NotifyBar).parent() is bar  # chips in the status bar, not a second band
+    assert window.findChild(NotifyBar).parent() is bar  # update chip in the status bar, not a second band
     assert not [button for button in bar.findChildren(QPushButton) if button.objectName() in ("pillApi", "pill")]
+    assert not [button for button in bar.findChildren(QPushButton) if button.objectName() == "statusChip"]
     cfg.notification["notify_spectate_mode"] = True
     cfg.api["enable_player_index_override"] = True
     try:
         window.centralWidget()._notify_bar.refresh()
-        assert ("Spectate Mode Enabled", "page:spectate") in notification_store().active()
+        # Spectate tab of the Broadcast Director (2026-11-03)
+        assert ("Spectate Mode Enabled", "tool:spectate_view.SpectateList") in notification_store().active()
     finally:
         cfg.api["enable_player_index_override"] = False
         window.centralWidget()._notify_bar.refresh()
@@ -339,7 +326,7 @@ def test_palette_has_every_menu_command(window):
 
     titles = {command.title.split("  (")[0] for command in build_commands(window)}
     for title in ("Restart NeoPedal", "Quit", "Check for Updates", "Create Bug Report…", "Show Log", "About NeoPedal",
-                  "Setup Wizard…", "What's New", "Keyboard Shortcuts", "Customize Navigation Bar…", "Restart API",
+                  "Setup Wizard…", "What's New", "Keyboard Shortcuts", "Reset Navigation Bar…", "Restart API",
                   "Notifications", "Reset Window Size and Position", "Minimize to Tray", "Delta Best",
                   "Window theme: Modern Light", "Settings", "Find Option…", "Back", "Forward"):
         assert title in titles, title
@@ -353,20 +340,21 @@ def test_palette_scoring_prefixes_and_recent(window, qml_warnings):  # noqa: F81
     assert palette.view.status() == palette.view.Status.Ready, palette.view.errors()
     commands = palette.commands
     assert match_commands(commands, "rclc")[0].title == "Race Calculator"  # letters in order
-    exact = next(command for command in commands if command.title == "Tools")
-    assert command_score(exact, search_text("tools").split()) > 200
+    exact = next(command for command in commands if command.title == "Hotkeys")
+    assert command_score(exact, search_text("hotkeys").split()) > 200
     palette.set_search(">quit")
     assert palette.backend.titles()[0] == "Quit" and {row["group"] for row in palette.backend.results} == {"Commands"}
     palette.set_search("#")
     assert all(row["group"] == "Presets" for row in palette.backend.results)
     palette.set_search("@font color")
     assert palette.backend.results and all(row["group"] == "Options" for row in palette.backend.results)
-    palette.set_search("Spectate")
+    palette.set_search("Spectate")  # Spectate: tab of the Broadcast Director (2026-11-03)
     palette.run_selected()
     flush()
-    assert cfg.application["command_palette_recent"].split("\n")[0] == "page:spectate"
+    assert cfg.application["command_palette_recent"].split("\n")[0] == "tool:broadcast_director.BroadcastDirector"
     palette = CommandPalette(window)
-    assert palette.backend.results[0]["group"] == "Recent" and palette.backend.results[0]["title"] == "Spectate"
+    assert palette.backend.results[0]["group"] == "Recent"
+    assert palette.backend.results[0]["title"] == "Broadcast Director"
     shortcuts = {row["title"]: row["shortcut"] for row in palette.backend.results}
     assert shortcuts["Settings"] == "Ctrl+,"
     palette.close()
@@ -402,35 +390,6 @@ def test_shortcuts_sheet(window, qml_warnings):  # noqa: F811
     assert not [warning for warning in qml_warnings if "Shortcuts.qml" in warning], qml_warnings
 
 
-def test_tools_page_tiles_search_and_states(window, qml_warnings):  # noqa: F811
-    from neopedal.ui.nav_rail import PAGE_INDEX
-    from neopedal.ui.tools_view import LISTED_TOOL_SECTIONS, ToolsView
-
-    window.show()
-    view = window.centralWidget()
-    view.select_page(PAGE_INDEX["tools"])
-    flush()
-    tools = view.findChild(ToolsView)
-    assert tools.view.status() == tools.view.Status.Ready, tools.view.errors()
-    backend = tools.backend
-    pages = [tool["name"] for tool in backend.sections[0]["tools"]]  # Pages section first, as the Tools menu (N8)
-    assert backend.sections[0]["title"] == "Pages" and pages == ["module", "spectate", "pacenotes", "hotkey"]
-    assert backend.shownCount == sum(len(entries) for _, entries in LISTED_TOOL_SECTIONS) + len(pages)
-    lap = next(tool for section in backend.sections for tool in section["tools"] if tool["name"] == "LapViewer")
-    assert lap["inRail"] and lap["description"]
-    backend.setSearch("carburant")  # French keyword finds the calculator
-    assert [tool["name"] for section in backend.sections for tool in section["tools"]] == ["RaceCalculator"]
-    backend.setSearch("")
-    view.refresh_page_states()
-    assert backend.statuses.get("RaceCalculator") == ""
-    window.find_in_page()  # Ctrl+F: search field of the page focused
-    assert tools.view.hasFocus()
-    backend.openTool("perf_view.PerformanceView")
-    flush()
-    assert type(view.current_page().dialog).__name__ == "PerformanceView"
-    assert not [warning for warning in qml_warnings if "Tools.qml" in warning or "ToolTile" in warning], qml_warnings
-
-
 def test_find_option_on_ctrl_shift_f(window):
     from neopedal.ui.menu import ConfigMenu
 
@@ -448,9 +407,9 @@ def test_help_and_tools_menus(window):
     assert "Overlay Performance" not in help_titles  # Tools only
     assert "What's New" in help_titles and "Keyboard Shortcuts\tCtrl+/" in help_titles
     tools = window.findChild(ToolsMenu)
-    tools.menu_pages.aboutToShow.emit()
-    pages = [action.text() for action in tools.menu_pages.actions()]
-    assert "Spectate" in pages and "Home" not in pages
+    tools.aboutToShow.emit()  # one list of pages left out of the navigation bar (no Pages submenu)
+    pages = [action.text() for action in tools.actions() if action.isVisible() and not action.isSeparator()]
+    assert "Broadcast Director" in pages and "Home" not in pages and "Spectate" not in pages
     assert "Settings" not in [action.text() for action in tools.actions()]
 
 
@@ -481,6 +440,7 @@ def test_first_close_to_tray_told_once(window, monkeypatch):
     monkeypatch.setattr(QSystemTrayIcon, "showMessage", lambda self, title, text, *args: messages.append(text))
     monkeypatch.setattr(QSystemTrayIcon, "isVisible", lambda self: True)
     monkeypatch.setattr(QSystemTrayIcon, "isSystemTrayAvailable", staticmethod(lambda: True))  # B-010: tray there
+    monkeypatch.setattr(QSystemTrayIcon, "supportsMessages", staticmethod(lambda: True))  # Windows: always
     cfg.application["minimize_to_tray"] = True
     cfg.application["close_to_tray_notice_shown"] = False
     try:
@@ -599,7 +559,6 @@ def test_palette_typing_and_enter_run_command(window):
     from PySide6.QtTest import QTest
 
     from neopedal.ui.command_palette import CommandPalette
-    from neopedal.ui.nav_rail import PAGE_INDEX
 
     window.show()
     palette = CommandPalette(window)
@@ -611,7 +570,8 @@ def test_palette_typing_and_enter_run_command(window):
     assert palette.backend._query == "spectate"  # typed in the search field (popup has the keyboard)
     QTest.keyClick(palette.view, Qt.Key.Key_Return)
     flush()
-    assert window.centralWidget().current_index() == PAGE_INDEX["spectate"]
+    page = window.centralWidget().current_page()  # Spectate: tab of the Broadcast Director (2026-11-03)
+    assert page is not None and type(page.dialog).__name__ == "BroadcastDirector"
     from neopedal.ui.quick.shell_popup import ShellPopup
 
     assert ShellPopup.shown("palette") is None  # closed (and deleted) before the command ran

@@ -193,14 +193,24 @@ def test_spectate_page_follows_cuts_once_shown(backend, setups):  # noqa: F811
     state.close()
 
 
-def test_spectate_changed_reaches_spectate_page(window, monkeypatch):  # noqa: F811
-    """Main view: spectate_changed goes to the Spectate page (once built), nothing else of the GUI"""
-    lazy = window.centralWidget()._lazy_pages["spectate"]
-    app_signal.spectate_changed.emit(3)  # page not built: nothing to do
-    page = lazy.ensure_page()
-    told = []
-    monkeypatch.setattr(page.backend, "changed_elsewhere", lambda: told.append(1))
-    app_signal.spectate_changed.emit(3)
+def test_spectate_changed_reaches_spectate_page(ui_env, monkeypatch):
+    """spectate_changed goes to the Spectate tab of the Broadcast Director (once built), nothing else of the GUI"""
+    from neopedal.ui.broadcast_director import BroadcastDirector
+
+    monkeypatch.setattr(BroadcastDirector, "last_tab", "spectate")
+    director = BroadcastDirector(None)
+    try:
+        app_signal.spectate_changed.emit(3)  # tab not built: nothing to do
+        page = director.show_tab("spectate")
+        told = []
+        monkeypatch.setattr(page.backend, "changed_elsewhere", lambda: told.append(1))
+        app_signal.spectate_changed.emit(3)
+        assert told == [1]
+    finally:
+        director.close()
+        director.deleteLater()
+        flush()
+    app_signal.spectate_changed.emit(3)  # page closed: no longer told
     assert told == [1]
 
 
@@ -228,33 +238,33 @@ def test_modules_refresh_deferred_while_hidden(modules):  # noqa: F811
 
 
 def test_module_view_shows_and_defers(ui_env, monkeypatch):
-    from neopedal.ui.module_view import ModuleList
+    """Modules category of Settings: refresh deferred while hidden, read once shown"""
+    from PySide6.QtWidgets import QWidget
+
+    from neopedal.ui.module_view import ModulesHost
 
     for name in MODULES:
         cfg.user.setting[name]["enable"] = True
-    view = ModuleList(None, FakeControl(MODULES), FakeControl(WIDGETS, "widget"))
+    settings_page = QWidget()
+    host = ModulesHost(settings_page, lambda section: None, FakeControl(MODULES), FakeControl(WIDGETS, "widget"))
     try:
-        view.backend.load_dependencies(DEPENDENCIES)
+        host.backend.load_dependencies(DEPENDENCIES)
         refreshed = []
-        real = view.backend.refresh
-        monkeypatch.setattr(view.backend, "refresh", lambda: refreshed.append(1) or real())
-        view.refresh()
+        real = host.backend.refresh
+        monkeypatch.setattr(host.backend, "refresh", lambda: refreshed.append(1) or real())
+        host.refresh()
         assert refreshed == []  # never shown: deferred
-        view.show()
-        assert view.backend.page_visible and refreshed == [1]  # page shown: read once (deferred one dropped)
-        view.refresh()
+        host.page_shown()
+        assert host.backend.page_visible and refreshed == [1]  # page shown: read once (deferred one dropped)
+        host.refresh()
         assert refreshed == [1, 1]
-        view.hide()
-        assert not view.backend.page_visible
-        view.refresh()
+        host.page_hidden()
+        assert not host.backend.page_visible
+        host.refresh()
         assert refreshed == [1, 1]
     finally:
-        view.close()
-        if view.view is not None:
-            from PySide6.QtCore import QUrl
-
-            view.view.setSource(QUrl())
-        view.deleteLater()
+        host.release()
+        settings_page.deleteLater()
         flush()
 
 

@@ -270,8 +270,8 @@ def test_typing_after_apply_is_new_undo_step(settings):
 
 
 def test_invalid_state_kept_across_apply(settings):
-    key = "notification/font_color_locked_preset"
-    saved = cfg.notification[key.split("/")[1]]
+    key = "vr_overlay/mirror_background_color"
+    saved = cfg.user.config["vr_overlay"][key.split("/")[1]]
     settings.setText(key, "#12")
     settings.setText(key, "#00ff00")
     assert settings.apply()

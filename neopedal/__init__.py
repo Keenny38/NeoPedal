@@ -147,6 +147,7 @@ class OverlaySignal(QObject):
         iconify: signal for toggling taskbar icon visibility state (for VR compatibility).
         context: signal for session type or pit state changed (widget visibility context).
         editing: signal for overlay edit mode started or ended.
+        driving: signal for player driving or not (active state, read by overlay control even without any overlay).
     """
 
     hidden = Signal(bool)
@@ -155,6 +156,7 @@ class OverlaySignal(QObject):
     paused = Signal(bool)
     iconify = Signal(bool)
     editing = Signal(bool)
+    driving = Signal(bool)
     __slots__ = ()
 
 
@@ -168,6 +170,8 @@ class ApplicationSignal(QObject):
         quitapp: signal for closing APP.
         hotkey: signal for run hotkey command from main thread.
         error: signal for notifying background error message (thread crash, save failure).
+        warning: signal for notifying background problem the app got over (overlay cut to screen size, crashed
+            thread restarted, replay not readable with the game API), told as a warning.
         saving: signal for saving state changes (True = started, False = finished).
         addresses: signal for LAN addresses of this computer changed (looked up in background).
         servers: signal for a server listening again (port unavailable before, tried again in background).
@@ -182,6 +186,7 @@ class ApplicationSignal(QObject):
     quitapp = Signal(bool)
     hotkey = Signal(object)
     error = Signal(str)
+    warning = Signal(str)
     saving = Signal(bool)
     addresses = Signal()
     servers = Signal()

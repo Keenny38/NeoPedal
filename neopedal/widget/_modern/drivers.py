@@ -54,6 +54,8 @@ from .table import (
     COMPOUND_SIZE,
     DELTAS,
     EMPTY_CELL,
+    FLAG,
+    FLAG_SIZE,
     ICON,
     LAPTIME,
     LOGO,
@@ -83,6 +85,7 @@ HEADER_LABELS = {
     "energy_remaining": "Energy", "energy_per_lap": "E/Lap", "vehicle_integrity": "Health", "incidents": "Inc", "track_limits": "TL",
     "stint_laps": "Stint", "speed_trap": "Speed", "lift_and_coast_time": "L&C", "time_interval": "Int",
     "time_gap": "Gap", "gap_trend": "Trend", "driver_ranks": "DR/SR", "driver_badge": "Badge", "car_number": "#",
+    "nationality": "Nat",
 }
 # Driver & Safety Rank of sample cars (overlay pictures & previews), by overall position
 SAMPLE_RANKS = (
@@ -96,6 +99,8 @@ RANK_LETTERS = "BSGP"  # first letter of Bronze, Silver, Gold, Platinum (Rank.sh
 SAMPLE_TRENDS = {2: 0.3, 7: -0.2, 8: -0.4, 10: -0.3, 3: -1.8, 11: 0.5}
 SAMPLE_LIMIT = 5.0  # track limits points per penalty of sample race
 SAMPLE_NUMBERS = 23  # car numbers of sample race: 1 to 23, one per car (see demo_car_number)
+# Nationalities of sample race (overlay pictures & previews), by overall position
+SAMPLE_NATIONS = ("FR", "GB", "DE", "IT", "US", "JP", "NL", "BE", "ES", "DK", "AU", "BR", "CH", "PT")
 # Team names of sample race (overlay pictures & previews), by overall position
 SAMPLE_TEAMS = (
     "Apex Endurance", "Redline Motorsport", "Northwind Racing", "Velocity Works", "Le Ciel Racing",
@@ -169,6 +174,7 @@ class DriverTable(TableMixin, ModernOverlay):
         self.energy_usage: Any = None  # energy usage poller, see usages
         self.team_names: Any = None  # team names poller (team_names module loaded only with team names shown)
         self.car_numbers: Any = None  # car numbers poller, see numbers
+        self.driver_nations: Any = None  # driver nationalities, see nations
         self.usage_average = bool(wcfg.get("show_energy_per_lap_average", False))
         self.delta_count = min(max(int(wcfg.get("number_of_delta_laptime", 3)), 2), 5)
         self.delta_inverted = bool(wcfg.get("show_inverted_delta_laptime_layout", False))  # most recent lap first
@@ -323,6 +329,8 @@ class DriverTable(TableMixin, ModernOverlay):
             return self.badge_builder()
         if key == "car_number":
             return self.number_builder()
+        if key == "nationality":
+            return self.nation_builder()
         if key == "track_limits":
             track_limits_cell = self.track_limits_cell
             return lambda veh, ctx, *_: track_limits_cell(veh.trackLimitsPoints, ctx.in_race)
@@ -414,12 +422,41 @@ class DriverTable(TableMixin, ModernOverlay):
             return cell
         return number_cell
 
+    def nation_builder(self) -> CellBuilder:
+        """Flag of driver nationality: game profile (player), RaceControl profile (online), real driver of the
+        same name (AI); empty if unknown"""
+        outline = self.theme.border
+        cells: dict[str, Cell] = {}  # same cell objects for same countries: rows compare fast
+
+        def nation_cell(veh, ctx, player, alias, class_color, extra):
+            if self.demo:
+                code = SAMPLE_NATIONS[veh.positionOverall % len(SAMPLE_NATIONS)]
+            else:
+                code = self.nations().nationality(veh.driverName, veh.isPlayer)
+            if not code:
+                return EMPTY_CELL
+            cell = cells.get(code)
+            if cell is None:
+                if len(cells) >= 256:
+                    cells.clear()
+                cell = cells[code] = Cell(FLAG, code, color=outline)
+            return cell
+        return nation_cell
+
+    def nations(self) -> Any:
+        """Driver nationalities (driver_nations module loaded only with nationality column)"""
+        if self.driver_nations is None:
+            from ... import driver_nations
+
+            self.driver_nations = driver_nations
+        return self.driver_nations
+
     def poll_ranks(self, data_set) -> None:
-        """Ranks of drivers of session read in background when due (driver & safety rank or badge column, or
-        strength of field of classes shown)"""
+        """Ranks of drivers of session read in background when due (driver & safety rank, badge or nationality
+        column, or strength of field of classes shown)"""
         wcfg = self.wcfg
         if (wcfg.get("column_driver_ranks", False) or wcfg.get("column_driver_badge", False)
-                or self.class_sof) and not drawing_demo():  # class_sof: strength of field really shown
+                or wcfg.get("column_nationality", False) or self.class_sof) and not drawing_demo():  # class_sof: strength of field really shown
             from ...rank_info import poll_field
 
             # Cars of session only: slots beyond keep drivers of a former (bigger) session
@@ -603,6 +640,8 @@ class DriverTable(TableMixin, ModernOverlay):
             return Column(key, self.rank_width * 2 + unit * 0.3, CENTER)
         if key == "car_number":  # "#888"
             return Column(key, self.text_width("value", "#888"), CENTER)
+        if key == "nationality":  # 4:3 flag
+            return Column(key, unit * ROW_SCALE * FLAG_SIZE * 4 / 3, CENTER)
         if key == "driver_badge":  # game badge icon
             return Column(key, unit * ROW_SCALE * COMPOUND_SIZE, CENTER)
         if key == "track_limits":

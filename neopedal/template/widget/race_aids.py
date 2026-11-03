@@ -182,6 +182,7 @@ WIDGET_RACE_AIDS = {
         "show_blue_flag": True,
         "show_full_course_yellow": True,
         "show_lap_invalidated": True,
+        "show_app_messages": True,
         "font_color_notification": "#EEEEEE",
         "background_color_notification": "#222222",
         "highlight_color_gain": "#22CC22",

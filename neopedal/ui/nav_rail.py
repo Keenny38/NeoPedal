@@ -21,22 +21,19 @@ Navigation rail entries: pages of main window & tool dialogs, chosen & ordered b
 
 Rail content is saved in application setting "rail_items": entry keys separated by comma,
 page keys (see NAV_PAGES) or tool dialog module names (see tools_view.TOOL_SECTIONS).
-Pages left out of the rail stay reachable from command palette (Ctrl+K).
+Entries are dragged in the rail to another place, onto More (left out) or from More (added back); pages left
+out are listed by More, under the entries, and stay reachable from command palette (Ctrl+K).
 """
 
 from __future__ import annotations
 
 from typing import NamedTuple
 
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout
-
 from ..const_file import ConfigType
 from ..i18n import tr
 from ..setting import cfg
 from ..template.page_registry import main_pages, tool_pages
 from ..template.setting_global import GLOBAL_DEFAULT
-from ._common import BaseEditor, FocusRingButton, UIScaler
-from .ordered_picker import OrderedPicker, PickerEntry, icon_font_family
 from .tools_view import RENAMED_TOOL_KEYS, TOOL_SECTIONS
 
 # Pages: (key, label, icon glyph in Segoe Fluent Icons / MDL2 Assets, fallback letter), see template.page_registry
@@ -108,116 +105,15 @@ def current_rail_items() -> list[str]:
     return parse_rail_items(cfg.application.get("rail_items", "")) or default_rail_items()
 
 
-class RailEditor(BaseEditor):
-    """Choose & order navigation rail entries (shown entries & available ones, see OrderedPicker)
+def hidden_rail_items() -> list[str]:
+    """Every page & tool left out of the rail, pages first: listed when its More entry is unfolded"""
+    shown = set(current_rail_items())
+    return [key for key in rail_entries() if key not in shown]
 
-    Subclass for another list of entries: override TITLE, HELP, picker_entries, badge_text,
-    current_items, default_items & save_items. Changes are marked unsaved, Ctrl+S saves (page kept
-    open), Save saves & closes, Ctrl+Z / Ctrl+Y undo & redo.
-    """
 
-    TITLE = "Customize Navigation Bar"
-    HELP = (
-        "Drag entries to reorder, or use the arrows. Add entries from the list on the right. "
-        "Ctrl+1 to Ctrl+9 open the first 9 entries, hidden pages stay in the More menu at the bottom of the bar "
-        "and in command palette (Ctrl+K)."
-    )
-
-    def __init__(self, parent, on_saved=None):
-        super().__init__(parent)
-        self.set_utility_title(tr(self.TITLE))
-        self.setMinimumSize(UIScaler.size(26), UIScaler.size(30))
-        self.resize(UIScaler.size(48), UIScaler.size(36))
-        self._on_saved = on_saved
-        label = QLabel(tr(self.HELP))
-        label.setObjectName("pickerHelp")
-        label.setWordWrap(True)
-        self.picker = OrderedPicker(self, self.picker_entries(), self.current_items(), icon_font_family(),
-                                    badge=self.badge_text)
-        self.picker.changed.connect(self.set_modified)
-        self.list_entries = self.picker.shown_list
-        self.enable_undo(self.picker.shown_keys, lambda keys: self.picker.set_shown(keys, notify=False))
-
-        self.button_reset = FocusRingButton(tr("Reset"))
-        self.button_reset.setToolTip(tr("Back to default entries"))
-        self.button_reset.clicked.connect(self.reset)
-        self.button_cancel = FocusRingButton(tr("Close"))
-        self.button_cancel.clicked.connect(self.close)
-        self.button_save = FocusRingButton(tr("Save"))
-        self.button_save.setObjectName("editorPrimary")
-        self.button_save.setDefault(True)
-        self.button_save.clicked.connect(self.save_and_close)
-        layout_button = QHBoxLayout()
-        layout_button.addWidget(self.button_reset)
-        self.add_undo_buttons(layout_button)
-        layout_button.addStretch(1)
-        layout_button.addWidget(self.button_cancel)
-        layout_button.addWidget(self.button_save)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(UIScaler.pixel(10))
-        layout.addWidget(label)
-        layout.addWidget(self.picker, stretch=1)
-        layout.addLayout(layout_button)
-        layout.setContentsMargins(self.MARGIN * 2, self.MARGIN * 2, self.MARGIN * 2, self.MARGIN * 2)
-
-    def showEvent(self, event):
-        """Shown as page: page has its own Close button"""
-        super().showEvent(event)
-        if self.in_app_page:
-            self.button_cancel.hide()
-
-    # Entries
-    def picker_entries(self) -> dict[str, PickerEntry]:
-        """Every possible entry: pages, then tools"""
-        kinds = {True: (tr("Pages"), tr("Page")), False: (tr("Tools"), tr("Tool"))}
-        return {
-            key: PickerEntry(key, tr(entry.tooltip), entry.glyph, entry.letter, kinds[entry.page >= 0][0],
-                             tag=kinds[entry.page >= 0][1])
-            for key, entry in rail_entries().items()
-        }
-
-    def badge_text(self, row: int) -> str:
-        """Shortcut of entry (first 9 entries)"""
-        return f"Ctrl+{row + 1}" if row < 9 else ""
-
-    def current_items(self) -> list[str]:
-        return current_rail_items()
-
-    def default_items(self) -> list[str]:
-        return default_rail_items()
-
-    def save_items(self, keys: list[str]):
-        cfg.application["rail_items"] = ",".join(keys) if keys else ",".join(default_rail_items())
-
-    # Editing
-    def checked_items(self) -> list[str]:
-        """Shown entries in order"""
-        return self.picker.shown_keys()
-
-    def fill(self, shown: list[str]):
-        self.picker.set_shown(shown)
-
-    def move_current(self, step: int):
-        self.picker.move_selected(step)
-
-    def reset(self):
-        """Default entries (saved with Save)"""
-        if self.checked_items() != self.default_items():
-            self.picker.set_shown(self.default_items())
-
-    def applying(self):
-        """Save, editor kept open (Ctrl+S)"""
-        self.save_items(self.checked_items())
+def save_rail_items(keys: list[str]):
+    """Rail entries saved (at least one entry kept)"""
+    if keys:
+        cfg.application["rail_items"] = ",".join(keys)
         cfg.save(config_type=ConfigType.CONFIG)
-        if self._on_saved is not None:
-            self._on_saved()
-        self.set_unmodified()
 
-    def saving(self):
-        """Save (also asked when closing with unsaved changes)"""
-        self.applying()
-
-    def save_and_close(self):
-        self.applying()
-        self.accept()

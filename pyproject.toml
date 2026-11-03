@@ -32,6 +32,7 @@ include = ["neopedal*", "pyLMUSharedMemory*", "pyRfactor2SharedMemory*"]
 # app folder (not packaged), so an installed wheel alone is not a supported way to run the app.
 [tool.setuptools.package-data]
 "neopedal.i18n" = ["data/*.json"]
+"neopedal" = ["data/*.json"]
 "neopedal.ui" = ["qml/*.qml"]
 
 [tool.setuptools.dynamic]

@@ -73,6 +73,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "display_order_driver_badge": 28,
         "column_car_number": False,  # number LMU gives the car (online: per split), from game Rest API
         "display_order_car_number": 29,
+        "column_nationality": False,  # flag of driver: game profile, RaceControl profile (online), real AI drivers
+        "display_order_nationality": 30,
         "column_delta_laptime": False,
         "number_of_delta_laptime": 3,
         "show_inverted_delta_laptime_layout": False,
@@ -124,6 +126,8 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "display_order_driver_badge": 29,
         "column_car_number": False,  # number LMU gives the car (online: per split), from game Rest API
         "display_order_car_number": 30,
+        "column_nationality": False,  # flag of driver: game profile, RaceControl profile (online), real AI drivers
+        "display_order_nationality": 31,
         "column_gap_trend": False,
         "display_order_gap_trend": 28,
         "column_stint_laps": False,

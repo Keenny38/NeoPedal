@@ -97,6 +97,7 @@ class FileFilter:
     CONSUMPTION = qfile_filter(FileExt.CONSUMPTION, "Consumption History")
     GPLINI = qfile_filter(FileExt.INI, "GPL Pace Notes")
     TPPN = qfile_filter(FileExt.TPPN, "NeoPedal Pace Notes")
+    SOUND = "Sound file (*.wav *.mp3 *.ogg *.flac)"
     TPTN = qfile_filter(FileExt.TPTN, "NeoPedal Track Notes")
     TYRESTRATEGY = qfile_filter(FileExt.TYRESTRATEGY, "NeoPedal Tyre Strategy")
     RACEPLAN = qfile_filter(FileExt.RACEPLAN, "NeoPedal Race Plan")

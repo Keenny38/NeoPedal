@@ -8,7 +8,7 @@ import "../components"
 // place of every note (map, position, curve & slope as Track Map Viewer). Changes not saved: unsaved changes bar at
 // the bottom (TpPendingBar, as on Settings): Apply (Ctrl+S) saves to the open file (a new file asked for new notes),
 // Discard reads the file again (Undo); Save As writes another file. Undo & redo: Ctrl+Z, Ctrl+Y (page shortcuts,
-// track_notes_editor.py).
+// track_notes_editor.py). Playback: pace notes read aloud while driving (on / off, its settings), former Pace Notes page.
 TpPage {
     id: page
 
@@ -52,6 +52,17 @@ TpPage {
         id: openMenu
         Action { text: i18n.tr("Open Pace Notes"); onTriggered: backend.openNotes("Pace Notes") }
         Action { text: i18n.tr("Open Track Notes"); onTriggered: backend.openNotes("Track Notes") }
+    }
+    // Pace notes playback (setting of the loaded preset, saved at once)
+    TpMenu {
+        id: playbackMenu
+        Action {
+            text: i18n.tr("Read Pace Notes Aloud")
+            checkable: true
+            checked: backend.playback
+            onTriggered: backend.setPlayback(checked)
+        }
+        Action { text: i18n.tr("Playback Settings…"); onTriggered: backend.openPlaybackSettings() }
     }
     // Notes menus (toolbar & row menu)
     TpMenu {
@@ -187,6 +198,17 @@ TpPage {
                         onTriggered: backend.toggleMap()
                     }
                     TpAction {
+                        name: "playbackButton"
+                        text: i18n.tr("Playback")
+                        glyph: ""  // volume
+                        fallback: "♪"
+                        tip: backend.playback ? i18n.tr("Pace notes read aloud while driving: on")
+                                              : i18n.tr("Pace notes read aloud while driving: off")
+                        priority: 3
+                        checked: backend.playback || playbackMenu.visible
+                        onTriggered: function(source) { page.toggleMenu(playbackMenu, source) }
+                    }
+                    TpAction {
                         name: "undoButton"
                         text: i18n.tr("Undo")
                         glyph: theme.glyphs.undo
@@ -274,7 +296,7 @@ TpPage {
                                 TpAction {
                                     name: "mapConfigButton"
                                     text: i18n.tr("Config")
-                                    glyph: ""  // settings
+                                    glyph: theme.glyphs.settings
                                     fallback: "⚙"
                                     tip: i18n.tr("Track map colors, widths & grades")
                                     priority: 0

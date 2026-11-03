@@ -81,11 +81,9 @@ TpPopup {
             TpSectionLabel { Layout.fillWidth: true; Layout.topMargin: theme.space2; text: i18n.tr("Director hotkeys") }
             Text {
                 Layout.fillWidth: true
-                text: backend.globalHotkeys
-                      ? i18n.tr("Work with this page hidden too. Set them on the Hotkeys page.")
-                      : i18n.tr("Global hotkeys are off: turn them on in the settings to use these keys.")
+                text: i18n.tr("Work with this page hidden too. Set them in Settings > Hotkeys.")
                 textFormat: Text.PlainText
-                color: backend.globalHotkeys ? theme.dimText : theme.warning
+                color: theme.dimText
                 font.pointSize: theme.fontSmall
                 wrapMode: Text.WordWrap
             }

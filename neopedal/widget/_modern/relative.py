@@ -51,7 +51,7 @@ class Realtime(DriverTable):
         "column_time_gap", "show_time_gap_sign", "decimal_places_time_gap", "display_order_time_gap",
         "column_gap_trend", "display_order_gap_trend", "column_driver_ranks", "column_driver_badge",
         "display_order_driver_ranks", "display_order_driver_badge", "column_car_number", "display_order_car_number",
-        "show_highlighted_nearest_time_gap", "nearest_time_gap_threshold_front", "nearest_time_gap_threshold_behind",
+        "column_nationality", "display_order_nationality", "show_highlighted_nearest_time_gap", "nearest_time_gap_threshold_front", "nearest_time_gap_threshold_behind",
         "column_delta_laptime", "number_of_delta_laptime", "show_inverted_delta_laptime_layout",
         "display_order_delta_laptime", "column_track_limits", "display_order_track_limits",
         "column_energy_per_lap", "show_energy_per_lap_average", "display_order_energy_per_lap",

@@ -170,7 +170,7 @@ def test_pack_language_kept_at_launch(tmp_path, monkeypatch):
     monkeypatch.setattr(type(cfg), "load_global", load_global)
     monkeypatch.setattr(type(cfg), "save", lambda self, *args, **kwargs: None)
     for name in ("single_instance_check", "unset_environment", "set_logging_level", "get_version",
-                 "set_environment", "check_safe_mode"):
+                 "set_environment"):
         monkeypatch.setattr(main, name, lambda *args: None)
     monkeypatch.setattr(main, "init_gui", lambda: SimpleNamespace(exec=lambda: 0))
     from neopedal import loader

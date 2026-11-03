@@ -34,6 +34,7 @@ from PySide6.QtCore import QRectF, Qt
 from PySide6.QtGui import QPainter
 
 from .. import calculation as calc
+from .. import overlay_messages
 from ..api_control import api
 from ..const_common import MAX_SECONDS
 from ..formatter import class_alias
@@ -57,9 +58,11 @@ SETTLE_TIME = 1.0  # seconds a new position must hold before notified (no back &
 RESTART_STEP = 5.0  # seconds: session time going back more than this is a restarted session (same identifier)
 FADE_TIME = 0.6  # seconds of fade out at end of display
 FADE_STEPS = 8  # opacity steps of fade (widget redrawn only on step change)
-# Message titles (English, translated when shown), for widget width
+# Message titles (English, translated when shown), for widget width; app messages too (see overlay_messages)
 TITLES = ("Position", "Class position", "Penalty", "Fastest lap", "Blue flag", "Full course yellow", "Red flag",
-          "Green flag", "Lap invalidated")
+          "Green flag", "Lap invalidated", "Reminder", "Server ready", "Race cancelled", "Registration removed",
+          "Error", "Warning")
+APP_KINDS = {"error": LOSS, "warning": WARNING}  # kind of an app message by level, else INFO
 RED_FLAG = 7  # full course yellow state of race halt
 PREVIEW_TITLE = "Race notifications"
 
@@ -242,6 +245,17 @@ class NotificationsMixin:
         })
         self.toasts: list[Toast] = []
         self.clock = monotonic
+        # App messages (race reminders, errors) posted since the overlay started
+        self.show_app_messages = bool(wcfg["show_app_messages"])
+        self.app_serial = overlay_messages.last_serial()
+
+    def app_messages(self) -> list[Message]:
+        """App messages posted since last read"""
+        if not self.show_app_messages or self.app_serial == overlay_messages.last_serial():
+            return []
+        posted = overlay_messages.since(self.app_serial)
+        self.app_serial = overlay_messages.last_serial()
+        return [Message(message.title, message.detail, APP_KINDS.get(message.level, INFO)) for message in posted]
 
     def add_messages(self, messages: list[Message], now: float):
         """Queue new messages, same message shown again only once shown one expires"""
@@ -254,7 +268,7 @@ class NotificationsMixin:
     def read_notifications(self) -> tuple:
         """Shown messages, newest first: ((message, opacity step), ...)"""
         now = self.clock()
-        self.add_messages(self.events.poll(now), now)
+        self.add_messages(self.events.poll(now) + self.app_messages(), now)
         self.toasts = [toast for toast in self.toasts if now - toast.start < self.duration]
         shown = []
         for toast in reversed(self.toasts):

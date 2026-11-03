@@ -26,26 +26,28 @@ icon or border color, announced to screen readers.
 
 import sys
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QEasingCurve, QEvent, QObject, QPropertyAnimation, Qt, QTimer
 from PySide6.QtWidgets import QFrame, QGraphicsOpacityEffect, QHBoxLayout, QLabel, QWidget
 
 from . import safe_markup
 from ._common import FocusRingButton, UIScaler
+from .tokens import TOAST_ERROR_FACTOR, TOAST_TIMES
 
 FADE_MS = 180
-# Durations of TpToast.shownTime (keep both the same): long enough to read, errors longer, a button (undo) longer
-MIN_DISPLAY_MS = 3000
-MS_PER_CHARACTER = 55
-READ_START_MS = 1500
-ERROR_FACTOR = 1.5
-ACTION_EXTRA_MS = 3000
+# Durations (one source with TpToast.shownTime, see tokens.TOAST_TIMES)
+MIN_DISPLAY_MS = TOAST_TIMES["toastMinimumTime"]
+MS_PER_CHARACTER = TOAST_TIMES["toastTimePerCharacter"]
+READ_START_MS = TOAST_TIMES["toastReadStartTime"]
+ERROR_FACTOR = TOAST_ERROR_FACTOR
+ACTION_EXTRA_MS = TOAST_TIMES["toastActionExtraTime"]
 ACTION_RECHECK_MS = 1000  # kept while hovered or button focused, checked again then
 LEVELS = ("info", "success", "warning", "error")
 
 
 def toast_duration(text_length: int, error: bool = False, action: bool = False) -> int:
-    """Time (ms) a toast stays: same as TpToast.shownTime"""
+    """Time (ms) a toast stays: same as TpToast.shownTime (text length without markup)"""
     shown = max(MIN_DISPLAY_MS, text_length * MS_PER_CHARACTER + READ_START_MS) * (ERROR_FACTOR if error else 1)
     return round(shown + (ACTION_EXTRA_MS if action else 0))
 
@@ -84,32 +86,36 @@ def _setup(toast: QWidget, level: str, duration: int) -> QTimer:
     return timer
 
 
-class Toast(QLabel):
-    """Floating message label, child of target window: hidden by a click, kept while hovered"""
+# Qt widget methods the mixin calls, for type checks only (the toast classes give them)
+if TYPE_CHECKING:
+    _ToastBase = QWidget
+else:
+    _ToastBase = object
 
-    def __init__(self, window: QWidget, text: str, duration: int = 0, level: str = "info"):
-        super().__init__(text, window)
+
+class FloatingToast(_ToastBase):
+    """Look & behavior of the widget toasts (mixin, before their Qt class): placed at bottom center of the window,
+    fades in & out, hidden by a click, kept while busy (hovered, or button focused, see held_by_focus)"""
+
+    _window: QWidget
+    _hiding: bool
+    _duration: int
+    _timer: QTimer
+    level_name = "info"  # border color (style sheet)
+
+    def start_toast(self, window: QWidget, plain: str, duration: int):
+        """Shown (fading in) & announced; duration: ms before hiding (see toast_duration)"""
         self._window = window
         self._hiding = False
-        plain = plain_text(self.text())
-        self._duration = duration or toast_duration(len(plain), level == "error")
-        self._timer = _setup(self, level, self._duration)
+        self._duration = duration
+        self._timer = _setup(self, self.level_name, duration)
         self.setAccessibleName(plain)
-        self.setTextFormat(Qt.TextFormat.RichText)
-        self.setWordWrap(True)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
-        self.setMaximumWidth(max(UIScaler.size(14), round(window.width() * 0.85)))
-        padding = UIScaler.pixel(10)
-        self.setContentsMargins(padding, padding // 2, padding, padding // 2)
-
         self._opacity = QGraphicsOpacityEffect(self)
         self._opacity.setOpacity(0.0)
         self.setGraphicsEffect(self._opacity)
         self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
         self._fade.setDuration(FADE_MS)
         self._fade.setEasingCurve(QEasingCurve.Type.OutCubic)
-
         window.installEventFilter(self)
         self.adjustSize()
         self.place()
@@ -122,7 +128,8 @@ class Toast(QLabel):
         """Bottom center of window"""
         window = self._window
         margin = UIScaler.pixel(16)
-        self.move((window.width() - self.width()) // 2, window.height() - self.height() - margin * 3)
+        self.move((window.width() - self.width()) // 2,
+                  window.height() - self.height() - margin * 3)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Type.Resize:
@@ -136,7 +143,7 @@ class Toast(QLabel):
 
     def leaveEvent(self, event):
         super().leaveEvent(event)
-        if not self._hiding:
+        if not self._hiding and not self.held_by_focus():
             self._timer.start(self._duration)
 
     def mousePressEvent(self, event):
@@ -148,9 +155,13 @@ class Toast(QLabel):
         self._fade.setEndValue(value)
         self._fade.start()
 
+    def held_by_focus(self) -> bool:
+        """Kept shown by keyboard focus (button of the toast)"""
+        return False
+
     def is_busy(self) -> bool:
-        """Hovered: kept shown"""
-        return self.underMouse()
+        """Hovered or held by focus: kept shown"""
+        return self.underMouse() or self.held_by_focus()
 
     def hide_if_idle(self):
         if self.is_busy():
@@ -167,7 +178,24 @@ class Toast(QLabel):
         self._fade.finished.connect(self.close)
 
 
-class ActionToast(QFrame):
+class Toast(FloatingToast, QLabel):
+    """Floating message label, child of target window: hidden by a click, kept while hovered"""
+
+    def __init__(self, window: QWidget, text: str, duration: int = 0, level: str = "info"):
+        super().__init__(text, window)
+        self.level_name = level
+        plain = plain_text(self.text())
+        self.setTextFormat(Qt.TextFormat.RichText)
+        self.setWordWrap(True)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.setMaximumWidth(max(UIScaler.size(14), round(window.width() * 0.85)))
+        padding = UIScaler.pixel(10)
+        self.setContentsMargins(padding, padding // 2, padding, padding // 2)
+        self.start_toast(window, plain, duration or toast_duration(len(plain), level == "error"))
+
+
+class ActionToast(FloatingToast, QFrame):
     """Floating message with a button (undo...), child of target window
 
     Stays while hovered or while its button has keyboard focus, then fades out.
@@ -177,13 +205,9 @@ class ActionToast(QFrame):
     def __init__(self, window: QWidget, text: str, action_text: str, action: Callable[[], object], duration: int = 0,
                  level: str = "info"):
         super().__init__(window)
-        self._window = window
+        self.level_name = level
         self._action: Callable[[], object] | None = action
-        self._hiding = False
         plain = plain_text(text)
-        self._duration = duration or toast_duration(len(plain), level == "error", action=True)
-        self._timer = _setup(self, level, self._duration)
-        self.setAccessibleName(plain)
         self.setAccessibleDescription(action_text)
         self.label = QLabel(text, self)
         self.label.setTextFormat(Qt.TextFormat.RichText)
@@ -203,69 +227,10 @@ class ActionToast(QFrame):
         self.label.setMinimumWidth(min(
             self.label.sizeHint().width(), max_width - self.button.sizeHint().width() - padding * 3))
         self.label.setWordWrap(True)
+        self.start_toast(window, plain, duration or toast_duration(len(plain), level == "error", action=True))
 
-        self._opacity = QGraphicsOpacityEffect(self)
-        self._opacity.setOpacity(0.0)
-        self.setGraphicsEffect(self._opacity)
-        self._fade = QPropertyAnimation(self._opacity, b"opacity", self)
-        self._fade.setDuration(FADE_MS)
-        self._fade.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-        window.installEventFilter(self)
-        self.adjustSize()
-        self.place()
-        self.show()
-        self.raise_()
-        self.fade_to(1.0)
-        announce(self, plain)
-
-    def place(self):
-        """Bottom center of window"""
-        window = self._window
-        margin = UIScaler.pixel(16)
-        self.move((window.width() - self.width()) // 2, window.height() - self.height() - margin * 3)
-
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if event.type() == QEvent.Type.Resize:
-            self.place()
-        return False
-
-    def enterEvent(self, event):
-        super().enterEvent(event)
-        if not self._hiding:
-            self._timer.stop()
-
-    def leaveEvent(self, event):
-        super().leaveEvent(event)
-        if not self._hiding and not self.button.hasFocus():
-            self._timer.start(self._duration)
-
-    def mousePressEvent(self, event):
-        self.hide_toast()
-
-    def fade_to(self, value: float):
-        self._fade.stop()
-        self._fade.setStartValue(self._opacity.opacity())
-        self._fade.setEndValue(value)
-        self._fade.start()
-
-    def is_busy(self) -> bool:
-        """Hovered or button focused: kept shown"""
-        return self.underMouse() or self.button.hasFocus()
-
-    def hide_if_idle(self):
-        if self.is_busy():
-            self._timer.start(ACTION_RECHECK_MS)
-            return
-        self.hide_toast()
-
-    def hide_toast(self):
-        if self._hiding:
-            return
-        self._hiding = True
-        self._timer.stop()
-        self.fade_to(0.0)
-        self._fade.finished.connect(self.close)
+    def held_by_focus(self) -> bool:
+        return self.button.hasFocus()
 
     def run_action(self):
         """Run action once, then hide"""

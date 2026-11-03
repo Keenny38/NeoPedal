@@ -1200,7 +1200,7 @@ class VROverlay(QObject):
                            status.pid, status.version, vr_shared.VERSION)
             if status.pid not in self._xr_mismatch_reported:
                 self._xr_mismatch_reported.add(status.pid)
-                app_signal.error.emit("VR overlay: restart the VR game to show the overlay in it "
+                app_signal.warning.emit("VR overlay: restart the VR game to show the overlay in it "
                                       "(game started before the app was updated)")
         else:
             logger.warning("VR overlay: OpenXR layer stopped in game (XrResult %s)", status.last_result)

@@ -43,7 +43,7 @@ def test_dialog_pages_out_of_registry_have_help_page():
     from neopedal.template.page_registry import page_wiki
 
     for name in ("OverlayOptions", "OptionFinder", "ReleaseNotesDialog", "About", "LogInfo", "BugReport",
-                 "RailEditor", "QuickAccessEditor"):
+                 "QuickAccessEditor"):
         assert page_wiki(name), name
     assert page_wiki("LapViewer") == "Telemetry-Viewer" and page_wiki("Bogus") == ""
 
@@ -88,12 +88,12 @@ def test_breadcrumb_names_page_opened_from(window):  # noqa: F811
 
     view = window.centralWidget()
     view.select_page(PAGE_INDEX["home"])
-    open_tool("brake_editor.BrakeEditor", window)  # Home quick access, palette...: Home, not Tools
-    page = page_of(window, "BrakeEditor")
+    open_tool("brake_editor.BrakeEditor", window)  # Home quick access, palette...: Home (tab of Data Editors)
+    page = page_of(window, "DataEditors")
     assert page._button_crumb.text() == "Home" and page.crumb_target() == "home"
     view.select_page(PAGE_INDEX["widget"])
-    open_tool("perf_view.PerformanceView", window)
-    other = page_of(window, "PerformanceView")
+    open_tool("plugin_manager.PluginManager", window)  # Plugins button of the Overlays page
+    other = page_of(window, "PluginManager")
     assert other._button_crumb.text() == "Overlays"
     other._button_crumb.click()
     assert view.current_index() == PAGE_INDEX["widget"]
@@ -105,11 +105,11 @@ def test_breadcrumb_of_page_opened_over_another_page(window):  # noqa: F811
     open_tool("race_calculator.RaceCalculator", window)  # navigation bar tool: kept open when left
     first = page_of(window, "RaceCalculator")
     open_tool("brake_editor.BrakeEditor", window)  # from the palette over the first page
-    page = page_of(window, "BrakeEditor")
+    page = page_of(window, "DataEditors")
     assert page.origin is first and page._button_crumb.text() == first.title
     first.dialog.close()
     flush()
-    assert page.origin is None and page._button_crumb.text() == "Tools"  # page gone: Tools page of the tool
+    assert page.origin is None and page._button_crumb.isHidden()  # page gone: no breadcrumb (no Tools page)
 
 
 # --- N5: Preset Comparison
@@ -134,15 +134,11 @@ def test_preset_comparison_opens_compare_panel(window):  # noqa: F811
     assert requested == ["compare", "compare"]
 
 
-# --- N8 & N9: Tools page
-def test_tools_page_opens_pages_and_alerts_in_page(window, monkeypatch):  # noqa: F811
+# --- N9: tool failing to open
+def test_tool_failing_to_open_alerts_in_page(window, monkeypatch):  # noqa: F811
     from neopedal.ui import tools_view
-    from neopedal.ui.nav_rail import PAGE_INDEX
     from neopedal.ui.quick import dialogs
 
-    view = window.centralWidget()
-    tools_view.open_page_or_tool("page:hotkey", window)
-    assert view.current_index() == PAGE_INDEX["hotkey"]
     alerts = []
     monkeypatch.setattr(dialogs, "alert", lambda parent, title, text, *args, **kwargs: alerts.append(text))
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: pytest.fail("message box"))

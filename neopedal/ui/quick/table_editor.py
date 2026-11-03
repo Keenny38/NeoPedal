@@ -90,6 +90,7 @@ class Column:
         decimals: most decimals shown (numbers).
         replace: offered by Replace.
         action: cell menu action of column ("telemetry": speed trap set from car position).
+        map_action: cell menu "Set from Map Position" (distance of the map shown beside the table, see map_action).
     """
 
     key: str
@@ -101,6 +102,7 @@ class Column:
     decimals: int = 4
     replace: bool = False
     action: str = ""
+    map_action: bool = False
 
 
 class EditorHost(Protocol):
@@ -285,6 +287,9 @@ class TableEditorBackend(PageBackend):
 
     def cell_action(self, key: int, column: int):
         """Cell menu action of column (Column.action)"""
+
+    def map_action(self, key: int, column: int):
+        """Cell menu "Set from Map Position" of column (Column.map_action)"""
 
     # Page
     def page_shown(self):
@@ -496,6 +501,7 @@ class TableEditorBackend(PageBackend):
                 "right": spec.kind in (KIND_NUMBER, KIND_CLOCK),
                 "action": spec.action,
                 "actionText": tr("Set from Telemetry") if spec.action == "telemetry" else "",
+                "mapAction": spec.map_action,
                 "symbol": symbol,
             })
         self._columns = found
@@ -596,6 +602,11 @@ class TableEditorBackend(PageBackend):
     def cellAction(self, key: int, column: int):
         if self.index_of(key) >= 0 and 0 <= column < len(self.COLUMNS) and self.COLUMNS[column].action:
             self.cell_action(key, column)
+
+    @Slot(int, int)
+    def mapAction(self, key: int, column: int):
+        if self.index_of(key) >= 0 and 0 <= column < len(self.COLUMNS) and self.COLUMNS[column].map_action:
+            self.map_action(key, column)
 
     def set_busy(self, busy: bool):
         if busy != self._busy:

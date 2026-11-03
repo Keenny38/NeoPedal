@@ -29,8 +29,8 @@ The app is built with PySide6 (Qt 6) and runs in English or French.
 | [Game Setup](Game-Setup.md) | Le Mans Ultimate and rFactor 2 setup on Windows and Linux |
 | [Getting Started](Getting-Started.md) | First launch, moving overlays, layout editor, configuring overlays, hotkeys |
 | [Overlays](Overlays.md) | Modern and classic design, themes, visibility, the list of all overlays, Dashboard HUD |
-| [Presets and Settings](Presets-and-Settings.md) | Presets, preset packages, trash, backups, global config, languages |
-| [Telemetry Viewer](Telemetry-Viewer.md) | Lap recording and analysis, track map viewer |
+| [Presets and Settings](Presets-and-Settings.md) | Presets, preset packages, trash, backups, data editors, global config, languages |
+| [Telemetry Viewer](Telemetry-Viewer.md) | Lap recording and analysis, track maps |
 | [Race Calculator](Race-Calculator.md) | Fuel, energy and tyre strategy, live race, Race plan overlay |
 | [Driver Stats](Driver-Stats.md) | Career, levels, progression, sessions |
 | [Results & Replays](Race-Results.md) | Classification, positions lap by lap, laps and events of every session, game replays linked to them |
@@ -38,7 +38,7 @@ The app is built with PySide6 (Qt 6) and runs in English or French.
 | [Broadcast Director](Broadcast-Director.md) | Cast a Le Mans Ultimate race: director, cameras, commentator screen, broadcast graphics for your stream |
 | [Connections](Connections.md) | Remote control, WebSocket, web dashboard, stream overlays, VR, session recorder, game replays |
 | [Updates and Security](Updates-and-Security.md) | In-app updates, release files, verifying downloads, reporting a vulnerability |
-| [Troubleshooting](Troubleshooting.md) | FAQ: overlay not visible, game not detected, safe mode, logs, bug reports |
+| [Troubleshooting](Troubleshooting.md) | FAQ: overlay not visible, game not detected, logs, bug reports |
 | [Development](Development.md) | Running from source, checks, architecture, Windows build, release process |
 
 Every option of every overlay, module and tool is described in the [settings reference (customization.md)](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md), which is also bundled with the app.

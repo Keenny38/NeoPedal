@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication, QStackedWidget, QSystemTrayIcon, QVB
 
 from neopedal import app_signal
 from neopedal.setting import cfg
+from tests.test_dialog_pages import add_to_rail
 
 
 def flush_deleted():
@@ -168,6 +169,7 @@ def test_rail_tool_page_released_live_page_kept(window, monkeypatch):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # under More by default
     clock = FakeClock()
     monkeypatch.setattr(view._idle_release, "_clock", clock)
     window.show()
@@ -205,6 +207,7 @@ def test_live_pages_released_once_turned_off(window, monkeypatch):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator", "broadcast_director")  # under More by default
     clock = FakeClock()
     monkeypatch.setattr(view._idle_release, "_clock", clock)
     window.show()
@@ -248,20 +251,20 @@ def test_app_page_released_and_built_again(window, monkeypatch):
     window.show()
     QApplication.processEvents()
     quick_keys = []
-    for key in ("widget", "preset", "hotkey"):
+    for key in ("widget", "preset"):
         view.set_current_index(PAGE_INDEX[key])
         QApplication.processEvents()
         if view._lazy_pages[key].page.findChild(QQuickWidget) is not None:
             quick_keys.append(key)
-    assert "hotkey" in quick_keys  # Hotkeys page in QML since the UI/UX audit 2026-10-29: released too
+    assert quick_keys  # main pages in QML: released too
     view.set_current_index(PAGE_INDEX["home"])
     QApplication.processEvents()
     clock.now += 5 * 60
     view._idle_release.check()
-    assert all(view._lazy_pages[key].page is not None for key in ("widget", "preset", "hotkey"))  # too early
+    assert all(view._lazy_pages[key].page is not None for key in ("widget", "preset"))  # too early
     clock.now += 6 * 60
     view._idle_release.check()
-    for key in ("widget", "preset", "hotkey"):
+    for key in ("widget", "preset"):
         assert (view._lazy_pages[key].page is None) == (key in quick_keys), key  # widget pages kept
     flush_deleted()
     for key in quick_keys:

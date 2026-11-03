@@ -521,6 +521,12 @@ TpPage {
             text: cellMenu.spec !== null ? cellMenu.spec.actionText : ""
             onTriggered: backend.cellAction(backend.currentKey, cellMenu.column)
         }
+        TpMenuItem {
+            visible: cellMenu.spec !== null && cellMenu.spec.mapAction === true
+            height: visible ? implicitHeight : 0
+            text: i18n.tr("Set from Map Position")
+            onTriggered: backend.mapAction(backend.currentKey, cellMenu.column)
+        }
         MenuSeparator {}
         TpMenuItem {
             text: i18n.tr("Delete Rows")

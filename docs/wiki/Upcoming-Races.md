@@ -2,7 +2,7 @@
 
 The **Upcoming Races** page lists the online races of Le Mans Ultimate to come, as the game menu shows them: daily races, weekly and special events, championships, co-op events and the servers hosted by players.
 
-Open it with the `Races` entry of the navigation bar, the `Tools` page, the command palette (`Ctrl+K`, type "races"), or the `Next Races` card of the Home page.
+Open it with the `Races` entry of the navigation bar, the `Tools` menu, the command palette (`Ctrl+K`, type "races"), or the `Next Races` card of the Home page.
 
 ## Where the races come from
 
@@ -31,7 +31,7 @@ Each race card tells the next start (`Tomorrow` for the next day) and the time t
 Click a race, a championship, a co-op event or a hosted server (card or line) for its menu, in three groups: the race (register, field, leaderboard), planning (reminder, calendar), then your own data on the track:
 
 - **Driver Stats**, **Recorded Laps** (Telemetry viewer) and **Prepare Race** (Race Calculator) for the class you drove on the track, or one submenu each listing your classes when you drove several; `Track Stats` and `Prepare Race in Calculator` when you never drove there. Hosted servers have these entries only.
-- **Remind Me Before** (start time): 5, 10 or 30 min, the one set shown on the entry; a notification of the app and a message of the tray icon (shown over the game) before the start, whichever page is open, kept after a restart (`race_reminders.json`). A bell shows on the race. `Cancel Reminder` removes it.
+- **Remind Me Before** (start time): 5, 10 or 30 min, and the time of `number_of_minutes_before_race_reminder` (`Settings` > `Notification`, 10 by default, also the reminder set when you register), the one set shown on the entry; a notification of the app and a message of the tray icon (shown over the game) before the start, whichever page is open, kept after a restart (`race_reminders.json`). `number_of_minutes_before_last_race_reminder` adds a last reminder (for example 30 then 2 minutes before; `0`, the default, for none). A reminder offers `Remind Me in 2 Min`, flashes the app button in the taskbar, shows in the `Race Notifications` overlay and on the Web Dashboard, and plays a sound (`race_reminder_sound`: by default only while Windows hides its notifications, over a full screen game for example; `race_reminder_sound_file_name` for a sound file of your own). A bell shows on the race. `Cancel Reminder` removes it.
 - **Show Field**: drivers registered to the next start, by class, Driver Rank and Safety Rank (counts only).
 - **Practice Servers** (daily, weekly and special races): the practice servers open for the race, as the game lists them: players and until when, with the time they were read. Read only when asked (click again to read them again); join them from the game. Practice+ servers (RaceControl Pro) are not listed.
 - **Export to Calendar…**: an `.ics` file of the next start, or of every round to come of a championship.

@@ -70,7 +70,7 @@ class Realtime(DriverTable):
         "display_order_track_limits", "column_energy_per_lap", "show_energy_per_lap_average",
         "display_order_energy_per_lap", "column_driver_ranks", "column_driver_badge",
         "display_order_driver_ranks", "display_order_driver_badge", "column_gap_trend", "display_order_gap_trend",
-        "column_car_number", "display_order_car_number",
+        "column_car_number", "display_order_car_number", "column_nationality", "display_order_nationality",
     )
 
     def __init__(self, config, widget_name):

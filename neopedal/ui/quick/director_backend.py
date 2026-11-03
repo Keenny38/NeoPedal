@@ -271,7 +271,6 @@ class DirectorBackend(PageBackend):
         self._held_order: list[str] | None = None
         self._key_labels: dict[str, str] = {}  # director hotkeys: key text ("" if none), see refresh_key_labels
         self._hotkey_rows: list[dict] = []
-        self._global_keys = False
         self.session_key: tuple[str, str, float] = ("", "", 0)
         self.session_time = -1.0
         self.time_received = 0.0  # time.time() of session time (clock moved from it by QML Date.now())
@@ -1663,17 +1662,16 @@ class DirectorBackend(PageBackend):
             self.update_suggestions()
 
     def refresh_key_labels(self):
-        """Key text of each director hotkey ("" if none, or global hotkeys off): tooltips & keys sheet"""
+        """Key text of each director hotkey ("" if none): tooltips & keys sheet"""
         from ...hotkey.common import format_hotkey_name
         from ...i18n.options import option_label
 
         shortcuts = cfg.user.shortcuts or {}
-        enabled = bool(cfg.application.get("enable_global_hotkey"))
-        labels = {name: format_hotkey_name(str(shortcuts.get(name, {}).get("bind", ""))) if enabled else ""
+        labels = {name: format_hotkey_name(str(shortcuts.get(name, {}).get("bind", "")))
                   for name in DIRECTOR_HOTKEYS}
         rows = [{"name": name, "label": option_label(name), "key": labels[name]} for name in DIRECTOR_HOTKEYS]
-        if labels != self._key_labels or rows != self._hotkey_rows or enabled != self._global_keys:
-            self._key_labels, self._hotkey_rows, self._global_keys = labels, rows, enabled
+        if labels != self._key_labels or rows != self._hotkey_rows:
+            self._key_labels, self._hotkey_rows = labels, rows
             self.keysChanged.emit()
 
     @Property(dict, notify=keysChanged)
@@ -1685,11 +1683,6 @@ class DirectorBackend(PageBackend):
     def hotkeyRows(self) -> list:
         """Director hotkeys of the keys sheet: name, label (language of the app), key text ("" if none)"""
         return self._hotkey_rows
-
-    @Property(bool, notify=keysChanged)
-    def globalHotkeys(self) -> bool:
-        """Global hotkeys on (app settings): director hotkeys work"""
-        return self._global_keys
 
     @Property(bool, notify=lostChanged)
     def gameLost(self) -> bool:

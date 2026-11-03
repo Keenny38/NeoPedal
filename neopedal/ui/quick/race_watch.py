@@ -39,7 +39,6 @@ from functools import partial
 from PySide6.QtCore import QObject, QTimer, Signal
 
 from ... import race_schedule_info as info
-from ...i18n import tr
 from ...process import race_schedule as rs
 from .background import BackgroundJobs
 
@@ -66,10 +65,11 @@ def ended_starts(schedule: rs.Schedule, now: float) -> list[tuple[rs.Event, rs.S
             if start.registered and start.event_id and 0 < now - rs.race_end(event, start) < FORGET_SECONDS]
 
 
-def race_text(text: str, event: rs.Event, start: rs.Start, now: float) -> str:
+def race_message(template: str, event: rs.Event, start: rs.Start, now: float) -> tuple:
+    """Message of a race (English template: %1 race, %2 start), see notification.MessageText"""
     from .schedule_view import start_text
 
-    return text.replace("%1", event.title).replace("%2", start_text(start.time, now))
+    return ((template, (event.title, start_text(start.time, now))),)
 
 
 class RaceWatch(QObject):
@@ -138,11 +138,12 @@ class RaceWatch(QObject):
         now = self._clock()
         if rs.event_cancelled(answer):
             self._ready[start.event_id] = start.time  # nothing more to read
-            self.tell(race_text(tr("Race cancelled by RaceControl: %1 (%2)"), event, start, now))
+            self.tell(race_message("Race cancelled by RaceControl: %1 (%2)", event, start, now),
+                      "Race cancelled", event.title)
         elif info.player_id() and not rs.is_registered(answer, info.player_id()):
             self._ready[start.event_id] = start.time
-            self.tell(race_text(tr("No longer registered to %1 (%2): registration removed by RaceControl"),
-                                event, start, now))
+            self.tell(race_message("No longer registered to %1 (%2): registration removed by RaceControl",
+                                   event, start, now), "Registration removed", event.title)
 
     def split_read(self, event: rs.Event, start: rs.Start, split: rs.SplitState | None):
         """Server of your split read: told once ready (not answered SPLIT_MISSES times in a row: no longer asked)"""
@@ -154,18 +155,22 @@ class RaceWatch(QObject):
             return
         self._ready[start.event_id] = start.time
         now = self._clock()
-        text = race_text(tr("Server ready: %1 (%2). Join it from the game (Join Event)."), event, start, now)
+        message = race_message("Server ready: %1 (%2). Join it from the game (Join Event).", event, start, now)
+        detail = event.title
         if split.splits > 1 and split.split:
-            text += " " + tr("Split %1 of %2").replace("%1", str(split.split)).replace("%2", str(split.splits))
-        self.tell(text)
+            message += (("Split %1 of %2", (str(split.split), str(split.splits))),)
+            detail = f"{detail} · {split.split}/{split.splits}"
+        self.tell(message, "Server ready", detail, sound=True)
         self.changed.emit()
 
     @staticmethod
-    def tell(text: str):
+    def tell(message: tuple, title: str, detail: str, sound: bool = False):
+        """Told like the race reminders (title & detail: Race Notifications overlay), see RaceReminders.tell"""
+        from ..notification import message_text
         from .schedule_reminders import RaceReminders
 
-        logger.info("RACE WATCH: %s", text)
-        RaceReminders.tell(text)
+        logger.info("RACE WATCH: %s", message_text(message))
+        RaceReminders.tell(message, title, detail, sound)
 
 
 _watch: RaceWatch | None = None

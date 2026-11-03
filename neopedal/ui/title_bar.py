@@ -281,7 +281,6 @@ class TitleBar(QWidget):
         self.menu_bar = QMenuBar(self)
         self.menu_bar.setObjectName("titleMenuBar")
         self.menu_bar.hide()
-        self.customize_rail: Callable[[], None] | None = None  # rail editor of the view, end of the menu
         # Back & Forward of the view inserted after the menu button, status chips & app tools before caption
         # buttons, see dock
         self._layout = layout
@@ -347,9 +346,6 @@ class TitleBar(QWidget):
         menu = QMenu(self)
         menu.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         menu.addActions(self.menu_bar.actions())  # submenus of the menu bar, shared
-        if self.customize_rail is not None:  # More button of the rail not shown
-            menu.addSeparator()
-            menu.addAction(tr("Customize Navigation Bar\u2026")).triggered.connect(self.customize_rail)
         # Restart & Quit last, as the File menu of a Windows app (left out of the Window menu, see set_menu_bar)
         restart_app = getattr(self._window, "restart_app", None)
         quit_app = getattr(self._window, "quit_app", None)

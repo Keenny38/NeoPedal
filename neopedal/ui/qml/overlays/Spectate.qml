@@ -309,7 +309,7 @@ TpPage {
             Text {
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignRight
-                text: i18n.tr("Hotkeys can switch spectate mode & drivers (Hotkeys page)")
+                text: i18n.tr("Hotkeys can switch spectate mode & drivers (Settings > Hotkeys)")
                 color: theme.dimText
                 font.pointSize: theme.fontSmall
                 elide: Text.ElideRight

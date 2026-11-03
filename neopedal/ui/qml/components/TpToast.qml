@@ -6,7 +6,8 @@ import QtQuick
 // button (actionText, action signal): "Undo" after an action done without confirmation.
 // level: "success" (check, default), "info", "warning", "error" (error: true is the same as level "error"),
 // told by icon & border color. Screen readers announce it (alert). Same durations as the widget toasts
-// (ui/toast.py toast_duration). textFormat: Text.StyledText only for escaped text (Python safe_markup).
+// (ui/toast.py toast_duration, theme.toast* tokens), counted on the text without markup. textFormat: Text.StyledText
+// only for escaped text (Python safe_markup).
 Rectangle {
     id: toast
     property string text: ""
@@ -18,9 +19,13 @@ Rectangle {
     property bool shown: false
     readonly property bool failed: level === "error"
     readonly property color tone: level === "error" ? theme.loss : level === "warning" ? theme.warning
-                                : level === "info" ? theme.accent : theme.gain
+                                : level === "info" ? theme.info : theme.gain
+    // Characters read: markup tags left out, an entity (&lt;) one character
+    readonly property int readLength: textFormat === Text.StyledText
+        ? text.replace(/<[^>]*>/g, "").replace(/&(#?[A-Za-z0-9]+);/g, "x").length : text.length
     readonly property int shownTime: duration > 0 ? duration
-        : Math.round(Math.max(3000, text.length * 55 + 1500) * (failed ? 1.5 : 1) + (actionText !== "" ? 3000 : 0))
+        : Math.round(Math.max(theme.toastMinimumTime, readLength * theme.toastTimePerCharacter + theme.toastReadStartTime)
+                     * (failed ? theme.toastErrorFactor : 1) + (actionText !== "" ? theme.toastActionExtraTime : 0))
     // Mouse over the toast, or its action button focused: kept shown
     readonly property bool held: hover.hovered || actionButton.activeFocus
     signal action()

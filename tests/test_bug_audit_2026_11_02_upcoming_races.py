@@ -71,10 +71,12 @@ def read_schedule(moved: dict[float, float | None], missing: tuple[str, ...] = (
 
 
 def make_reminders(monkeypatch, now):
+    from neopedal.ui.notification import message_text
     from neopedal.ui.quick import schedule_reminders as sr
 
     told = []
-    monkeypatch.setattr(sr.RaceReminders, "tell", staticmethod(told.append))
+    monkeypatch.setattr(sr.RaceReminders, "tell",
+                        staticmethod(lambda message, *args, **kwargs: told.append(message_text(message))))
     reminders = sr.RaceReminders(clock=lambda: now[0])
     reminders.set(f"{RACE}@{int(OLD)}", "LMP2 Fixed", "Portimao", OLD, 5)
     return reminders, told
@@ -148,6 +150,7 @@ def test_b001_reminder_kept_when_schedule_not_read(ui_env, monkeypatch):
 
 # B-002: reminder told when the app starts (or the PC wakes) after its time but before the start, real time left
 def test_b002_reminder_told_when_app_started_late_before_start(ui_env, monkeypatch):
+    from neopedal.ui.notification import message_text
     from neopedal.ui.quick import schedule_reminders as sr
 
     start = DAY + 3600
@@ -156,7 +159,8 @@ def test_b002_reminder_told_when_app_started_late_before_start(ui_env, monkeypat
     assert sr.due_reminders([entry], start) == ([], [])  # start passed: dropped
     now = [start - 15 * 60]
     told = []
-    monkeypatch.setattr(sr.RaceReminders, "tell", staticmethod(told.append))
+    monkeypatch.setattr(sr.RaceReminders, "tell",
+                        staticmethod(lambda message, *args, **kwargs: told.append(message_text(message))))
     reminders = sr.RaceReminders(clock=lambda: now[0])
     reminders.set("k", "LMP3 Fixed", "Sebring", start, 30)
     reminders.check()

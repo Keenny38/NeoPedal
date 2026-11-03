@@ -501,7 +501,7 @@ def test_too_big_overlay_cut_and_user_told(editing, monkeypatch):
 
     start, _overlays, _saved = editing
     errors = []
-    app_signal.error.connect(errors.append)
+    app_signal.warning.connect(errors.append)  # cut to the screen: a warning
     try:
         natural = start("speedometer").size()
         _overlays.pop("speedometer").stop()
@@ -509,7 +509,7 @@ def test_too_big_overlay_cut_and_user_told(editing, monkeypatch):
         monkeypatch.setattr(_base.limited_size, "__defaults__", (20,))
         widget = start("speedometer")
     finally:
-        app_signal.error.disconnect(errors.append)
+        app_signal.warning.disconnect(errors.append)
     assert natural.width() > 20
     assert widget.width() <= 20 and widget.height() <= 20
     assert len(errors) == 1 and "is too big" in errors[0]

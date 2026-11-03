@@ -5,6 +5,24 @@ French translation (English UI text: French text)
 from types import MappingProxyType
 
 TRANSLATION = MappingProxyType({
+    # Pages merged 2026-11-03: Data Editors (former editors & Pace Notes page), Performance tab of Modules, Plugins of
+    # Overlays
+    "Data Editors": "Éditeurs de données",
+    "Heatmaps": "Heatmaps",
+    "Classes, brands, compounds, brakes, heatmaps, tracks and track & pace notes":
+        "Catégories, marques, gommes, freins, heatmaps, circuits, notes de piste et de pilotage",
+    "Playback": "Lecture",
+    "Read Pace Notes Aloud": "Lire les notes de pilotage à voix haute",
+    "Playback Settings…": "Réglages de lecture…",
+    "Pace notes read aloud while driving: on": "Notes de pilotage lues à voix haute en roulant\u00a0: activé",
+    "Pace notes read aloud while driving: off": "Notes de pilotage lues à voix haute en roulant\u00a0: désactivé",
+    "Plugin Manager: install, trust and enable overlay plugins":
+        "Gestionnaire de plugins\u00a0: installer, approuver et activer les plugins d'overlays",
+    # Pages merged 2026-11-03 (2): Modules & Hotkeys in Settings, map of the Tracks tab, Spectate tab of the Director
+    "Director": "Régie",
+    "Set from Map Position": "Définir depuis la position sur la carte",
+    "Data modules computing what overlays and tools need":
+        "Modules de données qui calculent ce dont les overlays et les outils ont besoin",
     # UI/UX audit 2026-11-01, lot 1: overlay switch named, Director modes explained, page error buttons
     "Enable %1": "Activer %1",
     "Disable %1": "Désactiver %1",
@@ -85,12 +103,6 @@ TRANSLATION = MappingProxyType({
     "Move the plugin files to the recycle bin (restart to unload it)": "Mettre les fichiers du plugin à la corbeille du système (redémarrer pour le décharger)",
     "Uninstall Plugin": "Désinstaller le plugin",
     "Uninstall": "Désinstaller",
-    "Drag entries to reorder, or use the arrows. Add entries from the list on the right. "
-    "Ctrl+1 to Ctrl+9 open the first 9 entries, hidden pages stay in the More menu at the bottom of the bar "
-    "and in command palette (Ctrl+K).":
-        "Faites glisser les entrées pour les réordonner, ou utilisez les flèches. Ajoutez des entrées depuis la "
-        "liste de droite. Ctrl+1 à Ctrl+9 ouvrent les 9 premières entrées ; les pages masquées restent dans le "
-        "menu Plus en bas de la barre et dans la palette de commandes (Ctrl+K).",
     "Game, preset, overlays & last session at a glance": "Jeu, preset, overlays et dernière session d'un coup d'œil",
     "Turn overlays on or off and open their options": "Activer ou désactiver les overlays et ouvrir leurs options",
     "Data modules recording what overlays and tools need": "Modules de données qui enregistrent ce dont ont besoin les overlays et les outils",
@@ -122,14 +134,27 @@ TRANSLATION = MappingProxyType({
     "In the navigation bar": "Dans la barre de navigation",
     "Messages": "Messages",
     "No notifications": "Aucune notification",
-    "Errors of background tasks, saving problems and updates found are kept here.": "Les erreurs des tâches de fond, les problèmes d'enregistrement et les mises à jour trouvées sont gardés ici.",
+    "Errors of background tasks, saving problems, updates found and race reminders are kept here.": "Les erreurs des tâches de fond, les problèmes d'enregistrement, les mises à jour trouvées et les rappels de course sont gardés ici.",
+    "Errors": "Erreurs",
+    "Warnings": "Avertissements",
+    "Open Upcoming Races": "Ouvrir Courses à venir",
+    "Remind Me in 2 Min": "Me le rappeler dans 2 min",
+    "Reminder in 2 min": "Rappel dans 2 min",
+    "The race starts too soon to remind you again.": "La course commence trop tôt pour un nouveau rappel.",
+    "Notification Settings": "Réglages des notifications",
+    "Search messages": "Rechercher dans les messages",
+    "Don't Show Again": "Ne plus afficher",
+    "No message found": "Aucun message trouvé",
+    "Show Muted Messages Again (%1)": "Réafficher les messages masqués (%1)",
+    "Sound file": "Fichier son",
+    "When Windows Hides Notifications": "Quand Windows cache les notifications",
+    "Never": "Jamais",
     "Search pages, tools, commands, settings, presets, options…": "Rechercher pages, outils, commandes, paramètres, presets, options…",
     "Nothing found": "Rien trouvé",
     "Up / Down to move, Enter to run, Esc to close": "Haut / Bas pour se déplacer, Entrée pour lancer, Échap pour fermer",
     "Find a shortcut": "Trouver un raccourci",
     "No shortcut found": "Aucun raccourci trouvé",
     "Global hotkeys work while the game has focus.": "Les raccourcis globaux fonctionnent pendant que le jeu a le focus.",
-    "Global hotkeys are off: turn them on in the Hotkeys page.": "Les raccourcis globaux sont désactivés : activez-les dans la page Raccourcis.",
     "Edit Hotkeys…": "Modifier les raccourcis…",
     # Common
     "Error": "Erreur",
@@ -1005,8 +1030,6 @@ TRANSLATION = MappingProxyType({
     "List": "Liste",
     "Overlay could not start, see log (Help menu)": "L'overlay n'a pas pu démarrer, voir le journal (menu Aide)",
     "1 overlay could not start, see log.": "1 overlay n'a pas pu démarrer, voir le journal.",
-    "Safe mode: overlays are not started. Restart normally to show them.":
-        "Mode sans échec : les overlays ne sont pas lancés. Redémarrez normalement pour les afficher.",
     "No overlay matches the filters": "Aucun overlay ne correspond aux filtres",
     "Clear Filters": "Effacer les filtres",
     "Enable the modules shown": "Activer les modules affichés",
@@ -1591,8 +1614,17 @@ TRANSLATION = MappingProxyType({
     "Speed drop & rise counted as a corner: lower finds more corners": "Baisse puis reprise de vitesse comptée comme un virage : plus bas, plus de virages trouvés",
     "Open Pages": "Pages ouvertes",
     "Close All": "Tout fermer",
-    "Customize Navigation Bar": "Personnaliser la barre de navigation",
-    "Customize Navigation Bar…": "Personnaliser la barre de navigation…",
+    "Other Pages": "Autres pages",
+    "Move the entry up or down": "Monter ou descendre l'entrée",
+    "Drag entries to arrange the bar": "Glissez les entrées pour organiser la barre",
+    "+ or drag it to add it to the bar": "+ ou glissez-la pour l'ajouter à la barre",
+    "Reset Navigation Bar": "Réinitialiser la barre de navigation",
+    "Reset Navigation Bar…": "Réinitialiser la barre de navigation…",
+    "Show the default entries of the navigation bar again?": "Remettre les entrées par défaut de la barre de navigation ?",
+    "Show pages not in the bar": "Afficher les pages absentes de la barre",
+    "Hide pages not in the bar": "Masquer les pages absentes de la barre",
+    "Add to Navigation Bar": "Ajouter à la barre de navigation",
+    "Remove from Navigation Bar": "Retirer de la barre de navigation",
     "Up": "Monter",
     "Down": "Descendre",
     "Tool": "Outil",
@@ -2346,7 +2378,6 @@ TRANSLATION = MappingProxyType({
     "Stream": "Stream",
     "Server off": "Serveur arrêté",
     "Port %1 unavailable": "Port %1 indisponible",
-    "Off in safe mode": "Arrêté en mode sans échec",
     "On air: %1 sources shown": "En direct : %1 sources affichées",
     "Ready": "Prêt",
     "New access token: copy the addresses again into your streaming software": "Nouveau jeton d'accès : copiez à nouveau les adresses dans votre logiciel de stream",
@@ -2556,9 +2587,8 @@ TRANSLATION = MappingProxyType({
     "Close the open popup (never the page)": "Fermer la fenêtre ouverte (jamais la page)",
     "A focused button, list or field keeps its own keys: click an empty place of the page first.":
         "Un bouton, une liste ou un champ actif garde ses propres touches : cliquez d'abord sur un endroit vide de la page.",
-    "Work with this page hidden too. Set them on the Hotkeys page.": "Fonctionnent aussi page masquée. Réglez-les dans la page Raccourcis.",
-    "Global hotkeys are off: turn them on in the settings to use these keys.":
-        "Les raccourcis globaux sont désactivés : activez-les dans les paramètres pour utiliser ces touches.",
+    "Work with this page hidden too. Set them in Settings > Hotkeys.":
+        "Fonctionnent aussi page masquée. Réglez-les dans Paramètres > Raccourcis.",
     "Not set": "Non défini",
     "Broadcast Director on or off": "Régie de course activée ou coupée",
     "Broadcast Director is off": "Régie de course désactivée",
@@ -2768,10 +2798,6 @@ TRANSLATION = MappingProxyType({
     "limited by tyre life": "limité par l'usure des pneus",
     "Fuel unit of the plan (Units setting)": "Unité de carburant du plan (paramètre Unités)",
     "Plan image copied": "Image du plan copiée",
-    "NeoPedal did not finish starting last time.\n\nStart in safe mode? Plugins and overlays are not started, so settings can be fixed, then NeoPedal restarted normally (Window menu, Restart NeoPedal).": "NeoPedal n'a pas fini de démarrer la dernière fois.\n\nDémarrer en mode sans échec ? Les plugins et les overlays ne sont pas lancés : les paramètres peuvent être corrigés, puis NeoPedal redémarré normalement (menu Fenêtre, Redémarrer NeoPedal).",
-    "Safe Mode": "Mode sans échec",
-    "Safe mode: plugins are not loaded and overlays are not started.\n\nFix the settings that stopped NeoPedal from starting, then restart normally.": "Mode sans échec : les plugins ne sont pas chargés et les overlays ne sont pas lancés.\n\nCorrigez les paramètres qui empêchaient NeoPedal de démarrer, puis redémarrez normalement.",
-    "Restart Normally": "Redémarrer normalement",
     "Access code": "Code d'accès",
     "NeoPedal Dashboard": "Tableau de bord NeoPedal",
     "Connecting…": "Connexion…",
@@ -3182,9 +3208,12 @@ TRANSLATION = MappingProxyType({
     "Back to default entries": "Rétablir les entrées par défaut",
     "Back to default order (saved with Apply)": "Rétablir l'ordre par défaut (enregistré avec Appliquer)",
     "Buttons of home page: drag entries to reorder, or use the arrows. "
-    "Add tools, pages or actions from the list on the right.":
+    "Add tools, pages or actions from the list on the right. "
+    "Entries of the navigation bar are not repeated on the home page.":
         "Boutons de la page d'accueil : faites glisser les entrées pour les réordonner, ou utilisez les flèches. "
-        "Ajoutez des outils, des pages ou des actions depuis la liste de droite.",
+        "Ajoutez des outils, des pages ou des actions depuis la liste de droite. "
+        "Les entrées de la barre de navigation ne sont pas répétées sur la page d'accueil.",
+    "In Navigation Bar": "Dans la barre",
     # Presets, Spectate, Find Option & Settings pages (Qt Quick)
     "Show the data of another driver in your overlays": "Afficher les données d'un autre pilote dans vos overlays",
     "Spectate mode": "Mode spectateur",
@@ -3203,8 +3232,8 @@ TRANSLATION = MappingProxyType({
     "No driver matches the filters": "Aucun pilote ne correspond aux filtres",
     "Drivers show here while you are in a session, game running.":
         "Les pilotes s'affichent ici pendant une session, jeu lancé.",
-    "Hotkeys can switch spectate mode & drivers (Hotkeys page)":
-        "Des raccourcis peuvent changer le mode spectateur et le pilote (page Raccourcis)",
+    "Hotkeys can switch spectate mode & drivers (Settings > Hotkeys)":
+        "Des raccourcis peuvent changer le mode spectateur et le pilote (Paramètres > Raccourcis)",
     "Unknown": "Inconnue",
     "Changed Only": "Modifiées seulement",
     "Only options set apart from their default value": "Seulement les options qui n'ont pas leur valeur par défaut",
@@ -3256,7 +3285,6 @@ TRANSLATION = MappingProxyType({
     "Discard": "Annuler les modifications",
     "Drop every unsaved change": "Abandonner toutes les modifications non enregistrées",
     "Save & apply (Ctrl+S)": "Enregistrer et appliquer (Ctrl+S)",
-    "Preview of the notice": "Aperçu de la notification",
     "Choose File…": "Choisir un fichier…",
     # Settings page: settings of the loaded preset (units, global font, pace notes, API & module options)
     "Saved in the loaded preset": "Enregistré dans le preset chargé",
@@ -3307,7 +3335,10 @@ TRANSLATION = MappingProxyType({
     "Modern design, theme, fonts, size & editing of every overlay":
         "Design moderne, thème, polices, taille et édition de tous les overlays",
     "Design": "Design",
-    "Notices shown at the bottom of the main window": "Notifications affichées en bas de la fenêtre principale",
+    "Notification center (bell), Windows notifications & race reminders": "Centre de notifications (cloche), notifications Windows et rappels de course",
+    "Windows Notifications": "Notifications Windows",
+    "Race Reminders": "Rappels de course",
+    "Modes Listed Under Now": "Modes listés sous « Maintenant »",
     "Window manager, transparency & positions on some systems":
         "Gestionnaire de fenêtres, transparence et positions sur certains systèmes",
     "Run hotkey commands from a Stream Deck or a script": "Commandes des raccourcis depuis un Stream Deck ou un script",
@@ -3707,8 +3738,6 @@ TRANSLATION = MappingProxyType({
     "has focus.": (
         "Touches, boutons de souris et boutons de contrôleur (volant, boîte à boutons) qui lancent une action, "
         "même quand le jeu a le focus."),
-    "Global hotkeys are off: turn them on to use and change key bindings.":
-        "Les raccourcis globaux sont désactivés : activez-les pour utiliser et modifier les raccourcis.",
     "Turn On": "Les activer",
     "Search hotkeys": "Rechercher des raccourcis",
     "Assigned only": "Attribués seulement",
@@ -3723,8 +3752,6 @@ TRANSLATION = MappingProxyType({
     "Hotkeys restored": "Raccourcis restaurés",
     "Import and Restart": "Importer et redémarrer",
     "Use as Delta Best": "Utiliser comme delta meilleur tour",
-    "Start in Safe Mode": "Démarrer en mode sans échec",
-    "Start Normally": "Démarrer normalement",
     # UI/UX audit 2026-10-18
     "Columns, sort & colors of the table": "Colonnes, tri et couleurs du tableau",
     "Reload, import, backups & delete": "Recharger, importer, sauvegardes et suppression",
@@ -4132,7 +4159,6 @@ TRANSLATION = MappingProxyType({
     "%1 car approaching": "%1 voiture arrive",
     "On air: %1 source shown": "En direct : %1 source affichée",
     "Plugin folder is a link (symbolic link or junction) to another folder: copy the plugin files instead": "Le dossier du plugin est un lien (lien symbolique ou jonction) vers un autre dossier : copiez plutôt les fichiers du plugin",
-    "Safe mode: plugin not loaded, restart NeoPedal to load it": "Mode sans échec : plugin non chargé, redémarrez NeoPedal pour le charger",
     "Unable to read plugin files": "Impossible de lire les fichiers du plugin",
     "plugin code changed after confirmation, review it again": "le code du plugin a changé après la confirmation, relisez-le",
     "key\x04Shift": "Maj",
@@ -4194,7 +4220,7 @@ TRANSLATION = MappingProxyType({
     "Next Races": "Prochaines courses",
     "Open upcoming races": "Ouvrir les courses à venir",
     "Reading races from RaceControl is off (Driver Rank & Safety Rank online option).": "La lecture des courses sur RaceControl est désactivée (option Driver Rank et Safety Rank en ligne).",
-    "Start Le Mans Ultimate to read the races again: last races read are shown.": "Lancez Le Mans Ultimate pour relire les courses : les dernières courses lues sont affichées.",
+    "Last read: %1. Start Le Mans Ultimate to update the races.": "Dernière lecture : %1. Lancez Le Mans Ultimate pour mettre les courses à jour.",
     "Start Le Mans Ultimate: races are read from RaceControl with the game sign in.": "Lancez Le Mans Ultimate : les courses sont lues sur RaceControl avec la connexion du jeu.",
     "No RaceControl account found for this Steam account.": "Aucun compte RaceControl trouvé pour ce compte Steam.",
     "RaceControl did not answer: last races read are shown.": "RaceControl n'a pas répondu : les dernières courses lues sont affichées.",
@@ -4417,4 +4443,11 @@ TRANSLATION = MappingProxyType({
     "Driver Rank gained": "Driver Rank gagné",
     "Driver Rank lost": "Driver Rank perdu",
     "Expected place: %2": "Place attendue : %2",
+    # Home page review (2026-11-03)
+    "Last ranks known": "Derniers rangs connus",
+    "Not driven": "Pas roulé",
+    "Register from the race on this page.": "Inscrivez-vous depuis la course sur cette page.",
+    "Read your ranks again from RaceControl": "Relire vos rangs sur RaceControl",
+    "Choose your car and register to this race": "Choisir votre voiture et vous inscrire à cette course",
+    "Driving time of each day": "Temps de conduite de chaque jour",
 })

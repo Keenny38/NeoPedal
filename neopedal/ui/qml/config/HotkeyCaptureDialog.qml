@@ -8,14 +8,14 @@ import "../components"
 // actions already using the captured key. Clear empties the binding, Save (or "Assign Anyway") keeps it.
 TpDialog {
     id: dialog
-    readonly property string conflict: backend.captureConflict
+    readonly property string conflict: hotkeyBackend.captureConflict
 
-    title: backend.captureTitle
+    title: hotkeyBackend.captureTitle
     acceptText: conflict !== "" ? i18n.tr("Assign Anyway") : i18n.tr("Save")
     dismissOnOutside: false  // captured key kept: only Esc or the buttons close it
     width: Math.min(overlayItem ? overlayItem.width - theme.space6 * 2 : theme.em * 30, theme.em * 30)
-    onAccepted: backend.saveCapture()
-    onCancelled: backend.cancelCapture()
+    onAccepted: hotkeyBackend.saveCapture()
+    onCancelled: hotkeyBackend.cancelCapture()
 
     // Captured keys
     Rectangle {
@@ -28,11 +28,11 @@ TpDialog {
         Text {
             anchors.fill: parent
             anchors.margins: theme.space4
-            text: backend.captureText
+            text: hotkeyBackend.captureText
             textFormat: Text.PlainText
-            color: backend.capturedBinding !== "" ? theme.text : theme.dimText
-            font.pointSize: backend.capturedBinding !== "" ? theme.fontHeading : theme.fontLabel
-            font.weight: backend.capturedBinding !== "" ? Font.DemiBold : Font.Normal
+            color: hotkeyBackend.capturedBinding !== "" ? theme.text : theme.dimText
+            font.pointSize: hotkeyBackend.capturedBinding !== "" ? theme.fontHeading : theme.fontLabel
+            font.weight: hotkeyBackend.capturedBinding !== "" ? Font.DemiBold : Font.Normal
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap
@@ -59,11 +59,11 @@ TpDialog {
     // Preset loaded by preset hotkeys
     TpCombo {
         Layout.fillWidth: true
-        visible: backend.captureIsPreset
-        model: backend.captureIsPreset ? backend.presetChoices : []
-        currentIndex: backend.presetIndex
+        visible: hotkeyBackend.captureIsPreset
+        model: hotkeyBackend.captureIsPreset ? hotkeyBackend.presetChoices : []
+        currentIndex: hotkeyBackend.presetIndex
         tip: i18n.tr("Preset loaded by this hotkey")
-        onActivated: function(index) { backend.setPresetIndex(index) }
+        onActivated: function(index) { hotkeyBackend.setPresetIndex(index) }
     }
 
     TpButton {
@@ -71,6 +71,6 @@ TpDialog {
         glyph: theme.glyphs.remove
         text: i18n.tr("Clear")
         tip: i18n.tr("No key for this action (saved with Save)")
-        onClicked: backend.clearCapture()
+        onClicked: hotkeyBackend.clearCapture()
     }
 }

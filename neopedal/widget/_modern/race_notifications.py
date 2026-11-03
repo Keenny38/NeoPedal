@@ -49,6 +49,9 @@ ICONS = {
     "Position": "arrow", "Class position": "arrow", "Penalty": "penalty", "Fastest lap": "stopwatch",
     "Blue flag": "flag", "Full course yellow": "flag", "Red flag": "flag", "Green flag": "flag",
     "Lap invalidated": "cross",
+    # App messages (see overlay_messages)
+    "Reminder": "stopwatch", "Server ready": "flag", "Race cancelled": "cross", "Registration removed": "cross",
+    "Error": "cross", "Warning": "info",
     PREVIEW_TITLE: "info",
 }
 

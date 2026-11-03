@@ -59,7 +59,6 @@ from contextlib import suppress
 from types import MappingProxyType, ModuleType
 from typing import TYPE_CHECKING, Any
 
-from . import safe_mode
 from .const_app import LEGACY_PACKAGE
 from .userfile import app_path, write_json
 from .validator import is_finite_number, is_reserved_filename
@@ -97,7 +96,6 @@ UNTRUSTED_ERROR = "Not trusted: review plugin code, then trust it in Plugin Mana
 LINK_ERROR = "Plugin folder is a link (symbolic link or junction) to another folder: copy the plugin files instead"
 UNREADABLE_ERROR = "Unable to read plugin files"  # followed by the error (locked by an antivirus, permissions)
 NATIVE_ERROR = "Native code files (.pyd, .dll, .so, .pth) in plugin folder: remove them, plugin not loaded"
-SAFE_MODE_ERROR = "Safe mode: plugin not loaded, restart NeoPedal to load it"
 # Plugins shipped with NeoPedal: widget name: plugin digest (none since example speed plugin was removed)
 BUNDLED_PLUGINS: MappingProxyType[str, str] = MappingProxyType({})
 
@@ -386,15 +384,8 @@ def load_plugin_widget(package: str, widget_name: str, folder: str = "") -> Modu
     """Load plugin widget module as "<package>.<widget_name>", or error placeholder if failed
 
     Code is read once: digest checked & code run from the same bytes (never from bytecode).
-    Safe mode: no plugin code run at all.
     """
     module_name = f"{package}.{widget_name}"
-    if safe_mode.state.enabled:
-        logger.warning("PLUGIN: %s not loaded (safe mode)", widget_name)
-        PLUGIN_ERRORS[widget_name] = SAFE_MODE_ERROR
-        placeholder = error_placeholder(module_name, widget_name, SAFE_MODE_ERROR)
-        sys.modules[module_name] = placeholder
-        return placeholder
     plugin_folder = plugin_path(widget_name, folder)
     path = os.path.join(plugin_folder, "widget.py")
     contents: dict[str, bytes] = {}

@@ -20,7 +20,7 @@ The app checks GitHub for a new release at startup (`check_for_updates_on_startu
 - Option names written in the notes (`show_apex_speed`) are links: a click opens that option (the overlay of the card first, `Find Option` when several overlays have it). A topic naming an overlay offers `Try <overlay>` (turns it on in the loaded preset, `Undo` in the message shown after), then `Options: <overlay>`.
 - The notes are in the app language: French notes come from `CHANGELOG.fr.md` at the release tag, English notes from the GitHub release. When a translation is missing, the English notes are shown.
 - Buttons: `View On GitHub`, `Skip This Version` (both in a `⋯` menu when the window is narrow), `Later` (or `Close`) and `Install Now` (or `Download And Install`), which always keep their text.
-- The notes of the version you have installed are always available offline: `What's New` button on the `Home` page.
+- The notes of the version you have installed are always available offline: `What's New` in the help menu (`?` of the title bar).
 - After an update, the page opens once at the first start of the new version, with the notes of every version since the one you ran before (`show_release_notes_after_update`, also the `Show after each update` switch under the page title). Not at the very first start, nor when an older copy is started.
 
 ### Download and install

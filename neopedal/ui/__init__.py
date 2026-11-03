@@ -479,6 +479,7 @@ def set_style_window(base_font_pt: int) -> str:
     color_success_border = status_color("success_border", palette)
     color_danger = status_color("danger", palette)
     color_warning = status_color("warning", palette)
+    color_info = status_color("info", palette)
 
     # Strip off indentation & comment
     return re.sub(r"\s{4,}|\/\*.*\/", "", f"""
@@ -793,6 +794,9 @@ def set_style_window(base_font_pt: int) -> str:
         }}
         #toast[level="success"] {{
             border-color: {color_success_border};
+        }}
+        #toast[level="info"] {{
+            border-color: {color_info};
         }}
         #toast[level="warning"] {{
             border-color: {color_warning};

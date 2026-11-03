@@ -495,7 +495,7 @@ Item {
                         onClicked: backend.addTyre()
                     }
                     TpButton {
-                        glyph: ""  // settings
+                        glyph: theme.glyphs.settings
                         fallback: "⚙"
                         tip: i18n.tr("Starting tread & wear per stint of compound")
                         onClicked: backend.configureCompound()

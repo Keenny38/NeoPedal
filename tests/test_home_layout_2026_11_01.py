@@ -84,7 +84,7 @@ def rows_of(root, names) -> dict[float, list]:
     return rows
 
 
-CARDS = ("gameCard", "overlaysCard", "presetCard", "weekCard", "driverCard", "lastSessionCard")
+CARDS = ("gameCard", "overlaysCard", "weekCard", "driverCard", "lastSessionCard")  # preset in the overlays card
 
 
 @pytest.mark.parametrize("columns", [3, 2])
@@ -122,7 +122,7 @@ def test_old_ranks_note_and_rank_tooltip_on_page(qml_warnings, home):  # noqa: F
     rank = {"label": "Driver Rank", "value": "Silver 2", "color": "", "lightColor": "", "progress": 0.25,
             "progressText": "25%", "change": "-9%", "changeTone": -1, "chart": [], "tip": "25% of the way to Silver 3"}
     show_cards(home.backend)
-    home.backend.publish("driver", {**DRIVER, "ranks": [rank], "note": "Last ranks seen in game menu, 10/20/26",
+    home.backend.publish("driver", {**DRIVER, "ranks": [rank], "note": "Last ranks known · 10/20/26",
                                     "noteStale": True}, home.backend.driverChanged)
     pump(0.2)
     root = home.view.rootObject()

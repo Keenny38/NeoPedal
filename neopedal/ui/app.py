@@ -143,16 +143,9 @@ def force_foreground(window: QWidget):
             user32.AttachThreadInput(current_thread, foreground_thread, False)
 
 
-def safe_mode_enabled() -> bool:
-    """App started in safe mode: tool pages left open are not reopened (one may have crashed it)"""
-    from .. import safe_mode
-
-    return safe_mode.state.enabled
-
-
 def use_app_title_bar() -> bool:
-    """Main window title bar drawn by the app (Windows, option on, not in safe mode)"""
-    return cfg.application["enable_modern_title_bar"] and not safe_mode_enabled() and app_title_bar_supported()
+    """Main window title bar drawn by the app (Windows, option on)"""
+    return cfg.application["enable_modern_title_bar"] and app_title_bar_supported()
 
 
 def main_window() -> "AppWindow":
@@ -207,9 +200,9 @@ def focus_search_field(page: QWidget) -> bool:
 
 
 class StatusButtonBar(QStatusBar):
-    """Status band of main window: status chips (see notification.NotifyBar, added by the page view), saving
-    state on the right. Background errors go to the notification center (bell of the rail), with a toast while
-    the window is shown. Game & API state is on the rail (API button), theme & scaling in Settings."""
+    """Status band of main window: update chip (see notification.NotifyBar, added by the page view), saving
+    state on the right. Background errors & warnings go to the notification center (bell of the rail), with a toast
+    while the window is shown. Game & API state is on the rail (API button), theme & scaling in Settings."""
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -220,28 +213,46 @@ class StatusButtonBar(QStatusBar):
 
         app_signal.saving.connect(self.label_saving.setVisible)
         app_signal.error.connect(self.show_error)
+        app_signal.warning.connect(self.show_warning)
         from ..userfile.json_setting import notices_ready
         notices_ready()  # messages sent before window was ready (settings file locked at start)
 
     @Slot(str)  # type: ignore[operator]
     def show_error(self, message: str):
         """Background error (thread crash, save failure): kept in notification center, toast while shown"""
-        from .notification import error_actions, notification_store
+        from .notification import error_actions
 
-        text = trm(message)
-        notification_store().add(text, "error", error_actions())
+        self.show_message(message, "error", error_actions())
+
+    @Slot(str)  # type: ignore[operator]
+    def show_warning(self, message: str):
+        """Background problem the app got over: kept in notification center (with the log), toast while shown"""
+        self.show_message(message, "warning", (("View Log", "log"),))
+
+    def show_message(self, message: str, level: str, actions: tuple[tuple[str, str], ...]):
+        """Message (English) kept in notification center, shown in game by the Race Notifications overlay (option),
+        toast of its level while the window is shown"""
+        from .. import overlay_messages
+        from .notification import notification_store
+
+        if notification_store().add(message, level, actions) is None:  # muted: only logged
+            return
+        from .notification import TrayRelay
+
+        if not TrayRelay.holding():  # held while driving: told by the notification once driving stops
+            overlay_messages.post("Error" if level == "error" else "Warning", trm(message), level)
         window = self.window()
         if window.isVisible() and not window.isMinimized():
             view = window.centralWidget() if isinstance(window, QMainWindow) else None
             show_center = getattr(view, "show_notification_center", None)
-            show_toast(window, f"⚠ {text}", action_text=tr("Details") if callable(show_center) else "",
-                       action=show_center if callable(show_center) else None)
+            show_toast(window, trm(message), action_text=tr("Details") if callable(show_center) else "",
+                       action=show_center if callable(show_center) else None, level=level)
 
 
 def startup_page_paths() -> list[str]:
     """Tool page to reopen at startup: only the one shown at quit ("*"), other tools open from navigation rail
     when clicked (startup time, memory)"""
-    if not cfg.application["remember_open_pages"] or safe_mode_enabled():
+    if not cfg.application["remember_open_pages"]:
         return []
     return [path for path in cfg.application["open_pages"].split(",") if path.strip().startswith("*")]
 
@@ -338,9 +349,8 @@ class AppWindow(QMainWindow):
         self._update_timer.timeout.connect(lambda: loader.update_checker.check_due())  # imported once used
         self._update_timer.start(UPDATE_CHECK_POLL_MS)
 
-        # Animations stepped at the refresh rate of the window screen (Qt default: 60 Hz on any screen),
-        # left to Qt in safe mode (calls into Qt Core)
-        self.animation_rate = None if safe_mode_enabled() else AnimationRate(self)
+        # Animations stepped at the refresh rate of the window screen (Qt default: 60 Hz on any screen)
+        self.animation_rate = AnimationRate(self)
 
         # Window state
         self.set_window_state()
@@ -579,7 +589,6 @@ class AppWindow(QMainWindow):
         if isinstance(view, TabView):
             title_bar.dock(DOCK_HISTORY, view.history_buttons())
             title_bar.dock(DOCK_TOOLS, view.tool_buttons())
-            title_bar.customize_rail = view.open_rail_editor
             title_bar.dock(DOCK_STATUS, (view.notify_bar(),))
         status_bar = self.statusBar()
         if isinstance(status_bar, StatusButtonBar):
@@ -764,9 +773,7 @@ class AppWindow(QMainWindow):
         view = self.centralWidget()
         page = view.page_title().removeprefix(MODIFIED_MARKER) if isinstance(view, TabView) else ""
         base = f"{APP_NAME} v{VERSION}"
-        current = self.windowTitle()
-        suffix = current.split(base, 1)[1] if base in current else ""  # " - Safe Mode" added at start, kept
-        title = f"{page}[*] - {base}{suffix}" if page else f"{base}{suffix}"
+        title = f"{page}[*] - {base}" if page else base
         if self.windowTitle() != title:
             self.setWindowTitle(title)
         self.setWindowModified(isinstance(view, TabView) and view.page_modified())
@@ -980,14 +987,12 @@ class AppWindow(QMainWindow):
         """First close to tray: tray message telling the app still runs (once, saved)"""
         if cfg.application.get("close_to_tray_notice_shown", True):
             return
-        tray_icon = self.findChild(QSystemTrayIcon)
-        if tray_icon is None or not tray_icon.isVisible():
-            return
-        cfg.application["close_to_tray_notice_shown"] = True
-        cfg.save(config_type=ConfigType.CONFIG)
-        tray_icon.showMessage(APP_NAME, trm(
-            f"{APP_NAME} keeps running in the notification area. Right-click its icon to quit, "
-            "or turn off Minimize to Tray in the Window menu."), QSystemTrayIcon.MessageIcon.Information, 10000)
+        from .notification import tray_message
+
+        if tray_message(trm(f"{APP_NAME} keeps running in the notification area. Right-click its icon to quit, "
+                            "or turn off Minimize to Tray in the Window menu."), window=self):
+            cfg.application["close_to_tray_notice_shown"] = True
+            cfg.save(config_type=ConfigType.CONFIG)
 
     @Slot(bool)  # type: ignore[operator]
     def reload_preset(self, check_singleton: bool):

@@ -51,7 +51,7 @@ A client can change fields and changes at any time by sending a text message suc
 
 ## Web dashboard
 
-The web dashboard shows live data in a browser, for example on a phone or tablet next to your screen: gear, speed, RPM, delta, lap times, position, fuel (or virtual energy for LMU Hypercar and LMGT3), pedals, tyre and brake temperatures, time left. With LMU it also shows the official delta and marks invalid laps. The page uses the app language and your units.
+The web dashboard shows live data in a browser, for example on a phone or tablet next to your screen: gear, speed, RPM, delta, lap times, position, fuel (or virtual energy for LMU Hypercar and LMGT3), pedals, tyre and brake temperatures, time left. With LMU it also shows the official delta and marks invalid laps. Race reminders, `Server ready` and the errors of the app show as a banner at the top (phones vibrate). The page uses the app language and your units.
 
 1. Open `Settings` > `Web Dashboard` and turn on `enable_web_dashboard` (port `8338` by default, `web_dashboard_port`).
 2. To open it from another device, turn on `enable_lan_access`. Windows Firewall may ask you to allow the app the first time.
@@ -71,7 +71,7 @@ Stream overlays put your overlays in your stream as **browser sources**: no wind
 
 ![Stream overlays page](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.21.0-stream-overlays.png)
 
-1. Open the `Stream Overlays` page (`Tools` page, `Stream` in the navigation bar, or the command palette) and turn on `Enabled` (port `8339` by default).
+1. Open the `Stream Overlays` page (`Tools` menu, `Stream` in the navigation bar or under its `More`, or the command palette) and turn on `Enabled` (port `8339` by default).
 2. Click `Copy Address` next to a source.
 3. In OBS Studio: `Sources` > `+` > `Browser`, paste the address as `URL`, and set the width and height shown on the page. Streamlabs, XSplit, vMix and Twitch Studio have the same kind of source.
 
@@ -143,7 +143,7 @@ For OpenGL games, or to place overlays with another tool, turn on `enable_vr_mir
 
 ### Session recorder
 
-`Tools` > `Advanced` > `Session Recorder` records the game's shared memory while you drive and plays it back through every overlay and module, without the game. Useful to test overlays and settings without the game, or to show an issue: attach a saved section to a bug report. To review an incident, the game replay (below) shows the real footage.
+`Tools` > `Session Recorder` records the game's shared memory while you drive and plays it back through every overlay and module, without the game. Useful to test overlays and settings without the game, or to show an issue: attach a saved section to a bug report. To review an incident, the game replay (below) shows the real footage.
 
 - `Start Recording` / `Stop Recording` while in game, or turn on `enable_auto_replay_recording` in the Recorder module to record each time you drive (`number_of_saved_replays` automatic recordings kept, default `20`; manual recordings are never removed).
 - Recordings are `.tpreplay` files in the `telemetry` folder (about 7 MB per minute). REST API data of LMU is recorded too.
@@ -156,7 +156,7 @@ The telemetry viewer can open the replay at the cursor position (`Open Replay He
 
 ### Game replays (Le Mans Ultimate)
 
-The `Replays` list and the `Replay` tab of [Results & Replays](Race-Results.md) (`Results` in the navigation bar, or the `Tools` page) control replays saved by Le Mans Ultimate, through the game REST API (the game must be running). Each replay is linked to the results file of its session: pick a replay to see its results, or watch an event or a lap of the results in the replay. The pill at the top tells what the game is doing: not answering, in the menus, in a session, or replay open.
+The `Replays` list and the `Replay` tab of [Results & Replays](Race-Results.md) (`Results` in the navigation bar, or the `Tools` menu) control replays saved by Le Mans Ultimate, through the game REST API (the game must be running). Each replay is linked to the results file of its session: pick a replay to see its results, or watch an event or a lap of the results in the replay. The pill at the top tells what the game is doing: not answering, in the menus, in a session, or replay open.
 
 - **Replays**: the replays of `UserData/Replays` grouped by day (newest first), with track, session, event, time and size. Search by track or event, `All` / `Practice` / `Qualify` / `Race` filter, sort by date, size or track. `Watch` (or double-click, or `Enter`) opens one in the game, after confirmation (with a warning in a live session). `Open Folder` opens the replay folder.
 - **Replay files**: `Add` copies replay files (`.Vcr`) into the game replay folder (you can also drop them on the page), with a progress bar and `Stop Copy`; a file with the same name gets a number, `Name (2)`; nothing is copied if the disk lacks space. Right-click a replay (or the `...` menu for the selected replays) to `Export` it to another folder, `Rename` it, `Protect From Deletion` (star) or `Delete` it: deleted replays go to the Windows recycle bin, after confirmation, in the background with a progress bar and `Stop`; protected ones are always kept. Select several replays with `Ctrl` + click, a range with `Shift` + click, all with `Ctrl+A`. The `...` menu also cleans the folder up: delete replays older than a number of days, keep only the latest ones, delete the temporary files (`_vcr*.tmp`) the game leaves behind. A replay open in the game cannot be deleted or renamed.
@@ -172,6 +172,6 @@ The page asks the game only while the replays list or the `Replay` tab is shown,
 
 ### Broadcast director (Le Mans Ultimate)
 
-`Broadcast` in the navigation bar (or the `Tools` page) casts a race: live, driving or spectating an online race, or in a replay. Cars with live timing, every game camera in one click, an assisted or automatic director, a commentator screen, and its own **broadcast graphics** as a browser source (1920 x 1080) served by the stream overlay server, placed with a layout editor in your browser. See [Broadcast Director](Broadcast-Director.md).
+`Broadcast` in the navigation bar (or under its `More`, or the `Tools` menu) casts a race: live, driving or spectating an online race, or in a replay. Cars with live timing, every game camera in one click, an assisted or automatic director, a commentator screen, and its own **broadcast graphics** as a browser source (1920 x 1080) served by the stream overlay server, placed with a layout editor in your browser. See [Broadcast Director](Broadcast-Director.md).
 
 All options: [Remote Control](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#remote-control), [Web Dashboard](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#web-dashboard), [VR Overlay](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#vr-overlay), [Session recorder](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#session-recorder) and [Game replays](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#game-replays).

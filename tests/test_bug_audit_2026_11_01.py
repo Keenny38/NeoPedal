@@ -259,7 +259,6 @@ def test_b009_app_end_without_quit_menu_closes_once(monkeypatch):
 
     settings = SimpleNamespace(flush=lambda *args, **kwargs: calls.append("flush"), path=SimpleNamespace(config=""))
     monkeypatch.setattr(loader, "cfg", settings)
-    monkeypatch.setattr(loader.safe_mode, "clear_marker", lambda folder: None)
     monkeypatch.setattr(loader, "_closed", False)
     loader.close_at_exit()  # event loop ended by the system: closed as Quit does
     assert calls == ["write_pending", "cancel_reload", "unload_modules", "replay", "api", "flush"]
@@ -679,7 +678,6 @@ def test_b023_cleanup_started_once_app_started(monkeypatch):
 
     done = threading.Event()
     monkeypatch.setattr(update, "remove_old_downloads", lambda: done.set() or 0)
-    monkeypatch.setattr(loader.safe_mode, "clear_marker", lambda folder: None)
     monkeypatch.setattr(loader, "freeze_collected", lambda: None)
     monkeypatch.setattr(loader, "start_idle_collect_timer", lambda: None)
     loader.finish_start()

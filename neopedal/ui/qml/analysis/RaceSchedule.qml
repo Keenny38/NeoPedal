@@ -633,7 +633,14 @@ TpPage {
             spacing: theme.space2
             TpText { Layout.fillWidth: true; role: "subtitle"; text: profilePopup.profile.name || "" }
             TpSpinner { visible: profilePopup.profile.loading === true }
-            TpKeyValue { visible: (profilePopup.profile.nationality || "") !== ""; label: i18n.tr("Nationality"); value: profilePopup.profile.nationality || "" }
+            RowLayout {  // nationality: country name after its flag
+                Layout.fillWidth: true
+                visible: (profilePopup.profile.nationality || "") !== ""
+                spacing: theme.space2
+                TpText { Layout.fillWidth: true; text: i18n.tr("Nationality"); textFormat: Text.PlainText; color: theme.dimText; elide: Text.ElideRight }
+                TpFlag { flag: profilePopup.profile.flag || ({}) }
+                TpText { text: profilePopup.profile.nationality || ""; textFormat: Text.PlainText; color: theme.text }
+            }
             TpKeyValue { visible: (profilePopup.profile.dr || "") !== ""; label: i18n.tr("Driver Rank"); value: profilePopup.profile.dr || "" }
             TpKeyValue { visible: (profilePopup.profile.sr || "") !== ""; label: i18n.tr("Safety Rank"); value: profilePopup.profile.sr || "" }
             TpKeyValue { visible: (profilePopup.profile.badge || "") !== ""; label: i18n.tr("Badge"); value: profilePopup.profile.badge || "" }

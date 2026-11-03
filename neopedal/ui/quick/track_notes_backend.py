@@ -21,7 +21,8 @@ Track & pace notes editor page state (QML backend of TrackNotesEditor.qml)
 
 Notes rows (distance, pace or track note, comment, tags) edited in place, undo & redo history, notes file opened,
 saved to the same file (Save, Ctrl+S) or another one (Save As), track map of the track (TrackMapBackend, as Track Map
-Viewer) with the place of every note.
+Viewer) with the place of every note. Pace notes playback (read aloud while driving, former Pace Notes page): on / off
+switch & its settings (Settings page category).
 
 Notes files are shared: the lap viewer writes the track notes file of a track (quick/lap_track_notes.py), other
 programs may too. File time is kept when the file is read or written: a file changed meanwhile is read again if
@@ -36,10 +37,12 @@ import math
 import os
 import re
 import weakref
+from contextlib import suppress
 
 from PySide6.QtCore import Property, QFileSystemWatcher, QObject, Qt, Signal, Slot
 from PySide6.QtWidgets import QFileDialog, QMessageBox, QWidget
 
+from ... import app_signal
 from ...const_file import ConfigType, FileExt, FileFilter
 from ...context import AppContext
 from ...i18n import tr, trm
@@ -144,6 +147,7 @@ class TrackNotesBackend(PageBackend):
     metadataChanged = Signal()
     diskChanged = Signal()  # open file changed by another editor while notes edited here
     mapShownChanged = Signal()
+    playbackChanged = Signal()  # pace notes playback turned on or off (here, Settings page, hotkey)
     message = Signal(str, bool, bool)  # toast: text, error, Undo offered
 
     def __init__(self, parent: QWidget, ctx: AppContext | None = None):
@@ -180,6 +184,7 @@ class TrackNotesBackend(PageBackend):
         self.watcher = QFileSystemWatcher(self)
         self.watcher.fileChanged.connect(self.file_touched)
         self.message.connect(self.toast)
+        app_signal.refresh.connect(self.playback_refresh)  # playback turned on or off elsewhere
         self.create(NOTESTYPE_PACE)
 
     def toast(self, text: str, error: bool, undoable: bool):
@@ -192,6 +197,8 @@ class TrackNotesBackend(PageBackend):
                           action=lambda: (backend := page()) is not None and backend.undo())
 
     def release_resources(self):
+        with suppress(RuntimeError, TypeError):
+            app_signal.refresh.disconnect(self.playback_refresh)
         self._map.release()
         files = self.watcher.files()
         if files:
@@ -324,6 +331,32 @@ class TrackNotesBackend(PageBackend):
     def toggleMap(self):
         self._map_shown = not self._map_shown
         self.mapShownChanged.emit()
+
+    # Pace notes playback (setting of the loaded preset)
+    @Property(bool, notify=playbackChanged)
+    def playback(self) -> bool:
+        """Pace notes read aloud while driving"""
+        return bool(cfg.user.setting["pace_notes_playback"]["enable"])
+
+    @Slot(bool)
+    def setPlayback(self, enabled: bool):
+        """Pace notes playback on or off, saved at once (as its hotkey)"""
+        if enabled != self.playback:
+            from ...hotkey.command import hotkey_pace_notes_playback
+
+            hotkey_pace_notes_playback()  # saved, app refreshed: playback started or stopped
+        self.playbackChanged.emit()
+
+    @Slot()
+    def openPlaybackSettings(self):
+        """Settings page at the pace notes playback category (sound folder, volume, timing)"""
+        from ..app_settings import open_app_settings
+
+        open_app_settings(self._window, "pace_notes_playback")
+
+    def playback_refresh(self, *_):
+        if not self.page_released:
+            self.playbackChanged.emit()
 
     # Rows
     def new_row(self, distance: float = 0.0, note: str = "", comment: str = "", tags: str = "") -> dict:

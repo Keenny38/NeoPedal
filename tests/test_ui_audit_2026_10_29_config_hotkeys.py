@@ -22,7 +22,6 @@ def backend(ui_env, monkeypatch):
     for action in ("reload", "enable", "disable"):
         monkeypatch.setattr(type(hotkey_backend.kctrl), action, lambda self, _action=action: calls.append(_action))
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     page = hotkey_backend.HotkeyBackend(None)
     page.page_shown()
     yield page
@@ -106,16 +105,6 @@ def test_clear_row_with_undo_keeps_new_binding(backend):
     assert cfg.user.shortcuts["overlay_lock"]["bind"] == "alt+k"
 
 
-def test_nothing_cleared_or_captured_while_hotkeys_off(backend):
-    cfg.user.shortcuts["overlay_lock"]["bind"] = "ctrl+l"
-    cfg.application["enable_global_hotkey"] = False
-    backend.refresh()
-    backend.clear("overlay_lock")
-    backend.clearAll()
-    backend.startCapture("overlay_lock")
-    assert cfg.user.shortcuts["overlay_lock"]["bind"] == "ctrl+l" and backend.captureKey == ""
-
-
 def test_preset_hotkey_capture_chooses_preset(backend):
     name = next(iter(SHORTCUTS_PRESET))
     for preset in ("race", "quali"):
@@ -132,19 +121,34 @@ def test_preset_hotkey_capture_chooses_preset(backend):
 
 @pytest.fixture
 def page(ui_env, monkeypatch):
-    from neopedal.ui import hotkey_view
+    """Builds the Settings page at its Hotkeys category (former Hotkeys page), closed at the end"""
+    from neopedal.ui.app_settings import AppSettings
     from neopedal.ui.quick import hotkey_backend
 
     for action in ("reload", "enable", "disable"):
         monkeypatch.setattr(type(hotkey_backend.kctrl), action, lambda self: None)
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
-    widget = hotkey_view.HotkeyList(None)
-    widget.resize(900, 700)
-    yield widget
-    widget.close()
-    widget.deleteLater()
+    pages = []
+
+    def build():
+        settings = AppSettings(None)
+        settings.resize(900, 700)
+        settings.backend.open_section("hotkeys")
+        settings.hotkeys = settings.hosts["hotkeys"].backend
+        pages.append(settings)
+        return settings
+
+    yield build
+    for settings in pages:
+        settings.close()
+        settings.deleteLater()
     flush()
+
+
+def hotkeys_page(settings):
+    """Hotkeys.qml loaded by the Settings page (Loader embeddedPage)"""
+    loader = settings.view.rootObject().findChild(QObject, "embeddedPage")
+    return loader.property("item")
 
 
 def item_texts(view) -> set[str]:
@@ -164,27 +168,28 @@ def test_page_built_and_capture_dialog_opened_without_qml_warnings(page, languag
     previous = qInstallMessageHandler(lambda mode, context, text: messages.append(text))
     i18n.set_language(language)
     try:
-        assert page.view is None  # built when first shown
-        page.show()
+        settings = page()
+        settings.show()
         flush()
-        assert page.view is not None and not page.view.errors(), [error.toString() for error in page.view.errors()]
-        texts = item_texts(page.view)
+        assert not settings.view.errors(), [error.toString() for error in settings.view.errors()]
+        texts = item_texts(settings.view)
         if language == "English":
             assert {"Hotkeys", "General", "Clear All", "Assigned only"} <= texts
         else:
             assert {"Raccourcis", "Général", "Tout effacer", "Attribués seulement"} <= texts
-        root = page.view.rootObject()
-        root.openCapture("overlay_lock")
+        hotkeys = hotkeys_page(settings)
+        hotkeys.openCapture("overlay_lock")
         flush()
-        assert page.backend.captureKey == "overlay_lock" and page.backend.capturing
+        assert settings.hotkeys.captureKey == "overlay_lock" and settings.hotkeys.capturing
+        root = settings.view.rootObject()
         dialog = next(item for item in root.findChildren(QObject) if item.metaObject().className().startswith(
             "HotkeyCaptureDialog"))
         assert dialog.property("opened") or dialog.property("visible")
-        page.backend.cancelCapture()  # Esc
+        settings.hotkeys.cancelCapture()  # Esc
         flush()
-        assert not page.backend.capturing
-        page.backend.clearAll()  # toast shown (nothing bound: no toast either way)
-        assert not page.view.grabFramebuffer().isNull()
+        assert not settings.hotkeys.capturing
+        settings.hotkeys.clearAll()  # toast shown (nothing bound: no toast either way)
+        assert not settings.view.grabFramebuffer().isNull()
     finally:
         i18n.set_language("English")
         qInstallMessageHandler(previous)
@@ -196,9 +201,10 @@ def test_page_closed_ends_capture(page, monkeypatch):
 
     calls = []
     monkeypatch.setattr(type(hotkey_backend.kctrl), "enable", lambda self: calls.append("enable"))
-    page.show()
+    settings = page()
+    settings.show()
     flush()
-    page.backend.startCapture("overlay_lock")
-    assert page.backend.capturing
-    page.close()
-    assert not page.backend.capturing and calls == ["enable"]
+    settings.hotkeys.startCapture("overlay_lock")
+    assert settings.hotkeys.capturing
+    settings.close()
+    assert not settings.hotkeys.capturing and calls == ["enable"]

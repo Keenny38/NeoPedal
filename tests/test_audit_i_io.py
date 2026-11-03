@@ -75,7 +75,7 @@ def test_saver_thread_not_daemon_when_started_from_daemon_thread(config):
 
 def test_close_flushes_queued_saves(monkeypatch):
     """Quit never waited for the saving thread (restart did): data saved by stopped modules written at close"""
-    from neopedal import loader, safe_mode
+    from neopedal import loader
     from neopedal.setting import cfg
 
     calls = []
@@ -83,7 +83,6 @@ def test_close_flushes_queued_saves(monkeypatch):
     monkeypatch.setattr(loader, "unload_modules", lambda *args, **kwargs: calls.append("unload_modules"))
     monkeypatch.setattr(loader, "replay", SimpleNamespace(stop_recording=lambda: None, wait_closed=lambda t: True))
     monkeypatch.setattr(loader, "api", SimpleNamespace(stop=lambda: None, close=lambda: calls.append("api.close")))
-    monkeypatch.setattr(safe_mode, "clear_marker", lambda path: None)
     monkeypatch.setattr(type(cfg), "flush", lambda self, *args: calls.append("cfg.flush"))
     loader.close()
     assert calls.index("unload_modules") < calls.index("api.close") < calls.index("cfg.flush")

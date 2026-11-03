@@ -17,7 +17,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Overlay performance view
+Overlay performance view: page opened from the Modules category of Settings (Performance button) & command palette
 """
 
 from PySide6.QtCore import QBasicTimer, Qt
@@ -36,7 +36,7 @@ from PySide6.QtWidgets import (
 from ..i18n import tr, trm
 from ..i18n.options import module_label
 from ..perf_monitor import PerfMonitor, ProcessMonitor, connection_health, endpoint_rows, gc_stats
-from ._common import BaseDialog, CompactButton, UIScaler, singleton_dialog
+from ._common import BaseDialog, CompactButton, UIScaler
 
 HEADER = ("Overlay", "Event", "Calls/s", "Avg (ms)", "Max (ms)", "Total (ms)")
 THREAD_HEADER = ("Thread", "CPU %", "CPU time (s)")
@@ -79,7 +79,6 @@ def shared_memory_status() -> str:
     return trm(f"Shared memory: last update {health.data_age:.1f} s ago")
 
 
-@singleton_dialog("performance", show_error=False)
 class PerformanceView(BaseDialog):
     """Show update & paint time of each widget, to find expensive widgets"""
 
@@ -148,14 +147,10 @@ class PerformanceView(BaseDialog):
         button_reset = CompactButton(tr("Reset"))
         button_reset.clicked.connect(self.reset_data)
 
-        button_close = CompactButton(tr("Close"))
-        button_close.clicked.connect(self.reject)
-
         layout_button = QHBoxLayout()
         layout_button.addWidget(checkbox_enable)
         layout_button.addWidget(button_reset)
         layout_button.addStretch(1)
-        layout_button.addWidget(button_close)
 
         layout_main = QVBoxLayout()
         layout_main.addWidget(self.tabs)
@@ -257,6 +252,10 @@ class PerformanceView(BaseDialog):
         else:
             total = sum(item.total for item in stats)
             self.label_info.setText(trm(f"Total recorded time: {total:.1f} ms"))
+
+    def free_page(self):
+        """Refresh stopped (page closed or released)"""
+        self._update_timer.stop()
 
     def closeEvent(self, event):
         """Stop refresh on close"""

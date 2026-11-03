@@ -57,19 +57,17 @@ def get_cli_argument() -> argparse.Namespace:
             " 1 - single instance (default);"
         ),
     )
-    parse.add_argument(
-        "--safe-mode",
-        action="store_true",
-        help=(
-            "start in safe mode: plugins not loaded, overlays not started"
-            " (restart from the app to start normally)"
-        ),
-    )
     # Deprecated, PySide6 is always used (kept for existing launcher configs)
     parse.add_argument(
         "-p",
         "--pyside",
         type=int,
+        help=argparse.SUPPRESS,
+    )
+    # Deprecated, safe mode removed: normal start (kept for existing shortcuts)
+    parse.add_argument(
+        "--safe-mode",
+        action="store_true",
         help=argparse.SUPPRESS,
     )
     # Release build check (CI): run self test, write report to optional file & exit

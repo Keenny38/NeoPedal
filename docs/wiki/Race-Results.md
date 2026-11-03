@@ -2,7 +2,7 @@
 
 The **Results & Replays** page shows the results of every session you played: classification, positions lap by lap, the laps of each car and what happened during the session (contacts, penalties, track limits, chat). It reads the results files that Le Mans Ultimate and rFactor 2 write at the end of each session, so it works for online races and single player sessions, and the game does not need to run. With Le Mans Ultimate, the same page lists the **replays saved by the game** and controls them in the `Replay` tab: each session is linked to its replay, so an event or a lap of the results opens the replay right there.
 
-Open it with the `Results` entry of the navigation bar, the `Tools` page, or the command palette (`Ctrl+K`). It replaces the former `Race Results` and `Game Replays` pages (a `Replays` entry kept in your navigation bar or quick access opens it on the replays list).
+Open it with the `Results` entry of the navigation bar, the `Tools` menu, or the command palette (`Ctrl+K`). It replaces the former `Race Results` and `Game Replays` pages (a `Replays` entry kept in your navigation bar or quick access opens it on the replays list).
 
 ![Race results: classification of a multiclass race](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.21.0-race-results.png)
 

@@ -34,7 +34,7 @@ from PySide6.QtCore import Property, QObject, QUrl, Signal, Slot
 from PySide6.QtGui import QDesktopServices, QGuiApplication
 from PySide6.QtWidgets import QApplication
 
-from ... import app_signal, realtime_state, safe_mode
+from ... import app_signal, realtime_state
 from ...const_file import ConfigType
 from ...i18n import plural, tr
 from ...i18n.options import module_label
@@ -335,8 +335,6 @@ class StreamOverlaysBackend(PageBackend):
         if not self.enabled:
             return tr("Server off")
         if not self.running:
-            if safe_mode.state.enabled and not streamoverlay.port_unavailable:  # never started in safe mode
-                return tr("Off in safe mode")
             return tr("Port %1 unavailable").replace("%1", str(self.port))
         if self.sources:
             shown = len(self.sources)

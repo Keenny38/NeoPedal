@@ -69,7 +69,6 @@ OLD_TOOL_SECTIONS = (
     ("Utilities", (
         ("Race Calculator", "", "race_calculator.RaceCalculator"),
         ("Driver Stats", "", "driver_stats_viewer.DriverStatsViewer"),  # one name (UI/UX audit 2026-10-29 N3)
-        ("Track Map Viewer", "", "track_map_viewer.TrackMapViewer"),
         ("Lap Telemetry Viewer", "", "lap_viewer.LapViewer"),
         ("Broadcast Director", "", "broadcast_director.BroadcastDirector"),
         ("Results & Replays", "", "race_results_viewer.RaceResultsViewer"),
@@ -77,18 +76,12 @@ OLD_TOOL_SECTIONS = (
         ("Stream Overlays", "", "stream_overlay_view.StreamOverlaysView"),
     )),
     ("Editors", (
-        ("Heatmap Editor", "", "heatmap_editor.HeatmapEditor"),
-        ("Brake Editor", "", "brake_editor.BrakeEditor"),
-        ("Tyre Compound Editor", "", "tyre_compound_editor.TyreCompoundEditor"),
-        ("Vehicle Brand Editor", "", "vehicle_brand_editor.VehicleBrandEditor"),
-        ("Vehicle Class Editor", "", "vehicle_class_editor.VehicleClassEditor"),
-        ("Track Info Editor", "", "track_info_editor.TrackInfoEditor"),
-        ("Track Notes Editor", "", "track_notes_editor.TrackNotesEditor"),
+        ("Data Editors", "\ue70f", "data_editors.DataEditors"),  # former editors, one tab each (2026-11-03)
     )),
     ("Management", (
         ("Settings", "", "app_settings.AppSettings"),  # one name for settings (UI/UX audit 2026-10-29 N1)
         ("Plugin Manager", "", "plugin_manager.PluginManager"),
-        ("Overlay Performance", "", "perf_view.PerformanceView"),
+        ("Overlay Performance", "", "perf_view.PerformanceView"),  # page of Settings > Modules (2026-11-03)
     )),
     ("Advanced", (
         ("Session Recorder", "", "replay_view.ReplayView"),
@@ -97,29 +90,24 @@ OLD_TOOL_SECTIONS = (
 OLD_NAV_PAGES = (
     ("home", "Home", "", "A"),
     ("widget", "Overlays", "", "W"),
-    ("module", "Module", "", "M"),
     ("preset", "Preset", "", "P"),
-    ("spectate", "Spectate", "", "S"),
-    ("pacenotes", "Pacenotes", "", "N"),
-    ("hotkey", "Hotkey", "", "H"),
-    ("tools", "Tools", "", "T"),
 )
 OLD_SHORT_LABELS = {
-    "race_calculator": "Calculator", "driver_stats_viewer": "Stats", "track_map_viewer": "Map", "lap_viewer": "Telemetry",
+    "race_calculator": "Calculator", "driver_stats_viewer": "Stats", "lap_viewer": "Telemetry",
     "replay_view": "Recorder", "broadcast_director": "Broadcast",
-    "race_results_viewer": "Results", "race_schedule_viewer": "Races", "stream_overlay_view": "Stream", "heatmap_editor": "Heatmap",
-    "brake_editor": "Brakes", "tyre_compound_editor": "Compounds", "vehicle_brand_editor": "Brands",
-    "vehicle_class_editor": "Classes", "track_info_editor": "Tracks", "track_notes_editor": "Notes",
-    "plugin_manager": "Plugins", "perf_view": "Performance",  # Preset Comparison: panel of Presets (audit N5)
+    "race_results_viewer": "Results", "race_schedule_viewer": "Races", "stream_overlay_view": "Stream",
+    "data_editors": "Editors",
+    "plugin_manager": "Plugins",  # Preset Comparison: panel of Presets (audit N5)
+    "perf_view": "Performance",
 }
 OLD_KEYWORD_TOOLS = {
     "app_settings.AppSettings", "stream_overlay_view.StreamOverlaysView", "race_results_viewer.RaceResultsViewer",
     "broadcast_director.BroadcastDirector", "race_calculator.RaceCalculator",
-    "replay_view.ReplayView", "race_schedule_viewer.RaceScheduleViewer",
+    "replay_view.ReplayView", "race_schedule_viewer.RaceScheduleViewer", "data_editors.DataEditors",
 }
 OLD_RAIL_ITEMS = (
-    "home,widget,driver_stats_viewer,race_results_viewer,race_schedule_viewer,"  # replays in results, races
-    "broadcast_director,stream_overlay_view,lap_viewer,race_calculator,preset"
+    "home,race_schedule_viewer,widget,driver_stats_viewer,race_results_viewer,"  # replays in results, races under home
+    "lap_viewer,preset"  # broadcast, stream & calculator under More
 )
 OLD_PAGE_SWITCHES = {
     ("BroadcastDirector", "neopedal.ui.quick.director_backend", "director_status"),
@@ -142,7 +130,7 @@ def dummy_overlay(**kwargs):
 
 DUMMY_PAGE = pages.PageSpec(
     "dummy_tool", "Dummy Tool", "", "Editors", "dummy_tool.DummyTool",
-    short_label="Dummy", rail=10, keywords="dummy words", status="neopedal.ui.quick.dummy_backend:dummy_status",
+    short_label="Dummy", rail=7, keywords="dummy words", status="neopedal.ui.quick.dummy_backend:dummy_status",
 )
 
 

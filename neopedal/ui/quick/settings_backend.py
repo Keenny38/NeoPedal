@@ -27,6 +27,8 @@ options of another section ("section/key"): they are shown there only. Edits sta
 until applied: invalid values are marked at once and block Apply. Undo goes on past Apply: an applied
 edit undone is pending again. A search looks through every category.
 
+Page categories (Hotkeys, Modules: former main pages) show their own Qt Quick page in the content area
+(Hotkeys.qml, Modules.qml, backends made by the host page, see app_settings.py), no option rows.
 Section mode: a section of the loaded preset (module options from the Modules page, any preset section
 from option search) is opened as an extra category, kept until the page closes. Its on / off switch
 ("enable") is not a pending row: switched at once in the page header, like on the Modules page.
@@ -105,14 +107,12 @@ FONT_PREFIX = "font:"  # option id of a global font override choice: "font:key"
 FONT_CATEGORY = "font"
 API_CATEGORY = "api"  # options of the selected game API (section of cfg.api_key)
 ENABLE_KEY = "enable"  # on / off of a preset section: header switch, not a row
-# Switches turning a feature on or off: saved & applied at once, as on their own page (Hotkeys, Presets,
-# Overlays, Stream Overlays) or like a module switch, never pending until Apply. Value: what is applied.
-SWITCH_HOTKEYS = "hotkeys"
+# Switches turning a feature on or off: saved & applied at once, as on their own page (Presets, Overlays, Stream
+# Overlays) or like a module switch, never pending until Apply. Value: what is applied.
 SWITCH_SERVERS = "servers"
 SWITCH_STREAM = "stream"
 SWITCH_VR = "vr"
 IMMEDIATE_SWITCHES = {
-    "application/enable_global_hotkey": SWITCH_HOTKEYS,
     "application/enable_auto_load_preset": "",
     "application/show_overlay_previews": "",
     "remote_control/enable_remote_control": SWITCH_SERVERS,
@@ -121,7 +121,10 @@ IMMEDIATE_SWITCHES = {
     "vr_overlay/enable_vr_overlay": SWITCH_VR,
 }
 KIND_FILE = "file"  # file chosen in a file dialog (pace notes file), empty for none
-FILE_FILTERS = {"pace_notes_playback/pace_notes_file_name": "TPPN"}  # FileFilter attribute of file options
+FILE_FILTERS = {  # FileFilter attribute of file options
+    "pace_notes_playback/pace_notes_file_name": "TPPN",
+    "notification/race_reminder_sound_file_name": "SOUND",
+}
 MODULE_GLYPH = ""  # diagnostic (Modules page)
 SAMPLE_MAX_PIXELS = 48  # global font override preview: larger sample texts shown at this size
 # Global font override choices: label, help (English) & editor
@@ -143,18 +146,15 @@ FONT_HELP = {
 
 def apply_switch(kind: str):
     """Part of the app reading a feature switch just saved: started or stopped (see IMMEDIATE_SWITCHES)"""
-    from ... import loader, safe_mode
+    from ... import loader
 
-    if kind == SWITCH_HOTKEYS:
-        loader.kctrl.reload()
-    elif kind == SWITCH_SERVERS:
+    if kind == SWITCH_SERVERS:
         loader.enable_servers()
     elif kind == SWITCH_STREAM:
         loader.enable_stream_overlay()
     elif kind == SWITCH_VR:
         loader.vroverlay().disable()
-        if not safe_mode.state.enabled:
-            loader.vroverlay().enable()
+        loader.vroverlay().enable()
 
 
 class Category(NamedTuple):
@@ -166,6 +166,7 @@ class Category(NamedTuple):
     description: str
     groups: tuple[tuple[str, tuple[str, ...]], ...] = ()  # (title, option keys), others in "Other"
     store: str = STORE_CONFIG
+    page: str = ""  # Qt Quick page shown instead of option rows (Hotkeys.qml, Modules.qml), see app_settings.py
 
 
 CATEGORIES = (
@@ -184,7 +185,7 @@ CATEGORIES = (
             "enable_auto_load_preset", "number_of_automatic_backups", "number_of_days_to_keep_deleted_presets",
             "maximum_saving_attempts",
         )),
-        ("Performance & Hotkeys", ("minimum_update_interval", "enable_global_hotkey")),
+        ("Performance", ("minimum_update_interval",)),
     )),
     Category("overlay_style", "Overlay Style", "",
              "Modern design, theme, fonts, size & editing of every overlay", (
@@ -200,20 +201,22 @@ CATEGORIES = (
             "application/enable_layout_per_screen_setup",
         )),
     )),
-    Category("notification", "Notification", "", "Notices shown at the bottom of the main window", (
-        ("Preset Locked", ("notify_locked_preset", "font_color_locked_preset", "background_color_locked_preset")),
-        ("Spectate Mode Enabled", (
-            "notify_spectate_mode", "font_color_spectate_mode", "background_color_spectate_mode")),
-        ("Pace Notes Playback Enabled", (
-            "notify_pace_notes_playback", "font_color_pace_notes_playback", "background_color_pace_notes_playback")),
-        ("Global Hotkey Enabled", (
-            "notify_global_hotkey", "font_color_global_hotkey", "background_color_global_hotkey")),
-        ("Auto Backup Car Setup Enabled", (
-            "notify_auto_backup_car_setup", "font_color_auto_backup_car_setup",
-            "background_color_auto_backup_car_setup")),
-        ("Broadcast Director On", (
-            "notify_broadcast_director", "font_color_broadcast_director", "background_color_broadcast_director")),
+    Category("notification", "Notification", "",
+             "Notification center (bell), Windows notifications & race reminders", (
+        ("Windows Notifications", (
+            "show_tray_messages_for_errors", "show_tray_messages_for_race_reminders", "show_tray_messages_for_updates",
+            "enable_hold_notifications_while_driving",
+        )),
+        ("Race Reminders", (
+            "number_of_minutes_before_race_reminder", "number_of_minutes_before_last_race_reminder",
+            "race_reminder_sound", "race_reminder_sound_file_name",
+        )),
+        ("Modes Listed Under Now", (
+            "notify_locked_preset", "notify_spectate_mode", "notify_pace_notes_playback",
+            "notify_auto_backup_car_setup", "notify_broadcast_director",
+        )),
     )),
+    Category("hotkeys", "Hotkeys", "\ue765", "Keyboard, wheel and controller shortcuts", page="Hotkeys.qml"),
     Category("compatibility", "Compatibility", "", "Window manager, transparency & positions on some systems"),
     Category("remote_control", "Remote Control", "", "Run hotkey commands from a Stream Deck or a script"),
     Category("web_dashboard", "Web Dashboard", "", "Overlays in a browser of your phone, tablet or PC"),
@@ -227,9 +230,11 @@ CATEGORIES = (
     )),
     Category("user_path", "User Path", "", "Folders of presets, data & recorded laps"),
 )
-CATEGORY_KEYS = tuple(category.key for category in CATEGORIES)  # config.json categories
+CATEGORY_KEYS = tuple(category.key for category in CATEGORIES if not category.page)  # config.json categories
 # Settings kept in the loaded preset (listed after config.json categories, under "In the loaded preset")
 PRESET_CATEGORIES = (
+    Category("modules", "Modules", "\ue9d9", "Data modules computing what overlays and tools need",
+             store=STORE_PRESET, page="Modules.qml"),
     Category("units", "Units", "", "Units of the values shown by every overlay", store=STORE_PRESET),
     Category(FONT_CATEGORY, "Global Font Override", "",
              "Font of every overlay changed at once: applied once, then back to no change", store=STORE_FONT),
@@ -249,10 +254,6 @@ STATIC_CATEGORIES = CATEGORIES + PRESET_CATEGORIES
 # Options shown in a category of another config.json section: option id -> category key
 MOVED_OPTIONS = {
     option: category.key for category in CATEGORIES for _, keys in category.groups for option in keys if "/" in option
-}
-# Notice previews (Notification category): group title -> font & background color options
-NOTICE_COLORS = {
-    title: (keys[1], keys[2]) for title, keys in CATEGORIES[CATEGORY_KEYS.index("notification")].groups
 }
 
 
@@ -341,6 +342,8 @@ def category_options(category: Category) -> list[OptionInfo]:
     Options of the section moved to another category (MOVED_OPTIONS) are left for it.
     """
     infos: list[OptionInfo] = []
+    if category.page:  # own page, no option rows
+        return infos
     grouped: set[str] = set()
     store = category.store
     section_name = category_section(category)
@@ -678,6 +681,7 @@ class SettingsBackend(QObject):
             "preset": category.store != STORE_CONFIG,
             "font": category.store == STORE_FONT,
             "paceNotes": category.key == "pace_notes_playback",
+            "page": category.page,
         }
 
     @Property(bool, constant=True)
@@ -745,25 +749,6 @@ class SettingsBackend(QObject):
     def highlightKey(self) -> str:
         """Option to scroll to & flash (opened from option search)"""
         return self._highlight
-
-    @Property(dict, notify=stateChanged)
-    def previews(self) -> dict:
-        """Notice previews of Notification category: group title -> text, font & background colors"""
-        from ..notification import readable_colors  # as the notices show them: text kept readable (4.5:1)
-
-        result = {}
-        for title, (font_key, background_key) in NOTICE_COLORS.items():
-            font = self._color_value("notification", font_key)
-            background = self._color_value("notification", background_key)
-            if font and background:
-                font, background = readable_colors(font, background)
-            result[tr(title)] = {"text": tr(title), "color": font, "background": background}
-        return result
-
-    def _color_value(self, section: str, key: str) -> str:
-        info = self._infos.get(f"{section}/{key}")
-        value = self.value(info) if info is not None else ""
-        return value if isinstance(value, str) and check_value(key, OptionKind(KIND_COLOR), value) == "" else ""
 
     def font_choice(self) -> font_override.FontChoice:
         """Global font override choices (pending)"""

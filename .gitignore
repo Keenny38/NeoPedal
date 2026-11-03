@@ -26,6 +26,8 @@ pylintrc
 *.json
 !/plugins/*/setting.json
 !/neopedal/i18n/data/*.json
+!/neopedal/data/*.json
+!/images/flags.json
 !/tools/readme_preview_track.json
 !/native/openxr_layer/NeoPedalXrLayer.json
 !/tests/fixtures/sessions/*.json

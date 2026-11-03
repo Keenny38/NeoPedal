@@ -693,9 +693,11 @@ def profile_view(profile: rs.Profile | None) -> dict:
     """Driver profile: name, nationality, ranks, badge, "" texts if unknown"""
     if profile is None:
         return {"error": tr("Profile not found")}
+    from ...flags import flag_view
     from .formatting import country_name
 
     return {"name": profile.name, "nationality": country_name(profile.nationality) if profile.nationality else "",
+            "flag": flag_view(profile.nationality) if profile.nationality else {},
             "dr": rank_text(profile.driver_rank), "sr": rank_text(profile.safety_rank), "badge": profile.badge}
 
 

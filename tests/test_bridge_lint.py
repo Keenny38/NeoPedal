@@ -29,7 +29,7 @@ ALLOWED_COMPUTING: dict[str, int] = {
     "preset_backend.py": 2,
     "race_backend.py": 7,
     "replays_backend.py": 12,
-    "settings_backend.py": 3,
+    "settings_backend.py": 2,
     "setup_backend.py": 8,
     "stats_backend.py": 3,
     "stream_backend.py": 3,
@@ -45,7 +45,7 @@ ALLOWED_SHARED: dict[tuple[str, str], int] = {
     # Theme tokens (palette, status & series colors, surfaces, strokes, shadow, legacy look, chart & map colors) of
     # the one Theme object: changed together, only by a theme or colorblind switch; pages read the QML theme copy
     # (theme_copy), which this signal refreshes
-    ("__init__.py", "changed"): 48,
+    ("__init__.py", "changed"): 49,  # theme colors (info: 2026-11-03)
     ("director_backend.py", "settingsChanged"): 8,
     ("lap_backend.py", "chartChanged"): 11,
     ("lap_backend.py", "mapChanged"): 9,

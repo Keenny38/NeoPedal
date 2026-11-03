@@ -209,6 +209,7 @@ class TrackMapBackend(PageBackend):
     tracksChanged = Signal()  # track maps of app folder changed, or their logos fetched from game
     tracksLoadingChanged = Signal()
     unitsChanged = Signal()  # distance unit setting changed (settings dialog) while page open
+    marksChanged = Signal()  # places marked on the map (pit entry, pit exit, speed trap of Tracks tab)
 
     def __init__(self, parent: QWidget):
         super().__init__(parent, "Track map viewer")
@@ -235,6 +236,9 @@ class TrackMapBackend(PageBackend):
         self._released = False
         self._tracks: list[dict] = []  # track maps of app folder (picker)
         self._tracks_loading = False
+        self._mark_places: list[tuple[float, str, str]] = []  # (distance, text, color), see set_marks
+        self._marks: list[dict] = []
+        self.mapChanged.connect(self.update_marks)
         self.logos = LogoCache()  # circuit logos looked for once per name
         self.ecfg = cfg.user.config["track_map_viewer"]
         self.grades = config_grades(self.ecfg)
@@ -340,6 +344,28 @@ class TrackMapBackend(PageBackend):
         if tracks != self._tracks:
             self._tracks = tracks
             self.tracksChanged.emit()
+
+    # Marks: places along the track (Tracks tab of Data Editors)
+    def set_marks(self, places: list[tuple[float, str, str]]):
+        """Places marked on the map: (distance in meters, text, color), shown once a map is loaded"""
+        self._mark_places = list(places)
+        self.update_marks()
+
+    def update_marks(self):
+        """Places of marks on the map shown, told only if changed"""
+        marks = []
+        if self.raw_coords:
+            for distance, text, color in self._mark_places:
+                if 0 <= distance <= self.map_length:
+                    x, y = self.raw_coords[node_at(self.raw_dists, distance)]
+                    marks.append({"x": x, "y": y, "text": text, "color": color})
+        if marks != self._marks:
+            self._marks = marks
+            self.marksChanged.emit()
+
+    @Property(list, notify=marksChanged)
+    def marks(self) -> list[dict]:
+        return self._marks
 
     @Slot(str)
     def selectTrack(self, key: str):

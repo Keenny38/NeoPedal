@@ -449,7 +449,10 @@ def test_reminders_told_once(ui_env, monkeypatch):
 
     now = [NOW]
     told = []
-    monkeypatch.setattr(sr.RaceReminders, "tell", staticmethod(told.append))
+    from neopedal.ui.notification import message_text
+
+    monkeypatch.setattr(sr.RaceReminders, "tell",
+                        staticmethod(lambda message, *args, **kwargs: told.append(message_text(message))))
     reminders = sr.RaceReminders(clock=lambda: now[0])
     reminders.set("race@1", "LMP2 Fixed", "Monza", NOW + 1200, 10)
     reminders.set("race@2", "Old", "", NOW - 60, 10)  # started: never set
@@ -855,12 +858,15 @@ def test_rail_migration_adds_page_once():
 
     old = {"application": {"rail_items": "home,race_results_viewer,preset"}}
     preupdate_global_setting((2, 51, 7), old)
-    assert old["application"]["rail_items"] == "home,race_results_viewer,race_schedule_viewer,preset"
+    assert old["application"]["rail_items"] == "home,race_schedule_viewer,race_results_viewer,preset"
     preupdate_global_setting((2, 51, 7), old)
     assert old["application"]["rail_items"].count("race_schedule_viewer") == 1
     new = {"application": {"rail_items": "home,tools"}}
     preupdate_global_setting((2, 51, 8), new)
     assert new["application"]["rail_items"] == "home,tools"  # set up after the update: kept
+    top = {"application": {"rail_items": "widget,preset"}}  # no Home: at the top
+    preupdate_global_setting((2, 51, 7), top)
+    assert top["application"]["rail_items"] == "race_schedule_viewer,widget,preset"
 
 
 # Weekly leaderboards & online results
@@ -1600,7 +1606,9 @@ def test_your_race_followed_live(ui_env, fresh_info, monkeypatch):
     assert rw.watched_starts(info.state().schedule, start.time - 30) == [(event, start)]
     clock = [start.time - 30]
     told: list[str] = []
-    monkeypatch.setattr(rw.RaceWatch, "tell", staticmethod(told.append))
+    from neopedal.ui.notification import message_text
+
+    monkeypatch.setattr(rw.RaceWatch, "tell", staticmethod(lambda message, *args, **kwargs: told.append(message_text(message))))
     monkeypatch.setattr(info, "player_id", lambda: "me-id")
     overview = {"id": "id-LMP2 Fixed", "status": "Waiting", "registrations": [{"driver": {"id": "me-id"}}]}
     split = [rs.SplitState(False)]
@@ -1643,7 +1651,7 @@ def test_your_race_followed_live(ui_env, fresh_info, monkeypatch):
         told.clear()
         other = rw.RaceWatch(None, clock=lambda: start.time - 30)
         other._timer.stop()
-        monkeypatch.setattr(other, "tell", told.append)
+        monkeypatch.setattr(other, "tell", lambda message, *args, **kwargs: told.append(message_text(message)))
         overview = answer
         other.check()
         for _ in range(100):
@@ -1853,3 +1861,14 @@ def test_page_tells_refused_connection(page, monkeypatch):
     monkeypatch.setattr(info, "blocked_minutes", lambda: 0)
     page.backend.publish_status()
     assert "refuses" not in page.backend.status["note"]
+
+
+def test_game_closed_note_tells_when_races_were_read():
+    # Game closed: races last read stay shown, the note tells when they were read (game only needed to update them)
+    from neopedal.ui.quick.schedule_backend import status_note
+
+    read = time.time() - 3600
+    level, note = status_note(info.NO_GAME, rs.EMPTY._replace(read_time=read))
+    assert level == "info" and time.strftime("%H:%M", time.localtime(read)) in note and "update" in note
+    assert "%1" not in note
+    assert "with the game sign in" in status_note(info.NO_GAME, rs.EMPTY)[1]  # never read: told why

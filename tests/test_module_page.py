@@ -1,4 +1,5 @@
-"""Modules page: module specs, dependencies read from compiled code, backend filters & actions, Qt Quick page"""
+"""Modules (category of the Settings page): module specs, dependencies read from compiled code, backend filters &
+actions, Qt Quick page"""
 
 import dis
 import sys
@@ -6,8 +7,9 @@ import time
 from types import CodeType, MappingProxyType
 
 import pytest
-from PySide6.QtCore import QCoreApplication, QEvent, Qt
+from PySide6.QtCore import QCoreApplication, QEvent, Qt, QUrl
 from PySide6.QtTest import QTest
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from neopedal.setting import cfg
 from neopedal.template.setting_module import MODULE_DEFAULT
@@ -354,15 +356,52 @@ def test_dependencies_loaded_later(ui_env, monkeypatch):
 
 
 # Page
+class ModulesTestPage(QWidget):
+    """Modules category alone: ModulesHost & Modules.qml (context moduleBackend, as the Settings page loads it) in a
+    Qt Quick view made when first shown"""
+
+    def __init__(self, module_control, widget_control):
+        from neopedal.ui.module_view import ModulesHost
+
+        super().__init__(None)
+        self.module_control = module_control
+        self.configs: list[str] = []  # Settings categories opened by a card gear
+        self.host = ModulesHost(self, self.configs.append, module_control, widget_control)
+        self.backend = self.host.backend
+        self.view = None
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+    def showEvent(self, event):
+        if self.view is None:
+            from neopedal.ui.quick import create_quick_view
+
+            self.view = create_quick_view(self, "Modules.qml", {"moduleBackend": self.backend}, samples=0)
+            self.layout().addWidget(self.view)
+            self.view.show()
+        self.host.page_shown()
+        super().showEvent(event)
+
+    def hideEvent(self, event):
+        self.host.page_hidden()
+        super().hideEvent(event)
+
+    def release_page(self):
+        if self.view is not None:
+            view, self.view = self.view, None
+            view.setSource(QUrl())
+            view.deleteLater()
+        self.host.release()
+
+
 @pytest.fixture
 def page(modules):
-    from neopedal.ui.module_view import ModuleList
-
-    view = ModuleList(None, modules.test["control"], modules.test["widgets"])
+    view = ModulesTestPage(modules.test["control"], modules.test["widgets"])
     view.backend.load_dependencies(DEPENDENCIES)
     view.resize(900, 700)
     yield view
     view.close()
+    view.release_page()
     view.deleteLater()
     flush()
 
@@ -428,11 +467,10 @@ def _items(root):
 
 def test_qml_page_translated(modules):
     from neopedal import i18n
-    from neopedal.ui.module_view import ModuleList
 
     i18n.set_language("Français")
     try:
-        view = ModuleList(None, modules.test["control"], modules.test["widgets"])
+        view = ModulesTestPage(modules.test["control"], modules.test["widgets"])
         view.backend.load_dependencies(DEPENDENCIES)
         view.resize(900, 700)  # every card shown (grid makes cards of visible rows only)
         view.show()
@@ -441,6 +479,7 @@ def test_qml_page_translated(modules):
         assert any(text.startswith("Activer (") for text in texts) and not any(text.startswith("Enable (") for text in texts)
         assert {"Modules", "4 / 5 activés", "Secteurs", "Nécessaire à 1 overlay activé"} <= texts
         view.close()
+        view.release_page()
         view.deleteLater()
         flush()
     finally:
@@ -452,18 +491,14 @@ def test_page_reset_data_uses_reset_menu(page, monkeypatch):
 
     called = []
     monkeypatch.setattr(menu.ResetDataMenu, "reset_sectorbest", lambda self: called.append(self.title()))
-    page.reset_data("reset_sectorbest")
+    page.host.reset_data("reset_sectorbest")
     assert called == ["Reset Data"]
 
 
-def test_page_config_opens_settings_at_module(page, monkeypatch):
-    """Gear of a card: Settings page at the module category (saving there restarts the module)"""
-    from neopedal.ui import app_settings
-
-    opened = []
-    monkeypatch.setattr(app_settings, "open_app_settings", lambda parent, section="", key="": opened.append(section))
-    page.open_config("module_fuel")
-    assert opened == ["module_fuel"]
+def test_page_config_opens_settings_at_module(page):
+    """Gear of a card: Settings category of the module (same Settings page; saving there restarts the module)"""
+    page.backend._open_config("module_fuel")
+    assert page.configs == ["module_fuel"]
 
 
 def test_qml_imports_bundled_modules():
@@ -500,16 +535,19 @@ def test_french_page_messages():
         i18n.set_language("English")
 
 
-def test_main_window_uses_module_page(ui_env):
-    from PySide6.QtWidgets import QWidget
+def test_settings_page_opens_modules_category(ui_env):
+    """Modules: a category of the Settings page (former main page), its host told when it shows"""
+    from neopedal.ui.app_settings import AppSettings
+    from neopedal.ui.module_view import ModulesHost
 
-    from neopedal.ui import app as app_module
-    from neopedal.ui.module_view import ModuleList
-
-    host = QWidget()
+    settings = AppSettings(None)
     try:
-        page = app_module.build_page("module", host, view=None, window=host, icon_family="")  # type: ignore[arg-type]
-        assert isinstance(page, ModuleList) and page.view is None  # QML page made when first shown
+        assert isinstance(settings.hosts["modules"], ModulesHost)
+        settings.backend.open_section("modules")
+        settings.show()
+        settle()
+        assert settings.backend.category == "modules" and settings._host_shown == "modules"
     finally:
-        host.deleteLater()
+        settings.close()
+        settings.deleteLater()
         flush()

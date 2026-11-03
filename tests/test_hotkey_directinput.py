@@ -214,7 +214,6 @@ def test_capture_page_catches_pulse_shorter_than_its_timer(ui_env, monkeypatch, 
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: common.KeyState(lambda code: 0, reader))
     page = hotkey_backend.HotkeyBackend(None)
     page.page_shown()
-    cfg.application["enable_global_hotkey"] = True
     cfg.user.shortcuts["overlay_lock"]["bind"] = ""
     page.startCapture("overlay_lock")
     try:

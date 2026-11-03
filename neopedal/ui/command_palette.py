@@ -59,8 +59,7 @@ PREFIX_PRESETS = "#"
 
 # Groups (shown in this order when nothing is typed), icon glyph of entries without their own
 GROUP_RECENT = "Recent"
-GROUP_PAGES = "Pages"
-GROUP_TOOLS = "Tools"
+GROUP_PAGES = "Pages"  # main pages & tools: one list (2026-11-03)
 GROUP_COMMANDS = "Commands"
 GROUP_SETTINGS = "Settings"
 GROUP_OVERLAYS = "Overlays"
@@ -76,7 +75,7 @@ GROUP_GLYPHS = {
     GROUP_PRESETS: "\ue8f1",  # library
     GROUP_OPTIONS: "\ue713",  # settings
 }
-# Window menus not read for commands: their entries are pages & tools of their own groups
+# Window menus not read for commands: their entries are pages of their own group
 SKIPPED_MENUS = ("ToolsMenu",)
 
 
@@ -250,8 +249,10 @@ def action_trigger(action: QAction) -> Callable[[], object]:
 
 
 def app_commands(window) -> list[Command]:
-    """App commands without a menu entry of their own: themes, rail, help pages, notifications, preset comparison"""
+    """App commands without a menu entry of their own: themes, rail, help pages, notifications, preset comparison,
+    tools of a page (Plugin Manager of Overlays, Performance tab of Modules)"""
     from ..regex_pattern import THEME_NAMES
+    from ..template.page_registry import PERFORMANCE_PATH
     from .tools_view import SHOW_PRESET_COMPARE, open_tool
 
     group = tr(GROUP_COMMANDS)
@@ -265,13 +266,17 @@ def app_commands(window) -> list[Command]:
             "\ue790", key=f"theme:{theme}"))
     view = window.centralWidget()
     for label, english, run, glyph, shortcut in (
-        (tr("Customize Navigation Bar…"), "customize navigation bar rail", getattr(view, "open_rail_editor", None),
+        (tr("Reset Navigation Bar…"), "reset customize navigation bar rail default", getattr(view, "reset_rail_items", None),
          "\ue700", ""),
         (tr("Notifications"), "notifications messages errors bell", getattr(view, "show_notification_center", None),
          "\uea8f", ""),
         (tr("What's New"), "what's new release notes changelog version", partial(open_whats_new, window), "\ue946", ""),
         (tr("Preset Comparison"), "preset comparison compare presets differences comparer comparaison",
          partial(open_tool, SHOW_PRESET_COMPARE, window), "\ue8ab", ""),  # compare panel of the Presets page
+        (tr("Plugin Manager"), "plugin manager plugins install trust overlay extensions gestionnaire extensions",
+         partial(open_tool, "plugin_manager.PluginManager", window), "\uea86", ""),  # Plugins of the Overlays page
+        (tr("Overlay Performance"), "overlay performance cpu time slow lag game data diagnostic lenteur",
+         partial(open_tool, PERFORMANCE_PATH, window), "\uec4a", ""),  # Performance tab of the Modules page
         (tr("Keyboard Shortcuts"), "keyboard shortcuts keys cheat sheet", getattr(window, "open_shortcuts", None),
          "\ue765", "Ctrl+/"),
         (tr("Help for This Page"), "help user guide wiki page", getattr(view, "open_page_help", None), "\ue897", ""),
@@ -330,7 +335,7 @@ def build_commands(window) -> list[Command]:
             position = rail.index(name) + 1 if name in rail else 0
             description = tr(spec.description) if spec is not None and spec.description else ""
             commands.append(Command(
-                tr(label), tr(GROUP_TOOLS),
+                tr(label), tr(GROUP_PAGES),
                 search_text(tr(label), label, "tool", description, TOOL_KEYWORDS.get(dialog_path, "")),
                 partial(open_tool, dialog_path, window), glyph, f"Ctrl+{position}" if 0 < position <= 9 else "",
                 key=f"tool:{dialog_path}", detail=description))
@@ -341,9 +346,10 @@ def build_commands(window) -> list[Command]:
             continue
         commands += [command for command in menu_commands(menu, plain_menu_text(menu.title()))
                      if command.title not in titles]
-    from .quick.settings_backend import CATEGORIES
+    from .quick.settings_backend import CATEGORIES, PRESET_CATEGORIES
 
-    for category in CATEGORIES:  # settings page categories (config.json)
+    # Settings page categories: config.json, then pages kept in the loaded preset (Modules)
+    for category in (*CATEGORIES, *(category for category in PRESET_CATEGORIES if category.page)):
         commands.append(Command(
             tr(category.label), settings,
             search_text(tr(category.label), category.label, tr(category.description), "config settings"),

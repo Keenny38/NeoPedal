@@ -2,13 +2,13 @@
 
 Every lap you drive is recorded, and the **Lap Telemetry Viewer** compares them: charts, racing line map, corner analysis, session pace, XY plots and a simple view drawn like the overlays. It is drawn by the graphics card (Qt Quick), so zooming and moving stay smooth.
 
-Open it with the `Telemetry` entry of the navigation bar, or the `Tools` page.
+Open it with the `Telemetry` entry of the navigation bar, or the `Tools` menu.
 
 ![Telemetry viewer: gap to reference, markers A and B, range statistics](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.18.0-telemetry-viewer.png)
 
 ## Lap recording
 
-The **Recorder** module (on by default, `Module` page) saves each complete lap as a CSV file in the `telemetry` folder, one subfolder per track and car class. Laps are checked against the game lap time; laps that are not confirmed (track limits, invalid lap) are marked `invalid`.
+The **Recorder** module (on by default, `Settings` > `Modules`) saves each complete lap as a CSV file in the `telemetry` folder, one subfolder per track and car class. Laps are checked against the game lap time; laps that are not confirmed (track limits, invalid lap) are marked `invalid`.
 
 Main options of the Recorder module:
 
@@ -135,15 +135,15 @@ On a narrow window (below about 56 characters wide), the lap list moves into a d
 - A lap read from its binary copy loads only the channels shown (the others when first shown): about half the memory per lap.
 - When the page stays in the background for 3 minutes, loaded laps are released from memory, then reloaded with the same zoom when you come back.
 
-## Track Map Viewer
+## Track maps
 
-`Tools` > `Track Map Viewer` shows the track maps recorded by the Mapping module: pick one in the list of recorded maps at the top (search by name), open a `.svg` map from another folder with `Open File`, or drop it on the page. A map that cannot be read is named in the warning, and the map shown stays.
+The track maps recorded by the Mapping module are shown in the `Tracks` tab of `Data Editors` (`Tools` menu), beside the table of tracks: selecting a track shows its map, with its pit entry, pit exit and speed trap marked (right-click one of these cells > `Set from Map Position` sets it at the position of the map). It replaced the former `Track Map Viewer` page, whose links (such as the map button of Driver Stats) open this tab on the track. Pick another map in the list of recorded maps at the top (search by name), open a `.svg` map from another folder with `Open File`, or drop it on the map. A map that cannot be read is named in the warning, and the map shown stays.
 
 - road at its real width, line colored by sector, start and sector lines, official corner numbers (click one to go there);
 - at the current position: curve section, osculating circle, distance circles, curve radius and angle, slope, XYZ position;
 - elevation profile of the whole lap;
 - `Play` (or `Space`) drives around the track, `Follow Position` keeps the position centered.
 
-![Track Map Viewer](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.17.0-track-map-viewer.png)
+![Track map](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.17.0-track-map-viewer.png)
 
 All options: [Lap telemetry viewer](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#lap-telemetry-viewer), [Track map viewer](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#track-map-viewer) and [Recorder module](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#recorder-module).

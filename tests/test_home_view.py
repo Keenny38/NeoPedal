@@ -151,8 +151,10 @@ def test_qml_page_shows_cards(home):
     view = home.view
     assert view is not None and view.rootObject() is not None and not view.errors()
     texts = item_texts(view)
-    # Status banner (verdict, version, release notes, update) & one overlays card (overlays & modules on)
-    assert {"Preset", "Overlays", "Open modules", "Quick Access", "What's New", "Active overlays"} <= texts
+    # Status banner (verdict & its action) & one overlays card (preset, overlays & modules on); version & release
+    # notes in the help menu only (2026-11-03: one place each)
+    assert {"Preset", "Overlays", "Modules", "Quick Access", "Active overlays"} <= texts
+    assert "What's New" not in texts and "Check for Updates" not in texts
     assert "Game" not in texts  # game card on track only: the banner tells the game
     assert "Overlay" not in texts and "Checks" not in texts
     assert "Last Session" not in texts and "Session Debrief" not in texts  # nothing driven yet
@@ -207,16 +209,24 @@ def test_game_card_session_and_checks(home, monkeypatch):
     assert "game" not in keys(backend.checks)
     QCoreApplication.processEvents()
     assert backend.status["title"] == "In session · Road Atlanta · Race · P3" and backend.status["level"] == "live"
-    assert {"In session · Road Atlanta · Race · P3", "P3", "/24", "Lap 12", "Live Calculator"} <= item_texts(home.view)
+    texts = item_texts(home.view)
+    assert {"Road Atlanta · Race", "P3", "/24", "Lap 12", "Live Calculator"} <= texts
+    # On track, the status line only when something is to fix or to know (the game card tells the session)
+    assert ("In session · Road Atlanta · Race · P3" in texts) == bool(backend.status["rows"])
 
 
 def test_checks_card_actions(home, monkeypatch):
+    from neopedal.ui import app_settings
+
     opened = []
     monkeypatch.setattr(home.backend, "_select_page", opened.append)
     monkeypatch.setattr(home.backend, "openGameSettings", lambda: opened.append("api"))
+    monkeypatch.setattr(home.backend, "open_tool", opened.append)
+    monkeypatch.setattr(app_settings, "open_app_settings", lambda window, section="", key="": opened.append(section))
     for action in ("overlays", "modules", "spectate", "api"):
         home.backend.runCheck(action)
-    assert opened == ["widget", "module", "spectate", "api"]
+    # Modules: category of Settings; Spectate: tab of Broadcast Director (pages merged 2026-11-03)
+    assert opened == ["widget", "modules", "spectate_view.SpectateList", "api"]
 
 
 def test_game_window_found_without_data(home, monkeypatch):
@@ -247,7 +257,7 @@ def test_overlay_card_lock(home, monkeypatch):
     home.backend.toggleLock()
     QCoreApplication.processEvents()
     assert calls and home.backend.overlay["locked"] is False
-    assert {"Lock Overlay", "Drag overlays to move them"} <= item_texts(home.view)
+    assert {"Lock Overlay", "Unlocked · Drag overlays to move them"} <= item_texts(home.view)
 
 
 def test_counts_follow_overlays_turned_on(home, monkeypatch):
@@ -362,18 +372,18 @@ def test_quick_access_setting():
     assert entries["command_palette"].kind == "action"
     assert home_view.parse_quick_items("preset, bogus,preset,fuel_calculator,bug_report") == [
         "preset", "race_calculator", "bug_report"]  # unknown & duplicate dropped, merged tool renamed
-    # Entries of the default navigation bar left out (UI/UX audit 2026-10-29: no duplicates of the bar)
+    # Entries of the default navigation bar left out (UI/UX audit 2026-10-29: no duplicates of the bar); updates
+    # checked from the help menu (2026-11-03)
     assert home_view.default_quick_items() == [
-        "perf_view", "track_map_viewer", "module", "spectate", "pacenotes",
-        "hotkey", "tools", "app_settings", "bug_report", "check_updates",
-    ]
+        "data_editors", "app_settings", "broadcast_director", "perf_view", "bug_report"]
+    assert "check_updates" not in entries
 
 
 def test_current_quick_items(ui_env):
     cfg.application["home_quick_access"] = ""
     assert home_view.current_quick_items() == []  # every button removed by user
-    cfg.application["home_quick_access"] = "tools,check_updates"
-    assert home_view.current_quick_items() == ["tools", "check_updates"]
+    cfg.application["home_quick_access"] = "spectate,check_updates"
+    assert home_view.current_quick_items() == ["broadcast_director"]  # merged tool renamed, former action dropped
     del cfg.application["home_quick_access"]
     assert home_view.current_quick_items() == home_view.default_quick_items()
 
@@ -385,18 +395,19 @@ def test_quick_access_editor_updates_buttons(home):
     editor = home_view.QuickAccessEditor(None, backend.refresh_quick)
     assert editor.checked_items() == home_view.default_quick_items()
     assert editor.picker.entries["bug_report"].kind == "Actions" and editor.picker.badge_text(0) == "1"
+    assert editor.picker_entries()["preset"].tag == "In Navigation Bar"  # left out of the home page
     editor.fill(["preset", "command_palette"])
     editor.saving()
     QCoreApplication.processEvents()
     assert cfg.application["home_quick_access"] == "preset,command_palette"
-    assert [row["key"] for row in backend.quick] == ["preset", "command_palette"]
-    assert backend.quick[1]["shortcut"] == "Ctrl+K"
+    assert [row["key"] for row in backend.quick] == ["command_palette"]  # Presets: in the navigation bar
+    assert backend.quick[0]["shortcut"] == "Ctrl+K"
     editor.picker.remove("preset")
     editor.picker.remove("command_palette")
     editor.saving()
     QCoreApplication.processEvents()
     assert cfg.application["home_quick_access"] == "" and backend.quick == []
-    assert "No quick access button: use Customize… to add tools, pages or actions." in item_texts(home.view)
+    assert "Quick Access" in item_texts(home.view)  # its Customize… button kept
     editor.close()
 
 
@@ -408,8 +419,8 @@ def test_quick_entries_run(home, monkeypatch):
     monkeypatch.setattr(backend._window, "open_command_palette", lambda: calls.append(("palette",)))
     monkeypatch.setattr(type(update.update_checker), "check", lambda self, manual: calls.append(("check", manual)))
     for key in ("preset", "race_calculator", "command_palette", "check_updates", "bogus"):
-        backend.runQuick(key)
-    assert calls == [("page", "preset"), ("tool", "race_calculator.RaceCalculator"), ("palette",), ("check", True)]
+        backend.runQuick(key)  # check_updates: former entry (help menu), nothing
+    assert calls == [("page", "preset"), ("tool", "race_calculator.RaceCalculator"), ("palette",)]
 
 
 def test_driver_card(home, monkeypatch):

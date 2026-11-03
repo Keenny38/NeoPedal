@@ -34,12 +34,11 @@ import html
 import json
 import os
 import threading
-import time
 from collections.abc import Callable, Iterable
 from functools import partial
 from typing import Any, NamedTuple, Protocol
 
-from PySide6.QtCore import Property, QDateTime, QLocale, QObject, Signal, Slot
+from PySide6.QtCore import Property, QObject, Signal, Slot
 
 from ... import app_signal
 from ...const_app import VERSION
@@ -56,7 +55,7 @@ from ...userfile.preset_trash import count_trash
 from ...validator import is_allowed_filename
 from ..module_view import sort_key
 from ..preset_management import after_saving, apply_preset_name, check_preset_name
-from .formatting import date_locale, format_date
+from .formatting import long_date_time, relative_date
 from .models import DictListModel
 from .page_backend import PageBackend
 from .preset_tools_backend import (
@@ -169,29 +168,8 @@ class SummaryCache:
                 del self._entries[path]
 
 
-def changed_text(modified: float, now: float | None = None) -> str:
-    """When preset was last changed: "Just now", "5 min ago", "3 h ago", "Yesterday", "4 days ago", date"""
-    seconds = max((time.time() if now is None else now) - modified, 0)
-    if seconds < 60:
-        return tr("Just now")
-    if seconds < 3600:
-        return trm(f"{int(seconds // 60)} min ago")
-    if seconds < 86400:
-        return trm(f"{int(seconds // 3600)} h ago")
-    days = int(seconds // 86400)
-    if days == 1:
-        return tr("Yesterday")
-    if days < 7:
-        return trm(f"{days} days ago")
-    return format_date(modified)  # date rule of every page (date_locale)
-
-
-def full_date(modified: float) -> str:
-    """Date & time of last change: "Sunday, October 4, 2026 · 21:07" (app language)"""
-    locale = date_locale()
-    moment = QDateTime.fromSecsSinceEpoch(int(modified))
-    return (f"{locale.toString(moment.date(), QLocale.FormatType.LongFormat)}  ·  "
-            f"{locale.toString(moment.time(), QLocale.FormatType.ShortFormat)}")
+changed_text = relative_date  # when preset was last changed ("5 min ago"), as every page tells dates
+full_date = long_date_time  # date & time of last change
 
 
 def size_text(size: int) -> str:

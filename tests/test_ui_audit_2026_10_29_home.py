@@ -89,7 +89,7 @@ def test_banner_on_page_without_warnings(qml_warnings, home, monkeypatch):  # no
     assert item_named(root, "statusAction").property("text") == "API Options"
     texts = item_texts(home.view)
     assert "Not running" not in texts  # game card does not tell it again
-    assert "Version" in item_named(root, "versionText").property("text")
+    assert item_named(root, "versionText") is None  # version in the help menu (2026-11-03)
     assert not qml_warnings, qml_warnings
 
 
@@ -104,7 +104,7 @@ def test_game_card_large_in_session(qml_warnings, home, monkeypatch):  # noqa: F
     root = home.view.rootObject()
     card = item_named(root, "gameCard")
     columns = root.property("columns")
-    assert columns > 1 and card.width() > item_named(root, "overlaysCard").width() * 1.5  # whole row
+    assert columns > 1 and card.width() > root.width() * 0.9  # whole row
     assert {"P3", "/20", "Lap 5", "1:02:05", "Time left", "Live Calculator", "Broadcast Director"} <= item_texts(home.view)
     on_track(monkeypatch, remaining=0.0, finish=1, laps=30)  # lap race: lap of laps, no time left
     backend.refresh_live()
@@ -150,7 +150,8 @@ def test_one_overlays_card_without_share_bars():
     assert 'title: i18n.tr("Checks")' not in text  # checks in the banner
 
 
-def test_debrief_details_on_demand(qml_warnings, home):  # noqa: F811
+def test_debrief_shown_at_once(qml_warnings, home):  # noqa: F811
+    """Best lap in big type, corners to work on shown without a click (2026-11-03: no Show Details)"""
     backend = home.backend
     backend.publish("lastSession", {"track": "Spa", "vehicle": "Oreca 07", "session": "Race"}, backend.lastSessionChanged)
     backend.publish("debrief", {"best": "1:30.000", "figures": ["3 laps"], "personal": "", "personalText": "",
@@ -159,12 +160,8 @@ def test_debrief_details_on_demand(qml_warnings, home):  # noqa: F811
     backend.set_loading("debrief", False)
     QCoreApplication.processEvents()
     texts = item_texts(home.view)
-    assert {"Last Session", "Session Debrief", "Best 1:30.000", "Open Telemetry", "Show Details"} <= texts
-    assert "T1" not in texts
-    root = home.view.rootObject()
-    root.setProperty("debriefOpen", True)
-    QCoreApplication.processEvents()
-    assert {"T1", "Brakes", "Hide Details"} <= item_texts(home.view)
+    assert {"Last Session", "Best Lap", "1:30.000", "Open Telemetry", "T1", "Brakes"} <= texts
+    assert "Show Details" not in texts and "Hide Details" not in texts
     assert not qml_warnings, qml_warnings
 
 

@@ -48,7 +48,6 @@ from ...userfile.driver_history import (
 )
 from ...userfile.lap_reference import LEVELS, LapReference
 from ..lap_viewer import number_text, signed
-from ..track_map_viewer import TrackMapViewer
 from .formatting import format_date
 from .stats_analysis import parse_goals
 from .stats_common import (
@@ -953,8 +952,10 @@ class StatsSelection(StatsHost):
         """Track map of selected track"""
         if not self.selected_stats_key:
             return
-        viewer = TrackMapViewer(self._window)
-        viewer.show()
-        # Loaded in the page shown: viewer already open as page is shown instead (this copy deleted)
-        shown: Any = viewer.shown_dialog()
-        shown.backend.load_map(cfg.path.track_map, strip_invalid_char(self.selected_stats_key))
+        from ...template.page_registry import MAP_VIEWER_PATH
+        from ..tools_view import open_tool
+
+        tracks: Any = open_tool(MAP_VIEWER_PATH, self._window)  # Tracks tab of Data Editors
+        show_track = getattr(tracks, "show_track", None)
+        if callable(show_track):
+            show_track(strip_invalid_char(self.selected_stats_key))

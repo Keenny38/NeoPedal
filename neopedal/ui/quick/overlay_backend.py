@@ -741,6 +741,7 @@ class OverlayBackend(PageBackend):
         export_settings: export settings of overlays (names ticked first) as package file.
         import_settings: import overlay settings package file.
         open_presets: show Presets page.
+        open_plugins: show Plugin Manager page (overlay plugins).
         capture_screen: picture of the screen of this name (app window hidden meanwhile), None if not taken.
         pick_screenshot: picture file chosen by the user, "" if cancelled.
         ask: ask a question in the page (text, action button text, on_result(chosen)), else confirm answers.
@@ -775,13 +776,12 @@ class OverlayBackend(PageBackend):
         export_settings: Callable[[list[str]], object] = lambda names: None,
         import_settings: Callable[[], object] = lambda: None,
         open_presets: Callable[[], object] = lambda: None,
+        open_plugins: Callable[[], object] = lambda: None,
         capture_screen: Callable[[str], QImage | None] = lambda name: None,
         pick_screenshot: Callable[[], str] = lambda: "",
         ask: Callable[[str, str, Callable[[bool], object]], object] | None = None,
     ):
         super().__init__(parent, "Overlays")
-        from ... import safe_mode
-
         self._control = module_control
         self._open_config = open_config
         self._confirm = confirm
@@ -789,10 +789,10 @@ class OverlayBackend(PageBackend):
         self._export_settings = export_settings
         self._import_settings = import_settings
         self._open_presets = open_presets
+        self._open_plugins = open_plugins
         self._capture_screen = capture_screen
         self._pick_screenshot = pick_screenshot
         self._ask = ask
-        self._safe_mode = safe_mode.state.enabled
         self._positions_locked = positions_locked()
         self._background: dict[str, Any] = {}  # screenshot under the screen view: url & desktop rect
         # Page undo history (Ctrl+Z, toasts): (kind, overlay name or "", undo action, preset), last change last
@@ -831,8 +831,8 @@ class OverlayBackend(PageBackend):
 
     # State
     def _failed(self, name: str, enabled: bool) -> bool:
-        """Enabled overlay not running: failed to start (error in log), overlays are off in safe mode"""
-        return enabled and not self._safe_mode and name not in self._control.active_modules
+        """Enabled overlay not running: failed to start (error in log)"""
+        return enabled and name not in self._control.active_modules
 
     def _new_row(self, name: str) -> OverlayRow:
         setting = cfg.user.setting[name]
@@ -1020,10 +1020,6 @@ class OverlayBackend(PageBackend):
     @Property(QObject, constant=True)
     def model(self) -> QObject:
         return self.proxy
-
-    @Property(bool, constant=True)
-    def safeMode(self) -> bool:
-        return self._safe_mode
 
     @Property(int, notify=countsChanged)
     def totalCount(self) -> int:
@@ -1389,6 +1385,10 @@ class OverlayBackend(PageBackend):
     @Slot()
     def openPresets(self):
         self._open_presets()
+
+    @Slot()
+    def openPlugins(self):
+        self._open_plugins()
 
     # Animated preview
     @Slot(str)

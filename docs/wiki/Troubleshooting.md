@@ -12,7 +12,7 @@ Check, in this order:
 4. **Overlay turned on**: on the `Overlays` page, its switch must be on. Its `visibility_context` option may limit it to some sessions or to the pits.
 5. **Off screen**: an overlay left outside every screen (monitor unplugged, preset made on another computer) is shown on the nearest screen at startup, its saved position kept (`Settings` > `Compatibility` > `enable_window_position_correction`). You can also drag it in the screen view of the `Overlays` page, or right-click an overlay > `Move to Screen`. Positions are remembered per screen setup.
 6. **Maps**: with Le Mans Ultimate, Track Map, Navigation and Elevation use the official circuit of the game (Rest API access on; Elevation once a car drove on track). With rFactor 2 or the Rest API off, they need one complete, valid lap of the track (recorded by the Mapping module) before they draw anything.
-7. **Overlay shown but empty**: a data module it needs may be off. The `Module` page flags in orange the modules turned off that enabled overlays need: `Enable Them` turns them back on.
+7. **Overlay shown but empty**: a data module it needs may be off. The `Modules` category of `Settings` flags in orange the modules turned off that enabled overlays need: `Enable Them` turns them back on.
 
 ### Linux
 
@@ -39,28 +39,13 @@ The `Stream Overlays` page tells why its sources are empty when no overlay is sh
 - **Overrides**: `enable_active_state_override` and `enable_player_index_override` (`API` > `API Options`) change what is shown; turn them off unless you need them. Spectate mode also sets the player index.
 - **LMU REST data missing** (chat, team stints, official delta...): `url_port` in `API` > `API Options` must match `WebUI port` in the game file `UserData\player\Settings.JSON` (default `6397`). See [LMU REST API](Game-Setup.md#lmu-rest-api-automatic).
 
-`Tools` > `Overlay Performance` > `Game data` shows the age of the shared memory data and the state of each REST data group: useful to see what the app receives.
+`Overlay Performance` (`Performance` in `Settings` > `Modules`, or the command palette `Ctrl+K`) > `Game data` shows the age of the shared memory data and the state of each REST data group: useful to see what the app receives.
 
 ## The app does not start
 
 ### Already running
 
 "NeoPedal is already running": only one copy runs at a time per settings folder. Look for its icon in the tray (it may be hidden in the tray overflow). The check uses a system lock released when the app closes or crashes, so a crashed copy never blocks the next start.
-
-### Safe mode
-
-If a start did not finish (crash, or app killed before the window and overlays were up for a few seconds), the next start asks whether to start in **safe mode**: plugins are not loaded and overlays are not started, so you can fix the settings that caused the problem (turn off an overlay or a plugin, for example).
-
-- The window title shows `Safe Mode`. Click `Restart Normally` in the notice, or `Restart NeoPedal` at the end of the `☰` menu (`Window` menu with the Windows title bar), to start normally again.
-- You can force safe mode from the command line:
-
-```bash
-neopedal.exe --safe-mode
-```
-
-```bash
-python run.py --safe-mode
-```
 
 ### Settings file locked at start
 
@@ -78,7 +63,6 @@ If another program (antivirus, OneDrive or another sync tool, a backup tool) hol
 | `-h`, `--help` | List the arguments (from source) |
 | `-l`, `--log-level 0` / `1` / `2` | Warnings and errors only / all messages (default) / all messages, also to `neopedal.log` |
 | `-s`, `--single-instance 0` / `1` | Allow several copies at once / single instance (default). Driver stats are not recorded with `0`. |
-| `--safe-mode` | Start without plugins and overlays |
 
 ## Report a bug
 
@@ -89,7 +73,7 @@ Many problems come from other apps or plugins: turn them off to rule them out fi
 
 ## Performance
 
-`Tools` > `Overlay Performance` measures the app. Click `Enable Monitoring`, then drive a few laps:
+`Overlay Performance` (`Performance` in `Settings` > `Modules`, or the command palette `Ctrl+K`) measures the app. Click `Enable Monitoring`, then drive a few laps:
 
 - `Widgets`: update and paint time of each overlay;
 - `App & modules`: CPU and memory of the app, its modules and the game connection;

@@ -134,7 +134,7 @@ TpPage {
             TpStateView {
                 anchors.centerIn: parent
                 empty: results.count === 0
-                glyph: backend.searching ? "" : ""  // search, settings
+                glyph: backend.searching ? "" : theme.glyphs.settings  // search, settings
                 title: !backend.searching ? i18n.tr("Find any option")
                      : backend.changedOnly && backend.searchText === "" ? i18n.tr("Every option has its default value")
                      : i18n.tr("No option found")

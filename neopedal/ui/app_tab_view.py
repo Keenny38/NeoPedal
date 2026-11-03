@@ -27,9 +27,11 @@ from functools import partial
 from typing import TYPE_CHECKING, cast
 
 import shiboken6
-from PySide6.QtCore import QEvent, QPoint, QPointF, QRectF, QSize, Qt, QTimer, Signal, Slot
+from PySide6.QtCore import QByteArray, QEvent, QMimeData, QPoint, QPointF, QRectF, QSize, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import (
     QColor,
+    QCursor,
+    QDrag,
     QFont,
     QFontMetricsF,
     QKeySequence,
@@ -61,25 +63,35 @@ from ..api_control import api
 from ..const_app import APP_NAME
 from ..const_file import ConfigType
 from ..i18n import tr, trm
-from ..module_control import mctrl, wctrl
+from ..module_control import wctrl
 from ..overlay_control import octrl
 from ..setting import cfg
-from ..template.page_registry import PAGE_MAIN, page_spec, page_wiki, tool_pages
+from ..template.page_registry import page_spec, page_wiki, tool_pages
 from . import (
     draw_focus_ring,
     legacy_style,
     status_color,
 )
-from ._common import MODIFIED_MARKER, BaseDialog, UIScaler
+from ._common import MODIFIED_MARKER, BaseDialog, UIScaler, confirm_action
 from .lazy_page import IdlePageRelease, LazyPage, PageFade, PageRelease, release_quick_views
 from .menu import APIMenu, open_config_application
-from .nav_rail import NAV_PAGES, PAGE_INDEX, RailEditor, current_rail_items, page_name, rail_entries, rail_text
+from .nav_rail import (
+    NAV_PAGES,
+    PAGE_INDEX,
+    current_rail_items,
+    default_rail_items,
+    hidden_rail_items,
+    page_name,
+    rail_entries,
+    rail_text,
+    save_rail_items,
+)
 from .notification import NotifyBar, notification_store
 from .ordered_picker import icon_font_family
-from .pace_notes_view import PaceNotesControl, PaceNotesPlayback
+from .pace_notes_view import PaceNotesPlayback
 from .title_bar import page_title_in_bar
 from .tokens import hover_fill, radius_px, selected_fill
-from .tools_view import LISTED_TOOL_SECTIONS, RENAMED_TOOLS, TOOL_SECTIONS, ToolsView, open_tool
+from .tools_view import RENAMED_TOOLS, TOOL_SECTIONS, open_tool
 from .window_geometry import (
     keep_on_screen,
     max_content_size,
@@ -103,6 +115,9 @@ RAIL_LABEL_MIN_PT = 7.5  # never smaller (readable at 100% scale)
 # signals (hotkeys, tray, pages) update it at once. A tick costs a few hundred µs of Python on the UI thread.
 RAIL_POLL_MS = 2500
 BREADCRUMB_SEPARATOR = "\u203a"  # single right angle quote
+RAIL_MIME = "application/x-neopedal-rail-entry"  # rail entry dragged: its key (page key or tool module name)
+# Fill of the bell count badge: highest level of unread notifications
+BADGE_COLORS = {"error": "badge_danger", "warning": "badge_warning"}
 
 
 def show_restored(window: QWidget):
@@ -115,7 +130,7 @@ def show_restored(window: QWidget):
         window.showNormal()
 
 
-def build_page(key: str, host: QWidget, view: "TabView", window: QWidget, icon_family: str) -> QWidget:
+def build_page(key: str, host: QWidget, view: "TabView", window: QWidget) -> QWidget:
     """Main window page of navigation key, its module imported on first use (see LazyPage)"""
     if key == "home":
         from .home_view import HomeView
@@ -125,25 +140,9 @@ def build_page(key: str, host: QWidget, view: "TabView", window: QWidget, icon_f
         from .overlay_view import OverlayView
 
         return OverlayView(host, wctrl)
-    if key == "module":
-        from .module_view import ModuleList
+    from .preset_view import PresetList
 
-        return ModuleList(host, mctrl)
-    if key == "preset":
-        from .preset_view import PresetList
-
-        return PresetList(host)
-    if key == "spectate":
-        from .spectate_view import SpectateList
-
-        return SpectateList(host)
-    if key == "pacenotes":
-        return PaceNotesControl(host, view.pace_notes)
-    if key == "hotkey":
-        from .hotkey_view import HotkeyList
-
-        return HotkeyList(host)
-    return ToolsView(host, icon_family, window)
+    return PresetList(host)
 
 
 # Tool pages with an on / off switch (dialog class, backend module, status function: "on", "off", "" closed),
@@ -176,11 +175,21 @@ class NavButton(QAbstractButton):
     alone.
     """
 
+    pinned = Signal()  # "+" of an entry left out of the rail clicked (or + / Insert key): add it to the rail
+    move_requested = Signal(int)  # Alt+Up / Alt+Down on a rail entry: moved one place up (-1) or down (1)
+
     def __init__(self, text: str, glyph: str, letter: str, icon_family: str, parent=None, compact: bool = False):
         super().__init__(parent)
         self.compact = compact  # icon only, label in tooltip
+        self.pin_glyph = ""  # "+" drawn at top right while hovered (entry left out of the rail), see pinned
+        self._pin_pressed = False
+        self.emphasis = False  # More / Less of the rail: tinted, outlined, apart from the entries
+        self.drop_target = False  # rail entry dragged over it (More: dropped there, left out of the rail)
+        self._press_pos: QPointF | None = None  # pressed on an entry with a "railKey": dragged once moved enough
+        self._dragging = False
         self.dot_color: QColor | None = None  # status dot drawn at top right
         self.badge_text = ""  # count badge drawn at top right instead of the dot (unread notifications)
+        self.badge_color = "badge_danger"  # status color of its fill
         self.modified = False  # page has unsaved changes: marker before label, see set_modified
         self.setText(text)
         self.setCheckable(True)
@@ -197,6 +206,8 @@ class NavButton(QAbstractButton):
         em = UIScaler.FONT_PIXEL_SCALED  # em of QML pages (ui/tokens.py), never the line height of a font
         if self.compact:
             return QSize(round(em * 2.95), round(em * 2.95))
+        if self.emphasis:  # More / Less: one line, lower than the entries
+            return QSize(round(em * 5.9), round(em * 2.4))
         return QSize(round(em * 5.9), round(em * 4.55))
 
     @staticmethod
@@ -212,9 +223,71 @@ class NavButton(QAbstractButton):
         self.set_tab_stop(self)  # Tab back into the rail lands here
         super().focusInEvent(event)
 
+    def pin_rect(self) -> QRectF:
+        """Area of the "+" at top right (entry left out of the rail)"""
+        em = UIScaler.FONT_PIXEL_SCALED
+        size = em * 1.35
+        return QRectF(self.width() - size - em * 0.35, em * 0.2, size, size)
+
+    def mousePressEvent(self, event):
+        if (self.pin_glyph and event.button() == Qt.MouseButton.LeftButton
+                and self.pin_rect().contains(event.position())):
+            self._pin_pressed = True  # no click of the entry (page not opened)
+            event.accept()
+            return
+        if event.button() == Qt.MouseButton.LeftButton and self.property("railKey"):
+            self._press_pos = event.position()
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._press_pos = None
+        if self._pin_pressed:
+            self._pin_pressed = False
+            event.accept()
+            if self.pin_rect().contains(event.position()):
+                self.pinned.emit()
+            return
+        super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.pin_glyph:
+            self.update()  # "+" lit while pointed
+        if (self._press_pos is not None and event.buttons() & Qt.MouseButton.LeftButton
+                and (event.position() - self._press_pos).manhattanLength() >= QApplication.startDragDistance()):
+            self.start_drag()
+            return
+        super().mouseMoveEvent(event)
+
+    def start_drag(self):
+        """Entry dragged to another place of the rail, or to More (left out), see TabView.drop_rail_item"""
+        hot_spot = self._press_pos.toPoint() if self._press_pos is not None else QPoint()
+        self._press_pos = None
+        self.setDown(False)  # no click once dropped
+        mime = QMimeData()
+        mime.setData(RAIL_MIME, QByteArray(str(self.property("railKey")).encode()))
+        drag = QDrag(self)
+        drag.setMimeData(mime)
+        drag.setPixmap(self.grab())
+        drag.setHotSpot(hot_spot)
+        self._dragging = True  # faint while its copy follows the pointer
+        self.update()
+        drag.exec(Qt.DropAction.MoveAction)
+        if shiboken6.isValid(self):  # rail rebuilt after the drop (deleted later)
+            self._dragging = False
+            self.update()
+
     def keyPressEvent(self, event):
         key = event.key()
-        step = {Qt.Key.Key_Up: -1, Qt.Key.Key_Left: -1, Qt.Key.Key_Down: 1, Qt.Key.Key_Right: 1}.get(key)
+        if self.pin_glyph and key in (Qt.Key.Key_Plus, Qt.Key.Key_Insert):
+            self.pinned.emit()
+            event.accept()
+            return
+        if (event.modifiers() & Qt.KeyboardModifier.AltModifier and key in (Qt.Key.Key_Up, Qt.Key.Key_Down)
+                and self.property("railKey")):
+            self.move_requested.emit(-1 if key == Qt.Key.Key_Up else 1)
+            event.accept()
+            return
+        step ={Qt.Key.Key_Up: -1, Qt.Key.Key_Left: -1, Qt.Key.Key_Down: 1, Qt.Key.Key_Right: 1}.get(key)
         if step is None and key not in (Qt.Key.Key_Home, Qt.Key.Key_End):
             super().keyPressEvent(event)
             return
@@ -262,6 +335,11 @@ class NavButton(QAbstractButton):
         area = QRectF(self.rect()).adjusted(em * 0.3, em * 0.15, -em * 0.3, -em * 0.15)
         radius = radius_px("radiusMd", em, legacy_style())  # as QML rows: half as round on Legacy themes
         hovered = self.underMouse()
+        if self._dragging:
+            painter.setOpacity(0.35)
+        if self.emphasis:
+            self.paint_pill(painter, area, accent, text, muted, hovered)
+            return
         painter.setPen(Qt.PenStyle.NoPen)
         if self.isChecked():
             painter.setBrush(selected_fill(palette, hovered))  # theme.rowColor(hovered, true)
@@ -317,9 +395,57 @@ class NavButton(QAbstractButton):
         label_text = f"{MODIFIED_MARKER}{self.text()}" if self.modified else self.text()
         label = QFontMetricsF(label_font).elidedText(label_text, Qt.TextElideMode.ElideRight, label_rect.width())
         painter.drawText(label_rect, Qt.AlignmentFlag.AlignCenter, label)
+        if self.pin_glyph:  # "+" (add to the rail): faint, filled while hovered, accent fill when pointed
+            pin = self.pin_rect()
+            active = hovered or self.hasFocus()
+            pointed = hovered and pin.contains(QPointF(self.mapFromGlobal(QCursor.pos())))
+            if active:
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(accent if pointed else hover_fill(palette))
+                painter.drawEllipse(pin)
+            pin_font = QFont(self.icon_font)
+            pin_font.setPixelSize(round(pin.height() * (0.55 if active else 0.45)))
+            painter.setFont(pin_font)
+            painter.setPen(palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.HighlightedText)
+                           if pointed else text if active else muted)
+            painter.drawText(pin, Qt.AlignmentFlag.AlignCenter, self.pin_glyph)
+
+    def paint_pill(self, painter: QPainter, area: QRectF, accent: QColor, text: QColor, muted: QColor, hovered: bool):
+        """More / Less of the rail: label & chevron on one line in a thin outlined pill (shape apart from the entries,
+        no loud color), hover fill when pointed, accent while an entry is dragged onto it"""
+        em = UIScaler.FONT_PIXEL_SCALED
+        pill = QRectF(area.left() + em * 0.35, area.top() + em * 0.2, area.width() - em * 0.7, area.height() - em * 0.4)
+        radius = pill.height() / 2
+        outline = QColor(accent if self.drop_target else muted)
+        outline.setAlphaF(0.9 if self.drop_target else 0.45)
+        if self.drop_target:
+            fill = QColor(accent)
+            fill.setAlphaF(0.18)
+            painter.setBrush(fill)
+        else:
+            painter.setBrush(hover_fill(self.palette()) if hovered else Qt.BrushStyle.NoBrush)
+        painter.setPen(QPen(outline, max(1.0, em * 0.06)))
+        painter.drawRoundedRect(pill, radius, radius)
+        draw_focus_ring(painter, self, pill, radius)
+        color = accent if self.drop_target else text if hovered else muted
+        label_font = QFont(self.font())
+        label_font.setPointSizeF(max(self.font().pointSizeF() * RAIL_LABEL_SCALE, RAIL_LABEL_MIN_PT))
+        icon_font = QFont(self.icon_font)
+        icon_font.setPixelSize(round(pill.height() * 0.42))
+        label_width = QFontMetricsF(label_font).horizontalAdvance(self.text())
+        icon_width = QFontMetricsF(icon_font).horizontalAdvance(self.glyph)
+        gap = em * 0.3
+        left = pill.center().x() - (label_width + gap + icon_width) / 2
+        painter.setPen(color)
+        painter.setFont(label_font)
+        painter.drawText(QRectF(left, pill.top(), label_width + 1, pill.height()), Qt.AlignmentFlag.AlignVCenter,
+                         self.text())
+        painter.setFont(icon_font)
+        painter.drawText(QRectF(left + label_width + gap, pill.top(), icon_width + 1, pill.height()),
+                         Qt.AlignmentFlag.AlignVCenter, self.glyph)
 
     def paint_badge(self, painter: QPainter, area: QRectF):
-        """Count badge at top right: danger fill, white count (4.5:1)"""
+        """Count badge at top right: fill of its level (badge_color), white count (4.5:1)"""
         font = QFont(self.font())
         font.setPointSizeF(max(self.font().pointSizeF() * 0.7, 6.5))
         font.setBold(True)
@@ -329,18 +455,54 @@ class NavButton(QAbstractButton):
         pill = QRectF(area.right() - width, area.top(), width, height)
         painter.save()
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor(status_color("badge_danger")))
+        painter.setBrush(QColor(status_color(self.badge_color)))
         painter.drawRoundedRect(pill, height / 2, height / 2)
         painter.setPen(QColor(status_color("badge_text")))
         painter.setFont(font)
         painter.drawText(pill, Qt.AlignmentFlag.AlignCenter, self.badge_text)
         painter.restore()
 
-    def set_badge(self, text: str):
-        """Count badge (unread notifications), "" hides it; named in tooltip & accessible description"""
-        if text != self.badge_text:
-            self.badge_text = text
+    def set_badge(self, text: str, color: str = "badge_danger"):
+        """Count badge (unread notifications), "" hides it; named in tooltip & accessible description; color: status
+        color of its fill (badge_danger, badge_warning, badge_neutral)"""
+        if (text, color) != (self.badge_text, self.badge_color):
+            self.badge_text, self.badge_color = text, color
             self.update()
+
+
+class RailDropMarker(QWidget):
+    """Where a dragged rail entry goes: accent line between entries"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.hide()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight))
+        radius = self.height() / 2
+        painter.drawRoundedRect(QRectF(self.rect()), radius, radius)
+
+
+class RailDivider(QWidget):
+    """Thin line between the rail entries & its More entry (pages left out)"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(UIScaler.pixel(9))
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        color = QColor(self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.PlaceholderText))
+        color.setAlphaF(0.35)
+        inset = self.width() * 0.2
+        y = self.height() / 2
+        painter.setPen(QPen(color, max(1.0, UIScaler.pixel(1))))
+        painter.drawLine(QPointF(inset, y), QPointF(self.width() - inset, y))
 
 
 class ScrollFade(QWidget):
@@ -439,7 +601,7 @@ class DialogPage(QWidget):
     """Dialog shown as page inside app: shell header (breadcrumb, title, close button), then dialog
     (scrolled if larger than page)
 
-    Header: where the page was opened from (opener page, else page shown then: "Home \u203a", "Tools \u203a"...) then
+    Header: where the page was opened from (opener page, else page shown then: "Home \u203a", "Overlays \u203a"...) then
     page title in the page title look of Qt Quick pages (TpText title role), left out when the page shows its own
     title (OWNS_TITLE class attribute of the dialog, else found in its Qt Quick page). Tools of the navigation rail
     keep the title only (pages like any other, selected in rail: no breadcrumb, no Close). The dialog's own Close
@@ -472,9 +634,8 @@ class DialogPage(QWidget):
         self._owns_title: bool | None = getattr(dialog, "OWNS_TITLE", None)  # None: looked for once shown
         self._own_close_buttons: list[QAbstractButton] | None = None
         self.title = title = dialog.windowTitle().removesuffix(f" - {APP_NAME}")
-        spec = page_spec(type(dialog).__name__)
         self.wiki = page_wiki(type(dialog).__name__)  # user guide page (help button)
-        # Breadcrumb: page opened from, else page shown then, else Tools page for tools listed there
+        # Breadcrumb: page opened from, else page shown then
         button_crumb = QPushButton(self)
         button_crumb.setObjectName("dialogPageCrumb")
         button_crumb.setFlat(True)
@@ -484,7 +645,6 @@ class DialogPage(QWidget):
         button_crumb.setCursor(Qt.CursorShape.PointingHandCursor)
         button_crumb.clicked.connect(lambda: self.crumb_clicked.emit(self.crumb_target()))
         self._button_crumb = button_crumb
-        self._crumb_tools = spec is not None and spec.category != PAGE_MAIN and spec.listed
         label_separator = QLabel(BREADCRUMB_SEPARATOR, self)
         label_separator.setEnabled(False)
         self._label_separator = label_separator
@@ -552,7 +712,7 @@ class DialogPage(QWidget):
 
     def crumb(self) -> tuple[object, str]:
         """Breadcrumb (target, text): page opened from, else page shown when opened (main page key, other page still
-        open), else "tools" (Tools page) for tools listed there; none on navigation rail tools (pages like any other)"""
+        open); none on navigation rail tools (pages like any other)"""
         if not self._closable:
             return None, ""
         if self.opener is not None:
@@ -562,7 +722,7 @@ class DialogPage(QWidget):
             return origin, origin.title
         if isinstance(origin, str) and origin in PAGE_INDEX:
             return origin, page_name(PAGE_INDEX[origin])
-        return ("tools", tr("Tools")) if self._crumb_tools else (None, "")
+        return None, ""
 
     def crumb_target(self) -> object:
         """Breadcrumb target: page opened from or shown then (DialogPage, main page key), None if no breadcrumb"""
@@ -692,21 +852,14 @@ class TabView(QWidget):
                 behind it not built, blank page shown meanwhile (see end_startup_blank).
         """
         super().__init__(parent)
-        # Notify bar: status chips in the window status bar (one band), see NotifyBar
-        notify_bar = NotifyBar(self)
-        notify_bar.presetlocked.clicked.connect(self.select_preset_tab)
-        notify_bar.spectate.clicked.connect(self.select_spectate_tab)
-        notify_bar.pacenotes.clicked.connect(self.select_pacenotes_tab)
-        notify_bar.hotkey.clicked.connect(self.select_hotkey_tab)
-        notify_bar.director.clicked.connect(
-            lambda: open_tool("broadcast_director.BroadcastDirector", parent))  # dialog parent: window
-        self._notify_bar = notify_bar
+        # Notify bar: update chip in the window status band, modes on listed in the notification center, see NotifyBar
+        self._notify_bar = NotifyBar(self)
 
         # Pages: each built when first shown or selected (memory, startup time)
         icon_family = icon_font_family()
         self.pace_notes = PaceNotesPlayback(self)  # pace notes audio plays while its page is not built
         self._lazy_pages = {
-            key: LazyPage(self, partial(build_page, key, view=self, window=parent, icon_family=icon_family))
+            key: LazyPage(self, partial(build_page, key, view=self, window=parent))
             for key, *_ in NAV_PAGES
         }
         self._pages = QStackedWidget(self)
@@ -769,8 +922,22 @@ class TabView(QWidget):
         self._rail_buttons: list[NavButton] = []  # entries of _rail_items in order, see build_rail_items
         self._rail_items.setSpacing(UIScaler.pixel(2))
         layout_list.addLayout(self._rail_items)
+        # More entry under the rail entries: unfolds the pages left out of the rail (each with "+" to add it), then
+        # Edit (rail editor), see build_rail_more
+        self._rail_more = QVBoxLayout()
+        self._rail_more.setContentsMargins(0, UIScaler.pixel(2), 0, 0)
+        self._rail_more.setSpacing(UIScaler.pixel(2))
+        self._rail_more_buttons: list[NavButton] = []  # entries of _rail_more in order
+        self._rail_more_open = False  # unfolded (kept while the rail is rebuilt)
+        self._rail_divider = RailDivider(rail_list)
+        layout_list.addWidget(self._rail_divider)
+        layout_list.addLayout(self._rail_more)
         layout_list.addStretch(1)
         self._rail_list = rail_list
+        # Entries dragged to another place, from More into the rail, or out of it onto More, see drop_rail_item
+        rail_list.setAcceptDrops(True)
+        rail_list.installEventFilter(self)
+        self._rail_drop_marker = RailDropMarker(rail_list)
         self._rail_scroll = QScrollArea(rail)
         self._rail_scroll.setObjectName("navRailScroll")
         self._rail_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
@@ -839,12 +1006,6 @@ class TabView(QWidget):
         self._button_notices.setCheckable(False)
         self._button_notices.clicked.connect(self.show_notification_center)
         layout_quick.addWidget(self._button_notices, 3, 0)
-        # Pages & tools left out of the rail, rail customization
-        self._button_more = NavButton(tr("More"), "\ue712", "\u2026", icon_family, rail, compact=True)  # more
-        self._button_more.setObjectName("railMore")
-        self._button_more.setCheckable(False)
-        self._button_more.clicked.connect(self.show_more_menu)
-        layout_quick.addWidget(self._button_more, 3, 1)
         # Help of shown page (user guide)
         self._button_help = NavButton(tr("Help"), "\ue897", "?", icon_family, rail, compact=True)  # help
         self._button_help.setObjectName("railHelp")
@@ -857,16 +1018,15 @@ class TabView(QWidget):
         self._button_pages.clicked.connect(self.show_pages_menu)
         self._button_pages.setVisible(False)
         layout_quick.addWidget(self._button_pages, 4, 0)
-        for button in (button_config, self._button_api, button_search, self._button_notices, self._button_more,
-                       self._button_help, self._button_pages):
+        for button in (button_config, self._button_api, button_search, self._button_notices, self._button_help,
+                       self._button_pages):
             button.setAccessibleName(button.toolTip().split(" (")[0])
         NavButton.set_tab_stop(self._nav.checkedButton() or next(iter(self._nav.buttons()), button_config))
         if getattr(parent, "title_bar", None) is not None:
-            # App tools in the title bar drawn by the app (see tool_buttons), More in its menu button (pages &
-            # tools in Tools menu, rail customization): overlay toggles, API & open pages left in the rail, two by two
-            for button in (*self.tool_buttons(), self._button_more):
+            # App tools in the title bar drawn by the app (see tool_buttons): overlay toggles, API & open pages left
+            # in the rail, two by two
+            for button in self.tool_buttons():
                 layout_quick.removeWidget(button)
-            self._button_more.hide()
             kept = (*self._toggles.values(), self._button_api, self._button_pages)
             for index, button in enumerate(kept):
                 layout_quick.removeWidget(button)
@@ -918,11 +1078,12 @@ class TabView(QWidget):
         layout_main.setContentsMargins(0, 0, 0, 0)
         layout_main.setSpacing(0)
         layout_main.addLayout(layout_body, stretch=1)
+        notify_bar = self._notify_bar
         status_bar = getattr(parent, "statusBar", None)
         if getattr(parent, "title_bar", None) is not None:
             pass  # in the title bar drawn by the app, see AppWindow.dock_in_title_bar
         elif callable(status_bar) and isinstance(status_bar(), QStatusBar):
-            status_bar().addWidget(notify_bar, 1)  # one band: status chips, then saving state on the right
+            status_bar().addWidget(notify_bar, 1)  # one band: update chip, then saving state on the right
         else:
             layout_main.addWidget(notify_bar)
         self.setLayout(layout_main)
@@ -940,10 +1101,6 @@ class TabView(QWidget):
         app_signal.refresh.connect(self.pace_notes.refresh)
         for page in self._lazy_pages.values():
             app_signal.refresh.connect(page.refresh)
-        # Spectated car changed (Broadcast Director cuts): Spectate page only, not the whole GUI
-        spectate = self._lazy_pages.get("spectate")
-        if spectate is not None:
-            app_signal.spectate_changed.connect(spectate.refresh)
         app_signal.refresh.connect(self.refresh_rail)
 
     @property
@@ -959,6 +1116,7 @@ class TabView(QWidget):
         # Qt), and a window later made at the same address came back as one of them (QWidgetItem, see title_bar)
         for button in self._rail_buttons:
             self._rail_items.removeWidget(button)
+            button.hide()  # never painted over the new entries until deleted
             button.deleteLater()
         self._rail_buttons = []
         for shortcut in self._rail_shortcuts:
@@ -971,6 +1129,8 @@ class TabView(QWidget):
             button = NavButton(rail_text(entry.label, entry.tooltip), entry.glyph, entry.letter, self._icon_family,
                                self._rail)
             button.setAccessibleName(tr(entry.tooltip))
+            button.setProperty("railKey", key)  # dragged, context menu (move, remove)
+            button.move_requested.connect(lambda step, name=key: self.move_rail_item(name, step))
             hint = f" (Ctrl+{position})" if position <= 9 else ""
             button.setToolTip(f"{tr(entry.tooltip)}{hint}")
             if entry.page >= 0:
@@ -986,6 +1146,7 @@ class TabView(QWidget):
                 shortcut = QShortcut(QKeySequence(f"Ctrl+{position}"), self)
                 shortcut.activated.connect(action)
                 self._rail_shortcuts.append(shortcut)
+        self.build_rail_more()
         button = self._nav.button(self._pages.currentIndex())
         if button is not None:
             button.setChecked(True)
@@ -996,15 +1157,221 @@ class TabView(QWidget):
         if hasattr(self, "_button_pages"):
             self.refresh_open_pages()
 
+    def build_rail_more(self):
+        """More entry under the rail entries; unfolded: pages & utility tools left out of the rail (click opens,
+        "+" adds to the rail), then Edit (rail editor), so the rail shows it can be changed"""
+        had_focus = any(button.hasFocus() for button in self._rail_more_buttons)
+        for button in self._rail_more_buttons:
+            self._nav.removeButton(button)
+            self._rail_more.removeWidget(button)
+            button.hide()  # never painted over the new entries until deleted
+            button.deleteLater()
+        self._rail_more_buttons = []
+        unfolded = self._rail_more_open
+        toggle = NavButton(tr("Less") if unfolded else tr("More"), "\ue70e" if unfolded else "\ue70d",
+                           "\u2212" if unfolded else "+", self._icon_family, self._rail)  # chevron up / down
+        toggle.setObjectName("railMoreToggle")
+        toggle.setCheckable(False)
+        toggle.emphasis = True
+        toggle.setAccessibleName(tr("Other Pages"))
+        toggle.setToolTip(" \u00b7 ".join((
+            tr("Hide pages not in the bar") if unfolded else tr("Show pages not in the bar"),
+            tr("Drag entries to arrange the bar"))))
+        toggle.clicked.connect(self.toggle_rail_more)
+        buttons = [toggle]
+        if unfolded:
+            entries = rail_entries()
+            for key in hidden_rail_items():
+                entry = entries[key]
+                button = NavButton(rail_text(entry.label, entry.tooltip), entry.glyph, entry.letter,
+                                   self._icon_family, self._rail)
+                button.setObjectName(f"railOther:{key}")
+                button.setProperty("railKey", key)
+                button.setAccessibleName(tr(entry.tooltip))
+                button.setToolTip(f"{tr(entry.tooltip)} \u00b7 {tr('+ or drag it to add it to the bar')}")
+                button.pin_glyph = "\ue710" if self._icon_family else "+"  # add
+                button.setMouseTracking(True)
+                button.pinned.connect(lambda name=key: self.add_rail_item(name))
+                if entry.page >= 0:
+                    self._nav.addButton(button, entry.page)
+                    button.setChecked(entry.page == self._pages.currentIndex())
+                    button.clicked.connect(lambda _=False, page=entry.page: self.select_page(page))
+                else:  # page of a tool out of the rail: closed once left, as when opened from the menu
+                    button.setProperty("railDialog", entry.dialog.rsplit(".", 1)[-1])
+                    button.clicked.connect(lambda _=False, path=entry.dialog: (
+                        open_tool(path, self._dialog_parent), self.sync_rail_selection()))
+                buttons.append(button)
+        for button in buttons:
+            button.setFocusPolicy(Qt.FocusPolicy.ClickFocus)  # rail stays one Tab stop, arrow keys reach them
+            self._rail_more.addWidget(button)
+        self._rail_more_buttons = buttons
+        self.sync_rail_selection()
+        if had_focus:
+            toggle.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def toggle_rail_more(self):
+        """Pages left out of the rail unfolded or folded, unfolded ones scrolled into view"""
+        self._rail_more_open = not self._rail_more_open
+        self.build_rail_more()
+        if self._rail_more_open:  # once laid out
+            QTimer.singleShot(0, self.scroll_to_rail_more)
+
+    def scroll_to_rail_more(self):
+        """Unfolded entries scrolled into view (More kept at top when they do not fit)"""
+        if not self._rail_more_buttons or not shiboken6.isValid(self._rail_more_buttons[0]):
+            return
+        margin = self.rail_fade_height()
+        self._rail_scroll.ensureWidgetVisible(self._rail_more_buttons[-1], 0, margin)
+        self._rail_scroll.ensureWidgetVisible(self._rail_more_buttons[0], 0, margin)
+
+    def add_rail_item(self, key: str):
+        """Entry added at the end of the rail"""
+        keys = current_rail_items()
+        if key not in keys:
+            save_rail_items([*keys, key])
+            self.build_rail_items()
+
+    def remove_rail_item(self, key: str):
+        """Entry left out of the rail (listed under More), never the last one"""
+        keys = [item for item in current_rail_items() if item != key]
+        if keys:
+            save_rail_items(keys)
+            self.build_rail_items()
+
+    def move_rail_item(self, key: str, step: int):
+        """Entry moved one place up (-1) or down (1), keeps the keyboard focus (Alt+Up / Alt+Down)"""
+        keys = current_rail_items()
+        if key not in keys:
+            return
+        index = keys.index(key)
+        target = index + step
+        if not 0 <= target < len(keys):
+            return
+        keys[index], keys[target] = keys[target], keys[index]
+        save_rail_items(keys)
+        self.build_rail_items()
+        for button in self._rail_buttons:
+            if button.property("railKey") == key:
+                NavButton.set_tab_stop(button)
+                button.setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def reset_rail_items(self):
+        """Default entries back, after asking"""
+        if confirm_action(self, tr("Reset Navigation Bar"), tr("Show the default entries of the navigation bar again?"),
+                          tr("Reset")):
+            save_rail_items(default_rail_items())
+            self.build_rail_items()
+
     def show_rail_menu(self, position):
-        """Rail context menu: customize entries"""
+        """Rail context menu: move, remove or add the entry pointed, show pages left out, reset"""
         menu = QMenu(self)
-        menu.addAction(tr("Customize Navigation Bar…")).triggered.connect(self.open_rail_editor)
+        child = self._rail.childAt(position)
+        while child is not None and not isinstance(child, NavButton) and child is not self._rail:
+            child = child.parentWidget()
+        key = child.property("railKey") if isinstance(child, NavButton) else None
+        if key:
+            keys = current_rail_items()
+            if key in keys:
+                index = keys.index(key)
+                for label, step, enabled in ((tr("Move Up"), -1, index > 0),
+                                             (tr("Move Down"), 1, index < len(keys) - 1)):
+                    action = menu.addAction(label)
+                    action.setEnabled(enabled)
+                    action.triggered.connect(lambda _=False, name=key, by=step: self.move_rail_item(name, by))
+                action = menu.addAction(tr("Remove from Navigation Bar"))
+                action.setEnabled(len(keys) > 1)
+                action.triggered.connect(lambda _=False, name=key: self.remove_rail_item(name))
+            else:
+                menu.addAction(tr("Add to Navigation Bar")).triggered.connect(
+                    lambda _=False, name=key: self.add_rail_item(name))
+            menu.addSeparator()
+        menu.addAction(tr("Hide pages not in the bar") if self._rail_more_open
+                       else tr("Show pages not in the bar")).triggered.connect(self.toggle_rail_more)
+        menu.addAction(tr("Reset Navigation Bar…")).triggered.connect(self.reset_rail_items)
         menu.exec(self._rail.mapToGlobal(position))
         menu.deleteLater()
 
-    def open_rail_editor(self):
-        RailEditor(self, self.build_rail_items).open()
+    def eventFilter(self, watched, event):
+        """Rail entries dropped on the rail list (see NavButton.start_drag)"""
+        if watched is self._rail_list:
+            kind = event.type()
+            if kind in (QEvent.Type.DragEnter, QEvent.Type.DragMove):
+                if not event.mimeData().hasFormat(RAIL_MIME):
+                    return False
+                event.acceptProposedAction()
+                self.show_rail_drop(event.position().toPoint())
+                return True
+            if kind == QEvent.Type.DragLeave:
+                self.show_rail_drop(None)
+                return True
+            if kind == QEvent.Type.Drop and event.mimeData().hasFormat(RAIL_MIME):
+                key = bytes(event.mimeData().data(RAIL_MIME).data()).decode()
+                target = self.rail_drop_target(event.position().toPoint())
+                self.show_rail_drop(None)
+                event.acceptProposedAction()
+                # Rail rebuilt once the drag is over (dragged entry still in its event handler now)
+                QTimer.singleShot(0, lambda: self.drop_rail_item(key, target))
+                return True
+        return super().eventFilter(watched, event)
+
+    def rail_drop_target(self, point: QPoint) -> int:
+        """Place in the rail of an entry dropped at point of the rail list, -1 on More & below (left out)"""
+        if point.y() >= self._rail_divider.geometry().top():
+            return -1
+        for index, button in enumerate(self._rail_buttons):
+            if point.y() < button.geometry().center().y():
+                return index
+        return len(self._rail_buttons)
+
+    def show_rail_drop(self, point: QPoint | None):
+        """Line where the dragged entry goes, More lit when it leaves the rail, rail scrolled near its edges"""
+        target = None if point is None else self.rail_drop_target(point)
+        if self._rail_more_buttons and shiboken6.isValid(self._rail_more_buttons[0]):
+            toggle = self._rail_more_buttons[0]
+            if toggle.drop_target != (target == -1):
+                toggle.drop_target = target == -1
+                toggle.update()
+        marker = self._rail_drop_marker
+        if target is None or target < 0 or not self._rail_buttons:
+            marker.hide()
+            return
+        gap = self._rail_items.spacing()
+        if target < len(self._rail_buttons):
+            y = self._rail_buttons[target].geometry().top() - gap / 2
+        else:
+            y = self._rail_buttons[-1].geometry().bottom() + 1 + gap / 2
+        height = max(2, UIScaler.pixel(3))
+        inset = round(self._rail_list.width() * 0.12)
+        marker.setGeometry(inset, round(y - height / 2), self._rail_list.width() - inset * 2, height)
+        marker.show()
+        marker.raise_()
+        if point is not None:  # dragged near an edge: entries hidden that way scrolled in
+            viewport = self._rail_scroll.viewport()
+            y_view = self._rail_list.mapTo(viewport, point).y()
+            edge = self.rail_fade_height()
+            bar = self._rail_scroll.verticalScrollBar()
+            if y_view < edge:
+                bar.setValue(bar.value() - edge // 2)
+            elif y_view > viewport.height() - edge:
+                bar.setValue(bar.value() + edge // 2)
+
+    def drop_rail_item(self, key: str, target: int):
+        """Dragged entry placed at target in the rail (from the rail or More), or left out (-1)"""
+        keys = current_rail_items()
+        if target < 0:
+            if key in keys:
+                self.remove_rail_item(key)
+            return
+        moved = list(keys)
+        if key in moved:
+            index = moved.index(key)
+            moved.remove(key)
+            if target > index:
+                target -= 1
+        moved.insert(min(target, len(moved)), key)
+        if moved != keys:
+            save_rail_items(moved)
+            self.build_rail_items()
 
     # Dialogs shown as pages inside app (tools, config, about...), see BaseDialog.show
     def dialog_pages(self) -> list["DialogPage"]:
@@ -1252,6 +1619,10 @@ class TabView(QWidget):
                 button.setChecked(name == shown)
             if name == shown:
                 self._rail_scroll.ensureWidgetVisible(button, 0, self.rail_fade_height())
+        for button in self._rail_more_buttons:  # tools unfolded under More
+            name = button.property("railDialog")
+            if name and button.isChecked() != (name == shown):
+                button.setChecked(name == shown)
 
     def shown_pages(self) -> set[QWidget]:
         """Shown page & pages it was opened from (lap viewer of its lap library...)"""
@@ -1863,43 +2234,12 @@ class TabView(QWidget):
         if self._button_help.toolTip() != tooltip:
             self._button_help.setToolTip(tooltip)
 
-    def hidden_entries(self) -> tuple[list[tuple[int, str]], list[tuple[str, str]]]:
-        """Pages (index, title) & listed tools (path, title) left out of the navigation rail"""
-        shown = set(current_rail_items())
-        pages = [(index, page_name(index)) for index, (key, *_) in enumerate(NAV_PAGES) if key not in shown]
-        tools = [(path, tr(label)) for _, entries in LISTED_TOOL_SECTIONS for label, _, path in entries
-                 if path.split(".", 1)[0] not in shown]
-        return pages, tools
-
-    def show_more_menu(self):
-        """More menu next to its button"""
-        menu = self.more_menu()
-        button = self._button_more
-        menu.exec(button.mapToGlobal(button.rect().topRight()))
-        menu.deleteLater()
-
-    def more_menu(self) -> QMenu:
-        """More menu: pages & tools left out of the rail, rail customization"""
-        menu = QMenu(self)
-        pages, tools = self.hidden_entries()
-        if pages:
-            menu.addSection(tr("Pages"))
-            for index, title in pages:
-                menu.addAction(title).triggered.connect(lambda _=False, page=index: self.select_page(page))
-        if tools:
-            menu.addSection(tr("Tools"))
-            for path, title in tools:
-                menu.addAction(title).triggered.connect(
-                    lambda _=False, tool=path: open_tool(tool, self._dialog_parent))
-        menu.addSeparator()
-        menu.addAction(tr("Customize Navigation Bar…")).triggered.connect(self.open_rail_editor)
-        return menu
-
     def refresh_notification_badge(self):
-        """Unread notifications count on bell (errors in its tooltip)"""
+        """Unread notifications count on bell (count in its tooltip), in the color of the highest unread level"""
         store = notification_store()
         unread = store.unread_count()
-        self._button_notices.set_badge(str(min(unread, 99)) if unread else "")
+        self._button_notices.set_badge(str(min(unread, 99)) if unread else "",
+                                       BADGE_COLORS.get(store.unread_severity(), "badge_neutral"))
         tooltip = tr("Notifications")
         if unread:
             tooltip = f"{tooltip} \u00b7 {trm(f'{unread} unread')}"
@@ -1966,20 +2306,15 @@ class TabView(QWidget):
         """Open pages with an on / off switch: dot on their rail entry (green on, grey off), Broadcast Director
         notice (on), each second"""
         buttons = self.rail_tool_buttons()
-        statuses = {}
         for name, module_name, function in PAGE_SWITCHES:
             module = sys.modules.get(module_name)  # imported only by the page
             status = getattr(module, function)() if module is not None else ""
-            statuses[name] = status
             button = buttons.get(name)
             if button is not None:
                 dot_color = QColor(status_color("success" if status == "on" else "inactive")) if status else None
                 if button.dot_color != dot_color:
                     button.dot_color = dot_color
                     button.update()
-        tools = self._lazy_pages["tools"].page  # Tools page shows the same states, when built
-        if isinstance(tools, ToolsView):
-            tools.set_statuses(statuses)
         if shiboken6.isValid(self._notify_bar):  # status bar replaced first on language change
             self._notify_bar.refresh_director()
 
@@ -2038,14 +2373,3 @@ class TabView(QWidget):
         """Select preset tab"""
         self.set_current_index(PAGE_INDEX["preset"])
 
-    def select_spectate_tab(self):
-        """Select spectate tab"""
-        self.set_current_index(PAGE_INDEX["spectate"])
-
-    def select_pacenotes_tab(self):
-        """Select pace notes tab"""
-        self.set_current_index(PAGE_INDEX["pacenotes"])
-
-    def select_hotkey_tab(self):
-        """Select hotkey tab"""
-        self.set_current_index(PAGE_INDEX["hotkey"])

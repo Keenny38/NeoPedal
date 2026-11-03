@@ -30,6 +30,7 @@ from datetime import date, timedelta
 from PySide6.QtCore import Property, QLocale, QUrl, Slot
 
 from ... import calculation as calc
+from ...flags import flag_view
 from ...i18n import current_language, tr, trm
 from ...process import results_index as ri
 from ...process.results_text import MISSING, laptime_text
@@ -142,6 +143,7 @@ class StatsOverview(StatsHost):
             "name": name,
             "initials": "".join(word[:1] for word in name.split()[:2]).upper(),
             "detail": " · ".join(part for part in details if part),
+            "flag": flag_view(profile.nationality) if profile is not None else {},
             "avatar": QUrl.fromLocalFile(profile.avatar).toString() if profile is not None and profile.avatar else "",
             "figures": figures,
             "ranks": rank_rows(player, ranks.history_of(player.steam_id) if player is not None else ()),

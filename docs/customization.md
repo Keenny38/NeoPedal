@@ -59,13 +59,13 @@ Click `Trash` button to restore or permanently delete deleted presets. See [Pres
 
 * Set Primary for Class
 
-    Add primary `class` tag to selected preset, which will be auto loaded by `Auto load preset` system. Class tags and colors are defined in `classes.json` file, which can be modified in [Vehicle Class Editor](#vehicle-class-editor).
+    Add primary `class` tag to selected preset, which will be auto loaded by `Auto load preset` system. Class tags and colors are defined in `classes.json` file, which can be modified in [Data Editors > Classes](#classes-tab).
 
     Note, a single preset can have tags from multiple classes. Auto loading `primary class` preset (if available) always takes priority over `primary sim`.
 
 * Set Primary for Track
 
-    Set selected preset as primary preset for a track, which will be auto loaded by `Auto load preset` system. Track primary preset has priority over class primary preset. Tracks are listed from `tracks.json` file, which can be modified in [Track Info Editor](#track-info-editor).
+    Set selected preset as primary preset for a track, which will be auto loaded by `Auto load preset` system. Track primary preset has priority over class primary preset. Tracks are listed from `tracks.json` file, which can be modified in [Data Editors > Tracks](#tracks-tab).
 
 * Export Package...
 
@@ -193,7 +193,7 @@ For example, to only transfer all widgets `position` setting to another preset, 
 ## Brands preset
 **Brands preset is used for customizing brand name that matches specific vehicle name.**
 
-Brands preset can be customized by accessing `Vehicle brand editor` from `Tools` menu in main window. See [Vehicle Brand Editor](#vehicle-brand-editor) section for complete editing guide.
+Brands preset can be customized in the `Brands` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Brands](#brands-tab) section for complete editing guide.
 
 `brands.json` preset will be generated and saved in `NeoPedal\settings` folder after first time launch of the APP.
 
@@ -203,7 +203,7 @@ Brands preset can be customized by accessing `Vehicle brand editor` from `Tools`
 ## Classes preset
 **Classes preset is used for customizing class name and color that matches specific vehicle class.**
 
-Classes preset can be customized by accessing `Vehicle class editor` from `Tools` menu in main window. See [Vehicle Class Editor](#vehicle-class-editor) section for complete editing guide.
+Classes preset can be customized in the `Classes` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Classes](#classes-tab) section for complete editing guide.
 
 `classes.json` preset will be generated and saved in `NeoPedal\settings` folder after first time launch of the APP.
 
@@ -213,7 +213,7 @@ Classes preset can be customized by accessing `Vehicle class editor` from `Tools
 ## Brakes preset
 **Brakes preset is used for customizing brake failure thickness and heatmap style that matches specific vehicle class.**
 
-Brakes preset can be customized by accessing `Brake editor` from `Tools` menu in main window. See [Brake Editor](#brake-editor) section for complete editing guide.
+Brakes preset can be customized in the `Brakes` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Brakes](#brakes-tab) section for complete editing guide.
 
 `brakes.json` preset will be generated and saved in `NeoPedal\settings` folder after first time launch of the APP.
 
@@ -225,7 +225,7 @@ Brakes preset can be customized by accessing `Brake editor` from `Tools` menu in
 
 Default colors, also used by app pages (race calculator, broadcast director): soft white, medium yellow, hard red, wet blue, intermediate green. A tyre compound found in a session and not in the preset yet gets the color of its name (gray when its name tells no type, like the only dry compound of a car). Updating from 0.23.0 or older changes once the compounds still using the former default colors (soft gray, medium `#FFCC00`, hard `#EE2200`, wet `#00AAFF`, gray of compounds added in a session); colors you chose are kept.
 
-Compounds preset can be customized by accessing `Tyre compound editor` from `Tools` menu in main window. See [Tyre Compound Editor](#tyre-compound-editor) section for complete editing guide.
+Compounds preset can be customized in the `Compounds` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Compounds](#compounds-tab) section for complete editing guide.
 
 `compounds.json` preset will be generated and saved in `NeoPedal\settings` folder after first time launch of the APP.
 
@@ -235,7 +235,7 @@ Compounds preset can be customized by accessing `Tyre compound editor` from `Too
 ## Heatmap preset
 **Heatmap preset is used for customizing heatmap color that matches specific value range of telemetry data, such as brake and tyre temperature.**
 
-Heatmap preset can be customized by accessing `Heatmap editor` from `Tools` menu in main window. See [Heatmap Editor](#heatmap-editor) section for complete editing guide.
+Heatmap preset can be customized in the `Heatmaps` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Heatmaps](#heatmaps-tab) section for complete editing guide.
 
 `heatmap.json` preset will be generated and saved in `NeoPedal\settings` folder after first time launch of the APP.
 
@@ -247,7 +247,7 @@ New tyre compounds use `tyre_optimal_80` heatmap and new brakes use `brake_optim
 ## Tracks preset
 **Tracks preset is used for storing and customizing track info for various track-related calculation.**
 
-Tracks preset can be customized by accessing `Track info editor` from `Tools` menu in main window. See [Track Info Editor](#track-info-editor) section for complete editing guide.
+Tracks preset can be customized in the `Tracks` tab of `Data Editors` page (`Tools` menu in main window). See [Data Editors > Tracks](#tracks-tab) section for complete editing guide.
 
 Track info recording is handled by [Mapping Module](#mapping-module).
 
@@ -259,7 +259,7 @@ Track info recording is handled by [Mapping Module](#mapping-module).
 ## Shortcuts preset
 **Shortcuts preset is used for customizing global hotkey binding.**
 
-Shortcuts preset can be customized by accessing [Hotkey Tab](#hotkey) in main window.
+Shortcuts preset can be customized in the [Hotkeys](#hotkey) category of `Settings` page.
 
 `shortcuts.json` preset will be generated and saved in [Global User Configuration](#global-user-configuration) folder after first time launch of the APP.
 
@@ -325,7 +325,7 @@ Data recording is handled by [Sectors Module](#sectors-module).
 
 
 ## Track map
-Track map is stored as `SVG` vector image format (.svg extension) under `NeoPedal\trackmap` folder (default). Track map can be viewed with [Track Map Viewer](#track-map-viewer) from `Tools` menu in main window.
+Track map is stored as `SVG` vector image format (.svg extension) under `NeoPedal\trackmap` folder (default). Track map can be viewed in the `Tracks` tab of `Data Editors` page (`Tools` menu in main window), see [Track map viewer](#track-map-viewer).
 
 Data recording is handled by [Mapping Module](#mapping-module).
 
@@ -339,7 +339,7 @@ Each sector position index is also stored in SVG file for finding sector coordin
 
 
 ## Pace notes
-`NeoPedal Pace Notes` data is stored as `TPPN` format (.tppn extension) under `NeoPedal\pacenotes` folder (default). Pace notes can be created or edited with [Track Notes Editor](#track-notes-editor) from `Tools` menu in main window.
+`NeoPedal Pace Notes` data is stored as `TPPN` format (.tppn extension) under `NeoPedal\pacenotes` folder (default). Pace notes can be created or edited in the [Notes tab](#notes-tab) of `Data Editors` page (`Tools` menu in main window).
 
 Pace notes data is mainly used for [Pace Notes Playback](#pace-notes-playback) for specific tracks.
 
@@ -349,7 +349,7 @@ To allow `auto notes loading` function to work, pace notes file name must match 
 
 
 ## Track notes
-`NeoPedal Track Notes` data is stored as `TPTN` format (.tptn extension) under `NeoPedal\tracknotes` folder (default). Track notes can be created or edited with [Track Notes Editor](#track-notes-editor) from `Tools` menu in main window.
+`NeoPedal Track Notes` data is stored as `TPTN` format (.tptn extension) under `NeoPedal\tracknotes` folder (default). Track notes can be created or edited in the [Notes tab](#notes-tab) of `Data Editors` page (`Tools` menu in main window).
 
 Track notes data is mainly used for displaying corner and section names for specific tracks, or providing additional info at specific track location while driving.
 
@@ -367,14 +367,14 @@ To allow `auto notes loading` function to work, track notes file name must match
 ## Brand logo
 NeoPedal supports user-defined brand logo image in `PNG` format (.png extension) which is placed under `NeoPedal\brandlogo` folder (default).
 
-With Le Mans Ultimate, real car brand logos, circuit logos, car pictures and circuit pictures are taken from the game itself: the app asks them to the game running on your computer (its local web server, same address as the [Le Mans Ultimate API](#le-mans-ultimate-api) Rest API access, which must be enabled) and keeps them in the `game_image_path` folder, so they are shown everywhere (brand logo column of Relative, Standings & Rivals, Home, Race Results, Driver Stats, Spectate, Replays, Race Calculator, Telemetry Viewer, Track Map Viewer and stream overlay of race results), also while the game is not running. Nothing is shipped with the app. A brand logo of your own in the brand logo folder is always shown first; its file name may be one word of a longer brand name (`Corvette.png` for `Chevrolet Corvette`, `Ford.png` for `Ford Mustang`). Logos too close to the background color are shown with a readable copy (kept in `game_image_path`): black logos get light on dark overlays and pages, white logos get dark on light themes, colored parts are kept.
+With Le Mans Ultimate, real car brand logos, circuit logos, car pictures and circuit pictures are taken from the game itself: the app asks them to the game running on your computer (its local web server, same address as the [Le Mans Ultimate API](#le-mans-ultimate-api) Rest API access, which must be enabled) and keeps them in the `game_image_path` folder, so they are shown everywhere (brand logo column of Relative, Standings & Rivals, Home, Race Results, Driver Stats, Spectate, Replays, Race Calculator, Telemetry Viewer, Data Editors (track map) and stream overlay of race results), also while the game is not running. Nothing is shipped with the app. A brand logo of your own in the brand logo folder is always shown first; its file name may be one word of a longer brand name (`Corvette.png` for `Chevrolet Corvette`, `Ford.png` for `Ford Mustang`). Logos too close to the background color are shown with a readable copy (kept in `game_image_path`): black logos get light on dark overlays and pages, white logos get dark on light themes, colored parts are kept.
 
 Note: NeoPedal does not provide brand logo image assets, it is up to user to prepare images (or to run Le Mans Ultimate once with the app open, see above). Maximum `PNG` file size is limited to `5MB`.
 
 How to prepare brand logo image:
 1. Brand logo image should have all transparent borders cropped. For example, in `GIMP` this can be done by selecting `Image` > `Crop to Content`.
 2. Make sure image dimension is not too big, usually around 100 pixel width or height is good enough. Bigger dimension may consume more RAM or exceed maximum supported file size.
-3. Save image to `NeoPedal\brandlogo` folder, image filename must match corresponding `brand name` that defined in [Vehicle Brand Editor](#vehicle-brand-editor). For cross-platform compatibility, filename matching is set to be case-sensitive, make sure filename has the same upper or lower case as set in `brand name`.
+3. Save image to `NeoPedal\brandlogo` folder, image filename must match corresponding `brand name` that defined in [Data Editors > Brands](#brands-tab). For cross-platform compatibility, filename matching is set to be case-sensitive, make sure filename has the same upper or lower case as set in `brand name`.
 4. `Reload` preset to load newly added brand logo images for displaying in overlay (logos of the game show up by themselves once fetched).
 
 [**`Back to Top`**](#)
@@ -419,13 +419,6 @@ To run multiple copies of NeoPedal at same time: `python .\run.py -s 0` or `.\ne
 
 Single instance mode holds a system lock of its settings folder while running (released when NeoPedal closes, or crashes), which is used for instance identification.
 
-    --safe-mode
-Start in safe mode: plugins are not loaded, overlays (widgets & VR overlay) are not started, so settings can be fixed in the main window (a widget can still be turned on by hand). Window title and a notice show safe mode; `Restart Normally` in the notice, or `Restart NeoPedal` in `Window` menu, starts normally again.
-
-Usage: `python .\run.py --safe-mode` or `.\neopedal.exe --safe-mode`
-
-When a start did not finish (crash or app killed before the main window and overlays were up for a few seconds), the next start asks whether to start in safe mode. A `startup.marker` file is kept in the same folder as `neopedal.log` while starting, and removed once started or when quitting; a normal start never asks.
-
 [**`Back to Top`**](#)
 
 
@@ -467,7 +460,7 @@ Enable `Auto Backup Car Setup` function, currently support `LMU` and `RF2`.
 This option allows to auto backup [Car Setup](#car-setup) file whenever exits pit lane with new adjustment to setup, which can be handy in various situations, especially in the event such as unexpectedly disconnected from server.
 
 To allow `Auto Backup Car Setup` function to work, following additional options must be enabled:
-- `Stats Module` from `Module` tab.
+- `Stats Module` from `Modules` category of `Settings` page.
 - `Enable RestAPI Access` & `Enable Garage Setup Info` from `API` option dialog.
 
 Additional notes:
@@ -708,9 +701,9 @@ Set amount decimal places to keep.
 ## Application
 **Application options can be accessed from `Settings` and `Window` menus in main window.**
 
-Tools, editors and config dialogs opened from main window (tools page, navigation bar, menus, widget gear button) are shown as pages inside main window, under a header (where the page was opened from, `Tools ›` for tools listed on the Tools page, then its title unless the page shows its own, and one `Close` button: the tool's own `Close` is hidden), scrolled when larger than the window. Closing one goes back to previous page. Opening one already open shows its page again. Tools of the navigation bar are pages like `Overlays` or `Module`: their entry is selected while shown, no header and no `Close` button, and they are kept as left when coming back. Other pages (config dialogs, tools outside the bar) are closed once left for another page, so they never pile up: only pages with unsaved changes stay open behind (closing them would ask to save), and a page stays open while a page opened from it (input, lap library) is shown. Those are listed by the open pages button at bottom of the bar (shown while any page is kept behind the shown one), with `Close All`. `Esc` closes pages that have a `Close` button only, never the Broadcast Director page. `Alt+Left` or mouse back button shows the page shown before (again to go further back), `Alt+Right` or mouse forward button (or the arrows at the top of the bar) shows again a page left by going back (a tool page closed meanwhile opens again). When a page needs more room, main window grows to fit it (within screen): size is kept while browsing other pages, and restored once every page needing it is closed (unless window was resized meanwhile). Changing language keeps open config pages and pages with unsaved changes as they are, tool pages are reopened translated. Inputs (preset name, key binding, theme name) are pages too, also when opened from a tool page (back to it when done). Other dialogs opened from a tool (offset, replace, notes info), confirmations and file selection stay small popups. Tool page shown at quit (or restart) is opened again at next startup, see `remember_open_pages`.
+Main window has three pages: `Home`, `Overlays` and `Presets`. Tools, editors and config dialogs opened from main window (navigation bar, menus, command palette, widget gear button) are shown as pages inside main window, under a header (the page it was opened from, if any, then its title unless the page shows its own, and one `Close` button: the tool's own `Close` is hidden), scrolled when larger than the window. Closing one goes back to previous page. Opening one already open shows its page again. Tools of the navigation bar are pages like `Overlays` or `Presets`: their entry is selected while shown, no header and no `Close` button, and they are kept as left when coming back. Other pages (config dialogs, tools outside the bar) are closed once left for another page, so they never pile up: only pages with unsaved changes stay open behind (closing them would ask to save), and a page stays open while a page opened from it (input, lap library) is shown. Those are listed by the open pages button at bottom of the bar (shown while any page is kept behind the shown one), with `Close All`. `Esc` closes pages that have a `Close` button only, never the Broadcast Director page. `Alt+Left` or mouse back button shows the page shown before (again to go further back), `Alt+Right` or mouse forward button (or the arrows at the top of the bar) shows again a page left by going back (a tool page closed meanwhile opens again). When a page needs more room, main window grows to fit it (within screen): size is kept while browsing other pages, and restored once every page needing it is closed (unless window was resized meanwhile). Changing language keeps open config pages and pages with unsaved changes as they are, tool pages are reopened translated. Inputs (preset name, key binding, theme name) are pages too, also when opened from a tool page (back to it when done). Other dialogs opened from a tool (offset, replace, notes info), confirmations and file selection stay small popups. Tool page shown at quit (or restart) is opened again at next startup, see `remember_open_pages`.
 
-Pages with unsaved changes (editors, config dialogs, notes, theme editor) show a dot (`•`) before their title, on their navigation bar entry, and in the open pages menu (the open pages button dot changes to warning color). The dot clears once changes are saved or undone. `Ctrl+S` saves the page shown (like `Apply`: page kept open; track notes ask for a file name), on pages that have something to save.
+Pages with unsaved changes (data editors, config dialogs, theme editor) show a dot (`•`) before their title, on their navigation bar entry, and in the open pages menu (the open pages button dot changes to warning color); in `Data Editors`, each tab with unsaved changes shows the dot too. The dot clears once changes are saved or undone. `Ctrl+S` saves the page shown (like `Apply`: page kept open; in `Data Editors` the tab shown, new notes ask for a file name), on pages that have something to save.
 
 Config dialogs check values while typing: an invalid value (not a number, decimal where a whole number is needed, out of range such as opacity above `1` or port above `65535`, invalid color or clock format, missing image file) is outlined in red with a short reason next to it, and `Apply` & `Save` are disabled until it is fixed (saving with `Ctrl+S` or when closing shows the first invalid option). Folder paths are checked when saving.
 
@@ -757,7 +750,7 @@ On Windows, scaling is determined by percentage value set in `Display` > `Scale 
 On Linux, DPI scaling may already be forced `ON` in some system, which this option may not have effect.
 
     enable_modern_title_bar
-Windows: show a modern title bar drawn in the colors of the window theme instead of the Windows title bar, menu bar and status bar. It holds the `Back` & `Forward` buttons (moved from the top of the navigation bar) followed by the app version, a menu button (`F10` too) opening the window menus (`Overlay`, `API`, `Settings`, `Tools`, `Window`, `Help`), the status chips (preset locked, spectate, hotkeys, update available...), the saving state and the app tools moved from the bottom of the navigation bar (command palette, notifications, settings, help of the page), then flat minimize, maximize and close buttons. The navigation bar keeps the overlay switches (lock, auto hide, VR) and the API status: its `More` button is replaced by the menu button (pages & tools left out of the navigation bar in `Tools`, `Customize Navigation Bar…` at the end of the menu, also by right-clicking the navigation bar). The name of the shown page is in the middle of it (not repeated at the top of the page). Title bar and navigation bar form one frame, the page is shown inside it with rounded corners. The window keeps its Windows frame: shadow, rounded corners (Windows 11), resizing from every edge, snapping (drag to a screen edge, `Win` + arrow keys, Snap Layouts shown by hovering the maximize button), double click on the title bar to maximize, right click on it (or `Alt` + `Space`) for the window menu. Turn it off to get back the Windows title bar, menu bar and status bar. Not used in safe mode. This option requires restarting NeoPedal to take effect. This option is enabled by default.
+Windows: show a modern title bar drawn in the colors of the window theme instead of the Windows title bar, menu bar and status bar. It holds the `Back` & `Forward` buttons (moved from the top of the navigation bar) followed by the app version, a menu button (`F10` too) opening the window menus (`Overlay`, `API`, `Settings`, `Tools`, `Window`, `Help`), the update chip (update available), the saving state and the app tools moved from the bottom of the navigation bar (command palette, notifications, settings, help of the page), then flat minimize, maximize and close buttons. The navigation bar keeps the overlay switches (lock, auto hide, VR) and the API status: pages & tools left out of the navigation bar are under its `More` entry and in `Tools` of the menu button. The name of the shown page is in the middle of it (not repeated at the top of the page). Title bar and navigation bar form one frame, the page is shown inside it with rounded corners. The window keeps its Windows frame: shadow, rounded corners (Windows 11), resizing from every edge, snapping (drag to a screen edge, `Win` + arrow keys, Snap Layouts shown by hovering the maximize button), double click on the title bar to maximize, right click on it (or `Alt` + `Space`) for the window menu. Turn it off to get back the Windows title bar, menu bar and status bar. This option requires restarting NeoPedal to take effect. This option is enabled by default.
 
 Set in `Settings` > `Application` (asks to restart).
 
@@ -767,9 +760,6 @@ Enable `Auto load preset` system to allow auto loading user-defined game-specifi
 Auto loading preset is triggered when a new or different game is started and active. Auto loading will only trigger once per game change. A preset must be tagged as `primary` for specific game before it can be auto loaded. See [Preset Management](#preset-management) section for details.
 
 This option is disabled by default.
-
-    enable_global_hotkey
-Enable `Global Hotkey` support. This option can be toggled from [Hotkey Tab](#hotkey) in main window.
 
     show_option_group_title
 Show option group title in `Config` dialog.
@@ -848,10 +838,10 @@ Set number of days deleted presets are kept in preset trash (`trash` folder insi
 Update version hidden by `Skip This Version` (kept by app, not shown in config dialog): its notice is not shown again at startup, a newer version is. Stored as one number (major * 1000000 + minor * 1000 + patch), `0` if none.
 
     rail_items
-Entries of the navigation bar of main window, in order, separated by comma: pages (`home`, `widget`, `module`, `preset`, `spectate`, `pacenotes`, `hotkey`, `tools`) and tools (dialog module name, for example `lap_viewer`, `driver_stats_viewer`, `race_calculator`; former `fuel_calculator` & `tyre_strategy_planner` entries open race calculator). Easier to set by right-clicking the navigation bar, `Customize Navigation Bar…`: check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. `Ctrl+1` to `Ctrl+9` open the first 9 entries. Entries keep their size: when window is too short, they scroll (mouse wheel or thin scroll bar) above the quick buttons, selected entry scrolled into view, a fade with an arrow shows that entries are hidden above or below. Pages and tools left out stay in the `More` menu (`⋯` button at the bottom of the bar), the `Tools` > `Pages` menu and the command palette (`Ctrl+K`). With the modern title bar (`enable_modern_title_bar`, Windows), there is no `More` button: they are in `Tools` of the menu button (`☰`), which also ends with `Customize Navigation Bar…`. Default: Home, Overlays, Driver Stats Viewer, Results & Replays, Upcoming Races, Broadcast Director, Stream Overlays, Telemetry, Race Calculator and Preset (`home,widget,driver_stats_viewer,race_results_viewer,race_schedule_viewer,broadcast_director,stream_overlay_view,lap_viewer,race_calculator,preset`; a former `game_replays` entry opens Results & Replays). Existing configs were set to this default once, by the update that introduced it (setting version 2.50.8; Spectate stays in `Tools` and the command palette, Config in the gear button under the bar, the `Config` menu and `Ctrl+,`); Stream Overlays (setting version 2.51.3) and Upcoming Races (2.51.8) were added once to existing bars, after Broadcast Director and Results & Replays (or last).
+Entries of the navigation bar of main window, in order, separated by comma: pages (`home`, `widget`, `preset`) and tools (dialog module name, for example `lap_viewer`, `driver_stats_viewer`, `race_calculator`, `data_editors`; former `fuel_calculator` & `tyre_strategy_planner` entries open race calculator). Entries of former pages open their new place (setting version 2.51.11): `module` & `hotkey` the Settings page (`app_settings`), `spectate` the Broadcast Director page, `pacenotes`, the editors (`vehicle_class_editor`, `heatmap_editor`...) & `track_map_viewer` the Data Editors page (`data_editors`); a former `tools` entry is dropped. Easier to set in the bar itself: drag an entry to another place, drag it onto `More` to leave it out, drag a page from `More` into the bar (a line shows where it goes); with the keyboard, `Alt+Up` / `Alt+Down` move the focused entry; right-click an entry for `Move Up`, `Move Down` and `Remove from Navigation Bar`, anywhere on the bar for `Reset Navigation Bar…` (default entries, after asking; also in the command palette). `Ctrl+1` to `Ctrl+9` open the first 9 entries. Entries keep their size: when window is too short, they scroll (mouse wheel or thin scroll bar) above the quick buttons, selected entry scrolled into view, a fade with an arrow shows that entries are hidden above or below. `More` (chevron in an outlined button under the last entry) unfolds every page and tool left out of the bar: click one to open it, its `+` (or the `+` key) adds it at the end of the bar, right-click it for `Add to Navigation Bar`. Pages and tools left out are also listed in the `Tools` menu, and every page is in the command palette (`Ctrl+K`). Default: Home, Upcoming Races, Overlays, Driver Stats Viewer, Results & Replays, Telemetry and Preset (`home,race_schedule_viewer,widget,driver_stats_viewer,race_results_viewer,lap_viewer,preset`; a former `game_replays` entry opens Results & Replays). Existing configs were set to this default once, by the update that introduced it (setting version 2.50.8; Config in the gear button under the bar, the `Config` menu and `Ctrl+,`); Stream Overlays (setting version 2.51.3) was added once to existing bars after Broadcast Director (or last), Upcoming Races (2.51.8) under Home (or at the top); entries of existing bars are kept (Broadcast Director, Stream Overlays and Race Calculator left the default bar in 2.51.8 only).
 
     home_quick_access
-Quick access buttons of home page, in order, separated by comma: tools (dialog module name, for example `lap_viewer`, `race_calculator`), pages (`widget`, `module`, `preset`, `spectate`, `pacenotes`, `hotkey`, `tools`) and actions (`command_palette`, `bug_report`, `check_updates`). Easier to set with `Customize…` next to `Quick Access` on home page (or right-click the buttons): check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. Empty: no quick access button. Default: entries that are not in the default navigation bar, Widget performance, Track map viewer, the Modules, Spectate, Pacenotes, Hotkeys and Tools pages, Settings, then Create bug report and Check for updates (`perf_view,track_map_viewer,module,spectate,pacenotes,hotkey,tools,app_settings,bug_report,check_updates`). An earlier default was set once in existing configs, by the update that introduced it (setting version 2.50.3; a former `game_replays` entry opens Results & replays, a former `layout_editor` entry is dropped: the screen view of the Overlays page replaced it).
+Quick access buttons of home page, in order, separated by comma: tools (dialog module name, for example `lap_viewer`, `race_calculator`, `data_editors`, `app_settings`), pages (`home`, `widget`, `preset`) and actions (`command_palette`, `bug_report`, `check_updates`). Easier to set with `Customize…` next to `Quick Access` on home page (or right-click the buttons): check entries to show, drag or `Up` / `Down` to reorder, `Reset` for default. Empty: no quick access button. Default: Data Editors and Settings (not in the default navigation bar), then Create bug report and Check for updates (`data_editors,app_settings,bug_report,check_updates`). Entries of former pages open their new place, as in `rail_items` (setting version 2.51.11). An earlier default was set once in existing configs, by the update that introduced it (setting version 2.50.3; a former `game_replays` entry opens Results & replays, a former `layout_editor` entry is dropped: the screen view of the Overlays page replaced it).
 
     command_palette_recent
 Commands run last from the command palette (`Ctrl+K`), newest first, shown under `Recent` when nothing is typed (8 kept). Not shown in `Settings`. Default is empty.
@@ -1052,7 +1042,7 @@ Access code required to open the dashboard, at least 8 characters. A random code
 
 
 ## Stream Overlay
-**Stream overlay options can be accessed from `Stream Overlays` page (`Tools` page, or command palette), or `Stream Overlay` category of `Settings` page. Disabled by default.**
+**Stream overlay options can be accessed from `Stream Overlays` page (`Tools` menu, or command palette), or `Stream Overlay` category of `Settings` page. Disabled by default.**
 
 Shows widgets in streaming software (OBS Studio, Streamlabs, XSplit, vMix, Twitch Studio...) as browser sources: a transparent page, no chroma key needed, drawn exactly as on screen (also while the game runs in exclusive fullscreen). `Stream Overlays` page gives the addresses to copy into a `Browser` source:
 
@@ -1120,22 +1110,46 @@ VR mirror window position on desktop, saved when the window is moved.
 ## Notification
 **Notification options can be accessed from `Settings` menu in main window.**
 
-Note, notifications are displayed as chips in the status bar at the bottom of main window, and listed under `Now` in the notification center (bell at the bottom of the navigation bar). Click on any notification to quickly switch to corresponding page. Text is kept readable on any chosen color: a background too close to the text color is darkened (or lightened) until the contrast reaches 4.5:1. It's recommended to keep all notifications enabled.
+Note, messages of the app (errors of background tasks, saving problems, updates found, race reminders) are kept in the notification center (bell of the navigation bar), with the last 100 kept after a restart. Click the bell to see them in groups by day, filter them by level, search them, copy or remove one, or `Clear All` (`Undo` while it is open). A message is marked read when you click it, the messages shown when the bell closes (not those hidden by a filter or a search). `Don't Show Again` on a warning or an error hides that message (whatever its numbers) from now on: `Show Muted Messages Again` at the bottom of the bell brings them all back. Race reminders have `Open Upcoming Races` and `Remind Me in 2 Min`. The gear button opens these settings. The count on the bell is red with an unread error, yellow with an unread warning, grey otherwise. Modes on (locked preset, spectate, pace notes, car setup backup, Broadcast Director) are listed under `Now` at its top: click `Open` to go to their page. Race reminders, servers ready and errors also show as a banner on the `Web Dashboard` page of your phone (it vibrates), and in game in the `Race notifications` overlay.
+
+    show_tray_messages_for_errors
+Show a Windows notification for a new error or warning while the main window is hidden in the notification area or minimized (racing): at most one a minute, the next one telling how many came meanwhile. Click it to open the notification center. Default is enabled.
+
+    show_tray_messages_for_race_reminders
+Show a Windows notification for race reminders and RaceControl news of your registered races (server ready, race cancelled, registration removed), whether the main window is shown or not. Click it to open the `Upcoming Races` page. Default is enabled.
+
+    show_tray_messages_for_updates
+Show a Windows notification when an update is found while the main window is hidden. Click it to see what's new. Default is enabled.
+
+    enable_hold_notifications_while_driving
+Hold Windows notifications of errors and warnings while driving (not with the active state override): one notification tells them once you stop driving (garage, menu), and they are not shown in the `Race notifications` overlay meanwhile. Race reminders are never held. Messages still go to the notification center at once. Default is disabled.
+
+    number_of_minutes_before_race_reminder
+Set minutes before the start of the reminder set when you register to a race from the `Upcoming Races` page (no reminder set yet). Also offered in the `Remind Me Before` menu of each race. Default is `10`.
+
+    number_of_minutes_before_last_race_reminder
+Set minutes before the start of a last reminder, told again after the one you chose (for example `30` then `2`). `0` for none. Default is `0`.
+
+    race_reminder_sound
+Play a sound with race reminders and when the server of your race is ready: `When Windows Hides Notifications` (full screen game, presentation, locked screen: Windows shows no notification then; Windows 11 Do Not Disturb is not detected), `Always` or `Never`. The taskbar button of the app also flashes until you use the window. Default is `When Windows Hides Notifications`.
+
+    race_reminder_sound_file_name
+Choose a sound file (WAV, MP3, OGG, FLAC) played for race reminders. Empty for the Windows information sound.
 
     notify_locked_preset
-Show notification for loading locked preset.
+List loaded locked preset under `Now` in the notification center.
 
     notify_spectate_mode
-Show notification while spectate mode is enabled.
+List spectate mode under `Now` while enabled. Click `Open` to go to the `Spectate` tab of the Broadcast Director page.
 
     notify_pace_notes_playback
-Show notification while pace notes playback is enabled.
+List pace notes playback under `Now` while enabled. Click `Open` to go to the `Notes` tab of the Data Editors page.
 
-    notify_global_hotkey
-Show notification while global hotkey is enabled.
+    notify_auto_backup_car_setup
+List auto backup of car setups under `Now` while enabled. Click `Open` to go to its option.
 
     notify_broadcast_director
-Show notification while the Broadcast Director page is open with the director on (it asks the game while hidden too). Click it to show the page.
+List the Broadcast Director under `Now` while its page is open with the director on (it asks the game while hidden too). Click `Open` to show the page.
 
 [**`Back to Top`**](#)
 
@@ -1218,41 +1232,37 @@ Set a value that will be added (or subtracted if negative) to `font_offset_verti
 
 
 ## Spectate mode
-**Spectate mode can be accessed from `Spectate` tab in main window.**
+**Spectate mode can be accessed from `Spectate` tab of [Broadcast director](#broadcast-director) page (`Tools` menu in main window, or `Broadcast` once added to the navigation bar).** The page opens on this tab when the selected game API is not Le Mans Ultimate: the director needs Le Mans Ultimate, spectate mode works with rFactor 2 too. `Spectate Mode Enabled` notice (notification center) and home page check open this tab.
 
-Click `Enabled` or `Disabled` button to toggle spectate mode on and off. Note, spectate mode can also be enabled by setting `enable_player_index_override` option to `true` in [Telemetry API](#telemetry-api) dialog.
+Turn on the switch at top right to toggle spectate mode on and off (clicking a driver turns it on too). Note, spectate mode can also be enabled by setting `enable_player_index_override` option to `true` in [Telemetry API](#telemetry-api) dialog.
 
-While Spectate mode is enabled, `double-click` on a player name in the list to access telemetry data and overlay readings from selected player; alternatively, select a player name and click `Spectate` button. Current spectating player name is displayed on top of player name list. Player names are listed in alphabetical order.
-
-Select `Anonymous` for unspecified player, which is equivalent to player index `-1` in JSON file.
-
-Click `Refresh` button to manually refresh player name list.
+While Spectate mode is enabled, click a driver in the list to access telemetry data and overlay readings from selected driver. The card on top shows the driver followed (place, class, car, best lap), arrows go to the previous or next driver by place, `Stop` follows nobody (equivalent to player index `-1` in JSON file). Search by driver, car or class, keep one class, sort by position or name. Drivers are read only while the tab is shown.
 
 [**`Back to Top`**](#)
 
 
 ## Pace notes playback
-**Pace notes playback control panel can be accessed from `Pacenotes` tab in main window.**
+**Pace notes playback options can be accessed from `Pace Notes Playback` category of `Settings` page (under `In the loaded preset`), or `Playback` > `Playback Settings…` in the [Notes tab](#notes-tab) of `Data Editors` page.** They are saved in the loaded preset.
 
-Note, [Notes Module](#notes-module) must be enabled to allow pace notes playback. Pace notes can be created or edited using [Track Notes Editor](#track-notes-editor).
+Note, [Notes Module](#notes-module) must be enabled to allow pace notes playback. Pace notes can be created or edited in the [Notes tab](#notes-tab) of `Data Editors` page.
 
-Click `Playback Enabled` or `Playback Disabled` button to quickly enable or disable pace notes playback. Disabling this option does not affect `Notes Module` or `Pace notes Widget`.
+Turn on `Playback` > `Read Pace Notes Aloud` in the toolbar of the `Notes` tab (or the switch of the `Pace Notes Playback` category, or `pace_notes_playback` hotkey) to quickly enable or disable pace notes playback. Disabling this option does not affect `Notes Module` or `Pace notes Widget`. `Pace Notes Playback Enabled` notice (notification center) opens the `Notes` tab.
 
-Click `Enable Playback While in Pit Lane` check box to enable or disable pace notes (that tagged with `#pit`) playback while in pit lane. This option takes immediate effect when changed.
+Enable `enable_playback_while_in_pit` to enable or disable pace notes (that tagged with `#pit`) playback while in pit lane.
 
-Enable `Manually Select Pace Notes File` check box to disable auto-file-name matching, and manually select a pace notes file that can be played on any track. By default, pace notes file is automatically loaded from `pace_notes_path` if a file that matches current track name is found. This option takes immediate effect when changed.
+Enable `enable_manual_file_selector` to disable auto-file-name matching, and manually select a pace notes file that can be played on any track. By default, pace notes file is automatically loaded from `pace_notes_path` if a file that matches current track name is found.
 
-`Sound file path` sets path for loading pace notes sound files that matches name value (exclude file extension) from `pace note` column found in pace notes file. If no sound file found, sound won't be played. This option takes immediate effect when changed.
+`pace_notes_sound_path` sets path for loading pace notes sound files that matches name value (exclude file extension) from `pace note` column found in pace notes file. If no sound file found, sound won't be played.
 
-`Sound format` sets sound format for loading sound file, which should match sound file extension. This option only takes effect after clicked `Apply` button.
+`pace_notes_sound_format` sets sound format for loading sound file, which should match sound file extension.
 
-`Global offset` adds global position offset (in meters) to current vehicle position on track, which affects when next pace note line will be played. This option only takes effect after clicked `Apply` button.
+`pace_notes_global_offset` adds global position offset (in meters) to current vehicle position on track, which affects when next pace note line will be played.
 
-`Maximum duration` sets maximum playback duration for each sound file, which can be used to limit sound file maximum playing duration. Default duration is `10` seconds. This option only takes effect after clicked `Apply` button.
+`pace_notes_sound_maximum_duration` sets maximum playback duration for each sound file, which can be used to limit sound file maximum playing duration. Default duration is `10` seconds.
 
-`Maximum Queue` sets maximum number of sound files in playback queues. Default is `5` sound files. This option only takes effect after clicked `Apply` button.
+`pace_notes_sound_maximum_queue` sets maximum number of sound files in playback queues. Default is `5` sound files.
 
-`Playback volume` sets output volume for sound file. This option takes immediate effect when adjusted.
+`pace_notes_sound_volume` sets output volume for sound file. `Test Sound` plays a sound of the sound folder at the volume shown. Options take effect once applied (`Apply`).
 
     update_interval
 Set interval (in milliseconds) of the car position check that plays the next pace note. Default is `50` (4 meters at 300 km/h), which is also the minimum: sound playback has its own delay, use `Global offset` to play notes earlier.
@@ -1261,11 +1271,11 @@ Set interval (in milliseconds) of the car position check that plays the next pac
 
 
 ## Hotkey
-**Hotkey control panel can be accessed from `Hotkey` tab in main window.**
+**Hotkeys can be bound in `Hotkeys` category of `Settings` page (`Ctrl+,`, or `Settings` > `Open Settings` in main window), after `Notification`.**
 
 Note, hotkey bindings are non-exclusive in NeoPedal, which means they will not interfere with other programs. Hotkey history can be view in [Show Log](#console-log) dialog from `Help` menu. On Linux, only game controller buttons can be bound (keyboard not supported).
 
-Click `Enabled` or `Disabled` button to toggle global hotkey on and off. Note, global hotkey can also be enabled by setting `enable_global_hotkey` option to `true` in [Application](#application) dialog.
+Hotkeys are always on: a command runs as soon as a key is bound to it (no key is bound by default).
 
 To change key binding, click key button on right side of each hotkey option, then in `Key Binding` dialog, press a `key` or `key combination`, a mouse button (middle, back, forward) or a game controller button (wheel, button box, joystick, gamepad, named `Joy1 Button 5`, `Joy1 Pov Up`...) to register new key binding. A controller button already held when the dialog opens (button box switch) is ignored until released.
 
@@ -1273,7 +1283,7 @@ Note, assign same key for multiple options will cause those options to be toggle
 
 To clear key binding, click `Clear` button from `Key Binding` dialog.
 
-To clear all key bindings, click `Clear All` from `Hotkey Tab`.
+To clear all key bindings, click `Clear All` from `Hotkeys` category. `Search hotkeys` (`Ctrl+F`) finds a command, `Assigned only` lists bound commands only.
 
 ### General keybinding
 
@@ -1383,13 +1393,13 @@ Enable or disable module.
 
 
 # Tools
-**Tools can be accessed from main window menu.**
+**Tools can be accessed from `Tools` menu in main window, which lists every page left out of the navigation bar (main pages first, then tools by section), from `More` entry of the navigation bar, or from the command palette (`Ctrl+K`, `Pages` group).**
 
 [**`Back to Top`**](#)
 
 
 ## Race calculator
-**Race calculator plans fuel, virtual energy and tyres of a race in one page, which can be accessed from `Race` button of navigation bar, or `Tools` menu in main window.** It replaces the former fuel calculator and tyre strategy planner (their navigation bar entries and open pages now open the race calculator). The next stop of the plan can be shown in game with [Race plan](#race-plan) widget.
+**Race calculator plans fuel, virtual energy and tyres of a race in one page, which can be accessed from `Calculator` under `More` of navigation bar (or in the bar once added), or `Tools` menu in main window.** It replaces the former fuel calculator and tyre strategy planner (their navigation bar entries and open pages now open the race calculator). The next stop of the plan can be shown in game with [Race plan](#race-plan) widget.
 
 Fuel value and unit symbol depend on `Fuel Unit` setting from [Units](#units) config dialog, `L` = liter, `gal` = gallon. Virtual energy unit is `%` = percentage. Note, after changed `Fuel Unit` setting, it is required to close and reopen `Race calculator` in order to update units info for calculation. A typed value is applied when pressing `Enter` or leaving the box (arrows & mouse wheel apply at once), then everything is calculated again. Inputs and tyre plan are kept for next time, `Reset to Zero` clears inputs (starting tread back to 100%).
 
@@ -1498,10 +1508,12 @@ Note, race completion and final standings stats are retrieved at the moment when
 [**`Back to Top`**](#)
 
 
-## Table editors
-**Vehicle brand, vehicle class, brake, track info, tyre compound and heatmap editors can be accessed from `Tools` menu in main window.**
+## Data editors
+**Data editors edit what overlays read about cars and tracks, and track & pace notes, in one page of 7 tabs, which can be accessed from `Data Editors` in `Tools` menu in main window (`Editors` once added to the navigation bar) or the command palette: `Classes`, `Brands`, `Compounds`, `Brakes`, `Heatmaps`, `Tracks` and `Notes`.** They replace the former vehicle class, vehicle brand, tyre compound, brake, heatmap, track info and track notes editor pages, the track map viewer page (map of the `Tracks` tab) and the pace notes page (`Notes` tab): links, navigation bar and home quick access entries of those pages open their tab.
 
-They share one table page:
+Each tab keeps its own `Save`, `Undo` / `Redo` history and unsaved changes, marked by a dot (`•`) on the tab. `Ctrl+S` saves the tab shown. Closing the page asks for every tab with unsaved changes. `Esc` closes the whole page.
+
+The table tabs (`Classes`, `Brands`, `Compounds`, `Brakes`, `Heatmaps`, `Tracks`) share one table page:
 - `Save` (or `Ctrl+S`) checks the table, then saves and applies it at once (no separate `Apply`). Closing the page with unsaved changes asks to save or discard them. `Undo` / `Redo` (`Ctrl+Z` / `Ctrl+Y`) go back through every change until the page is closed.
 - Type in the filter field (`Ctrl+F`) to show only the rows containing the typed words. Click a column header to sort rows by it (click again: descending order); the order is saved.
 - Click a row to select it, `Ctrl`+click to add or remove a row, `Shift`+click (or `Shift`+arrows) to select a range, `Ctrl+A` for every row shown. `Esc` clears the selection.
@@ -1515,8 +1527,8 @@ They share one table page:
 [**`Back to Top`**](#)
 
 
-## Vehicle brand editor
-Vehicle brand editor is used for editing [Brands Preset](#brands-preset), see [Table editors](#table-editors) for the common actions.
+### Brands tab
+`Brands` tab (former vehicle brand editor) is used for editing [Brands Preset](#brands-preset), see [Data editors](#data-editors) for the common actions.
 
 For brand logo image preparation, see [Brand Logo](#brand-logo) section.
 
@@ -1556,8 +1568,8 @@ To batch replace a brand name, click `Replace…`: type the text to find (or pic
 [**`Back to Top`**](#)
 
 
-## Vehicle class editor
-Vehicle class editor is used for editing [Classes Preset](#classes-preset), see [Table editors](#table-editors) for the common actions.
+### Classes tab
+`Classes` tab (former vehicle class editor) is used for editing [Classes Preset](#classes-preset), see [Data editors](#data-editors) for the common actions.
 
 `Class name` column is full vehicle class name that must match in-game vehicle.
 
@@ -1565,13 +1577,13 @@ Vehicle class editor is used for editing [Classes Preset](#classes-preset), see 
 
 `Color` column is class color style (HEX code). Click the color square to open the color dialog.
 
-The primary preset of each class is set from the Presets page (right-click a preset > `Set Primary for Class`), the editor keeps it. It applies to every session, or only to practice, qualifying or race (`preset_practice`, `preset_qualify`, `preset_race`, before the preset of every session).
+The primary preset of each class is set from the Presets page (right-click a preset > `Set Primary for Class`), the tab keeps it. It applies to every session, or only to practice, qualifying or race (`preset_practice`, `preset_qualify`, `preset_race`, before the preset of every session).
 
 [**`Back to Top`**](#)
 
 
-## Brake editor
-Brake editor is used for editing [Brakes Preset](#brakes-preset), see [Table editors](#table-editors) for the common actions.
+### Brakes tab
+`Brakes` tab (former brake editor) is used for editing [Brakes Preset](#brakes-preset), see [Data editors](#data-editors) for the common actions.
 
 `Brake name` column is full vehicle class name plus brake name that must match in-game vehicle. Brand name may also be added if vehicle brand data is available.
 
@@ -1582,10 +1594,12 @@ Brake editor is used for editing [Brakes Preset](#brakes-preset), see [Table edi
 [**`Back to Top`**](#)
 
 
-## Track info editor
-Track info editor is used for editing [Tracks Preset](#tracks-preset), see [Table editors](#table-editors) for the common actions.
+### Tracks tab
+`Tracks` tab (former track info editor) is used for editing [Tracks Preset](#tracks-preset), see [Data editors](#data-editors) for the common actions.
 
 Distances and pit speed are shown and typed in the units of `Settings` > `Units` (`distance_unit`, `speed_unit`), the header tells the unit; they are stored in meters and meters per second. A value left untouched is kept exactly.
+
+The map of the selected track is shown beside the table (track map recorded by [Mapping Module](#mapping-module), see [Track map viewer](#track-map-viewer)), with its pit entry (orange), pit exit (green) and speed trap (blue) marked once set. `Right-Click` the `Pit entry`, `Pit Exit` or `Speed Trap` cell and select `Set from Map Position` to set it at the position cursor of the map (asked first; only while the map shown is the map of that track). Map button of Driver Stats (and links of the former track map viewer page) open this tab on that track.
 
 `Track name` column is full track name that must match in-game track.
 
@@ -1595,7 +1609,7 @@ Distances and pit speed are shown and typed in the units of `Settings` > `Units`
 
 `Pit speed` column is pit lane speed limit. This value is automatically recorded or updated by [Mapping Module](#mapping-module). Note, vehicle pit limiter must be activated while in pit lane to allow recording speed limit.
 
-`Speed Trap` column is speed trap position relative to track length. To set it at your current on-track position, `Right-Click` the speed trap cell of the current track and select `Set from Telemetry` (asked first; not in the pit lane).
+`Speed Trap` column is speed trap position relative to track length. To set it at your current on-track position, `Right-Click` the speed trap cell of the current track and select `Set from Telemetry` (asked first; not in the pit lane), or `Set from Map Position` for the position cursor of the map.
 
 `Map orientation (°)` column is display orientation angle (in degrees) of this track's map in [Track Map](#track-map) widget, which allows custom map orientation for each track without switching presets. This value is added to `display_orientation` option of Track Map widget. Default is `0`.
 
@@ -1608,8 +1622,8 @@ Distances and pit speed are shown and typed in the units of `Settings` > `Units`
 [**`Back to Top`**](#)
 
 
-## Tyre compound editor
-Tyre compound editor is used for editing [Compounds Preset](#compounds-preset), see [Table editors](#table-editors) for the common actions.
+### Compounds tab
+`Compounds` tab (former tyre compound editor) is used for editing [Compounds Preset](#compounds-preset), see [Data editors](#data-editors) for the common actions.
 
 `Compound name` column is full vehicle class name plus full tyre compound name that must match in-game vehicle.
 
@@ -1624,8 +1638,8 @@ To batch replace symbols, click `Replace…`.
 [**`Back to Top`**](#)
 
 
-## Heatmap editor
-Heatmap editor is used for editing [Heatmap Preset](#heatmap-preset), see [Table editors](#table-editors) for the common actions.
+### Heatmaps tab
+`Heatmaps` tab (former heatmap editor) is used for editing [Heatmap Preset](#heatmap-preset), see [Data editors](#data-editors) for the common actions.
 
 Each row represents a target temperature and corresponding color. First column is temperature in the unit of `Settings` > `Units` (`temperature_unit`), stored in `Celsius` with up to one decimal place. Second column is corresponding color (HEX code); click the color square to open the color dialog.
 
@@ -1654,10 +1668,10 @@ To restore all heatmap settings back to default, just delete `heatmap.json` pres
 [**`Back to Top`**](#)
 
 
-## Track map viewer
-**Track map viewer can be accessed from `Tools` menu in main window.**
+### Track map viewer
+**Track map viewer is the map shown beside the table of the [Tracks tab](#tracks-tab) of `Data Editors` page: selecting a track shows its recorded map, with pit entry, pit exit and speed trap marked.** It replaced the former Track Map Viewer page, whose links (such as the map button of Driver Stats) open the `Tracks` tab on that track.
 
-To load a track map, click `Load Map` button. Map file name, length and number of nodes are displayed alongside if file is successfully loaded. Note, only track map files (.svg extension) that generated from NeoPedal [Mapping Module](#mapping-module) are supported. Map is drawn by the graphics card: road (map width in meters, never thinner than a few pixels), road outline, a line colored by sector (`S1`, `S2`, `S3`, with their length above map), start line and sector lines.
+To load another track map, pick it in the list of recorded maps at top (search by name), click `Open File` for a map from another folder, or drop a `.svg` file on the map. Map file name, length and number of nodes are displayed alongside if file is successfully loaded. Note, only track map files (.svg extension) that generated from NeoPedal [Mapping Module](#mapping-module) are supported. Map is drawn by the graphics card: road (map width in meters, never thinner than a few pixels), road outline, a line colored by sector (`S1`, `S2`, `S3`, with their length above map), start line and sector lines.
 
 To customize map display, click `Config` button (widths are meters on map, colors of start & sector lines, curve section, osculating circle, distance circles, center mark and position marker).
 
@@ -1679,7 +1693,7 @@ To toggle on or off specific map display, click `Show`:
 * Highlighted coordinates - Show current position marker.
 * Elevation profile - Show elevation profile below map.
 
-Track notes editor keeps its own map (right-click context menu, marked & highlighted coordinates).
+`Notes` tab keeps its own map (right-click context menu, marked & highlighted coordinates).
 
 ---
 
@@ -1701,15 +1715,17 @@ Set road slope classification by slope percent.
 [**`Back to Top`**](#)
 
 
-## Track notes editor
-**Track notes editor allows to create and edit track or pace notes, which can be accessed from `Tools` menu in main window.**
+### Notes tab
+**`Notes` tab of `Data Editors` page (former track notes editor) allows to create and edit track or pace notes, and turns pace notes playback on or off.**
 
-Note, by default the editor starts in `Pace Notes` edit mode as displayed in status bar.
+Note, by default the tab starts in `Pace Notes` edit mode as displayed in status bar.
+
+Pace notes playback (former Pace Notes page): `Playback` in the toolbar, `Read Pace Notes Aloud` turns playback on or off, `Playback Settings…` opens the `Pace Notes Playback` category of `Settings` page (sound folder & format, volume, offset...), see [Pace notes playback](#pace-notes-playback).
 
 Every change can be undone with `Undo` (`Ctrl+Z`) and redone with `Redo` (`Ctrl+Y`), until another file is opened or created.
 
 The editor consists of two panel views:
-* Left panel is the track map (same map, position, curve & slope info as [Track Map Viewer](#track-map-viewer)), with a dot at the place of each note (click a dot to select its note, `Show` > `Marked Coordinates` hides them). The map of the track is opened by itself when a track map file has the same name as the notes. Click the map to move the position, then `Left` / `Right` keys move it along the track.
+* Left panel is the track map (same map, position, curve & slope info as the [Track map viewer](#track-map-viewer) of the `Tracks` tab), with a dot at the place of each note (click a dot to select its note, `Show` > `Marked Coordinates` hides them). The map of the track is opened by itself when a track map file has the same name as the notes. Click the map to move the position, then `Left` / `Right` keys move it along the track.
 
 * Right panel is the track and pace notes editor, which allows to create, open, and save track or pace notes file.
 
@@ -1717,7 +1733,7 @@ The table view consists of multiple columns:
 * `distance` column defines track position (in meters) of a note line.
 
 * `pace note` column (in Pace Notes edit mode) defines `pace note` name that is used to match pace note sound file name.\
-Note, DO NOT write file extension (format) in `pace note` column. File extension should be set in `Pace Notes` control panel tab from main window.
+Note, DO NOT write file extension (format) in `pace note` column. File extension should be set in `pace_notes_sound_format` of `Pace Notes Playback` category of `Settings` page (`Playback` > `Playback Settings…`).
 
 * `track note` column (in Track Notes edit mode) defines track-specific notes, such as `corner name` or `section name`.
 
@@ -1791,7 +1807,7 @@ Lap list: fastest valid lap of each session is starred, `Clean only` (saved) hid
 
 
 ## Session recorder
-**Session recorder records Le Mans Ultimate shared memory while driving, and plays it back through every widget and module without the game, which can be accessed from `Advanced` section of `Tools` menu in main window.** Mostly useful to test overlays without the game, or to reproduce an issue (a recorded section can be attached to a bug report).
+**Session recorder records Le Mans Ultimate shared memory while driving, and plays it back through every widget and module without the game, which can be accessed from `Tools` menu in main window.** Mostly useful to test overlays without the game, or to reproduce an issue (a recorded section can be attached to a bug report).
 
 Requires `Le Mans Ultimate`, `rFactor 2` or `Le Mans Ultimate (legacy)` API. Click `Start Recording` while in game, and `Stop Recording` when done, or enable `enable_auto_replay_recording` in [Recorder module](#recorder-module). Recordings are saved as `.tpreplay` files in `telemetry` user path (roughly 7 MB per minute). Frames outside driving are skipped (see `enable_replay_skip_inactive_frames`). Recordings keep track, vehicle and session, lap changes, and incidents detected by Dashboard HUD incident recorder. REST API data is recorded when it changes.
 
@@ -1824,7 +1840,7 @@ Replay can be paused, sped up or slowed down, looped, and moved with the positio
 
 
 ## Broadcast director
-**Broadcast director casts a race of Le Mans Ultimate: cars of the session, game cameras, an automatic director and a commentator screen, live (driving or spectating) or in a replay, which can be accessed from `Tools` page in main window.** Everything goes through the game Rest API: the game must be running, with Rest API access enabled in [Le Mans Ultimate API](#le-mans-ultimate-api).
+**Broadcast director casts a race of Le Mans Ultimate: cars of the session, game cameras, an automatic director and a commentator screen, live (driving or spectating) or in a replay, which can be accessed from `Tools` menu in main window (`Broadcast` once added to the navigation bar).** The page has two tabs: `Director` (described here) and `Spectate` ([Spectate mode](#spectate-mode)); it opens on `Spectate` when the selected game API is not Le Mans Ultimate. Everything goes through the game Rest API: the game must be running, with Rest API access enabled in [Le Mans Ultimate API](#le-mans-ultimate-api).
 
 - Game state: `LIVE` or `REPLAY` with the session time (moving between answers), track and session, full course yellow, air and track temperatures (temperature unit of Units settings), rain and wet track; click them for the forecast of the session (start, 25 %, 50 %, 75 %, finish: temperature, rain chance, sky), asked to the game every minute. `Refresh` (`F5`) asks the game at once.
 - Cars: every car by overall place with class place, class color, number, driver, team, places gained or lost in its class since the start (races, from the qualifying places of the game), interval to the car ahead in its class (time, or laps when a lap or more behind, measured from track position and speed: the game gives no time gap to cars laps behind the leader; red under 0.3 s, amber under 0.5 s), sectors of the lap (as they complete, else of the last lap: purple best of the class, green personal best, yellow slower; times in tooltip), car brand logo, tyres front and rear (S, M, H, W circles colored as on TV; read in the shared memory, so only with the game on this computer), status (garage, in pits, finished, retired, disqualified), battle and contact marks. Class chips show one class, the search field finds cars by number (from its start: `7` finds #7 and #77) or by driver, team, car or class (accents and case ignored); `Enter` puts the first car found on air. Click: car sheet; double-click or camera button: car on air; right-click: `Lap History`. Previous / next car by place (`Left` / `Right`, not while typing).
@@ -1856,7 +1872,7 @@ Replay can be paused, sped up or slowed down, looped, and moved with the positio
 
 
 ## Race results
-**Results & replays shows the results of every session played, read from the results files the game writes at the end of each session (Le Mans Ultimate and rFactor 2: `UserData/Log/Results`), with the replays saved by Le Mans Ultimate (see [Game replays](#game-replays)), which can be accessed from `Tools` page in main window.** The game does not need to run for the results.
+**Results & replays shows the results of every session played, read from the results files the game writes at the end of each session (Le Mans Ultimate and rFactor 2: `UserData/Log/Results`), with the replays saved by Le Mans Ultimate (see [Game replays](#game-replays)), which can be accessed from `Results` of navigation bar or `Tools` menu in main window.** The game does not need to run for the results.
 
 - Sessions: newest first, grouped by day, with session kind (`R` race, `Q` qualifying, `P` practice, `W` warmup), track, time, car count, online or single player, and your result (overall position, class position with several classes, `DNF`). Search (every word must match track, layout, server, car or class), `All` / `Races` / `Qualifying` / `Practice` filter, sessions where nobody completed a lap hidden by default. `Up` / `Down` keys move between sessions. A session ending while the page is open is added at once (shown if the newest one was shown).
 - Your car is found by the driver name of the game profile (`UserData/player/Settings.JSON`, also as one of the drivers of a team car), else as the only car driven by a person (single player). Every person online is a player for the game.
@@ -1896,7 +1912,7 @@ Select `Preset A` and `Preset B`. Widget positions can be ignored. Select one or
 
 
 ## Plugin manager
-**Plugin manager lists widget plugins, which can be accessed from `Tools` menu in main window.**
+**Plugin manager lists widget plugins, which can be accessed from `Plugins` button (puzzle icon) of `Overlays` page, or command palette (`Ctrl+K`).**
 
 Shows each plugin loading status and error message. Plugins can be enabled or disabled, code can be reloaded without restarting NeoPedal (`Reload Code`), and new plugins can be installed from `.zip` package (`Install…`). See [Widget plugins](#widget-plugins) section for details.
 
@@ -1908,14 +1924,14 @@ Plugin code runs only once you trusted it (`Trust…`, or installing it). Trust 
 ## Other tools
 * `Find Option…` (`Config` menu, `Ctrl+F`): search any option in all widgets, modules and global settings, in English or in current language. Double-click a result to open its page: Overlay Options page at a widget option, config dialog filtered on a module option.
 * `Setup Wizard` (`Help` menu): first launch setup (language, game, units, themes, preset, starter overlays).
-* `Overlay Performance` (`Help` menu): update & paint time of each overlay, and CPU & memory usage of NeoPedal, modules and game connection.
+* `Overlay Performance` (`Performance` button of `Modules` category of `Settings` page, or command palette `Ctrl+K`): update & paint time of each overlay, and CPU & memory usage of NeoPedal, modules and game connection.
 * `Create Bug Report…` (`Help` menu): creates a `.zip` file with logs, settings and system info to attach to a bug report. User folder name (short `C:\Users\NAME~1` form too), access codes, repository names, local network & IPv6 addresses and team driver names are removed.
 
 [**`Back to Top`**](#)
 
 
 # Modules
-Modules provide important data that updated in real-time for other widgets. Widgets may stop updating or receiving readings if corresponding modules were turned off. Each module can be configured by accessing `Config` button from `Module` tab in main window.
+Modules provide important data that updated in real-time for other widgets. Widgets may stop updating or receiving readings if corresponding modules were turned off. Modules are listed in `Modules` category of `Settings` page (first category of `In the loaded preset`): module cards with search and filters, the switch of a card turns its module on or off, and its gear (`Options…`) opens the options category of the module in the same page. `Performance` button in the header of the category opens the `Overlay Performance` page.
 
 [**`Back to Top`**](#)
 
@@ -2107,7 +2123,7 @@ Enable stats module.
     vehicle_classification
 Set one of the three vehicle classifications where stats will be saved.
 
-`Class - Brand` saves corresponding stats under class and brand name. Make sure to use [Vehicle Brand Editor](#vehicle-brand-editor) to import brand name. If brand name does not exist, only class name will be used instead.
+`Class - Brand` saves corresponding stats under class and brand name. Make sure to use [Data Editors > Brands](#brands-tab) to import brand name. If brand name does not exist, only class name will be used instead.
 
 `Class` saves corresponding stats under class name only.
 
@@ -2430,7 +2446,7 @@ Note, brake maximum thickness (for percentage wear calculation) is retrieved at 
 
 **Notes to brake failure thickness:**
 
-Brake failure thickness is millimeter thickness threshold at brake failure, which affects brake wear calculation accuracy, and can be customized for specific vehicle class in [Brake Editor](#brake-editor).
+Brake failure thickness is millimeter thickness threshold at brake failure, which affects brake wear calculation accuracy, and can be customized for specific vehicle class in [Data Editors > Brakes](#brakes-tab).
 
 For example, if `brake thickness` is `40`mm, and `failure thickness` is `25`mm, then `effective thickness` is `40 - 25 = 15mm`. And brake fails upon reaching `25`mm thickness. Note, each installed brake may have a random failure thickness variation of `±0.1`mm.
 
@@ -2440,7 +2456,7 @@ Note, failure thickness values are automatically saved to `brakes.json` preset w
 
 **Tips for testing failure thickness:**
 
-Before start, make sure vehicle brand data is imported via [Vehicle Brand Editor](#vehicle-brand-editor). This is necessary to save brake failure thickness settings per vehicle brand.
+Before start, make sure vehicle brand data is imported via [Data Editors > Brands](#brands-tab). This is necessary to save brake failure thickness settings per vehicle brand.
 
 First, set all `brake duct` settings to `closed` in car setup, then keeps brakes on while driving at around 100kph speed until brakes failed (use brake bias to control front and rear wear rate), and failure thickness value will be automatically saved for this vehicle. Be aware that testing may take a very long time for some vehicles.
 
@@ -4176,13 +4192,16 @@ Show message when a new penalty is given.
 Show message when a new fastest lap is set in player class.
 
     show_blue_flag
-Show message when blue flag is shown to player in race, with class name (alias of vehicle class editor) of car lapping player.
+Show message when blue flag is shown to player in race, with class name (alias of `Classes` tab of Data Editors) of car lapping player.
 
     show_full_course_yellow
 Show message when full course yellow starts and ends, and when race is halted (red flag).
 
     show_lap_invalidated
 Show message when game invalidates current lap.
+
+    show_app_messages
+Show messages of the app while driving: race reminders, RaceControl news of your registered races (server ready, race cancelled) and errors. Windows may hide its own notifications over a full screen game, this shows them in game. Full messages stay in the notification center (bell). Default is enabled.
 
 [**`Back to Top`**](#)
 
@@ -4422,6 +4441,9 @@ Modern design column, off by default (`LMU` only): game badge of each driver (Go
     column_car_number
 Modern design column (Relative & Standings), off by default (`LMU` only): car number as the game shows it (`#4`), from the game Rest API (`/rest/watch/standings`, read every 5 seconds while the column is shown). Online, the server gives each car of a split its own number, whatever its livery (a car with livery `#397` can be `#4`): shared memory only has the livery number, so a dash is shown while the game does not answer (rFactor 2, menus). Your own number is brighter. Column header: `#`. Its place among the columns is set by `display_order_car_number`.
 
+    column_nationality
+Modern design column (Relative & Standings), off by default: flag of each driver's country, before the driver name. Yours comes from your game profile (`Nationality` of `UserData/player/Settings.JSON`); other drivers of an online session from their RaceControl profile, read with Driver & Safety Ranks (needs `enable_online_driver_ranks` on, no extra request); AI drivers, who carry the names of real FIA WEC, Le Mans and ELMS drivers, from a list of those drivers' nationalities bundled with the app (entry lists of 2023 to 2026). No flag when the nationality is unknown. Column header: `Nat`. Its place among the columns is set by `display_order_nationality`.
+
     column_delta_laptime
 Modern design column, off by default: lap time difference to player over recent laps (green if player was faster, most recent lap at right), as in Standings.
 
@@ -4531,7 +4553,7 @@ Show driver's position standing in class.
 Show class style background color for position in class.
 
     show_class
-Show vehicle class categories. Class alias name and color are fully customizable in `classes.json` preset, see [Vehicle Class Editor](#vehicle-class-editor) section for details.
+Show vehicle class categories. Class alias name and color are fully customizable in `classes.json` preset, see [Data Editors > Classes](#classes-tab) section for details.
 
 Note, random color will be displayed for unknown class name that is not defined in `classes.json` preset.
 
@@ -4562,7 +4584,7 @@ Show tyre compound symbol for each wheel. Compound symbol display order is arran
 Disable this option to show a single symbol for all tyres, which allows a more compact view. If mixed tyres are used, a `X` symbol will be displayed instead, which can be customized by `mixed_compound_symbol` option.
 
     show_compound_color_by_type
-Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
+Show different compound color by compound type, which can be customized in [Data Editors > Compounds](#compounds-tab).
 
 Note, player's compound color is not affected by this setting while `show_player_highlighted` option is enabled.
 
@@ -4620,7 +4642,7 @@ Classic layout: show number of completed laps from current stint and estimated t
     show_speed_trap
 Classic layout: show fastest recorded speed of each driver per lap at user-defined speed trap position on track. This option can be useful to keep track of each driver's straight line performance from most recent lap.
 
-Note, speed trap position is defined in tracks.json preset, which can be customized via Track Info Editor. Default speed trap position is set at start/finish line.
+Note, speed trap position is defined in tracks.json preset, which can be customized via [Data Editors > Tracks](#tracks-tab). Default speed trap position is set at start/finish line.
 
 Modern design: see `column_speed_trap`.
 
@@ -5274,7 +5296,7 @@ Set threshold for showing color indication when number of incidents are equal or
     show_speed_trap
 Show fastest recorded speed of each driver per lap at user-defined speed trap position on track. This option can be useful to keep track of each driver's straight line performance from most recent lap.
 
-Note, speed trap position is defined in `tracks.json` preset, which can be customized via [Track Info Editor](#track-info-editor). Default speed trap position is set at start/finish line.
+Note, speed trap position is defined in `tracks.json` preset, which can be customized via [Data Editors > Tracks](#tracks-tab). Default speed trap position is set at start/finish line.
 
     show_lift_and_coast_time
 Show most recent recorded lift and coast time (in seconds) from each driver.
@@ -5705,7 +5727,7 @@ Show sunlight phase countdown timer and indicator. The timer counts down towards
 
 This countdown timer can be used to check how long until sunrise or sunset for planning strategy.
 
-Note, game does not provide `sunrise` and `sunset` data. Sunrise and sunset hours must be manually defined in [Track Info Editor](#track-info-editor) to get correct readings.
+Note, game does not provide `sunrise` and `sunset` data. Sunrise and sunset hours must be manually defined in [Data Editors > Tracks](#tracks-tab) to get correct readings.
 
 See Wiki Appendix page for sunrise and sunset reference table for some common tracks.
 
@@ -5782,7 +5804,7 @@ Set proximity circle radius in meters. Default radius is `150` meters.
 Show position number on each vehicle on track map: overall position, or position in class while both `enable_multi_class_styling` and `show_position_in_class` are enabled.
 
     enable_multi_class_styling
-Show vehicles in multi-class color styles on map instead. Multi-class color can be customized from [Vehicle Class Editor](#vehicle-class-editor).
+Show vehicles in multi-class color styles on map instead. Multi-class color can be customized from [Data Editors > Classes](#classes-tab).
 
 Note, while multi-class styling is enabled, following color styles will not be displayed:
 `vehicle_color_player`, `vehicle_color_leader`, `vehicle_color_same_lap`, `vehicle_color_laps_ahead`, `vehicle_color_laps_behind`.
@@ -6155,7 +6177,7 @@ Set number of samples for reducing data fluctuation. Lower value may result more
 Show tyre compound symbol of each tyre (one per axle in `RF2`) that matches specific tyre compounds defined in `compounds.json` preset.
 
     show_compound_color_by_type
-Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
+Show different compound color by compound type, which can be customized in [Data Editors > Compounds](#compounds-tab).
 
     swap_style
 Classic layout: swap heatmap color between font and background color, also for rate of change readings.
@@ -6210,7 +6232,7 @@ Set amount leading zeros for each temperature value. Default is `2`. Minimum val
 Show tyre compound symbol of each tyre (one per axle in `RF2`) that matches specific tyre compounds defined in `compounds.json` preset.
 
     show_compound_color_by_type
-Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
+Show different compound color by compound type, which can be customized in [Data Editors > Compounds](#compounds-tab).
 
 [**`Back to Top`**](#)
 
@@ -6240,7 +6262,7 @@ Show car body between the cards, with axles from tyre to tyre (modern design).
 Show wheel name (FL, FR, RL, RR) in each card.
 
     show_tyre_compound
-Show tyre compound badge in the corner of each card, colored as in the Tyre compound editor.
+Show tyre compound badge in the corner of each card, colored as in the `Compounds` tab of Data Editors.
 
     show_tyre_alerts
 Show tyre alerts, most important first: detached wheel, puncture, flat spot. Classic design shows the alert in place of the compound badge, modern design in place of the wheel name (compound badge kept).
@@ -6276,7 +6298,7 @@ Show carcass & inner layer labels next to their temperatures (modern design).
 Show degree sign after temperatures.
 
     enable_heatmap_auto_matching
-Enable heatmap auto matching: heatmap of each tyre compound, as set in the Tyre compound editor. Disabled, `heatmap_name` is used.
+Enable heatmap auto matching: heatmap of each tyre compound, as set in the `Compounds` tab of Data Editors. Disabled, `heatmap_name` is used.
 
     heatmap_name
 Set heatmap preset name of tyre temperatures (used while `enable_heatmap_auto_matching` is disabled). Default is `tyre_optimal_80`.
@@ -6351,7 +6373,7 @@ Swap font and background color of pressure readings (cold and hot pressure color
 Show tyre compound symbol of each tyre (one per axle in `RF2`) that matches specific tyre compounds defined in `compounds.json` preset.
 
     show_compound_color_by_type
-Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
+Show different compound color by compound type, which can be customized in [Data Editors > Compounds](#compounds-tab).
 
 [**`Back to Top`**](#)
 
@@ -6422,7 +6444,7 @@ Set amount leading zeros for each temperature value. Default is `2`. Minimum val
 Show tyre compound symbol of each tyre (one per axle in `RF2`) that matches specific tyre compounds defined in `compounds.json` preset.
 
     show_compound_color_by_type
-Show different compound color by compound type, which can be customized in [Tyre Compound Editor](#tyre-compound-editor).
+Show different compound color by compound type, which can be customized in [Data Editors > Compounds](#compounds-tab).
 
 [**`Back to Top`**](#)
 
@@ -6844,7 +6866,7 @@ Highlight tyre temperature (Celsius) at or above this threshold. Set `0` to disa
 Background color of tyre pressure text when out of target range (see `enable_tyre_pressure_target`).
 
     show_tyre_compound
-Show tyre compound symbol (from `Tyre compound editor`) on each tyre.
+Show tyre compound symbol (from `Compounds` tab of Data Editors) on each tyre.
 
     show_tyre_wear
 Show remaining tyre tread (percent) in each tyre.
@@ -6977,7 +6999,7 @@ Tyre temperature text turns cold color below this temperature (Celsius), or warm
 Append an arrow to tyre temperature or pressure: `↑` rising, `↓` falling, compared with the value `tyre_trend_duration` seconds ago (default `10`). A change smaller than the threshold (`2` Celsius degrees, `1` kPa by default) shows no arrow.
 
     tyre_target_by_compound
-Pressure target (kPa, psi or bar, as `tyre_pressure_target_minimum`) and optional temperature window (Celsius) per tyre compound, replacing `tyre_pressure_target_minimum`, `tyre_pressure_target_maximum`, `tyre_temperature_cold_threshold` and `tyre_temperature_warning_threshold` for that compound. Format: `symbol=min-max/cold-hot`, entries separated by `;`, for example `S=160-190/75-105; W=150-175/40-70`. The symbol is the compound symbol (see `Tyre Compound Editor`) or the full compound name. Invalid entries are ignored. Empty by default.
+Pressure target (kPa, psi or bar, as `tyre_pressure_target_minimum`) and optional temperature window (Celsius) per tyre compound, replacing `tyre_pressure_target_minimum`, `tyre_pressure_target_maximum`, `tyre_temperature_cold_threshold` and `tyre_temperature_warning_threshold` for that compound. Format: `symbol=min-max/cold-hot`, entries separated by `;`, for example `S=160-190/75-105; W=150-175/40-70`. The symbol is the compound symbol (see `Compounds` tab of Data Editors) or the full compound name. Invalid entries are ignored. Empty by default.
 
     brake_temperature_cold_threshold, brake_temperature_hot_threshold, font_color_brake_temperature_cold, font_color_brake_temperature_hot
 Brake temperature text turns cold color below the cold threshold, hot color above the hot threshold (Celsius), instead of heatmap color. `0` disables (default). Used for car classes not found in `brake_target_by_class`.

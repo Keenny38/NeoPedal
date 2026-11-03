@@ -108,6 +108,14 @@ TpPage {
                 tip: i18n.tr("Sort overlays")
                 onClicked: sortMenu.toggleBelow(sortButton)
             }
+            TpButton {
+                objectName: "pluginsButton"
+                flat: true
+                glyph: ""  // puzzle
+                fallback: i18n.tr("Plugins")
+                tip: i18n.tr("Plugin Manager: install, trust and enable overlay plugins")
+                onClicked: backend.openPlugins()
+            }
             // Cards / list / screen view: icons (tooltip, screen readers name them)
             TpSegmented {
                 objectName: "viewChoice"
@@ -194,14 +202,12 @@ TpPage {
             }
         }
 
-        // Safe mode & start errors
+        // Start errors
         TpNotice {
-            visible: backend.safeMode || backend.failedCount > 0
-            text: backend.safeMode
-                ? i18n.tr("Safe mode: overlays are not started. Restart normally to show them.")
-                : backend.failedCount === 1 ? i18n.tr("1 overlay could not start, see log.")
+            visible: backend.failedCount > 0
+            text: backend.failedCount === 1 ? i18n.tr("1 overlay could not start, see log.")
                 : i18n.trm(backend.failedCount + " overlays could not start, see log.")
-            actionText: backend.safeMode ? "" : i18n.tr("Show Log")
+            actionText: i18n.tr("Show Log")
             onAction: backend.showLog()
         }
 

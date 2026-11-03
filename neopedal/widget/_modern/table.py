@@ -49,13 +49,15 @@ TREND = 8  # gap trend: extra = (seconds per lap, gap growing or shrinking; good
 PAIR = 9  # two cells side by side: extra = (left cell, right cell, width of left part)
 LAPTIME = 10  # lap time: text, role, color; extra = LapTimeExtra (sector bars, delta, trend)
 ICON = 11  # picture file (svg, png) in a square: text = file ("" while none: dot of color), color = dot
-INSIDE_CELL = (TEXT, LOGO, LAPTIME)  # kinds drawn inside their cell (elided text, logo fit, lap time parts): repainted alone
+FLAG = 12  # country flag: text = country code (see flags.flag_code), color = thin outline
+INSIDE_CELL = (TEXT, LOGO, LAPTIME, FLAG)  # kinds drawn inside their cell (elided text, logo fit, lap time parts): repainted alone
 
 SEPARATOR = "separator"  # row list item: space between class groups
 CLASS_HEADER_SCALE = 0.82  # class header strip height, in row height
 CHANGE_ARROW = 0.42  # position change arrow size, in row height
 COMPOUND_SIZE = 0.62  # tyre compound square, in row height
 COMPOUND_GRID = 0.9  # per wheel compounds 2x2 grid height, in row height
+FLAG_SIZE = 0.46  # country flag height (4:3), in row height
 TEAM_GAP = 0.45  # space between driver name & team name, in units
 TEAM_MIN_WIDTH = 1.5  # team name left out with less room after driver name, in units
 LOGO_CHECK_MS = 150  # waited logo checked for at this interval (update timer may be stopped)
@@ -361,6 +363,8 @@ class TableMixin:
             self.draw_laptime(painter, rect, cell)
         elif kind == ICON:
             self.draw_icon(painter, rect, cell, column.align)
+        elif kind == FLAG:
+            self.draw_flag(painter, rect, cell, column.align)
         elif kind == PAIR:
             left, right, left_width = cell.extra
             gap = self.unit * 0.3
@@ -593,6 +597,26 @@ class TableMixin:
             painter.setBrush(cell.color)
             painter.drawEllipse(box.center(), dot / 2, dot / 2)
             painter.restore()
+
+    def draw_flag(self: Any, painter: QPainter, rect: QRectF, cell: Cell, align):
+        """Country flag of flag size (4:3, cut out of flag sheet once per size), thin outline (white flags on light
+        panels); nothing if no flag of code"""
+        from ...flags import ASPECT, flag_pixmap
+
+        height = min(rect.height() * FLAG_SIZE, rect.width() / ASPECT)
+        pixmap = flag_pixmap(cell.text, height)
+        if pixmap.isNull():
+            return
+        width = height * ASPECT
+        box = QRectF(aligned_left(rect, width, align), rect.center().y() - height / 2, width, height)
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        painter.drawPixmap(box, pixmap, QRectF(pixmap.rect()))
+        if cell.color is not None:
+            painter.setPen(cell.color)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(box.adjusted(0.5, 0.5, -0.5, -0.5))
+        painter.restore()
 
     def brand_logo(self: Any, brand: str, vehicle: str, width: float, height: float) -> QPixmap:
         """Brand logo scaled to fit cell, null while none (brand initials drawn instead)

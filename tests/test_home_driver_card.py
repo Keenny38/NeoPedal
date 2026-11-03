@@ -35,7 +35,8 @@ def test_full_card():
 
 
 def test_remembered_ranks_dated():
-    assert "Last ranks seen in game menu" in driver_card(PLAYER, True, 1_900_000_000, [], None)["note"]
+    card = driver_card(PLAYER, True, 1_900_000_000, [], None)
+    assert card["note"].startswith("Last ranks known · ") and card["noteTip"]  # how long ago, date in tooltip
 
 
 def test_races_only_uses_results_name():

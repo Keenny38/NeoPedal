@@ -32,13 +32,13 @@ from .black_box_ui import ORDER_LIST, OptionUI
 
 # Columns of modern design, in design order (shown left to right while no display order was changed)
 RELATIVE_COLUMNS = (
-    "position", "class", "position_change", "car_number", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
+    "position", "class", "position_change", "car_number", "nationality", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
     "pit_status", "laptime", "best_laptime", "average_laptime", "delta_laptime", "energy_remaining",
     "energy_per_lap", "vehicle_integrity", "incidents", "track_limits", "stint_laps", "speed_trap",
     "lift_and_coast_time", "time_gap", "gap_trend", "driver_ranks", "driver_badge",
 )
 STANDINGS_COLUMNS = (
-    "position", "class", "position_change", "car_number", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
+    "position", "class", "position_change", "car_number", "nationality", "driver_name", "vehicle_name", "brand_logo", "tyre_compound",
     "pit_status", "laptime", "best_laptime", "average_laptime", "delta_laptime",
     "energy_remaining", "energy_per_lap", "vehicle_integrity", "incidents", "track_limits", "stint_laps",
     "speed_trap", "lift_and_coast_time", "time_interval", "time_gap", "gap_trend", "driver_ranks", "driver_badge",
@@ -80,6 +80,7 @@ COLUMN_TITLES = {
     "driver_ranks": "Driver & Safety Rank",
     "driver_badge": "Driver Badge",
     "car_number": "Car Number",
+    "nationality": "Nationality",
 }
 # Options of each column (column, options), shown after the column list
 COLUMN_OPTIONS: tuple[tuple[str, tuple[str, ...]], ...] = (

@@ -834,7 +834,7 @@ def test_b021_quit_during_instant_replay_waits_back_to_live(director_page, monke
 def test_b021_close_waits_for_registered_waiters(monkeypatch):
     from types import SimpleNamespace
 
-    from neopedal import loader, safe_mode
+    from neopedal import loader
     from neopedal.setting import cfg
 
     calls = []
@@ -843,7 +843,6 @@ def test_b021_close_waits_for_registered_waiters(monkeypatch):
     monkeypatch.setattr(loader, "unload_modules", lambda *args, **kwargs: None)
     monkeypatch.setattr(loader, "replay", SimpleNamespace(stop_recording=lambda: None, wait_closed=lambda t: True))
     monkeypatch.setattr(loader, "api", SimpleNamespace(stop=lambda: None, close=lambda: calls.append("api.close")))
-    monkeypatch.setattr(safe_mode, "clear_marker", lambda path: None)
     monkeypatch.setattr(type(cfg), "flush", lambda self, *args: None)
 
     def broken():

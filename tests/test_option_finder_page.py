@@ -62,9 +62,9 @@ def test_rows_show_values_and_highlight(finder):
     row = finder.model.rows[0]
     assert row["option"] == "minimize_to_tray" and row["kind"] == "bool" and row["group"] == ConfigType.CONFIG
     assert "<b>" in row["label"] and row["value"] in ("On", "Off") and row["sectionLabel"]
-    finder.setSearch("background color locked")
+    finder.setSearch("mirror background color")
     row = finder.model.rows[0]
-    assert row["kind"] == "color" and row["color"] == cfg.user.config["notification"]["background_color_locked_preset"]
+    assert row["kind"] == "color" and row["color"] == cfg.user.config["vr_overlay"]["mirror_background_color"]
 
 
 def test_group_chips_and_counts(finder):

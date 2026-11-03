@@ -313,7 +313,7 @@ class Base(QWidget):
         self.setMaximumSize(*limited)
         self.resize(*limited)
         logger.warning("OVERLAY: %s too big (%dx%d), cut to %dx%d", self.widget_name, *natural, *limited)
-        app_signal.error.emit(
+        app_signal.warning.emit(
             f"{module_label(self.widget_name)} is too big ({natural[0]} x {natural[1]}), cut to "
             f"{limited[0]} x {limited[1]}: lower its size options or scale."
         )

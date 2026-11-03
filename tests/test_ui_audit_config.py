@@ -204,11 +204,11 @@ def test_delete_key_skips_loaded_preset(preset_page, monkeypatch):  # noqa: F811
 
 # Modules page loads with its notices (TpNotice) & cards without QML warnings
 def test_modules_page_without_qml_warnings(modules):  # noqa: F811
-    from neopedal.ui.module_view import ModuleList
+    from tests.test_module_page import ModulesTestPage  # Modules category of Settings alone
 
     messages = []
     previous = qInstallMessageHandler(lambda mode, context, text: messages.append(text))
-    view = ModuleList(None, modules.test["control"], modules.test["widgets"])
+    view = ModulesTestPage(modules.test["control"], modules.test["widgets"])
     try:
         view.resize(900, 700)
         view.show()
@@ -218,6 +218,7 @@ def test_modules_page_without_qml_warnings(modules):  # noqa: F811
     finally:
         qInstallMessageHandler(previous)
         view.close()
+        view.release_page()
         view.deleteLater()
         flush()
     assert not [text for text in messages if "qml" in text.lower()], messages

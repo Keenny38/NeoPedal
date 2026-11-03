@@ -60,6 +60,11 @@ def gather_command(commands: Iterable[tuple[str, Callable]]) -> dict[tuple[int, 
     return key_group
 
 
+def all_commands() -> Iterable[tuple[str, Callable]]:
+    """Every hotkey command (name, function)"""
+    return chain(COMMANDS_GENERAL, COMMANDS_PRESET, COMMANDS_MODULE, COMMANDS_WIDGET)
+
+
 class HotkeyControl:
     """Hotkey control"""
 
@@ -77,8 +82,8 @@ class HotkeyControl:
         return self._thread is None or not self._thread.is_alive()
 
     def enable(self):
-        """Enable hotkey control"""
-        if not cfg.application["enable_global_hotkey"]:
+        """Enable hotkey control (global hotkeys always on), no thread while no hotkey is bound"""
+        if not gather_command(all_commands()):
             return
         # A previous thread still stopping (event set) is replaced, it exits on its own event
         if self._stopped() or self._event.is_set():
@@ -105,7 +110,7 @@ class HotkeyControl:
     def __update_loop(self, event: threading.Event):
         """Update hotkey state"""
         _event_wait = event.wait
-        available_commands = gather_command(chain(COMMANDS_GENERAL, COMMANDS_PRESET, COMMANDS_MODULE, COMMANDS_WIDGET))
+        available_commands = gather_command(all_commands())
         available_key_codes = sort_key_codes(available_commands.keys())
 
         get_key_state = get_key_state_function()

@@ -23,16 +23,18 @@ Notification
 from __future__ import annotations
 
 import logging
+import re
 import sys
 import threading
 import weakref
 from collections.abc import Callable
 from functools import partial
 from time import monotonic
+from typing import Any
 
 import shiboken6
-from PySide6.QtCore import QDateTime, QLocale, QObject, Qt, Signal, Slot
-from PySide6.QtGui import QColor, QDesktopServices
+from PySide6.QtCore import QCoreApplication, QDateTime, QLocale, QObject, QTimer, Signal, Slot
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -358,136 +360,75 @@ def update_installer() -> UpdateInstaller:
     return _update_installer
 
 
-# Status chips of the status band: (attribute, notice name of colors & option, text, notification center action)
-NOTICE_CHIPS = (
-    ("presetlocked", "locked_preset", "Preset Locked", "page:preset"),
-    ("spectate", "spectate_mode", "Spectate Mode Enabled", "page:spectate"),
-    ("pacenotes", "pace_notes_playback", "Pace Notes Playback Enabled", "page:pacenotes"),
-    ("hotkey", "global_hotkey", "Global Hotkey Enabled", "page:hotkey"),
-    ("carsetup", "auto_backup_car_setup", "Auto Backup Car Setup Enabled", ""),
-    ("director", "broadcast_director", "Broadcast Director On", "tool:broadcast_director.BroadcastDirector"),
+# Modes on, listed under "Now" in the notification center: (name of notify_<name> option, text, center action)
+MODE_NOTICES = (
+    ("locked_preset", "Preset Locked", "page:preset"),
+    ("spectate_mode", "Spectate Mode Enabled", "tool:spectate_view.SpectateList"),  # Spectate tab of Director
+    ("pace_notes_playback", "Pace Notes Playback Enabled", "tool:track_notes_editor.TrackNotesEditor"),  # Notes tab
+    ("auto_backup_car_setup", "Auto Backup Car Setup Enabled", "option:telemetry/enable_auto_backup_car_setup"),
+    ("broadcast_director", "Broadcast Director On", "tool:broadcast_director.BroadcastDirector"),
 )
-MIN_CONTRAST = 4.5  # WCAG AA, text of chips on their background
 
 
-def _luminance(color: QColor) -> float:
-    channels = [value / 12.92 if value <= 0.03928 else ((value + 0.055) / 1.055) ** 2.4
-                for value in (color.redF(), color.greenF(), color.blueF())]
-    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
-
-
-def contrast(first: QColor, second: QColor) -> float:
-    """WCAG contrast ratio of two colors"""
-    high, low = sorted((_luminance(first), _luminance(second)), reverse=True)
-    return (high + 0.05) / (low + 0.05)
-
-
-def readable_colors(font: str, background: str) -> tuple[str, str]:
-    """Text & background colors of a chip with at least MIN_CONTRAST: user colors kept when readable, else the
-    background is darkened (light text) or lightened (dark text) in its hue, else the text turned black or white"""
-    text, fill = QColor(font), QColor(background)
-    if not text.isValid():
-        text = QColor("white")
-    if not fill.isValid():
-        fill = QColor("#5E6670")
-    text.setAlpha(255)
-    fill.setAlpha(255)
-    light_text = _luminance(text) >= _luminance(fill)
-    for _ in range(40):
-        if contrast(text, fill) >= MIN_CONTRAST:
-            break
-        fill = QColor((fill.darker(106) if light_text else fill.lighter(106)).name())  # 8-bit, as written
-    if contrast(text, fill) < MIN_CONTRAST:
-        text = QColor("black") if contrast(QColor("black"), fill) > contrast(QColor("white"), fill) else QColor("white")
-    return text.name(), fill.name()
+def director_running() -> bool:
+    """Broadcast Director page open with the director on (it asks the game while hidden too)"""
+    module = sys.modules.get("neopedal.ui.quick.director_backend")  # imported only by the page
+    return module is not None and module.director_status() == "on"
 
 
 class NotifyBar(QWidget):
-    """Status chips of the window status band: preset locked, spectate, pace notes, global hotkey, car setup
-    backup, Broadcast Director on, update available. One line (chips side by side), colors of Notification
-    settings kept readable (see readable_colors). Shown notices are listed in the notification center too."""
+    """Update chip of the window status band (title bar drawn by the app, or status bar). Modes on (preset locked,
+    spectate, pace notes, global hotkey, car setup backup, Broadcast Director on) are listed under "Now" in the
+    notification center, never as chips."""
 
     def __init__(self, parent):
         super().__init__(parent)
         layout = QHBoxLayout()
         layout.setSpacing(UIScaler.pixel(4))
         layout.setContentsMargins(0, 0, 0, 0)
-        for attribute, _, text, _ in NOTICE_CHIPS:
-            button = QPushButton(tr(text))
-            button.setObjectName("statusChip")
-            button.setVisible(False)
-            button.setCursor(Qt.CursorShape.PointingHandCursor)
-            setattr(self, attribute, button)
-            layout.addWidget(button)
-
         self.updates = UpdatesNotifyButton("")
         self.updates.setVisible(False)
         self.updates.setStyleSheet(self.chip_style())
         layout.addWidget(self.updates)
         layout.addStretch(1)
         self.setLayout(layout)
-
-    presetlocked: QPushButton
-    spectate: QPushButton
-    pacenotes: QPushButton
-    hotkey: QPushButton
-    carsetup: QPushButton
-    director: QPushButton
+        self._modes: dict[str, bool] = {}  # mode name: on (and its notice enabled)
 
     @staticmethod
-    def chip_style(font: str = "", background: str = "") -> str:
-        """Style sheet of a chip: rounded, compact, colors if set"""
-        colors = f"color: {font}; background: {background};" if font and background else ""
-        return (f"QPushButton {{ {colors} border: none; border-radius: {UIScaler.pixel(9)}px; "
+    def chip_style() -> str:
+        """Style sheet of the update chip: rounded, compact"""
+        return (f"QPushButton {{ border: none; border-radius: {UIScaler.pixel(9)}px; "
                 f"padding: {UIScaler.pixel(1)}px {UIScaler.pixel(9)}px; margin: {UIScaler.pixel(2)}px 0; }}")
 
     @Slot(bool)  # type: ignore[operator]
     def refresh(self):
-        """Refresh & update style"""
-        notification = cfg.notification
-        self.set_notice(
-            self.presetlocked, "locked_preset",
-            notification["notify_locked_preset"] and cfg.filename.setting in cfg.user.filelock)
-        self.set_notice(
-            self.spectate, "spectate_mode",
-            notification["notify_spectate_mode"] and cfg.api["enable_player_index_override"])
-        self.set_notice(
-            self.pacenotes, "pace_notes_playback",
-            notification["notify_pace_notes_playback"] and cfg.user.setting["pace_notes_playback"]["enable"])
-        self.set_notice(
-            self.hotkey, "global_hotkey",
-            notification["notify_global_hotkey"] and cfg.application["enable_global_hotkey"])
-        self.set_notice(
-            self.carsetup, "auto_backup_car_setup",
-            notification["notify_auto_backup_car_setup"] and cfg.telemetry["enable_auto_backup_car_setup"])
-        self.refresh_director()
+        """Modes read again (setting refreshed)"""
+        self.set_modes(
+            locked_preset=cfg.filename.setting in cfg.user.filelock,
+            spectate_mode=cfg.api["enable_player_index_override"],
+            pace_notes_playback=cfg.user.setting["pace_notes_playback"]["enable"],
+            auto_backup_car_setup=cfg.telemetry["enable_auto_backup_car_setup"],
+            broadcast_director=director_running(),
+        )
 
     def refresh_director(self):
-        """Broadcast Director page open with the director on (it asks the game while hidden too), each second"""
-        module = sys.modules.get("neopedal.ui.quick.director_backend")  # imported only by the page
-        running = module is not None and module.director_status() == "on"
-        self.set_notice(self.director, "broadcast_director", cfg.notification["notify_broadcast_director"] and running)
+        """Broadcast Director on or off, each second"""
+        self.set_modes(broadcast_director=director_running())
 
-    def set_notice(self, button: QPushButton, name: str, shown: bool):
-        """Notice shown or hidden, its colors set only when changed (style sheet parsed again on each set)"""
-        shown = bool(shown)
-        if button.isHidden() == shown:
-            button.setVisible(shown)
+    def set_modes(self, **modes: Any):
+        """Modes on or off, notification center told only when one changes"""
+        notification = cfg.notification
+        shown = {name: bool(on) and bool(notification[f"notify_{name}"]) for name, on in modes.items()}
+        if any(self._modes.get(name) != on for name, on in shown.items()):
+            self._modes.update(shown)
             self.publish_active()
-        if not shown:
-            return
-        style = self.chip_style(*readable_colors(
-            cfg.notification[f"font_color_{name}"], cfg.notification[f"background_color_{name}"]))
-        if button.styleSheet() != style:
-            button.setStyleSheet(style)
 
     def active_notices(self) -> list[tuple[str, str]]:
-        """Shown notices: (text, notification center action)"""
-        return [(tr(text), action) for attribute, _, text, action in NOTICE_CHIPS
-                if not getattr(self, attribute).isHidden()]
+        """Modes on: (text, notification center action)"""
+        return [(tr(text), action) for name, text, action in MODE_NOTICES if self._modes.get(name)]
 
     def publish_active(self):
-        """Shown notices listed in the notification center"""
+        """Modes on listed in the notification center"""
         notification_store().set_active(self.active_notices())
 
 
@@ -570,11 +511,15 @@ class UpdatesNotifyButton(QPushButton):
             noticed = (update_checker.is_updates() and not skipped) or update_checker.is_refused()
             self.setText(trm(update_checker.message()))
             self.setVisible(update_checker.is_manual() or (noticed and not dismissed))
+            store = notification_store()
             if noticed and UpdatesNotifyButton.logged_message != update_checker.message():
                 UpdatesNotifyButton.logged_message = update_checker.message()  # once per version
                 updates = update_checker.is_updates()
-                notification_store().add(trm(update_checker.message()), "info" if updates else "warning",
-                                         ((tr("What's New"), "updates"),) if updates else ())
+                if not store.has(update_checker.message()):  # told at an earlier start: kept in history
+                    store.add(update_checker.message(), "info" if updates else "warning",
+                              (("What's New", "updates"),) if updates else ())
+            if not update_checker.is_updates():  # up to date: What's New of updates found before leads nowhere
+                store.drop_action("updates")
             self.view_notes.setVisible(update_checker.is_updates() and bool(update_checker.notes(current_language())))
             self.skip_update.setVisible(update_checker.is_updates())
             self.install_update.setVisible(self.can_install())
@@ -630,15 +575,9 @@ class UpdatesNotifyButton(QPushButton):
             self.show_release_notes(prompt=True)
             return
         self.show_release_notes(prompt=True, bring_to_front=False)
-        tray_icon = window.findChild(QSystemTrayIcon)
-        if tray_icon is not None and tray_icon.isVisible():
-            show_app = getattr(window, "show_app", None)
-            if callable(show_app):
-                tray_icon.messageClicked.connect(show_app, Qt.ConnectionType.UniqueConnection)
-            version = ".".join(str(number) for number in update_checker.latest_version())
-            tray_icon.showMessage(
-                APP_NAME, trm(f"Update available: v{version}. Open {APP_NAME} to see what's new and install it."),
-                QSystemTrayIcon.MessageIcon.Information, 15000)
+        version = ".".join(str(number) for number in update_checker.latest_version())
+        tray_message(trm(f"Update available: v{version}. Open {APP_NAME} to see what's new and install it."),
+                     action="updates", kind=KIND_UPDATE, window=window)
 
     def release_notes_dialog(self, prompt: bool = False):
         """What's new page of available update, install button when it can install"""
@@ -712,47 +651,143 @@ def skip_from_notes():
 
 
 # Notification center: messages of the app kept with their time & level (errors of background work, saving
-# failures, updates found), shown notices of the status band, read from the bell of the navigation rail
+# failures, updates found, race reminders), modes on, read from the bell of the navigation rail. Kept between
+# sessions in the user config folder (HISTORY_FILE), told by Windows notifications while the window is hidden
 SEVERITIES = ("error", "warning", "info")
 MAX_NOTIFICATIONS = 100
 TRAY_MESSAGE_INTERVAL = 60.0  # seconds: at most one tray message this often (more messages: count told)
+REPEAT_SECONDS = 600  # same message within this time: counted on the first one (moved to the top)
+HISTORY_FILE = "notifications.json"
+SAVE_DELAY_MS = 1000  # history written once changes pause
+# Kinds of tray messages, each with its option (notification section of config.json); KIND_APP always told
+KIND_ERROR = "error"
+KIND_REMINDER = "reminder"
+KIND_UPDATE = "update"
+KIND_APP = "app"
+TRAY_OPTIONS = {
+    KIND_ERROR: "show_tray_messages_for_errors",
+    KIND_REMINDER: "show_tray_messages_for_race_reminders",
+    KIND_UPDATE: "show_tray_messages_for_updates",
+}
+CENTER_ACTION = "center"  # notification center opened
+
+# Text of a message: English text (translated when shown, trm), or parts joined by a space, each an English
+# template with %1, %2... filled with its arguments (translated when shown, tr): shown in the language of the app
+# even after a language change or a restart
+MessageText = str | tuple[tuple[str, tuple[str, ...]], ...]
+
+
+def mute_key(source: MessageText) -> str:
+    """Same message whatever its numbers (sizes, lap, seconds): English text with numbers as #, templates of parts"""
+    if isinstance(source, str):
+        return re.sub(r"\d+", "#", source)
+    return "|".join(template for template, _args in source)
+
+
+def message_text(source: MessageText) -> str:
+    """Text of a message in app language"""
+    if isinstance(source, str):
+        return trm(source)
+    parts = []
+    for template, args in source:
+        text = tr(template)
+        for number, value in reversed(list(enumerate(args, 1))):  # %10 before %1
+            text = text.replace(f"%{number}", value)
+        parts.append(text)
+    return " ".join(parts)
+
+
+def _source_value(value: Any) -> MessageText | None:
+    """Message text read from history file, None if invalid"""
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, list) or not value:
+        return None
+    parts = []
+    for part in value:
+        if (not isinstance(part, list) or len(part) != 2 or not isinstance(part[0], str)
+                or not isinstance(part[1], list) or not all(isinstance(arg, str) for arg in part[1])):
+            return None
+        parts.append((part[0], tuple(part[1])))
+    return tuple(parts)
+
+
+def _entry_value(value: Any) -> dict | None:
+    """Message read from history file, None if invalid"""
+    if not isinstance(value, dict):
+        return None
+    source = _source_value(value.get("text"))
+    severity, stamp, count = value.get("severity"), value.get("time"), value.get("count")
+    if (source is None or severity not in SEVERITIES or isinstance(stamp, bool) or not isinstance(stamp, int)
+            or isinstance(count, bool) or not isinstance(count, int) or count < 1):
+        return None
+    actions = value.get("actions")
+    actions = [{"label": action["label"], "key": action["key"]} for action in actions
+               if isinstance(action, dict) and isinstance(action.get("label"), str)
+               and isinstance(action.get("key"), str)] if isinstance(actions, list) else []
+    return {"source": source, "severity": severity, "time": QDateTime.fromMSecsSinceEpoch(stamp), "count": count,
+            "read": value.get("read") is True, "actions": actions}
 
 
 class NotificationStore(QObject):
-    """Messages of the notification center (newest first) & notices shown in the status band
+    """Messages of the notification center (newest first) & modes on (listed under "Now")
 
-    Emits changed when messages, their read state or the shown notices change, added with each new message.
-    A message repeating the last one is counted on it (time updated) instead of added again.
+    Emits changed when messages, their read state or the modes on change, added with each new message.
+    A message repeating one of the last REPEAT_SECONDS is counted on it (moved to the top, time updated) instead of
+    added again. Messages are read from HISTORY_FILE when first used, written once changes pause & at quit.
     """
 
     changed = Signal()
     added = Signal(dict)
 
-    def __init__(self):
+    def __init__(self, history: bool = True):
         super().__init__()
         self._entries: list[dict] = []
         self._active: list[tuple[str, str]] = []
+        self._muted: set[str] = set()  # mute keys of messages not shown again (see mute_key)
         self._next_id = 1
+        self._history = history
+        self._save_timer = QTimer(self)
+        self._save_timer.setSingleShot(True)
+        self._save_timer.setInterval(SAVE_DELAY_MS)
+        self._save_timer.timeout.connect(self.save)
+        if history:
+            self.load()
+            app = QCoreApplication.instance()
+            if app is not None:
+                app.aboutToQuit.connect(self.flush)
 
-    def add(self, text: str, severity: str = "error", actions: tuple[tuple[str, str], ...] = ()) -> dict:
-        """Message added (severity: "error", "warning" or "info"), actions: (label, action key) of its buttons,
-        see run_notification_action"""
+    def _new_id(self) -> int:
+        number = self._next_id
+        self._next_id += 1
+        return number
+
+    def add(self, text: MessageText, severity: str = "error",
+            actions: tuple[tuple[str, str], ...] = ()) -> dict | None:
+        """Message added (severity: "error", "warning" or "info"); text in English, see MessageText; actions:
+        (English label, action key) of its buttons, see run_notification_action. None: muted (Don't Show Again),
+        only logged"""
         if severity not in SEVERITIES:
             severity = "error"
+        if severity != "info" and mute_key(text) in self._muted:
+            logger.info("NOTIFICATIONS: muted: %s", message_text(text))
+            return None
         now = QDateTime.currentDateTime()
-        last = self._entries[0] if self._entries else None
-        if last is not None and last["text"] == text and last["severity"] == severity:
-            last["count"] += 1
-            last["time"] = now
-            last["read"] = False
-            entry = last
+        oldest = now.addSecs(-REPEAT_SECONDS)
+        repeated = next((entry for entry in self._entries if entry["time"] >= oldest
+                         and entry["source"] == text and entry["severity"] == severity), None)
+        if repeated is not None:
+            self._entries.remove(repeated)
+            repeated["count"] += 1
+            repeated["time"] = now
+            repeated["read"] = False
+            entry = repeated
         else:
-            entry = {"id": self._next_id, "text": text, "severity": severity, "time": now, "count": 1,
+            entry = {"id": self._new_id(), "source": text, "severity": severity, "time": now, "count": 1,
                      "read": False, "actions": [{"label": label, "key": key} for label, key in actions]}
-            self._next_id += 1
-            self._entries.insert(0, entry)
-            del self._entries[MAX_NOTIFICATIONS:]
-        self.changed.emit()
+        self._entries.insert(0, entry)
+        del self._entries[MAX_NOTIFICATIONS:]
+        self.notify_changed()
         self.added.emit(entry)
         return entry
 
@@ -760,34 +795,127 @@ class NotificationStore(QObject):
         """Messages, newest first"""
         return list(self._entries)
 
+    def has(self, text: MessageText) -> bool:
+        """Message with this text kept (any time)"""
+        return any(entry["source"] == text for entry in self._entries)
+
+    def drop_action(self, key: str):
+        """Buttons of this action removed from every message (action no longer possible)"""
+        changed = False
+        for entry in self._entries:
+            actions = [action for action in entry["actions"] if action["key"] != key]
+            if len(actions) != len(entry["actions"]):
+                entry["actions"] = actions
+                changed = True
+        if changed:
+            self.notify_changed()
+
     def unread_count(self) -> int:
         return sum(not entry["read"] for entry in self._entries)
 
+    def unread_severity(self) -> str:
+        """Highest level of unread messages ("error", "warning", "info"), "" if all read"""
+        unread = {entry["severity"] for entry in self._entries if not entry["read"]}
+        return next((severity for severity in SEVERITIES if severity in unread), "")
+
     def mark_all_read(self):
-        if any(not entry["read"] for entry in self._entries):
-            for entry in self._entries:
-                entry["read"] = True
-            self.changed.emit()
+        self.mark_read({entry["id"] for entry in self._entries})
+
+    def mark_read(self, entry_ids: set[int]):
+        """Messages seen (clicked, or shown in the notification center when it closes)"""
+        unread = [entry for entry in self._entries if entry["id"] in entry_ids and not entry["read"]]
+        for entry in unread:
+            entry["read"] = True
+        if unread:
+            self.notify_changed()
+
+    def mute(self, entry_id: int):
+        """Message not shown again (Don't Show Again): removed, same message (any numbers) only logged from now"""
+        entry = next((entry for entry in self._entries if entry["id"] == entry_id), None)
+        if entry is None or entry["severity"] == "info":
+            return
+        key = mute_key(entry["source"])
+        self._muted.add(key)
+        self._entries = [other for other in self._entries if mute_key(other["source"]) != key]
+        self.notify_changed()
+
+    def muted_count(self) -> int:
+        return len(self._muted)
+
+    def unmute_all(self):
+        """Muted messages shown again"""
+        if self._muted:
+            self._muted.clear()
+            self.notify_changed()
 
     def remove(self, entry_id: int):
         entries = [entry for entry in self._entries if entry["id"] != entry_id]
         if len(entries) != len(self._entries):
             self._entries = entries
-            self.changed.emit()
+            self.notify_changed()
 
-    def clear(self):
-        if self._entries:
-            self._entries = []
-            self.changed.emit()
+    def clear(self) -> list[dict]:
+        """Every message removed: removed messages (see restore)"""
+        removed, self._entries = self._entries, []
+        if removed:
+            self.notify_changed()
+        return removed
+
+    def restore(self, entries: list[dict]):
+        """Messages removed by clear put back (Undo), under those added since, newest first"""
+        kept = {entry["id"] for entry in self._entries}
+        restored = [entry for entry in entries if entry["id"] not in kept]
+        if restored:
+            self._entries = sorted(self._entries + restored, key=lambda entry: entry["time"], reverse=True)
+            del self._entries[MAX_NOTIFICATIONS:]
+            self.notify_changed()
 
     def active(self) -> list[tuple[str, str]]:
-        """Notices shown in the status band: (text, action key)"""
+        """Modes on, listed under "Now": (text, action key)"""
         return list(self._active)
 
     def set_active(self, notices: list[tuple[str, str]]):
         if notices != self._active:
             self._active = list(notices)
             self.changed.emit()
+
+    def notify_changed(self):
+        """Messages changed: told, history written once changes pause"""
+        self.changed.emit()
+        if self._history:
+            self._save_timer.start()
+
+    def load(self):
+        """Messages of history file, newest first (invalid ones skipped)"""
+        from .quick.page_settings import load_settings
+
+        settings = load_settings(HISTORY_FILE)
+        data = settings.get("messages")
+        entries = [entry for entry in map(_entry_value, data if isinstance(data, list) else ()) if entry]
+        for entry in entries[:MAX_NOTIFICATIONS]:
+            entry["id"] = self._new_id()
+            self._entries.append(entry)
+        muted = settings.get("muted")
+        self._muted = {key for key in muted if isinstance(key, str)} if isinstance(muted, list) else set()
+
+    def save(self):
+        """History file written now (errors logged: never a message of its own, see write_settings)"""
+        from .quick.page_settings import write_settings
+
+        self._save_timer.stop()
+        messages = [{
+            "text": entry["source"], "severity": entry["severity"], "time": entry["time"].toMSecsSinceEpoch(),
+            "count": entry["count"], "read": entry["read"], "actions": entry["actions"],
+        } for entry in self._entries]
+        try:
+            write_settings(HISTORY_FILE, {"messages": messages, "muted": sorted(self._muted)})
+        except Exception as error:  # history never breaks the app
+            logger.warning("NOTIFICATIONS: history not saved: %s", error)
+
+    def flush(self):
+        """Changes not written yet written now (app quitting)"""
+        if self._save_timer.isActive():
+            self.save()
 
 
 _notification_store: NotificationStore | None = None
@@ -802,13 +930,16 @@ def notification_store() -> NotificationStore:
 
 
 def error_actions() -> tuple[tuple[str, str], ...]:
-    """Buttons of an error message: log & bug report"""
-    return ((tr("View Log"), "log"), (tr("Create Bug Report…"), "bug_report"))
+    """Buttons of an error message: log & bug report (English labels, translated when shown)"""
+    return (("View Log", "log"), ("Create Bug Report…", "bug_report"))
 
 
 def run_notification_action(window: QWidget | None, key: str):
-    """Action of a notification center button: "log", "bug_report", "updates" (what's new of available update),
-    "page:<page key>" (main window page), "tool:<module.DialogClass>" (tool page)"""
+    """Action of a notification center button or Windows notification: "log", "bug_report", "updates" (what's new of
+    available update), "center" (notification center), "page:<page key>" (main window page),
+    "tool:<module.DialogClass>" (tool page), "option:<section>/<key>" (Settings page at that option, or category if
+    no key), "snooze:..." (race reminder told again in 2 min, see schedule_reminders.snooze_action), "" (window shown
+    only)"""
     if window is None:
         return
     show_app = getattr(window, "show_app", None)
@@ -823,9 +954,27 @@ def run_notification_action(window: QWidget | None, key: str):
 
         BugReport(window).show()
     elif key == "updates":
+        if not update_checker.is_updates():  # installed since: what's new in the running version
+            from .release_notes import running_version_dialog
+
+            running_version_dialog(window).open()
+            return
         for button in window.findChildren(UpdatesNotifyButton):
             button.show_release_notes()
             break
+    elif key == CENTER_ACTION:
+        view = getattr(window, "centralWidget", lambda: None)()
+        show_center = getattr(view, "show_notification_center", None)
+        if callable(show_center):
+            show_center()
+    elif key.startswith("snooze:"):
+        from .quick.schedule_reminders import snooze
+        from .toast import show_toast
+
+        if snooze(key):
+            show_toast(window, tr("Reminder in 2 min"), level="info")
+        else:
+            show_toast(window, tr("The race starts too soon to remind you again."), level="warning")
     elif key.startswith("page:"):
         from .nav_rail import PAGE_INDEX
 
@@ -838,39 +987,139 @@ def run_notification_action(window: QWidget | None, key: str):
         from .tools_view import open_tool
 
         open_tool(key.removeprefix("tool:"), window)
+    elif key.startswith("option:"):
+        from .app_settings import open_app_settings
+
+        section, _, option = key.removeprefix("option:").partition("/")
+        open_app_settings(window, section, option)
+
+
+def tray_shown(window: QWidget | None) -> QSystemTrayIcon | None:
+    """Tray icon of window able to show messages, None if hidden or none"""
+    tray_icon = window.findChild(QSystemTrayIcon) if window is not None else None
+    if tray_icon is None or not tray_icon.isVisible() or not QSystemTrayIcon.supportsMessages():
+        return None
+    return tray_icon
+
+
+def tray_message(text: str, level: str = "info", action: str = "", kind: str = KIND_APP,
+                 window: QWidget | None = None) -> bool:
+    """Windows notification (message of the tray icon, shown over the game), True if shown
+
+    Args:
+        text: message in app language.
+        level: "info", "warning" or "error" (icon).
+        action: run when the notification is clicked (see run_notification_action), "" shows the window.
+        kind: KIND_ERROR, KIND_REMINDER or KIND_UPDATE (each turned off by its option, see TRAY_OPTIONS), KIND_APP.
+        window: main window, found if None.
+    """
+    window = window if window is not None else main_window()
+    relay = window.findChild(TrayRelay) if window is not None else None
+    return relay is not None and relay.show(text, level, action, kind)
 
 
 class TrayRelay(QObject):
-    """New error or warning while the main window is hidden in tray or minimized (racing): a tray message
-    (system notification, never a window over the game), at most one per TRAY_MESSAGE_INTERVAL, the next one
-    telling how many came meanwhile. Only with the tray icon shown (Minimize to Tray)."""
+    """Windows notifications of the main window: what each one opens once clicked, kinds turned off in settings
+
+    New error or warning while the main window is hidden in tray or minimized (racing): a tray message (system
+    notification, never a window over the game), at most one per TRAY_MESSAGE_INTERVAL; messages meanwhile told by
+    one more at the end of the interval (how many, the last one). Held while driving with Hold Notifications While
+    Driving, told once driving stops (overlay_signal.driving: overlay control runs without any overlay too). Only
+    with the tray icon shown.
+
+    Windows keeps former notifications (notification center of Windows) and does not say which one was clicked:
+    one notification since the window was last shown runs its action, several open the notification center (it
+    lists them all).
+    """
 
     def __init__(self, window: QWidget):
         super().__init__(window)
         self._window = window
         self._last = -TRAY_MESSAGE_INTERVAL
         self._waiting = 0  # messages not told since last tray message
+        self._waiting_entry: dict | None = None  # last of them
+        self._actions: list[str] = []  # actions of the notifications shown since the window was last shown
+        self._icon: QSystemTrayIcon | None = None  # tray icon whose clicks are followed
+        self._flush_timer = QTimer(self)  # messages counted meanwhile told at end of interval, or once driving stops
+        self._flush_timer.setSingleShot(True)
+        self._flush_timer.timeout.connect(self.flush)
         notification_store().added.connect(self.message_added)
+        from .. import overlay_signal
+
+        overlay_signal.driving.connect(self.driving_changed)
+
+    def show(self, text: str, level: str = "info", action: str = "", kind: str = KIND_APP) -> bool:
+        """Tray message shown (see tray_message), its action run when clicked"""
+        option = TRAY_OPTIONS.get(kind)
+        if option is not None and not cfg.notification.get(option, True):
+            return False
+        tray_icon = tray_shown(self._window)
+        if tray_icon is None:
+            return False
+        if tray_icon is not self._icon:
+            self._icon = tray_icon
+            tray_icon.messageClicked.connect(self.clicked)
+        if self.window_hidden():
+            self._actions.append(action)
+        else:
+            self._actions = [action]
+        icon = (QSystemTrayIcon.MessageIcon.Critical if level == "error" else QSystemTrayIcon.MessageIcon.Warning
+                if level == "warning" else QSystemTrayIcon.MessageIcon.Information)
+        tray_icon.showMessage(APP_NAME, text, icon, 15000 if kind == KIND_REMINDER else 10000)
+        return True
+
+    @Slot()
+    def clicked(self):
+        """Tray message clicked: window shown, its action run (several told meanwhile: notification center)"""
+        actions, self._actions = self._actions, []
+        run_notification_action(self._window, actions[0] if len(set(actions)) == 1 else CENTER_ACTION)
+
+    @Slot(bool)
+    def driving_changed(self, driving: bool):
+        """Driving stopped: messages held told"""
+        if not driving:
+            self.flush()
+
+    def window_hidden(self) -> bool:
+        window = self._window
+        return not window.isVisible() or window.isMinimized()
+
+    @staticmethod
+    def holding() -> bool:
+        """Messages held: driving (not the active state override), with Hold Notifications While Driving"""
+        from .. import realtime_state
+
+        return (bool(cfg.notification.get("enable_hold_notifications_while_driving")) and realtime_state.active
+                and not realtime_state.overriding)
 
     def message_added(self, entry: dict):
-        window = self._window
-        if entry["severity"] == "info" or (window.isVisible() and not window.isMinimized()):
-            return
-        tray_icon = window.findChild(QSystemTrayIcon)
-        if tray_icon is None or not tray_icon.isVisible() or not QSystemTrayIcon.supportsMessages():
+        if entry["severity"] == "info" or not self.window_hidden() or tray_shown(self._window) is None:
             return
         self._waiting += 1
-        now = monotonic()
-        if now - self._last < TRAY_MESSAGE_INTERVAL:
+        self._waiting_entry = entry
+        if self.holding():  # told once driving stops (driving_changed)
             return
-        text = entry["text"] if self._waiting == 1 else trm(f"{self._waiting} new messages, last one: {entry['text']}")
-        self._last, self._waiting = now, 0
-        show_app = getattr(window, "show_app", None)
-        if callable(show_app):
-            tray_icon.messageClicked.connect(show_app, Qt.ConnectionType.UniqueConnection)
-        icon = (QSystemTrayIcon.MessageIcon.Critical if entry["severity"] == "error"
-                else QSystemTrayIcon.MessageIcon.Warning)
-        tray_icon.showMessage(APP_NAME, text, icon, 10000)
+        left = TRAY_MESSAGE_INTERVAL - (monotonic() - self._last)
+        if left > 0:
+            if not self._flush_timer.isActive():
+                self._flush_timer.start(max(round(left * 1000), 1))
+            return
+        self.flush()
+
+    def flush(self):
+        """Messages counted since the last tray message told by one (still driving: checked again later)"""
+        if not self._waiting or self._waiting_entry is None or self.holding():
+            return
+        entry, count = self._waiting_entry, self._waiting
+        self._waiting, self._waiting_entry = 0, None
+        if not self.window_hidden():  # window shown meanwhile: messages seen in the app (bell)
+            return
+        self._flush_timer.stop()
+        self._last = monotonic()
+        text = message_text(entry["source"])
+        if count > 1:
+            text = trm(f"{count} new messages, last one: {text}")
+        self.show(text, entry["severity"], CENTER_ACTION, KIND_ERROR)
 
 
 def open_notification_center(window: QWidget, anchor: QWidget):

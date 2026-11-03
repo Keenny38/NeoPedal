@@ -38,6 +38,9 @@ from ..userfile.driver_stats import load_driver_stats
 from ..userfile.session_debrief import CornerTip, Debrief, build_debrief, corner_tips
 
 GOAL_PRECISION = 0.0005  # lap times compared as shown (milliseconds), as driver stats page
+LAP_BARS = 40  # last laps of the stint drawn as bars on the card
+LAP_BARS_SPREAD = 0.04  # bars from best lap (full height) to this much slower (shortest bar; slower laps too)
+LAP_BAR_MIN = 0.08  # height of the slowest bars (lap still seen)
 
 
 class GoalProgress(NamedTuple):
@@ -224,7 +227,26 @@ def debrief_card(data: DebriefData) -> dict:
         "against": against,
         "goal": goal_card(data.goal) if data.goal is not None else {},
         "canOpen": bool(debrief.best_path or debrief.reference_path),
+        "laps": lap_bars(debrief),
     }
+
+
+def lap_bars(debrief: Debrief) -> list[dict]:
+    """Lap times of the stint as bars (last LAP_BARS laps, in order): height (best lap full, LAP_BARS_SPREAD slower
+    or more: shortest), best lap & valid flags, tooltip; empty under 2 timed laps (nothing to compare)"""
+    laps = [lap for lap in debrief.laps if lap.time > 0][-LAP_BARS:]
+    if len(laps) < 2 or debrief.best <= 0:
+        return []
+    slowest = debrief.best * (1 + LAP_BARS_SPREAD)
+    bars = []
+    for lap in laps:
+        ratio = (slowest - lap.time) / (slowest - debrief.best)
+        tip = f"{tr('Lap')} {lap.number} · {sec2laptime_full(lap.time)}"
+        if not lap.valid:
+            tip += f" · {tr('Invalid lap')}"
+        bars.append({"ratio": min(max(ratio, LAP_BAR_MIN), 1.0), "valid": lap.valid,
+                     "best": lap.valid and abs(lap.time - debrief.best) < GOAL_PRECISION, "tip": tip})
+    return bars
 
 
 def debrief_laps(data: DebriefData) -> tuple[str, str]:

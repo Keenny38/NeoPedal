@@ -675,6 +675,7 @@ def test_prompt_never_pops_hidden_window(window, updates, monkeypatch):
 
     messages = []
     monkeypatch.setattr(QSystemTrayIcon, "isVisible", lambda self: True)
+    monkeypatch.setattr(QSystemTrayIcon, "supportsMessages", staticmethod(lambda: True))  # Windows: always
     monkeypatch.setattr(QSystemTrayIcon, "showMessage", lambda self, title, text, *args: messages.append(text))
     view = window.centralWidget()
     assert not window.isVisible()  # started hidden in tray

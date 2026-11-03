@@ -184,9 +184,7 @@ class HotkeyBackend(PageBackend):
 
     def rebuild(self):
         """Rows of every section, counts & conflicts"""
-        enabled = bool(cfg.application["enable_global_hotkey"])
-        if enabled:  # preset files checked while hotkeys are used only (as loading presets by key needs them)
-            self.check_presets()
+        self.check_presets()  # preset of a preset hotkey gone: binding cleared
         shortcuts = cfg.user.shortcuts
         users: dict[str, list[str]] = {}  # bind: names using it
         for name, _ in BINDINGS:
@@ -261,10 +259,6 @@ class HotkeyBackend(PageBackend):
     def rows(self) -> QObject:
         return self.model
 
-    @Property(bool, notify=stateChanged)
-    def enabled(self) -> bool:
-        return bool(cfg.application["enable_global_hotkey"])
-
     @Property(int, notify=stateChanged)
     def assignedCount(self) -> int:
         return self._assigned
@@ -298,16 +292,7 @@ class HotkeyBackend(PageBackend):
     def shownCount(self) -> int:
         return self._shown
 
-    # Global hotkey switch, filters & sections
-    @Slot(bool)
-    def setEnabled(self, enabled: bool):
-        """Global hotkeys on or off (saved at once)"""
-        cfg.application["enable_global_hotkey"] = bool(enabled)
-        cfg.save(config_type=ConfigType.CONFIG)
-        kctrl.reload()
-        app_signal.refresh.emit(True)
-        self.rebuild()
-
+    # Filters & sections
     @Slot(str)
     def setSearch(self, text: str):
         self._search = text
@@ -353,7 +338,7 @@ class HotkeyBackend(PageBackend):
     def clear(self, name: str):
         """Binding of one action cleared, undo offered"""
         options = cfg.user.shortcuts.get(name)
-        if not self.enabled or options is None or not options["bind"]:
+        if options is None or not options["bind"]:
             return
         self._undo = {name: options["bind"]}
         options["bind"] = ""
@@ -364,8 +349,6 @@ class HotkeyBackend(PageBackend):
     @Slot()
     def clearAll(self):
         """Every binding cleared, undo offered"""
-        if not self.enabled:
-            return
         cleared = {name: options["bind"] for name, options in cfg.user.shortcuts.items() if options.get("bind")}
         if not cleared:
             return
@@ -434,7 +417,7 @@ class HotkeyBackend(PageBackend):
     @Slot(str)
     def startCapture(self, name: str):
         """Key capture of action opened (page dialog)"""
-        if not self.enabled or name not in cfg.user.shortcuts or self._capture:
+        if name not in cfg.user.shortcuts or self._capture:
             return
         self._capture = name
         self._set_temp(cfg.user.shortcuts[name]["bind"])
@@ -549,7 +532,7 @@ class HotkeyBackend(PageBackend):
             self._timer.stop()
             if app is not None:
                 app.removeEventFilter(self)
-            kctrl.enable()  # only if enabled in setting
+            kctrl.enable()
 
     @property
     def capturing(self) -> bool:

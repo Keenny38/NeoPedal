@@ -136,7 +136,7 @@ def test_frozen_wait_ends_on_wake(ui_env, monkeypatch):
     for name in ("active", "shown", "paused", "resets", "hidden", "screen_hidden", "session_type", "in_pits"):
         monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
     monkeypatch.setattr(overlay_control, "overlay_signal", SimpleNamespace(**{
-        name: SimpleNamespace(emit=lambda *args: None) for name in ("hidden", "context", "locked", "paused")}))
+        name: SimpleNamespace(emit=lambda *args: None) for name in ("hidden", "context", "locked", "paused", "driving")}))
     monkeypatch.setattr(overlay_control, "stream_on_air", lambda: False)
     monkeypatch.setattr(overlay_control, "FROZEN_WAIT", 30.0)
     monkeypatch.setattr(overlay_control, "UPDATE_INTERVAL", 0.01)

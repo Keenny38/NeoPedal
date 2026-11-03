@@ -33,7 +33,7 @@ from datetime import date
 from PySide6.QtCore import QDate, QDateTime, QLocale
 
 from ... import units
-from ...i18n import current_language, tr
+from ...i18n import current_language, tr, trm
 from ...process.results_text import MISSING, number_text
 from ...setting import cfg
 
@@ -150,6 +150,36 @@ def day_text(timestamp: float, today: QDate) -> str:
         return tr("Yesterday")
     text = QLocale(current_language()).toString(day, QLocale.FormatType.LongFormat)
     return text[:1].upper() + text[1:]
+
+
+def relative_date(timestamp: float, now: float | None = None) -> str:
+    """How long ago: "Just now", "5 min ago", "3 h ago", "Yesterday", "4 days ago", then short date (a week or
+    more), missing text if not a date; long_date_time tells the exact moment (tooltip)"""
+    if not 0 < timestamp < MAX_DATE_TIME:
+        return MISSING
+    seconds = max((time.time() if now is None else now) - timestamp, 0)
+    if seconds < 60:
+        return tr("Just now")
+    if seconds < 3600:
+        return trm(f"{int(seconds // 60)} min ago")
+    if seconds < 86400:
+        return trm(f"{int(seconds // 3600)} h ago")
+    days = int(seconds // 86400)
+    if days == 1:
+        return tr("Yesterday")
+    if days < 7:
+        return trm(f"{days} days ago")
+    return format_date(timestamp)
+
+
+def long_date_time(timestamp: float) -> str:
+    """Date & time in full: "Sunday, October 4, 2026 · 21:07" (app language), "" if not a date"""
+    if not 0 < timestamp < MAX_DATE_TIME:
+        return ""
+    locale = date_locale()
+    moment = QDateTime.fromSecsSinceEpoch(int(timestamp))
+    return (f"{locale.toString(moment.date(), QLocale.FormatType.LongFormat)}  ·  "
+            f"{locale.toString(moment.time(), QLocale.FormatType.ShortFormat)}")
 
 
 def date_text(timestamp: float) -> str:

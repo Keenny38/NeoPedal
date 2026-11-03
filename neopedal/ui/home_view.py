@@ -32,25 +32,25 @@ from typing import TYPE_CHECKING, NamedTuple
 
 from PySide6.QtCore import QUrl, Slot
 from PySide6.QtQuickWidgets import QQuickWidget
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ..api_control import api
 from ..const_app import VERSION
+from ..const_file import ConfigType
 from ..i18n import tr
 from ..setting import cfg
 from ..userfile.driver_history import SessionRecord, last_record
-from .nav_rail import RailEditor
-from .ordered_picker import PickerEntry
+from ._common import BaseEditor, FocusRingButton, UIScaler
+from .ordered_picker import OrderedPicker, PickerEntry, icon_font_family
 
 if TYPE_CHECKING:
     from ..update import ChangelogEntry
 
 CHANGELOG_FILE = "CHANGELOG.md"  # next to app (release build) or project root (source)
-# Quick access actions (besides tools & pages): key: (label, glyph, letter)
+# Quick access actions (besides tools & pages): key: (label, glyph, letter); updates are checked from the help menu
 QUICK_ACTIONS = {
     "command_palette": ("Command Palette", "\ue721", "C"),  # search
     "bug_report": ("Create Bug Report", "\uebe8", "B"),  # bug
-    "check_updates": ("Check for Updates", "\ue895", "U"),  # sync
 }
 QUICK_SHORTCUTS = {"command_palette": "Ctrl+K"}  # shown after label
 
@@ -107,22 +107,75 @@ def current_quick_items() -> list[str]:
     return default_quick_items() if text is None else parse_quick_items(str(text))
 
 
-class QuickAccessEditor(RailEditor):
-    """Choose & order home page quick access entries"""
+class QuickAccessEditor(BaseEditor):
+    """Choose & order home page quick access entries (shown entries & available ones, see OrderedPicker)
+
+    Changes are marked unsaved, Ctrl+S saves (page kept open), Save saves & closes, Ctrl+Z / Ctrl+Y undo & redo.
+    """
 
     TITLE = "Customize Quick Access"
     HELP = (
         "Buttons of home page: drag entries to reorder, or use the arrows. "
-        "Add tools, pages or actions from the list on the right."
+        "Add tools, pages or actions from the list on the right. "
+        "Entries of the navigation bar are not repeated on the home page."
     )
 
+    def __init__(self, parent, on_saved=None):
+        super().__init__(parent)
+        self.set_utility_title(tr(self.TITLE))
+        self.setMinimumSize(UIScaler.size(26), UIScaler.size(30))
+        self.resize(UIScaler.size(48), UIScaler.size(36))
+        self._on_saved = on_saved
+        label = QLabel(tr(self.HELP))
+        label.setObjectName("pickerHelp")
+        label.setWordWrap(True)
+        self.picker = OrderedPicker(self, self.picker_entries(), self.current_items(), icon_font_family(),
+                                    badge=self.badge_text)
+        self.picker.changed.connect(self.set_modified)
+        self.list_entries = self.picker.shown_list
+        self.enable_undo(self.picker.shown_keys, lambda keys: self.picker.set_shown(keys, notify=False))
+
+        self.button_reset = FocusRingButton(tr("Reset"))
+        self.button_reset.setToolTip(tr("Back to default entries"))
+        self.button_reset.clicked.connect(self.reset)
+        self.button_cancel = FocusRingButton(tr("Close"))
+        self.button_cancel.clicked.connect(self.close)
+        self.button_save = FocusRingButton(tr("Save"))
+        self.button_save.setObjectName("editorPrimary")
+        self.button_save.setDefault(True)
+        self.button_save.clicked.connect(self.save_and_close)
+        layout_button = QHBoxLayout()
+        layout_button.addWidget(self.button_reset)
+        self.add_undo_buttons(layout_button)
+        layout_button.addStretch(1)
+        layout_button.addWidget(self.button_cancel)
+        layout_button.addWidget(self.button_save)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(UIScaler.pixel(10))
+        layout.addWidget(label)
+        layout.addWidget(self.picker, stretch=1)
+        layout.addLayout(layout_button)
+        layout.setContentsMargins(self.MARGIN * 2, self.MARGIN * 2, self.MARGIN * 2, self.MARGIN * 2)
+
+    def showEvent(self, event):
+        """Shown as page: page has its own Close button"""
+        super().showEvent(event)
+        if self.in_app_page:
+            self.button_cancel.hide()
+
+    # Entries
     def picker_entries(self) -> dict[str, PickerEntry]:
+        """Entries by kind; those of the navigation bar tagged so (home page leaves them out)"""
+        from .nav_rail import current_rail_items
+
         kinds = {
             "tool": (tr("Tools"), tr("Tool")), "page": (tr("Pages"), tr("Page")), "action": (tr("Actions"), tr("Action")),
         }
+        in_rail = set(current_rail_items())
         return {
             key: PickerEntry(key, tr(entry.label), entry.glyph, entry.letter, kinds[entry.kind][0],
-                             tag=kinds[entry.kind][1])
+                             tag=tr("In Navigation Bar") if key in in_rail else kinds[entry.kind][1])
             for key, entry in quick_access_entries().items()
         }
 
@@ -137,6 +190,38 @@ class QuickAccessEditor(RailEditor):
 
     def save_items(self, keys: list[str]):
         cfg.application["home_quick_access"] = ",".join(keys)  # empty: no quick access button
+
+    # Editing
+    def checked_items(self) -> list[str]:
+        """Shown entries in order"""
+        return self.picker.shown_keys()
+
+    def fill(self, shown: list[str]):
+        self.picker.set_shown(shown)
+
+    def move_current(self, step: int):
+        self.picker.move_selected(step)
+
+    def reset(self):
+        """Default entries (saved with Save)"""
+        if self.checked_items() != self.default_items():
+            self.picker.set_shown(self.default_items())
+
+    def applying(self):
+        """Save, editor kept open (Ctrl+S)"""
+        self.save_items(self.checked_items())
+        cfg.save(config_type=ConfigType.CONFIG)
+        if self._on_saved is not None:
+            self._on_saved()
+        self.set_unmodified()
+
+    def saving(self):
+        """Save (also asked when closing with unsaved changes)"""
+        self.applying()
+
+    def save_and_close(self):
+        self.applying()
+        self.accept()
 
 
 def base_version(version: str = VERSION) -> str:

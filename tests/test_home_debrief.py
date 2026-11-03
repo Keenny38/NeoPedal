@@ -57,7 +57,7 @@ def test_debrief_card_with_laps_tips_and_reached_goal(home, monkeypatch):  # noq
     QCoreApplication.processEvents()
     from tests.test_home_view import item_texts
 
-    assert {"Session Debrief", "Best 1:30.000", "Open Telemetry"} <= item_texts(home.view)
+    assert {"Best Lap", "1:30.000", "Open Telemetry"} <= item_texts(home.view)  # best lap in big type
 
 
 def test_debrief_card_hidden_without_laps_or_best(home, monkeypatch):  # noqa: F811

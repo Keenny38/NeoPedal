@@ -350,13 +350,12 @@ def test_hotkey_control_enable_disable(ui_env, monkeypatch, caplog):
     import threading
 
     from neopedal import hotkey_control, thread_guard
-    from neopedal.setting import cfg
 
     control = hotkey_control.HotkeyControl()
-    monkeypatch.setitem(cfg.application, "enable_global_hotkey", False)
+    monkeypatch.setattr(hotkey_control, "gather_command", lambda commands: {})
     control.enable()
-    assert control._stopped()  # disabled in config: no thread
-    monkeypatch.setitem(cfg.application, "enable_global_hotkey", True)
+    assert control._stopped()  # no hotkey bound: no thread
+    monkeypatch.setattr(hotkey_control, "gather_command", lambda commands: {(1,): []})
     monkeypatch.setattr(hotkey_control, "run_supervised", lambda target, name, event: event.wait(5))
     control.enable()
     assert not control._stopped()
@@ -378,9 +377,8 @@ def test_hotkey_control_old_thread_never_marks_new_stopped(ui_env, monkeypatch):
     import threading
 
     from neopedal import hotkey_control, thread_guard
-    from neopedal.setting import cfg
 
-    monkeypatch.setitem(cfg.application, "enable_global_hotkey", True)
+    monkeypatch.setattr(hotkey_control, "gather_command", lambda commands: {(1,): []})  # a hotkey bound
     monkeypatch.setattr(thread_guard, "STOP_TIMEOUT", 0.05)
     release_first = threading.Event()
     running: list[threading.Event] = []

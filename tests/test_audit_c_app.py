@@ -9,7 +9,7 @@ from contextlib import suppress
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QRectF, Qt
 from PySide6.QtGui import QCloseEvent, QColor, QImage, QPainter
-from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon, QTableWidget, QTableWidgetItem
+from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon, QTableWidget, QTableWidgetItem, QWidget
 
 from neopedal import app_signal, i18n
 from neopedal.const_file import ConfigType
@@ -80,8 +80,7 @@ def answers(monkeypatch):
 def open_editor_page(window, path="heatmap_editor.HeatmapEditor"):
     from neopedal.ui.tools_view import open_tool
 
-    open_tool(path, window)
-    return window.centralWidget().dialog_pages()[-1].dialog
+    return open_tool(path, window)  # editor of its Data Editors tab
 
 
 def open_config_page(window, name="speedometer"):
@@ -127,7 +126,7 @@ def test_restart_asks_unsaved_pages(window, answers, monkeypatch):
     assert window.centralWidget().dialog_pages()
     answers.reply = QMessageBox.StandardButton.Discard
     assert window.restart_app() is True
-    assert restarts and "brake_editor.BrakeEditor" in restarts[0]  # page reopened after restart
+    assert restarts and "data_editors.DataEditors" in restarts[0]  # page reopened after restart
     assert not window.centralWidget().dialog_pages()
     # Relaunch failed (restart returned): app goes on, pages opened now asked to save on quit again
     assert window.centralWidget().track_pages
@@ -430,22 +429,21 @@ def test_hotkey_and_spectate_refresh_without_side_effects(ui_env, monkeypatch):
         monkeypatch.setattr(type(hotkey_backend.kctrl), action, lambda self, _action=action: calls.append(_action))
     monkeypatch.setattr(type(cfg), "save", lambda self, *args, **kwargs: calls.append("save"))
     monkeypatch.setattr(type(spectate_backend.api), "setup", lambda self: calls.append("api"))
-    cfg.application["enable_global_hotkey"] = True
     cfg.api["enable_player_index_override"] = False
-    hotkeys = hotkey_view.HotkeyList(None)
+    settings_page = QWidget()  # Settings page hosting the Hotkeys category
+    hotkeys = hotkey_view.HotkeysHost(settings_page)
     spectate = spectate_view.SpectateList(None)
     try:
         hotkeys.refresh()
         cfg.api["enable_player_index_override"] = True  # turned on elsewhere (hotkey)
         spectate.refresh()
-        assert hotkeys.backend.enabled and spectate.backend.enabled
-        assert "reload" not in calls and "save" not in calls and "api" not in calls
-        hotkeys.backend.setEnabled(False)  # user click still applies
-        assert "reload" in calls and cfg.application["enable_global_hotkey"] is False
+        assert spectate.backend.enabled
+        assert not calls  # no hotkey reload, no save, no API setup
         spectate.backend.setEnabled(False)  # user switch saves & sets API up
         assert "api" in calls and cfg.api["enable_player_index_override"] is False
     finally:
-        hotkeys.deleteLater()
+        hotkeys.release()
+        settings_page.deleteLater()
         spectate.deleteLater()
         flush_deleted()
 
@@ -485,7 +483,6 @@ def test_hotkeys_disabled_only_while_capturing(ui_env, monkeypatch):
     for action in ("enable", "disable"):
         monkeypatch.setattr(type(hotkey_backend.kctrl), action, lambda self, _action=action: calls.append(_action))
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     page = hotkey_backend.HotkeyBackend(None)
     page.page_shown()
     page.startCapture(next(iter(SHORTCUTS_GENERAL)))  # capture dialog of the page
@@ -652,9 +649,7 @@ def render(widget) -> QImage:
 def test_focus_ring_drawn_for_keyboard_focus(ui_env, monkeypatch):
     from neopedal.ui import has_keyboard_focus
     from neopedal.ui.app import NavButton
-    from neopedal.ui.tools_view import ToolCard
-
-    for button in (NavButton("Home", "", "H", ""), ToolCard("Tool", "", "")):
+    for button in (NavButton("Home", "", "H", ""),):
         button.resize(button.sizeHint())
         before = render(button)
         monkeypatch.setattr(button, "hasFocus", lambda: True)

@@ -138,15 +138,15 @@ def test_rows_drawn(ui_env, icon_family):
 
 
 # --- Editors built on picker
-def test_rail_editor_marks_changes_and_undo(ui_env):
+def test_quick_access_editor_marks_changes_and_undo(ui_env):
     from neopedal.setting import cfg
-    from neopedal.ui.nav_rail import RailEditor, current_rail_items
+    from neopedal.ui.home_view import QuickAccessEditor, current_quick_items
 
     saved = []
-    editor = RailEditor(None, lambda: saved.append(1))
+    editor = QuickAccessEditor(None, lambda: saved.append(1))
     start = editor.checked_items()
-    assert start == current_rail_items() and not editor.is_modified()
-    assert editor.picker.badge_text(0) == "Ctrl+1" and editor.picker.badge_text(9) == ""
+    assert start == current_quick_items() and not editor.is_modified()
+    assert editor.picker.badge_text(0) == "1" and editor.picker.badge_text(9) == "10"
     editor.picker.remove(start[0])
     assert editor.is_modified() and editor.checked_items() == start[1:]
     editor.undo()
@@ -154,6 +154,6 @@ def test_rail_editor_marks_changes_and_undo(ui_env):
     editor.redo()
     editor.applying()  # Ctrl+S: saved, kept open
     assert saved == [1] and not editor.is_modified()
-    assert cfg.application["rail_items"] == ",".join(start[1:])
+    assert cfg.application["home_quick_access"] == ",".join(start[1:])
     assert editor.save_action() == editor.applying
     editor.close()

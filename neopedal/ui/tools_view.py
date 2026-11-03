@@ -17,24 +17,18 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Tools page: utilities & editors as tiles, opening tools by path
+Tools: opening tool pages by path (Tools menu, navigation bar, command palette, links of other pages), former paths
+of merged tools
 """
 
 import logging
 from importlib import import_module
 
-from PySide6.QtCore import QRectF, QSize, Qt, QTimer
-from PySide6.QtGui import QColor, QFont, QFontMetricsF, QPainter, QPalette
-from PySide6.QtWidgets import (
-    QAbstractButton,
-    QApplication,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QApplication
 
 from ..i18n import tr
-from ..template.page_registry import tool_pages, tool_sections
-from . import draw_focus_ring
+from ..template.page_registry import DATA_EDITOR_TABS, MAP_VIEWER_PATH, tool_pages, tool_sections
 from ._common import find_dialog_host
 
 logger = logging.getLogger(__name__)
@@ -42,7 +36,8 @@ logger = logging.getLogger(__name__)
 # Sections: (title, ((label, icon glyph in Segoe Fluent Icons / MDL2 Assets, "module.DialogClass"), ...)),
 # see template.page_registry.PAGES. Dialog modules are imported when first opened, to keep startup light
 TOOL_SECTIONS = tool_sections()
-# Tools of Tools page & Tools menu (Settings left out: own menu, gear button of the rail & Ctrl+,)
+# Tools of Tools menu & command palette (Settings left out: own menu, gear button of the rail & Ctrl+,; Plugin
+# Manager: Overlays page)
 LISTED_TOOL_SECTIONS = tool_sections(listed_only=True)
 
 
@@ -53,11 +48,23 @@ RENAMED_TOOLS = {
     "game_replays.GameReplays": "race_results_viewer.RaceResultsViewer",  # replays list of results & replays
 }
 SHOW_REPLAYS = "game_replays.GameReplays"  # former path: replays list shown
+# Former pages now a tab of another page: old path -> (page path, tab key). Editors: tabs of Data Editors (Track Map
+# Viewer: map of its Tracks tab), Spectate page: Spectate tab of Broadcast Director
+DATA_EDITORS = "data_editors.DataEditors"
+DIRECTOR = "broadcast_director.BroadcastDirector"
+SPECTATE_PATH = "spectate_view.SpectateList"  # links of the former Spectate page (notice, home check)
+PAGE_TABS = {path: (DATA_EDITORS, key) for key, _, path in DATA_EDITOR_TABS}
+PAGE_TABS[MAP_VIEWER_PATH] = (DATA_EDITORS, "track_info_editor")
+PAGE_TABS[SPECTATE_PATH] = (DIRECTOR, "spectate")
+RENAMED_TOOLS.update({path: page for path, (page, _) in PAGE_TABS.items()})
 # Former Preset Comparison tool: compare panel of the Presets page (path kept: palette, saved pages & shortcuts)
 SHOW_PRESET_COMPARE = "preset_compare.PresetCompare"
 RENAMED_TOOL_KEYS = {old.split(".", 1)[0]: new.split(".", 1)[0] for old, new in RENAMED_TOOLS.items()}
 RENAMED_TOOL_KEYS["preset_compare"] = "preset"  # navigation bar & quick access entry: Presets page
-PAGE_PATH = "page:"  # "page:<key>" path of a main window page (Pages section of the Tools page)
+RENAMED_TOOL_KEYS["pacenotes"] = "data_editors"  # former Pace Notes page: Notes tab of Data Editors
+# Former Modules & Hotkeys pages: categories of the Settings page
+RENAMED_TOOL_KEYS.update(module="app_settings", hotkey="app_settings")
+RENAMED_TOOL_KEYS["spectate"] = "broadcast_director"  # former Spectate page: Spectate tab of Broadcast Director
 # Extra words finding a tool in command palette (former names, what it covers), both languages
 TOOL_KEYWORDS = {page.dialog: page.keywords for page in tool_pages() if page.keywords}
 
@@ -76,6 +83,11 @@ def open_tool(dialog_path: str, parent):
         return dialog
     if dialog_path == SHOW_PRESET_COMPARE:
         return show_preset_compare(parent)
+    if dialog_path in PAGE_TABS:  # former page: its tab of another page, the page of the tab returned
+        page_path, tab = PAGE_TABS[dialog_path]
+        dialog = open_tool(page_path, parent)
+        show_tab = getattr(dialog, "show_tab", None)
+        return show_tab(tab) if callable(show_tab) else dialog
     dialog_path = RENAMED_TOOLS.get(dialog_path, dialog_path)
     module_name, class_name = dialog_path.rsplit(".", 1)
     host = find_dialog_host(parent)
@@ -117,102 +129,3 @@ def show_preset_compare(parent):
         return None
     QTimer.singleShot(0, page, lambda: page.backend.openPage("compare"))  # once the page is shown & laid out
     return page
-
-
-def open_page_or_tool(path: str, parent):
-    """Open "page:<key>" main window page (Pages section of the Tools page), else tool by dialog path"""
-    if not path.startswith(PAGE_PATH):
-        return open_tool(path, parent)
-    from .nav_rail import PAGE_INDEX
-
-    host = find_dialog_host(parent)
-    index = PAGE_INDEX.get(path.removeprefix(PAGE_PATH), -1)
-    if host is not None and index >= 0:
-        host.select_page(index)
-    return None
-
-
-class ToolCard(QAbstractButton):
-    """Tool entry: icon then label, outlined card highlighted on hover"""
-
-    def __init__(self, text: str, glyph: str, icon_family: str, parent=None):
-        super().__init__(parent)
-        self.setText(text)
-        self.setToolTip(text)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.glyph = glyph if icon_family else text[:1]
-        self.icon_font = QFont(icon_family) if icon_family else QFont(self.font())
-        if not icon_family:
-            self.icon_font.setBold(True)
-
-    def sizeHint(self) -> QSize:
-        line = self.fontMetrics().height()
-        return QSize(round(line * 11), round(line * 2.6))
-
-    def minimumSizeHint(self) -> QSize:
-        line = self.fontMetrics().height()
-        return QSize(round(line * 6), round(line * 2.6))
-
-    def enterEvent(self, event):
-        self.update()
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self.update()
-        super().leaveEvent(event)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        palette = self.palette()
-        accent = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight)
-        text = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.WindowText)
-        border = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Mid)
-        area = QRectF(self.rect()).adjusted(1.5, 1.5, -1.5, -1.5)
-        radius = area.height() * 0.2
-        hover = self.underMouse()
-        fill = QColor(accent if hover else text)
-        fill.setAlphaF(0.12 if hover else 0.04)
-        painter.setPen(accent if hover else border)
-        painter.setBrush(fill)
-        painter.drawRoundedRect(area, radius, radius)
-        draw_focus_ring(painter, self, area, radius)
-        # Icon
-        icon_size = area.height()
-        icon_font = QFont(self.icon_font)
-        icon_font.setPixelSize(round(icon_size * 0.38))
-        painter.setFont(icon_font)
-        painter.setPen(accent)
-        painter.drawText(QRectF(area.left(), area.top(), icon_size, icon_size), Qt.AlignmentFlag.AlignCenter, self.glyph)
-        # Label
-        painter.setFont(self.font())
-        painter.setPen(text)
-        label_rect = QRectF(area.left() + icon_size, area.top(), area.width() - icon_size * 1.2, area.height())
-        label = QFontMetricsF(self.font()).elidedText(self.text(), Qt.TextElideMode.ElideRight, label_rect.width())
-        painter.drawText(label_rect, Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft, label)
-
-
-class ToolsView(QWidget):
-    """Tools page: Qt Quick page (qml/shell/Tools.qml), tiles of listed tools by section with what each is for,
-    live state of tools with an on / off switch, search; state & actions in quick/shell_tools_backend.py"""
-
-    def __init__(self, parent, icon_family: str = "", dialog_parent=None):
-        from .quick import create_quick_view
-        from .quick.shell_tools_backend import ToolsBackend
-
-        super().__init__(parent)
-        dialog_parent = dialog_parent or parent
-        self.backend = ToolsBackend(self, lambda path: open_page_or_tool(path, dialog_parent))
-        self.view = create_quick_view(self, "Tools.qml", {"backend": self.backend})
-        layout_main = QVBoxLayout(self)
-        layout_main.setContentsMargins(0, 0, 0, 0)
-        layout_main.addWidget(self.view)
-        self.setFocusProxy(self.view)
-
-    def set_statuses(self, statuses: dict[str, str]):
-        """Live state of tools with an on / off switch (dialog class name: "on", "off", "" closed), each second"""
-        self.backend.set_statuses(statuses)
-
-    def refresh(self):
-        """Navigation bar entries may have changed (tiles mark tools of the bar)"""
-        self.backend.refresh()

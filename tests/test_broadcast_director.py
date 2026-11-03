@@ -540,14 +540,14 @@ def test_navigation_bar_broadcast_in_place_of_spectate_for_everyone():
     from neopedal.template.setting_global import GLOBAL_DEFAULT
 
     default = GLOBAL_DEFAULT["application"]["rail_items"]
-    assert "broadcast_director" in default and "spectate" not in default and "app_settings" not in default
+    assert "spectate" not in default and "app_settings" not in default  # Broadcast under More since 2.51.8
     old = {"application": {"rail_items": "home,spectate,tools", "language": "Français"}}
     preupdate_global_setting((2, 50, 7), old)
     assert old["application"] == {"language": "Français"}  # default bar given at load
     kept = {"application": {"rail_items": "home,tools"}}
     preupdate_global_setting((2, 50, 8), kept)
     # not reset: Stream added (2.51.3), Upcoming Races added (2.51.8)
-    assert kept["application"]["rail_items"] == "home,tools,stream_overlay_view,race_schedule_viewer"
+    assert kept["application"]["rail_items"] == "home,race_schedule_viewer,tools,stream_overlay_view"
 
 
 # From LMU Broadcast Control: slow cars, flags, race start, pit box time, laps & sectors, energy

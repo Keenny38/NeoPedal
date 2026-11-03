@@ -239,10 +239,12 @@ class ModuleBackend(PageBackend):
         show_log: Callable[[], None] = lambda: None,
         reset_data: Callable[[str], None] = lambda method: None,
         ask: Callable[[str, Callable[[bool], object]], None] | None = None,
+        open_performance: Callable[[], object] = lambda: None,
     ):
         """
         Args:
             ask: confirmation over the page, answer by callback (confirm answers at once if not set).
+            open_performance: Overlay Performance page shown (Performance button).
         """
         super().__init__(parent, "Modules page")
         self._ask = ask
@@ -252,6 +254,7 @@ class ModuleBackend(PageBackend):
         self._confirm = confirm
         self._show_log = show_log
         self._reset_data = reset_data
+        self._open_performance = open_performance
         self._dependencies: Dependencies | None = None
         self._rows: list[dict] = []
         self._search = ""
@@ -261,6 +264,11 @@ class ModuleBackend(PageBackend):
         self._bulk: tuple[list[str], bool] | None = None  # modules switched by the last Enable / Disable
         self.rows_model = DictListModel(ROLES, self)
         self.refresh()
+
+    @Slot()
+    def openPerformance(self):
+        """Overlay Performance page (CPU time of overlays & modules, game data state)"""
+        self._open_performance()
 
     # Page
     def page_shown(self):

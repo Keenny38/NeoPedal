@@ -17,9 +17,8 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Host of a Settings page backend (quick/settings_backend.py): dialogs & applying of saved settings, shared by the
-Settings page (app_settings) and the Pace Notes page (pace_notes_view). No Qt Quick import: the Pace Notes page
-module is imported when the main window is built.
+Host of a Settings page backend (quick/settings_backend.py): dialogs & applying of saved settings of the Settings page
+(app_settings). No Qt Quick import.
 """
 
 from __future__ import annotations

@@ -851,7 +851,8 @@ def test_b024_home_week_uses_personal_bests_of_stats_file(stats_folder, monkeypa
     page = SimpleNamespace(_records=records, _week_key=None, week_read=None, week_failed=None,
                            jobs=SimpleNamespace(run=lambda name, work, *args, **kwargs: jobs.append(work)))
     home_backend.HomeBackend.refresh_week(page)
-    kinds = [item["kind"] for item in jobs[0]()]
+    items, _days = jobs[0]()  # progress & driving time of each day
+    kinds = [item["kind"] for item in items]
     assert "goal_near" not in kinds
 
 
@@ -866,7 +867,9 @@ def test_b027_goal_changed_on_stats_page_refreshes_home_debrief(monkeypatch):
     record = driver_history.SessionRecord(time=DEBRIEF_T, track="Spa", vehicle="GT3", best=100.0, valid=3)
     monkeypatch.setattr(home_view, "last_session", lambda: record)
     debriefs = []
-    page = SimpleNamespace(_record_read=True, _record=record, refresh_debrief=debriefs.append)
+    page = SimpleNamespace(_record_read=True, _record=record, refresh_debrief=debriefs.append,
+                           publish=lambda *args: None, lastSessionChanged=None,  # how long ago told again
+                           logos=SimpleNamespace(track=lambda name: "", brand=lambda *args: ""))
     HomeBackend.refresh_last_session(page)
     assert debriefs == [record]
 

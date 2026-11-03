@@ -61,10 +61,10 @@ def rows(backend) -> dict:
 def test_preset_categories_listed_after_config_with_heading(settings):
     entries = settings.categories
     keys = [entry["key"] for entry in entries]
-    assert keys[-4:] == ["units", "font", "pace_notes_playback", "api"]
+    assert keys[-5:] == ["modules", "units", "font", "pace_notes_playback", "api"]  # Modules: page category
     headings = [entry["heading"] for entry in entries if entry["heading"]]
-    assert headings == ["In the loaded preset"] and entries[-4]["heading"] and entries[-4]["preset"]
-    assert not any(entry["preset"] for entry in entries[:-4])
+    assert headings == ["In the loaded preset"] and entries[-5]["heading"] and entries[-5]["preset"]
+    assert not any(entry["preset"] for entry in entries[:-5])
 
 
 def test_units_edited_pending_then_saved_in_preset(settings, ui_env):
@@ -304,21 +304,16 @@ def test_menu_links_open_settings_categories(window):
 
 
 def test_modules_gear_and_option_search_open_settings(window):
-    from neopedal.module_control import mctrl
-    from neopedal.ui.app_settings import AppSettings
-    from neopedal.ui.module_view import ModuleList
+    from neopedal.ui.app_settings import AppSettings, open_app_settings
     from neopedal.ui.option_finder import OptionEntry, open_option
 
-    modules = ModuleList(window, mctrl)
-    try:
-        modules.open_config("module_delta")  # gear of a module card
-        settings = next(page.dialog for page in window.centralWidget().dialog_pages()
-                        if isinstance(page.dialog, AppSettings))
-        assert settings.backend.category == "module_delta"
-        assert open_option(window, OptionEntry("units", "speed_unit", "setting", "units speed")) is settings
-        assert settings.backend.category == "units"
-    finally:
-        modules.deleteLater()
+    opened = open_app_settings(window, "modules")  # Modules: category of Settings
+    opened.hosts["modules"].backend._open_config("module_delta")  # gear of a module card
+    settings = next(page.dialog for page in window.centralWidget().dialog_pages()
+                    if isinstance(page.dialog, AppSettings))
+    assert settings is opened and settings.backend.category == "module_delta"
+    assert open_option(window, OptionEntry("units", "speed_unit", "setting", "units speed")) is settings
+    assert settings.backend.category == "units"
 
 
 def test_preset_categories_load_without_qml_warnings(window):
@@ -346,22 +341,6 @@ def test_preset_categories_load_without_qml_warnings(window):
     finally:
         qInstallMessageHandler(previous)
         page.backend.discard()
-
-
-def test_pace_notes_page_is_the_settings_category(window):
-    from neopedal.ui.pace_notes_view import PaceNotesControl
-
-    page = PaceNotesControl(window)
-    try:
-        page.resize(900, 700)
-        page.ensure_view()  # page built when first shown (rail page)
-        QCoreApplication.processEvents()
-        assert page.view is not None and not page.view.errors()
-        assert page.backend.singleCategory and page.backend.category == "pace_notes_playback"
-    finally:
-        page.close()
-        page.deleteLater()
-        flush()
 
 
 # Setup wizard
@@ -571,24 +550,16 @@ def test_module_batch_switch_at_once_with_undo(ui_env):
         backend.deleteLater()
 
 
-def test_notice_previews_readable(settings):
-    cfg.user.config["notification"]["font_color_locked_preset"] = "#777777"
-    cfg.user.config["notification"]["background_color_locked_preset"] = "#808080"
-    preview = settings.previews["Preset Locked"]
-    from PySide6.QtGui import QColor
-
-    from neopedal.ui.notification import MIN_CONTRAST, contrast
-
-    assert contrast(QColor(preview["color"]), QColor(preview["background"])) >= MIN_CONTRAST
-
-
 @pytest.mark.parametrize("name", ["Settings", "OptionFinder", "Presets", "Modules", "Hotkeys", "SetupWizard"])
 def test_pages_host_backend_dialogs_and_toasts(name):
     from neopedal.ui.quick import qml_path
 
     with open(qml_path(f"{name}.qml"), encoding="utf-8") as file:
         text = file.read()
-    assert "TpDialogHost {}" in text and "TpToast {" not in text  # one toast: the page's
+    if name in ("Modules", "Hotkeys"):  # categories of Settings (2026-11-03): its dialog host & toast
+        assert "TpDialogHost {}" not in text and "TpToast {" not in text
+    else:
+        assert "TpDialogHost {}" in text and "TpToast {" not in text  # one toast: the page's
 
 
 def test_settings_page_owns_its_title():

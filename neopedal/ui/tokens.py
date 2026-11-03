@@ -47,6 +47,11 @@ SIZE_SCALE = {
 }
 # Animation durations (ms), 0 when Windows animations are off
 MOTION = {"motionFast": 120, "motionBase": 180, "motionSlow": 250}
+# Time (ms) a toast stays (ui/toast.toast_duration, TpToast.shownTime): long enough to read its text, errors longer,
+# a button (undo) longer
+TOAST_TIMES = {"toastMinimumTime": 3000, "toastTimePerCharacter": 55, "toastReadStartTime": 1500,
+               "toastActionExtraTime": 3000}
+TOAST_ERROR_FACTOR = 1.5
 # Tint alpha (color over a surface): named levels of theme.tint(color, level)
 TINT_LEVELS = {"subtle": 0.1, "selected": 0.18, "strong": 0.28,
                "outline": 0.5,  # border of a tinted chip or notice

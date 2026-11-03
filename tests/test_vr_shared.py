@@ -792,8 +792,10 @@ def env(ui_env, monkeypatch, tmp_path):
     setting = cfg.user.config["vr_overlay"]
     setting.update(enable_vr_overlay=True, enable_openxr_layer=True, enable_vr_mirror_window=False, update_interval=50)
     app_signal.error.connect(environment.errors.append)
+    app_signal.warning.connect(environment.errors.append)  # restart the VR game: a warning
     yield environment
     app_signal.error.disconnect(environment.errors.append)
+    app_signal.warning.disconnect(environment.errors.append)
     QCoreApplication.processEvents()
 
 

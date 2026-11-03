@@ -235,7 +235,7 @@ Item {
                 opacity: card.hovered || hovered || card.current ? 1 : 0
                 visible: opacity > 0
                 Behavior on opacity { enabled: !card.recycling; NumberAnimation { duration: theme.motionFast } }
-                glyph: ""  // settings
+                glyph: theme.glyphs.settings
                 fallback: "⚙"
                 tip: i18n.tr("Options…")
                 onClicked: backend.openConfig(card.name)

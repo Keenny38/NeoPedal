@@ -606,17 +606,20 @@ class APIMenu(QMenu):
 
 
 class ToolsMenu(QMenu):
-    """Tools menu: Pages submenu (pages left out of the navigation bar), then tools of tools page left out of the
-    navigation bar (one click away there; every tool stays on the Tools page & in command palette)"""
+    """Tools menu: one list of the pages left out of the navigation bar, main pages then tools by section (one click
+    away in the bar; every page stays in command palette)"""
 
     def __init__(self, title, parent):
+        from .nav_rail import NAV_PAGES, page_name
+
         super().__init__(title, parent)
         self._parent = parent
-        self.menu_pages = self.addMenu(tr("Pages"))
-        self.menu_pages.aboutToShow.connect(self.refresh_pages)
-        self.refresh_pages()
-        self.tool_actions: dict[str, QAction] = {}  # tool module name: entry
-        self.section_separators: list[tuple[QAction, tuple[str, ...]]] = []  # separator, tools of its section
+        self.tool_actions: dict[str, QAction] = {}  # page key or tool module name: entry
+        self.section_separators: list[tuple[QAction, tuple[str, ...]]] = []  # separator, pages of its section
+        for index, (key, *_) in enumerate(NAV_PAGES):
+            action = self.addAction(menu_text(page_name(index)))
+            action.triggered.connect(lambda _=False, page=index: self.select_page(page))
+            self.tool_actions[key] = action
         for _, tools in LISTED_TOOL_SECTIONS:
             names = tuple(dialog_path.split(".", 1)[0] for _, _, dialog_path in tools)
             self.section_separators.append((self.addSeparator(), names))
@@ -624,31 +627,26 @@ class ToolsMenu(QMenu):
                 action = self.addAction(menu_text(tr(label)))  # "Results & Replays": & shown, not a mnemonic
                 action.triggered.connect(lambda _=False, path=dialog_path: open_tool(path, self._parent))
                 self.tool_actions[name] = action
+        self.action_none = self.addAction(tr("Every page is in the navigation bar"))
+        self.action_none.setEnabled(False)
         self.aboutToShow.connect(self.refresh_tools)
         self.refresh_tools()
 
     def refresh_tools(self):
-        """Tools in the navigation bar hidden (rail customized since: shown again), sections left empty too"""
+        """Pages in the navigation bar hidden (bar changed since: shown again), separators of sections left empty
+        too (first one shown never starts the menu)"""
         from .nav_rail import current_rail_items
 
         in_rail = set(current_rail_items())
         for name, action in self.tool_actions.items():
             action.setVisible(name not in in_rail)
+        above = any(action.isVisible() for name, action in self.tool_actions.items()
+                    if not any(name in names for _, names in self.section_separators))  # main pages
         for separator, names in self.section_separators:
-            separator.setVisible(any(name not in in_rail for name in names))
-
-    def refresh_pages(self):
-        """Pages not in the navigation bar (reachable from here, the More menu & the command palette)"""
-        from .nav_rail import NAV_PAGES, current_rail_items, page_name
-
-        menu = self.menu_pages
-        menu.clear()
-        shown = set(current_rail_items())
-        for index, (key, *_) in enumerate(NAV_PAGES):
-            if key not in shown:
-                menu.addAction(menu_text(page_name(index))).triggered.connect(lambda _=False, page=index: self.select_page(page))
-        if menu.isEmpty():
-            menu.addAction(tr("Every page is in the navigation bar")).setEnabled(False)
+            shown = any(name not in in_rail for name in names)
+            separator.setVisible(shown and above)
+            above = above or shown
+        self.action_none.setVisible(not above)
 
     def select_page(self, index: int):
         view = self._parent.centralWidget()

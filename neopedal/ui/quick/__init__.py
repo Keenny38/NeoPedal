@@ -44,7 +44,7 @@ from ...i18n import colon, percent_sign, plural, tr, trm
 from ...regex_pattern import COMMON_TYRE_COMPOUNDS
 from ...template.setting_compounds import COMPOUND_COLORS, COMPOUND_SYMBOLS, compound_letter
 from ...template.setting_status_colors import COLORBLIND_STATUS_COLORS, STATUS_COLORS
-from .. import UIScaler, colorblind_state, legacy_style, set_colorblind  # noqa: F401  # set_colorblind: tests & pages
+from .. import UIScaler, colorblind_state, legacy_style, set_colorblind, status_color  # noqa: F401  # set_colorblind: tests & pages
 
 # Tokens shared with the Qt Widgets shell (rail, menus): one source, see ui/tokens.py
 from ..tokens import (  # also read from here by tests & pages
@@ -55,6 +55,8 @@ from ..tokens import (  # also read from here by tests & pages
     SURFACE_LIFT,
     TINT_LEVELS,
     TINT_SELECTED_LIGHT,
+    TOAST_ERROR_FACTOR,
+    TOAST_TIMES,
     blended,
     luminance,
 )
@@ -134,7 +136,7 @@ CHART_ALPHA = {"chartGrid": (0.07, 0.09), "chartAxis": (0.12, 0.16)}
 # Glyph of each action (Segoe Fluent Icons / MDL2 Assets), one per action on every page: theme.glyphs.openFolder.
 # Delete (to trash, irreversible) is not remove (out of a list, a filter, a selection: the item stays elsewhere).
 GLYPHS = {
-    "add": "\ue710", "remove": "\ue711", "close": "\ue711", "delete": "\ue74d", "copy": "\ue8c8",
+    "add": "\ue710", "remove": "\ue711", "close": "\ue711", "delete": "\ue74d", "copy": "\ue8c8", "settings": "\ue713",
     "undo": "\ue7a7", "restore": "\ue7a7", "reset": "\ue777", "refresh": "\ue72c",
     "openFolder": "\ue8da", "browse": "\ue838", "openFile": "\ue8e5", "import": "\ue8e5", "export": "\uede1",
     "share": "\ue72d", "openExternal": "\ue8a7", "edit": "\ue70f", "more": "\ue712",
@@ -404,6 +406,12 @@ class Theme(QObject):
     @Property(QColor, notify=changed)
     def warning(self) -> QColor:
         return self._role("warning")
+
+    @Property(QColor, notify=changed)
+    def info(self) -> QColor:
+        """Information level (notification center, toasts): blue of the shell status colors, never the accent (red in
+        the Modern themes, read as an error)"""
+        return QColor(status_color("info"))
 
     @Property(QColor, notify=changed)
     def gain(self) -> QColor:
@@ -752,6 +760,16 @@ class Theme(QObject):
     hoverIntentDelay = _delay_token("hoverIntentDelay")
     flashDuration = _delay_token("flashDuration")
     pulseDuration = _delay_token("pulseDuration")
+    # Toast durations (TpToast.shownTime): same as the widget toasts (ui/toast.toast_duration)
+    toastMinimumTime = Property(int, lambda self: TOAST_TIMES["toastMinimumTime"], constant=True,
+                                doc="Shortest toast time (ms)")
+    toastTimePerCharacter = Property(int, lambda self: TOAST_TIMES["toastTimePerCharacter"], constant=True,
+                                     doc="Toast time per character (ms)")
+    toastReadStartTime = Property(int, lambda self: TOAST_TIMES["toastReadStartTime"], constant=True,
+                                  doc="Toast time before reading (ms)")
+    toastActionExtraTime = Property(int, lambda self: TOAST_TIMES["toastActionExtraTime"], constant=True,
+                                    doc="Toast time added for a button (ms)")
+    toastErrorFactor = Property(float, lambda self: TOAST_ERROR_FACTOR, constant=True, doc="Error toast time factor")
     chipHeight = _size_token(CHIP_SCALE, "chipHeight")
     chipHeightSm = _size_token(CHIP_SCALE, "chipHeightSm")
     chipFilterHeight = _size_token(CHIP_SCALE, "chipFilterHeight")

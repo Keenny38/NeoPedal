@@ -18,7 +18,9 @@
 
 """
 Notification center (qml/shell/NotificationCenter.qml): messages of the app with level, time & actions (view log,
-create bug report, what's new...), notices shown in the status band; messages marked read once it closes
+create bug report, what's new...) in groups by day, filtered by level & searched, modes on (listed under "Now");
+a message is marked read once clicked, the messages shown once it closes (not those of another level filter or
+search). Warnings & errors can be muted (Don't Show Again), every muted message shown again at once.
 """
 
 from __future__ import annotations
@@ -26,35 +28,49 @@ from __future__ import annotations
 import contextlib
 
 from PySide6.QtCore import Property, QDate, QLocale, QObject, QPoint, QTimer, Signal, Slot
+from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QWidget
 
-from ...i18n import current_language
-from ..notification import notification_store, run_notification_action
+from ...i18n import current_language, tr
+from ..notification import SEVERITIES, message_text, notification_store, run_notification_action
 from .models import DictListModel
 from .shell_popup import ShellBackend, ShellPopup, popup_size
 
 KIND = "notifications"
 # Roles of the messages model ("id" is a QML keyword: entryId)
-MESSAGE_ROLES = ("entryId", "text", "severity", "count", "time", "read", "actions")
+MESSAGE_ROLES = ("entryId", "text", "severity", "count", "time", "day", "read", "actions")
+FILTERS = ("", *SEVERITIES)  # "": every message
 
 
-def time_text(moment) -> str:
-    """Time of a message: hour today, else date & hour, in app language"""
-    locale = QLocale(current_language())
-    if moment.date() == QDate.currentDate():
-        return locale.toString(moment.time(), QLocale.FormatType.ShortFormat)
-    return locale.toString(moment, QLocale.FormatType.ShortFormat)
+def time_text(moment, locale: QLocale | None = None) -> str:
+    """Time of a message (its day is the title of its group, see day_text), in app language"""
+    locale = locale or QLocale(current_language())
+    return locale.toString(moment.time(), QLocale.FormatType.ShortFormat)
+
+
+def day_text(moment, locale: QLocale | None = None, today: QDate | None = None) -> str:
+    """Group of a message: Today, Yesterday, else its date, in app language"""
+    days = moment.date().daysTo(today or QDate.currentDate())
+    if days == 0:
+        return tr("Today")
+    if days == 1:
+        return tr("Yesterday")
+    return (locale or QLocale(current_language())).toString(moment.date(), QLocale.FormatType.LongFormat)
 
 
 class NotificationBackend(ShellBackend):
-    """Messages & shown notices for QML, actions run on the main window (popup closed first)
+    """Messages & modes on for QML, actions run on the main window (popup closed first)
 
     Messages are a model synced in place (a new message is inserted at the top, a read mark changes one row: the
-    history list never rebuilds its delegates); the shown notices (a few) have their own signal.
+    history list never rebuilds its delegates); another level filter rebuilds it. Modes on (a few) have their own
+    signal. Clear All can be undone while the popup is open.
     """
 
-    entriesChanged = Signal()  # messages (entries, entryCount, unreadCount)
-    activeChanged = Signal()  # notices shown in the status band
+    entriesChanged = Signal()  # messages (entries, entryCount, unreadCount, counts, filter)
+    activeChanged = Signal()  # modes on, listed under "Now"
+    undoChanged = Signal()
+    searchChanged = Signal()
+    mutedChanged = Signal()  # muted messages (mutedCount)
 
     def __init__(self, window: QWidget):
         super().__init__()
@@ -63,40 +79,115 @@ class NotificationBackend(ShellBackend):
         self._entries: list[dict] = []
         self._active: list[dict] = []
         self._unread = 0
+        self._filter = ""
+        self._search = ""  # words searched, lower case
+        self._muted = 0
+        self._counts: dict[str, int] = {}
+        self._cleared: list[dict] = []  # messages removed by Clear All (Undo)
         store = notification_store()
         store.changed.connect(self.refresh)
         self.refresh()
 
-    def refresh(self):
+    def refresh(self, refilter: bool = False):
         store = notification_store()
+        locale, today = QLocale(current_language()), QDate.currentDate()  # once for every message
         entries = [{
-            "id": entry["id"], "text": entry["text"], "severity": entry["severity"], "count": entry["count"],
-            "time": time_text(entry["time"]), "read": entry["read"], "actions": entry["actions"],
+            "id": entry["id"], "text": message_text(entry["source"]), "severity": entry["severity"],
+            "count": entry["count"], "time": time_text(entry["time"], locale),
+            "day": day_text(entry["time"], locale, today), "read": entry["read"],
+            "actions": [{"label": tr(action["label"]), "key": action["key"]} for action in entry["actions"]],
         } for entry in store.entries()]
         active = [{"text": text, "key": key} for text, key in store.active()]
-        unread = store.unread_count()
-        if (entries, unread) != (self._entries, self._unread):
+        unread, muted = store.unread_count(), store.muted_count()
+        if refilter or (entries, unread, muted) != (self._entries, self._unread, self._muted):
+            if muted != self._muted:
+                self._muted = muted
+                self.mutedChanged.emit()
             self._entries, self._unread = entries, unread
+            self._counts = {severity: sum(entry["severity"] == severity for entry in entries)
+                            for severity in SEVERITIES}
+            if self._filter and not self._counts[self._filter]:  # no message left at this level: every message
+                self._filter = ""
+            shown = self.shown_entries()
             self.model.sync([{"entryId": entry["id"], **{name: entry[name] for name in MESSAGE_ROLES[1:]}}
-                             for entry in entries], key="entryId")
+                             for entry in shown], key="entryId", reset_if_mostly_new=refilter)
             self.entriesChanged.emit()
         if active != self._active:
             self._active = active
             self.activeChanged.emit()
 
+    def shown_entries(self) -> list[dict]:
+        """Messages of the level filter & search"""
+        words = self._search.split()
+        return [entry for entry in self._entries if (not self._filter or entry["severity"] == self._filter)
+                and all(word in entry["text"].lower() for word in words)]
+
     @Property(QObject, constant=True)
     def messages(self) -> QObject:
-        """Messages model, newest first (QML list)"""
+        """Messages model of the level filter, newest first (QML list)"""
         return self.model
 
     @Property(list, notify=entriesChanged)
     def entries(self) -> list[dict]:
-        """Messages as dicts (Python callers & tests; the QML list reads the model)"""
+        """Every message as dicts (Python callers & tests; the QML list reads the model)"""
         return self._entries
 
     @Property(int, notify=entriesChanged)
     def entryCount(self) -> int:
         return len(self._entries)
+
+    @Property(dict, notify=entriesChanged)
+    def counts(self) -> dict:
+        """Messages of each level: {"error": 2, "warning": 0, "info": 5}"""
+        return self._counts
+
+    @Property(str, notify=entriesChanged)
+    def filter(self) -> str:
+        """Level shown ("error", "warning", "info"), "" for every message"""
+        return self._filter
+
+    @Slot(str)
+    def setFilter(self, level: str):
+        level = level if level in FILTERS else ""
+        if level != self._filter:
+            self._filter = level
+            self.refresh(refilter=True)
+
+    @Property(str, notify=searchChanged)
+    def search(self) -> str:
+        return self._search
+
+    @Slot(str)
+    def setSearch(self, text: str):
+        """Messages containing every word (any case)"""
+        text = " ".join(text.lower().split())
+        if text != self._search:
+            self._search = text
+            self.searchChanged.emit()
+            self.refresh(refilter=True)
+
+    @Property(int, notify=mutedChanged)
+    def mutedCount(self) -> int:
+        """Messages not shown again (Don't Show Again)"""
+        return self._muted
+
+    @Slot(int)
+    def mute(self, entry_id: int):
+        notification_store().mute(entry_id)
+
+    @Slot()
+    def unmuteAll(self):
+        notification_store().unmute_all()
+
+    @Slot(int)
+    def markRead(self, entry_id: int):
+        """Message clicked: seen"""
+        notification_store().mark_read({entry_id})
+
+    @Slot()
+    def openSettings(self):
+        """Notification settings (Settings page)"""
+        self.runAction("option:notification/")
 
     @Property(list, notify=activeChanged)
     def active(self) -> list[dict]:
@@ -106,12 +197,23 @@ class NotificationBackend(ShellBackend):
     def unreadCount(self) -> int:
         return self._unread
 
+    @Property(bool, notify=undoChanged)
+    def canUndoClear(self) -> bool:
+        return bool(self._cleared)
+
     @Slot(str)
     def runAction(self, key: str):
-        """Action of a message or notice: popup closed, then run on the main window"""
+        """Action of a message or mode: popup closed, then run on the main window"""
         self.closeRequested.emit()
         window = self._window
         QTimer.singleShot(0, window, lambda: run_notification_action(window, key))
+
+    @Slot(int)
+    def copyText(self, entry_id: int):
+        """Text of a message copied (bug report, forum post)"""
+        entry = next((entry for entry in self._entries if entry["id"] == entry_id), None)
+        if entry is not None:
+            QGuiApplication.clipboard().setText(entry["text"])
 
     @Slot(int)
     def remove(self, entry_id: int):
@@ -119,17 +221,25 @@ class NotificationBackend(ShellBackend):
 
     @Slot()
     def clearAll(self):
-        notification_store().clear()
+        """Every message removed, Undo at hand while the popup is open"""
+        self._cleared = notification_store().clear()
+        self.undoChanged.emit()
+
+    @Slot()
+    def undoClear(self):
+        cleared, self._cleared = self._cleared, []
+        notification_store().restore(cleared)
+        self.undoChanged.emit()
 
     @Slot()
     def close(self):
         self.closeRequested.emit()
 
     def popup_closed(self):
-        """Messages seen: marked read (bell badge cleared)"""
+        """Messages shown (level filter & search) seen: marked read, the others stay unread (bell badge)"""
         with contextlib.suppress(RuntimeError, TypeError):  # closed twice: already disconnected
             notification_store().changed.disconnect(self.refresh)
-        notification_store().mark_all_read()
+        notification_store().mark_read({entry["id"] for entry in self.shown_entries()})
 
 
 class NotificationCenter(ShellPopup):

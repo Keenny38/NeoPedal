@@ -301,7 +301,8 @@ CHOICE_COMMON = MappingProxyType({
     "^incident_export_format$": ("JSON", "CSV", "Both"),
     "^status_icons_side$": ("Left", "Right"),
     "^damage_panel_position$": ("Bottom Right", "Bottom Left", "Top Right", "Top Left"),
-    "^setting_popup_position$": ("Top", "Middle", "Bottom"),  # black box: setting change pop-up in center column
+    "^setting_popup_position$": ("Top", "Middle", "Bottom"),
+    "^race_reminder_sound$": ("When Windows Hides Notifications", "Always", "Never"),  # schedule_reminders.SOUND_*  # black box: setting change pop-up in center column
     "^scroll_direction$": ("Upward", "Downward"),  # chat: newest message at bottom (upward) or at top
     "^resize_anchor$": ("Top Left", "Top Center", "Top Right", "Bottom Left", "Bottom Center", "Bottom Right"),
     # Per widget unit, "Global" = use Units setting

@@ -48,7 +48,7 @@ class OverlayView(QWidget):
         self.module_control = module_control
         self.backend = OverlayBackend(
             self, module_control, self.open_config, self.confirm, self.show_log,
-            self.export_settings, self.import_settings, self.open_presets,
+            self.export_settings, self.import_settings, self.open_presets, open_plugins=self.open_plugins,
             capture_screen=self.capture_screen, pick_screenshot=self.pick_screenshot, ask=self.ask)
         self.view: QQuickWidget | None = None  # see ensure_view
         self._creating = False
@@ -139,6 +139,12 @@ class OverlayView(QWidget):
         from .overlay_share import import_overlay_settings
 
         import_overlay_settings(self)
+
+    def open_plugins(self):
+        """Plugin Manager page: overlay plugins installed, trusted & enabled"""
+        from .tools_view import open_tool
+
+        open_tool("plugin_manager.PluginManager", self)
 
     def open_presets(self):
         """Presets page of main window"""

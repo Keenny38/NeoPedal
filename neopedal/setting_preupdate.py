@@ -37,6 +37,7 @@ def preupdate_global_setting(preset_version: tuple[int, int, int], dict_user: di
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 11), _global_prior_2_51_11),  # 2026-11-03
         ((2, 51, 8), _global_prior_2_51_8),  # 2026-11-02
         ((2, 51, 6), _global_prior_2_51_6),  # 2026-10-30
         ((2, 51, 3), _global_prior_2_51_3),  # 2026-10-18
@@ -91,15 +92,32 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
 
 
 # Global setting update function
+def _global_prior_2_51_11(dict_user: dict):
+    # Main pages merged: Home, Overlays & Presets left (Modules & Hotkeys: Settings categories, Spectate: tab of
+    # Broadcast Director, Pace Notes: Notes tab of Data Editors, Tools: Tools menu). Page shown at quit: same page,
+    # Home for a page gone (navigation bar & quick access entries: see tools_view.RENAMED_TOOL_KEYS).
+    # Global hotkeys always on: their switch & its notice option dropped
+    application = dict_user.get("application")
+    if isinstance(application, dict):
+        index = application.get("last_page_index")
+        if isinstance(index, int) and not isinstance(index, bool):
+            # former order: 0 home, 1 overlays, 2 modules, 3 presets, 4 spectate, 5 pace notes, 6 hotkeys, 7 tools
+            application["last_page_index"] = {0: 0, 1: 1, 3: 2}.get(index, 0)
+        application.pop("enable_global_hotkey", None)
+    notification = dict_user.get("notification")
+    if isinstance(notification, dict):
+        notification.pop("notify_global_hotkey", None)
+
+
 def _global_prior_2_51_8(dict_user: dict):
-    # Navigation bar: Upcoming Races page added after Results & Replays (or last), customized bars kept
+    # Navigation bar: Upcoming Races page added under Home (or at the top), customized bars kept
     application = dict_user.get("application")
     if not isinstance(application, dict) or not isinstance(application.get("rail_items"), str):
         return
     items = [item.strip() for item in application["rail_items"].split(",") if item.strip()]
     if not items or "race_schedule_viewer" in items:
         return
-    index = items.index("race_results_viewer") + 1 if "race_results_viewer" in items else len(items)
+    index = items.index("home") + 1 if "home" in items else 0
     items.insert(index, "race_schedule_viewer")
     application["rail_items"] = ",".join(items)
 

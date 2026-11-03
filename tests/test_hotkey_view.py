@@ -1,4 +1,4 @@
-"""Hotkeys page: list, enable switch, preset names, clear all, key capture (keys, controller buttons, held modifiers,
+"""Hotkeys (category of Settings): list, preset names, clear all, key capture (keys, controller buttons, held modifiers,
 duplicates, preset), app keys kept while capturing, global hotkeys off only while capturing"""
 
 import json
@@ -32,16 +32,9 @@ def rows(page) -> dict[str, dict]:
     return {row["key"]: row for row in page.model.rows if not row["header"]}
 
 
-def test_list_and_enable_switch(backend):
-    page, calls = backend
-    assert len(rows(page)) == len(cfg.user.shortcuts) == page.totalCount
-    cfg.application["enable_global_hotkey"] = False
-    page.refresh()
-    assert not page.enabled
-    page.startCapture("overlay_lock")  # list disabled: no capture
-    assert page.captureKey == ""
-    page.setEnabled(True)  # user switch
-    assert cfg.application["enable_global_hotkey"] is True and "reload" in calls and page.enabled
+def test_list_every_shortcut(backend):
+    page, _calls = backend
+    assert len(rows(page)) == len(cfg.user.shortcuts) == page.totalCount  # global hotkeys always on: no switch
 
 
 def test_preset_names_checked(backend):
@@ -52,7 +45,6 @@ def test_preset_names_checked(backend):
     cfg.user.shortcuts[name]["preset"] = "race"
     other = list(SHORTCUTS_PRESET)[1]
     cfg.user.shortcuts[other]["preset"] = "deleted"
-    cfg.application["enable_global_hotkey"] = True
     page.refresh()
     found = rows(page)
     assert found[name]["preset"] == "race" and found[name]["isPreset"]
@@ -62,7 +54,6 @@ def test_preset_names_checked(backend):
 
 def test_clear_all_with_undo(backend):
     page, calls = backend
-    cfg.application["enable_global_hotkey"] = True
     option = next(iter(cfg.user.shortcuts))
     cfg.user.shortcuts[option]["bind"] = "ctrl+f1"
     page.refresh()
@@ -85,7 +76,6 @@ def capture(backend, monkeypatch):
     monkeypatch.setattr(hotkey_backend, "set_hotkey", lambda get_state: tuple(keys))
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
     monkeypatch.setattr(hotkey_backend.PLATFORM, "WINDOWS", True)
-    cfg.application["enable_global_hotkey"] = True
     name = next(iter(SHORTCUTS_PRESET))
     cfg.user.shortcuts[name]["bind"] = ""
     page.refresh()
@@ -135,7 +125,6 @@ def test_not_supported_text_on_linux(backend, monkeypatch):
     page, _ = backend
     monkeypatch.setattr(hotkey_backend.PLATFORM, "WINDOWS", False)
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     cfg.user.shortcuts["overlay_lock"]["bind"] = ""
     page.startCapture("overlay_lock")
     assert "controller button" in page.captureText and "not supported" in page.captureText
@@ -152,7 +141,6 @@ def test_controller_button_held_at_start_ignored(backend, monkeypatch):
     switch, button = joystick_code(0, 0), joystick_code(0, 9)
     pressed = {switch}
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: int(code in pressed))
-    cfg.application["enable_global_hotkey"] = True
     cfg.user.shortcuts["overlay_lock"]["bind"] = ""
     page.startCapture("overlay_lock")
     try:
@@ -203,7 +191,6 @@ def test_capturing_keys_needs_page_window_active(backend, monkeypatch):
     window = QWidget()
     page._window = lambda: window
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     page.startCapture("overlay_lock")
     try:
         monkeypatch.setattr(QApplication, "activeWindow", staticmethod(lambda: window))
@@ -224,7 +211,6 @@ def test_held_modifiers_shown_while_waiting_for_key(backend, monkeypatch):
     monkeypatch.setattr(hotkey_backend, "held_modifiers",
                         lambda get_state: [name for name, code in (("ctrl", 17), ("shift", 16)) if get_state(code)])
     monkeypatch.setattr(hotkey_backend, "set_hotkey", lambda get_state: ("ctrl", "", "", "f5") if get_state(116) else ())
-    cfg.application["enable_global_hotkey"] = True
     cfg.user.shortcuts["overlay_lock"]["bind"] = ""
     page.startCapture("overlay_lock")
     try:
@@ -246,7 +232,6 @@ def test_hotkeys_disabled_only_while_capturing(backend, monkeypatch):
 
     page, calls = backend
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     calls.clear()
     page.startCapture("overlay_lock")
     assert calls == ["disable"]

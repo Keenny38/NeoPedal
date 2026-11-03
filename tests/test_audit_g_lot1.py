@@ -7,6 +7,7 @@ import sys
 import threading
 from pathlib import Path
 
+import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, Qt
 from PySide6.QtGui import QKeyEvent
 from PySide6.QtWidgets import QApplication
@@ -126,6 +127,26 @@ def fake_page(page_type, calls: list[str]):
     return page
 
 
+class _SpectateTabs:
+    """Tabs of a fake BroadcastDirector: Spectate tab page records its release"""
+
+    def __init__(self, calls: list[str]):
+        self.calls = calls
+
+    def release_page(self):  # SpectateList.release_page
+        self.calls.append("spectate")
+
+    def current_key(self):
+        return "director"
+
+    def index_of(self, key):
+        return 1
+
+    def page(self, index):
+        return self
+
+
+@pytest.mark.filterwarnings("ignore:libpyside. Failed to disconnect:RuntimeWarning")  # fake page: never connected
 def test_quick_pages_free_view_before_backend(ui_env):
     """Pages with a QML view free it before its backends (bindings never read a released backend), once, on
     close & Esc alike"""
@@ -138,11 +159,14 @@ def test_quick_pages_free_view_before_backend(ui_env):
             cell.cell_contents for cell in entry.__closure__ if isinstance(cell.cell_contents, type))
         name = page_type.__name__
         assert "reject" not in vars(page_type), name  # BaseDialog.reject releases the page (Esc)
-        if name in ("DriverStatsViewer", "BroadcastDirector"):
+        if name == "DriverStatsViewer":
             assert "free_page" not in vars(page_type), name  # BaseDialog.free_page
         for closing in ("close", "escape"):
             calls: list[str] = []
             page = fake_page(page_type, calls)
+            if name == "BroadcastDirector":  # Spectate tab released, then BaseDialog.free_page
+                page.tabs = _SpectateTabs(calls)
+                page._director_shown = False
             view = page.view
             BaseDialog.show(page)
             if closing == "close":
@@ -156,6 +180,8 @@ def test_quick_pages_free_view_before_backend(ui_env):
                 assert calls[:1] == ["view"] and sorted(calls[1:]) == ["backend", "replays"], (closing, calls)
             elif name == "LapViewer":
                 assert sorted(calls) == ["backend", "view"], (closing, calls)
+            elif name == "BroadcastDirector":
+                assert calls == ["spectate", "view", "backend"], (closing, calls)
             else:  # BaseDialog.free_page: QML unloaded, then backend released
                 assert calls == ["view", "backend"], (name, closing, calls)
             view.deleteLater()

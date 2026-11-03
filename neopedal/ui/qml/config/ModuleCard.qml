@@ -90,7 +90,7 @@ Item {
                 if (mouse.button === Qt.RightButton)
                     card.menuRequested(area, mouse.x, mouse.y)
                 else
-                    backend.openConfig(card.key)
+                    moduleBackend.openConfig(card.key)
             }
         }
 
@@ -165,13 +165,13 @@ Item {
             spacing: theme.space1
             TpButton {
                 flat: true
-                glyph: ""  // settings
+                glyph: theme.glyphs.settings
                 fallback: "⚙"
                 tip: i18n.tr("Options…")
                 size: "sm"
                 focusPolicy: Qt.NoFocus  // card keys: Enter opens settings (no Tab stop per card)
                 anchors.verticalCenter: parent.verticalCenter
-                onClicked: backend.openConfig(card.key)
+                onClicked: moduleBackend.openConfig(card.key)
                 Accessible.name: i18n.tr("Options…")
             }
             TpSwitch {
@@ -183,7 +183,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 onClicked: {
                     card.GridView.view.currentIndex = card.index
-                    backend.toggle(card.key)
+                    moduleBackend.toggle(card.key)
                 }
                 Accessible.role: Accessible.CheckBox
                 Accessible.name: card.label

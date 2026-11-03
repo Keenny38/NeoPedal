@@ -2,7 +2,7 @@
 
 The **Driver Stats** page shows your numbers per track and per car: personal bests, distance, races, results. With Le Mans Ultimate, your lap times are compared with community lap times and placed on a level ladder, from **Alien** to **Offline**.
 
-Open it with the `Stats` entry of the navigation bar, or the `Tools` page.
+Open it with the `Stats` entry of the navigation bar, or the `Tools` menu.
 
 | Track: goal, filters, wet PB, sessions | All tracks: driving time by track & class, official races |
 |---|---|
@@ -23,7 +23,7 @@ Columns without any value (theoretical best without recorded laps, a class witho
 
 ## How stats are recorded
 
-The **Stats** module (`Module` page) records your stats and saves them when you return to the garage, and every 5 minutes while you drive (kept if the app or the computer stops). A lap invalidated by Le Mans Ultimate (track limits) counts as an invalid lap and never as a best lap time. Each driving stint is also added to the session history. Stats are stored in the global config folder (`.stats` files and `driver.history`).
+The **Stats** module (`Settings` > `Modules`) records your stats and saves them when you return to the garage, and every 5 minutes while you drive (kept if the app or the computer stops). A lap invalidated by Le Mans Ultimate (track limits) counts as an invalid lap and never as a best lap time. Each driving stint is also added to the session history. Stats are stored in the global config folder (`.stats` files and `driver.history`).
 
 Stats are **not** recorded while:
 

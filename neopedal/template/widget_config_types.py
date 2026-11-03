@@ -1952,6 +1952,7 @@ class RaceNotificationsConfig(WidgetConfig):
     show_blue_flag: bool
     show_full_course_yellow: bool
     show_lap_invalidated: bool
+    show_app_messages: bool
     font_color_notification: str
     background_color_notification: str
     highlight_color_gain: str
@@ -2368,6 +2369,8 @@ class RelativeConfig(WidgetConfig):
     display_order_driver_badge: int
     column_car_number: bool
     display_order_car_number: int
+    column_nationality: bool
+    display_order_nationality: int
     column_delta_laptime: bool
     number_of_delta_laptime: int
     show_inverted_delta_laptime_layout: bool
@@ -3215,6 +3218,8 @@ class StandingsConfig(WidgetConfig):
     display_order_driver_badge: int
     column_car_number: bool
     display_order_car_number: int
+    column_nationality: bool
+    display_order_nationality: int
     column_gap_trend: bool
     display_order_gap_trend: int
     column_stint_laps: bool

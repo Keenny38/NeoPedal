@@ -3,9 +3,11 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import "../components"
 
-// Notification center (popup of the bell in the navigation rail): notices shown in the status band now, then
-// messages of the app, newest first, with level (icon, color & word), time, repeat count and actions (View Log,
-// Create Bug Report, What's New...). Messages are marked read once it closes. Esc closes it.
+// Notification center (popup of the bell in the navigation rail): modes on ("Now"), then messages of the app,
+// newest first, in groups by day, filtered by level & searched, with level (icon, color & word), time, repeat count,
+// actions (View Log, Create Bug Report, What's New...), Don't Show Again (warnings & errors), Copy & Remove. Clear
+// All can be undone while it is open. A message is marked read once clicked, the messages shown once it closes.
+// Settings button: Settings > Notification. Esc closes it.
 TpPage {
     id: page
     color: theme.surfaceFlyout  // popup window: native drop shadow of Windows popups around it
@@ -21,7 +23,7 @@ TpPage {
         return severity === "error" ? i18n.tr("Error") : severity === "warning" ? i18n.tr("Warning") : i18n.tr("Info")
     }
     function severityColor(severity) {
-        return severity === "error" ? theme.loss : severity === "warning" ? theme.warning : theme.accent
+        return severity === "error" ? theme.loss : severity === "warning" ? theme.warning : theme.info
     }
 
     TpEnter { target: popupContent }
@@ -37,6 +39,14 @@ TpPage {
             title: i18n.tr("Notifications")
             count: backend.entryCount > 0 ? "" + backend.entryCount : ""
             TpButton {
+                flat: true
+                size: "sm"
+                glyph: theme.glyphs.settings
+                fallback: "⚙"
+                tip: i18n.tr("Notification Settings")
+                onClicked: backend.openSettings()
+            }
+            TpButton {
                 visible: backend.entryCount > 0
                 flat: true
                 size: "sm"
@@ -48,7 +58,7 @@ TpPage {
             onClosed: backend.close()
         }
 
-        // Notices shown in the status band now
+        // Modes on
         TpSectionLabel {
             Layout.fillWidth: true
             visible: backend.active.length > 0
@@ -60,7 +70,7 @@ TpPage {
                 required property var modelData
                 Layout.fillWidth: true
                 spacing: theme.space3
-                Icon { glyph: ""; fallback: "i"; color: theme.accent; size: theme.iconSm }  // info
+                Icon { glyph: ""; fallback: "i"; color: theme.info; size: theme.iconSm }  // info
                 TpText {
                     Layout.fillWidth: true
                     text: modelData.text
@@ -84,6 +94,34 @@ TpPage {
             visible: backend.entryCount > 0
             text: i18n.tr("Messages")
         }
+        // Level filter: shown when messages have more than one level
+        Flow {
+            Layout.fillWidth: true
+            visible: [backend.counts.error, backend.counts.warning, backend.counts.info].filter(count => count > 0).length > 1
+            spacing: theme.space2
+            Repeater {
+                model: ["", "error", "warning", "info"]  // "": every message
+                TpChip {
+                    required property string modelData
+                    visible: modelData === "" || count > 0
+                    size: "sm"
+                    text: modelData === "" ? i18n.tr("All") : modelData === "error" ? i18n.tr("Errors")
+                        : modelData === "warning" ? i18n.tr("Warnings") : i18n.tr("Info")
+                    count: modelData === "" ? backend.entryCount : (backend.counts[modelData] || 0)
+                    showDot: modelData !== ""
+                    dotColor: modelData !== "" ? page.severityColor(modelData) : "transparent"
+                    selected: backend.filter === modelData
+                    onClicked: backend.setFilter(modelData)
+                }
+            }
+        }
+        TpSearchField {
+            Layout.fillWidth: true
+            visible: backend.entryCount > 6 || backend.search !== ""
+            placeholderText: i18n.tr("Search messages")
+            onSearchChanged: function(text) { backend.setSearch(text) }
+            onExitField: page.forceActiveFocus()
+        }
         ListView {
             id: list
             Layout.fillWidth: true
@@ -94,6 +132,13 @@ TpPage {
             model: backend.messages  // synced in place: a new message inserts one row, a read mark changes one
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+            section.property: "day"  // Today, Yesterday, date
+            section.delegate: TpSectionLabel {
+                required property string section
+                width: list.width
+                topPadding: theme.space2
+                text: section
+            }
             delegate: TpListRow {  // unread: tinted in its level color
                 id: row
                 required property int entryId
@@ -101,6 +146,7 @@ TpPage {
                 required property string severity
                 required property int count
                 required property string time
+                required property string day
                 required property bool read
                 required property var actions
                 width: list.width
@@ -109,7 +155,8 @@ TpPage {
                 emphasized: !read
                 tint: page.severityColor(severity)
                 Accessible.role: Accessible.StaticText
-                Accessible.name: page.severityLabel(severity) + ", " + time + ": " + text
+                Accessible.name: page.severityLabel(severity) + ", " + day + " " + time + ": " + text
+                TapHandler { enabled: !row.read; onTapped: backend.markRead(row.entryId) }  // seen
 
                 ColumnLayout {
                     id: rowContent
@@ -142,6 +189,14 @@ TpPage {
                         TpButton {
                             flat: true
                             size: "xs"
+                            glyph: theme.glyphs.copy
+                            fallback: "⧉"
+                            tip: i18n.tr("Copy")
+                            onClicked: backend.copyText(row.entryId)
+                        }
+                        TpButton {
+                            flat: true
+                            size: "xs"
                             glyph: theme.glyphs.remove
                             fallback: "✕"
                             tip: i18n.tr("Remove")
@@ -156,7 +211,7 @@ TpPage {
                     }
                     Flow {
                         Layout.fillWidth: true
-                        visible: row.actions.length > 0
+                        visible: row.actions.length > 0 || row.severity !== "info"
                         spacing: theme.space3
                         Repeater {
                             model: row.actions
@@ -167,9 +222,24 @@ TpPage {
                                 onClicked: backend.runAction(modelData.key)
                             }
                         }
+                        TpButton {  // same message (any numbers) only logged from now on
+                            visible: row.severity !== "info"
+                            flat: true
+                            size: "sm"
+                            text: i18n.tr("Don't Show Again")
+                            onClicked: backend.mute(row.entryId)
+                        }
                     }
                 }
             }
+        }
+        TpText {  // search or level filter leaves none
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: backend.entryCount > 0 && list.count === 0
+            role: "caption"
+            horizontalAlignment: Text.AlignHCenter
+            text: i18n.tr("No message found")
         }
         Item {
             Layout.fillWidth: true
@@ -181,8 +251,18 @@ TpPage {
                 compact: true
                 glyph: ""  // bell
                 title: i18n.tr("No notifications")
-                text: i18n.tr("Errors of background tasks, saving problems and updates found are kept here.")
+                text: i18n.tr("Errors of background tasks, saving problems, updates found and race reminders are kept here.")
+                actionText: backend.canUndoClear ? i18n.tr("Undo") : ""
+                onAction: backend.undoClear()
             }
+        }
+        TpButton {
+            Layout.alignment: Qt.AlignHCenter
+            visible: backend.mutedCount > 0
+            flat: true
+            size: "sm"
+            text: i18n.tr("Show Muted Messages Again (%1)").arg(backend.mutedCount)
+            onClicked: backend.unmuteAll()
         }
     }
 }

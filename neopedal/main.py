@@ -36,7 +36,7 @@ from PySide6.QtCore import QLocale, Qt
 from PySide6.QtGui import QFont, QFontDatabase, QGuiApplication, QIcon, QPixmapCache
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from . import realtime_state, safe_mode, version_check
+from . import realtime_state, version_check
 from .const_app import (
     APP_NAME,
     CONFIG_ID,
@@ -47,7 +47,7 @@ from .const_app import (
     VERSION,
 )
 from .const_file import ConfigType, FontFile, LogFile
-from .i18n import LANGUAGE_PACK_FOLDER, install_qt_translation, load_language_packs, set_language, tr
+from .i18n import LANGUAGE_PACK_FOLDER, install_qt_translation, load_language_packs, set_language
 from .log_handler import BoundedLogStream, install_exception_hooks, set_log_stream, set_logging_level
 from .setting import cfg
 from .userfile import settings_import_folders
@@ -374,34 +374,6 @@ def set_environment():
         logger.info("High DPI scaling: OFF")
 
 
-def ask_safe_mode() -> bool:
-    """Previous start did not finish: ask whether to start in safe mode"""
-    from .ui._common import confirm_action
-
-    return confirm_action(
-        None,
-        f"{APP_NAME} v{VERSION}",
-        tr("NeoPedal did not finish starting last time.\n\n"
-           "Start in safe mode? Plugins and overlays are not started, so settings can be fixed, "
-           "then NeoPedal restarted normally (Window menu, Restart NeoPedal)."),
-        tr("Start in Safe Mode"), cancel_text=tr("Start Normally"), default_action=True,
-    )
-
-
-def check_safe_mode(flag: bool):
-    """Safe mode from command line flag, or asked when previous start did not finish (start
-    marked as under way until it finishes, see loader.start)"""
-    if flag:
-        safe_mode.state.enable("flag")
-    elif safe_mode.unfinished_start(cfg.path.config):
-        logger.warning("SAFE MODE: previous start did not finish")
-        if ask_safe_mode():
-            safe_mode.state.enable("crash")
-        else:
-            logger.info("SAFE MODE: declined, normal start")
-    safe_mode.write_marker(cfg.path.config)
-
-
 def start_app(cli_args):
     """Init main window"""
     # In-memory log first (no file): instance lock messages reach the log dialog & bug report. Log files
@@ -424,8 +396,6 @@ def start_app(cli_args):
     set_environment()
     # Main GUI
     root = init_gui()
-    # Safe mode decided before widgets & plugins are imported
-    check_safe_mode(bool(getattr(cli_args, "safe_mode", False)))
     # Load core modules
     from . import loader
     loader.start()

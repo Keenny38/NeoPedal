@@ -149,7 +149,7 @@ class Connector(ABC):
         logger.warning(
             "replay: %s not played with %s API: %s", os.path.basename(player.replay.filename), self.NAME, mismatch)
         replay.unload()
-        app_signal.error.emit(f"Replay not compatible with {self.NAME} API, reading game data.")
+        app_signal.warning.emit(f"Replay not compatible with {self.NAME} API, reading game data.")
         return None
 
     def health(self) -> ConnectorHealth:

@@ -7,7 +7,8 @@ import "../components"
 // list on narrow pages), options of the category in group cards, status cards (web dashboard address,
 // remote control, settings file). Edits stay pending until applied: unsaved changes bar at the bottom
 // (TpPendingBar, as on Overlay Options) with Undo, Redo, Discard & Apply (Ctrl+S). A search ("/") or
-// "Changed Only" looks through every category. Rows: more actions with "⋯", right click or Menu key.
+// "Changed Only" looks through every category. Rows: more actions with "⋯", right click or Menu key. Page categories
+// (Hotkeys, Modules) show their own page (Hotkeys.qml, Modules.qml) in place of the header & option rows.
 TpPage {
     id: page
 
@@ -15,10 +16,11 @@ TpPage {
     readonly property var info: backend.categoryInfo
     readonly property var web: backend.webDashboard
     readonly property var remote: backend.remoteControl
-    readonly property var previews: backend.previews
     readonly property var categories: backend.categories  // read once per change (navigation, choice list)
     readonly property var section: backend.sectionState  // category kept in the loaded preset: preset, lock, on / off
     readonly property var fontPreview: backend.fontPreview
+    // Page of a page category (Hotkeys, Modules), "" for option rows (search & "Changed Only" show rows)
+    readonly property string embeddedPage: backend.searching || backend.changedOnly ? "" : (info.page || "")
     property var menuData: null  // option row of the more actions menu
 
     function scrollToKey(key) {
@@ -57,7 +59,7 @@ TpPage {
     // Ctrl+F or "/": search of this page (Ctrl+Shift+F finds any option of the app)
     Shortcut {
         sequences: [StandardKey.Find]
-        enabled: pageState.active && !backend.singleCategory
+        enabled: pageState.active && !backend.singleCategory && page.embeddedPage === ""  // pages: their own
         onActivated: page.focusSearch()
     }
     Keys.onPressed: function(event) {
@@ -315,6 +317,7 @@ TpPage {
             // row: TpPageHeader has no leading icon nor pills under its subtitle
             RowLayout {
                 id: header
+                visible: page.embeddedPage === ""
                 // Header actions as icons (names in tooltips) when the title would be cut
                 readonly property bool tight: width < theme.em * 50  // content-tuned: title & 3 named actions in French
                 Layout.fillWidth: true
@@ -409,6 +412,7 @@ TpPage {
             // (no row of every option kept), status cards above the rows, settings file below
             ListView {
                 id: flick
+                visible: page.embeddedPage === ""
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -674,7 +678,6 @@ TpPage {
                 delegate: SettingRow {
                     x: theme.padPage
                     width: flick.width - theme.padPage * 2
-                    preview: backend.category === "notification" && !backend.searching ? (page.previews[group] || null) : null
                     onMenuRequested: function(data, anchor, x, y) { page.openRowMenu(data, anchor, x, y) }
                 }
 
@@ -722,6 +725,19 @@ TpPage {
                     }
                     Item { width: 1; height: theme.em * 1.2 }  // room below last row
                 }
+            }
+
+            // Page category (Hotkeys, Modules): its own page in place of the header & option rows
+            Loader {
+                objectName: "embeddedPage"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                // Size given by this layout only: the page's own sizes (wrapping rows) never widen it back (loop)
+                Layout.preferredWidth: 0
+                Layout.preferredHeight: 0
+                active: page.embeddedPage !== ""
+                visible: active
+                source: page.embeddedPage
             }
 
             // Unsaved changes (after Discard: "Changes discarded" & Undo kept a few seconds)

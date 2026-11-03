@@ -21,6 +21,8 @@ def window(ui_env, monkeypatch):
     yield main
     for page in main.centralWidget().dialog_pages():
         if page.dialog is not None:
+            with suppress(AttributeError):  # test failed with unsaved edits: never a real save box
+                page.dialog.set_unmodified()
             page.dialog.close()
     tray = main.findChild(QSystemTrayIcon)
     if tray:
@@ -31,6 +33,14 @@ def window(ui_env, monkeypatch):
     main.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     QCoreApplication.processEvents()
+
+
+def add_to_rail(view, *keys):
+    """Entries added to the rail (Race Calculator, Broadcast Director: under More by default)"""
+    from neopedal.ui.nav_rail import current_rail_items
+
+    cfg.application["rail_items"] = ",".join([*current_rail_items(), *keys])
+    view.build_rail_items()
 
 
 def settle():
@@ -51,14 +61,14 @@ def rail_keys(main) -> list[str]:
 def test_rail_items_setting():
     from neopedal.ui.nav_rail import default_rail_items, parse_rail_items
 
-    assert parse_rail_items(" home, nope,race_calculator,home ,tools") == ["home", "race_calculator", "tools"]
+    # Former Hotkeys page: Settings (its Hotkeys category)
+    assert parse_rail_items(" home, nope,race_calculator,home ,hotkey") == ["home", "race_calculator", "app_settings"]
     # Former fuel calculator & tyre strategy planner entries: merged race calculator, once
-    assert parse_rail_items("fuel_calculator,tools,tyre_strategy_planner") == ["race_calculator", "tools"]
+    assert parse_rail_items("fuel_calculator,preset,tyre_strategy_planner") == ["race_calculator", "preset"]
     # Former game replays entry: results & replays, once
     assert parse_rail_items("game_replays,race_results_viewer") == ["race_results_viewer"]
     assert default_rail_items() == [
-        "home", "widget", "driver_stats_viewer", "race_results_viewer", "race_schedule_viewer",
-        "broadcast_director", "stream_overlay_view", "lap_viewer", "race_calculator", "preset",
+        "home", "race_schedule_viewer", "widget", "driver_stats_viewer", "race_results_viewer", "lap_viewer", "preset",
     ]
 
 
@@ -66,44 +76,187 @@ def test_default_rail(window):
     from neopedal.ui.nav_rail import PAGE_INDEX
 
     keys = rail_keys(window)
-    assert f"page:{PAGE_INDEX['pacenotes']}" not in keys
-    assert "railTool:race_calculator.RaceCalculator" in keys
+    assert "pacenotes" not in PAGE_INDEX and "tools" not in PAGE_INDEX  # merged pages (2026-11-03)
+    assert "railTool:race_calculator.RaceCalculator" not in keys  # under More since 2.51.8
     assert not [key for key in keys if "fuel_calculator" in key or "tyre_strategy_planner" in key]
     assert "railTool:driver_stats_viewer.DriverStatsViewer" in keys
+    assert keys[1] == "railTool:race_schedule_viewer.RaceScheduleViewer"  # Upcoming Races under Home
 
 
-def test_customize_rail(window):
-    from neopedal.ui.nav_rail import RailEditor
+def more_keys(view) -> list[str]:
+    return [button.objectName() for button in view._rail_more_buttons]
+
+
+def test_rail_more_unfolds_pages_left_out(window):
+    """More under the rail entries: pages left out unfolded, "+" adds one at the end, right-click removes one,
+    Edit opens the rail editor"""
+    from neopedal.ui.nav_rail import PAGE_INDEX, current_rail_items, hidden_rail_items, rail_entries
 
     view = window.centralWidget()
-    view.open_rail_editor()
-    pages = view.dialog_pages()
-    assert len(pages) == 1 and isinstance(pages[0].dialog, RailEditor)  # shown inside app
-    editor = pages[0].dialog
-    editor.fill(["home", "pacenotes", "race_calculator"])
-    editor.list_entries.setCurrentRow(1)  # pace notes
-    editor.move_current(-1)  # to top
-    editor.move_current(-1)  # already first: no change
-    assert editor.checked_items() == ["pacenotes", "home", "race_calculator"] and editor.is_modified()
-    editor.button_save.click()
-    assert cfg.application["rail_items"] == "pacenotes,home,race_calculator"
-    assert len(rail_keys(window)) == 3 and rail_keys(window)[2] == "railTool:race_calculator.RaceCalculator"
-    assert not view.dialog_pages()  # editor page closed
-    view._rail_shortcuts[2].activated.emit()  # Ctrl+3: race calculator page
-    assert type(view.dialog_pages()[0].dialog).__name__ == "RaceCalculator"
+    cfg.application["rail_items"] = ",".join(key for key in current_rail_items() if key != "preset")  # main page out
+    view.build_rail_items()
+    assert more_keys(view) == ["railMoreToggle"]  # folded at start
+    hidden = hidden_rail_items()
+    assert {"broadcast_director", "stream_overlay_view", "race_calculator", "preset", "data_editors",
+            "app_settings"} <= set(hidden)
+    assert "home" not in hidden and hidden == [key for key in rail_entries() if key not in current_rail_items()]
+    assert view._rail_more_buttons[0].emphasis  # set apart from the entries
+    view._rail_more_buttons[0].click()
+    assert more_keys(view) == ["railMoreToggle", *(f"railOther:{key}" for key in hidden)]
+    assert view._rail_more_buttons[0].text() == "Less"
+    # Page left out opened from it: its entry selected, no bar entry
+    presets = window.findChild(type(view._rail_more_buttons[0]), "railOther:preset")
+    presets.click()
+    assert view.current_index() == PAGE_INDEX["preset"] and presets.isChecked()
+    assert not [button for button in view._rail_buttons if button.isChecked()]
+    # Tool left out opened from it: page closed once left (not a rail page), entry selected meanwhile
+    calculator = window.findChild(type(presets), "railOther:race_calculator")
+    calculator.click()
+    settle()
+    page = view.dialog_pages()[-1]
+    assert type(page.dialog).__name__ == "RaceCalculator" and not view.is_rail_page(page)
+    assert calculator.isChecked()
+    # "+" adds it at the end of the bar, unfolded list kept without it
+    calculator.pinned.emit()
+    assert cfg.application["rail_items"].endswith(",race_calculator")
+    assert rail_keys(window)[-1] == "railTool:race_calculator.RaceCalculator"
+    assert "railOther:race_calculator" not in more_keys(view) and "railOther:preset" in more_keys(view)
+    # Right-click > Remove from Navigation Bar: back under More
+    view.remove_rail_item("race_calculator")
+    assert "race_calculator" not in cfg.application["rail_items"]
+    assert "railOther:race_calculator" in more_keys(view)
+    view.remove_rail_item("nope")  # unknown: bar kept
+    # Last entry never removed
+    cfg.application["rail_items"] = "home"
+    view.build_rail_items()
+    view.remove_rail_item("home")
+    assert cfg.application["rail_items"] == "home"
+    # Folded again
+    view._rail_more_buttons[0].click()
+    assert more_keys(view) == ["railMoreToggle"]
 
 
-def test_rail_editor_reset_and_nothing_checked(window):
-    from neopedal.ui.nav_rail import RailEditor, default_rail_items
+def test_rail_drag_and_drop(window):
+    """Entries dragged to another place of the rail, from More into it, onto More (left out); drop line shown"""
+    from PySide6.QtCore import QPoint
 
-    editor = RailEditor(None)
-    editor.fill([])
-    assert editor.checked_items() == [] and not editor.picker.label_empty.isHidden()
-    editor.reset()
-    assert editor.checked_items() == default_rail_items()
-    editor.fill([])
-    editor.saving()  # empty rail not allowed: default rail
-    assert cfg.application["rail_items"] == ",".join(default_rail_items())
+    from neopedal.ui.nav_rail import current_rail_items
+
+    view = window.centralWidget()
+    window.show()
+    settle()
+    start = current_rail_items()
+    first, second = view._rail_buttons[0], view._rail_buttons[1]
+    # Targets: above the middle of an entry = before it, More & below = out
+    assert view.rail_drop_target(QPoint(10, first.geometry().top() + 2)) == 0
+    assert view.rail_drop_target(QPoint(10, second.geometry().bottom() - 2)) == 2
+    assert view.rail_drop_target(QPoint(10, view._rail_divider.geometry().top() + 1)) == -1
+    view.show_rail_drop(QPoint(10, second.geometry().top() + 2))
+    assert view._rail_drop_marker.isVisible() and not view._rail_more_buttons[0].drop_target
+    view.show_rail_drop(QPoint(10, view._rail_more_buttons[0].geometry().center().y()))
+    assert not view._rail_drop_marker.isVisible() and view._rail_more_buttons[0].drop_target
+    view.show_rail_drop(None)
+    assert not view._rail_more_buttons[0].drop_target
+    # Home dropped under the 3rd entry
+    view.drop_rail_item("home", 3)
+    assert current_rail_items() == [start[1], start[2], "home", *start[3:]]
+    assert view._rail_buttons[2].property("railKey") == "home"
+    view.drop_rail_item("home", 0)  # back first
+    assert current_rail_items() == start
+    view.drop_rail_item("home", 1)  # same place: nothing saved
+    assert current_rail_items() == start
+    # From More into the rail, then onto More: out again
+    view.drop_rail_item("data_editors", 1)
+    assert current_rail_items() == [start[0], "data_editors", *start[1:]]
+    view.drop_rail_item("data_editors", -1)
+    assert current_rail_items() == start
+    view.drop_rail_item("nope_not_shown", -1)  # left out already: nothing
+    assert current_rail_items() == start
+
+
+def test_rail_drag_starts_from_entry(window, monkeypatch):
+    """Entry pressed & moved past the drag distance: dragged with its key, never clicked"""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QDrag
+    from PySide6.QtTest import QTest
+
+    from neopedal.ui import app_tab_view
+
+    dragged = []
+
+    def fake_exec(drag, *args):
+        dragged.append(bytes(drag.mimeData().data(app_tab_view.RAIL_MIME).data()).decode())
+        return Qt.DropAction.IgnoreAction
+
+    monkeypatch.setattr(QDrag, "exec", fake_exec)
+    view = window.centralWidget()
+    window.show()
+    settle()
+    button = view._rail_buttons[2]
+    clicks = []
+    button.clicked.connect(lambda: clicks.append(1))
+    QTest.mousePress(button, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, QPoint(10, 10))
+    QTest.mouseMove(button, QPoint(10, 10 + QApplication.startDragDistance() + 4))
+    QTest.mouseRelease(button, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, QPoint(10, 40))
+    assert dragged == [button.property("railKey")] and not clicks and not button.isDown()
+
+
+def test_rail_move_keys_and_reset(window, monkeypatch):
+    """Alt+Up / Alt+Down move the focused entry, context menu Move Up / Down; Reset asks, then default entries"""
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QMessageBox
+
+    from neopedal.ui.nav_rail import current_rail_items, default_rail_items
+
+    view = window.centralWidget()
+    window.show()
+    settle()
+    start = current_rail_items()
+    button = view._rail_buttons[1]
+    button.setFocus()
+    QTest.keyClick(button, Qt.Key.Key_Down, Qt.KeyboardModifier.AltModifier)
+    assert current_rail_items() == [start[0], start[2], start[1], *start[3:]]
+    moved = next(item for item in view._rail_buttons if item.property("railKey") == start[1])
+    assert moved.focusPolicy() == Qt.FocusPolicy.StrongFocus  # Tab stop of the rail: moved again at once
+    QTest.keyClick(moved, Qt.Key.Key_Up, Qt.KeyboardModifier.AltModifier)
+    assert current_rail_items() == start
+    view.move_rail_item(start[0], -1)  # already first
+    view.move_rail_item(start[-1], 1)  # already last
+    view.move_rail_item("nope", 1)
+    assert current_rail_items() == start
+    # Reset: asked first, kept when declined
+    cfg.application["rail_items"] = "home,data_editors"
+    view.build_rail_items()
+    monkeypatch.setattr(QMessageBox, "question", lambda *args: QMessageBox.StandardButton.No)
+    view.reset_rail_items()
+    assert current_rail_items() == ["home", "data_editors"]
+    monkeypatch.setattr(QMessageBox, "question", lambda *args: QMessageBox.StandardButton.Yes)
+    view.reset_rail_items()
+    assert current_rail_items() == default_rail_items() and len(view._rail_buttons) == len(default_rail_items())
+
+
+def test_rail_more_pin_click_adds_without_opening(window):
+    """Click on the "+" of an entry left out adds it, never opens its page"""
+    from PySide6.QtCore import QPoint
+    from PySide6.QtTest import QTest
+
+    view = window.centralWidget()
+    window.show()
+    view.toggle_rail_more()
+    settle()
+    button = next(item for item in view._rail_more_buttons if item.objectName() == "railOther:data_editors")
+    shown = view.current_index()
+    point = button.pin_rect().center().toPoint()
+    QTest.mouseClick(button, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier, point)
+    settle()
+    assert view.current_index() == shown and not view.dialog_pages()  # page not opened
+    assert cfg.application["rail_items"].endswith(",data_editors")
+    # Click elsewhere on an entry opens its page
+    other = next(item for item in view._rail_more_buttons if item.objectName() == "railOther:app_settings")
+    QTest.mouseClick(other, Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier,
+                     QPoint(other.width() // 2, other.height() - 4))
+    settle()
+    assert [type(page.dialog).__name__ for page in view.dialog_pages()] == ["AppSettings"]
 
 
 # --- Dialog pages
@@ -135,29 +288,33 @@ def test_tool_and_config_shown_as_pages(window):
 
 
 def test_broadcast_director_dot_and_notice(window, monkeypatch):
-    """Rail entry of the open Broadcast Director: green dot while on, grey while off; notice while on"""
+    """Rail entry of the open Broadcast Director: green dot while on, grey while off; listed under Now while on"""
     from PySide6.QtGui import QColor
 
     from neopedal.ui import game_rest, status_color
+    from neopedal.ui.notification import notification_store
     from neopedal.ui.tools_view import open_tool
     from tests.test_game_info import FakeGame
 
+    def listed() -> bool:
+        return ("Broadcast Director On", "tool:broadcast_director.BroadcastDirector") in notification_store().active()
+
     monkeypatch.setattr(game_rest, "GameConnection", FakeGame().connection)  # no real game request
     view = window.centralWidget()
+    add_to_rail(view, "broadcast_director")
     button = view.rail_tool_buttons()["BroadcastDirector"]
-    notice = view._notify_bar.director
     view.refresh_page_states()
-    assert button.dot_color is None and notice.isHidden()
+    assert button.dot_color is None and not listed()
     open_tool("broadcast_director.BroadcastDirector", window)
     view.refresh_page_states()
-    assert button.dot_color == QColor(status_color("success")) and not notice.isHidden()
+    assert button.dot_color == QColor(status_color("success")) and listed()
     backend = view.dialog_pages()[0].dialog.backend
-    backend.setEnabled(False)  # navigation & notification bars told at once
-    assert button.dot_color == QColor(status_color("inactive")) and notice.isHidden()
+    backend.setEnabled(False)  # navigation bar & notification center told at once
+    assert button.dot_color == QColor(status_color("inactive")) and not listed()
     backend.setEnabled(True)
     cfg.notification["notify_broadcast_director"] = False
     view.refresh_page_states()
-    assert notice.isHidden()
+    assert not listed()
     view.dialog_pages()[0].dialog.close()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     view.refresh_page_states()
@@ -172,6 +329,7 @@ def test_race_calculator_dot(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")
     button = view.rail_tool_buttons()["RaceCalculator"]
     open_tool("race_calculator.RaceCalculator", window)
     view.refresh_page_states()
@@ -248,20 +406,21 @@ def test_open_pages_indicator(window, monkeypatch):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")
     fuel = window.findChild(NavButton, "railTool:race_calculator.RaceCalculator")
     assert view._button_pages.isHidden()
     open_tool("race_calculator.RaceCalculator", window)
     assert view._button_pages.isHidden()  # rail tool: a page like any other, not an open page
-    open_tool("heatmap_editor.HeatmapEditor", window)
-    open_tool("brake_editor.BrakeEditor", window)
+    open_tool("replay_view.ReplayView", window)
+    editor = open_tool("brake_editor.BrakeEditor", window)  # Brakes tab of Data Editors
     assert not fuel.isChecked()
     assert not view._button_pages.isHidden() and view._button_pages.toolTip().endswith("2")
     # Close all (open pages menu): editor with unsaved changes asks, cancel keeps it open
-    editor = view.dialog_pages()[2].dialog
+    data = view.dialog_pages()[2].dialog
     editor.set_modified()
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *args, **kwargs: QMessageBox.StandardButton.Cancel))
     assert not view.close_all_pages(view.other_pages())
-    assert len(view.dialog_pages()) == 3 and view._pages.currentWidget().dialog is editor
+    assert len(view.dialog_pages()) == 3 and view._pages.currentWidget().dialog is data
     editor.set_unmodified()
     assert view.close_all_pages(view.other_pages())
     assert [page.title for page in view.dialog_pages()] == ["Race Calculator"]  # rail page kept
@@ -273,11 +432,12 @@ def test_left_pages_closed(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open
     open_tool("race_calculator.RaceCalculator", window)
-    open_tool("heatmap_editor.HeatmapEditor", window)
+    open_tool("track_map_viewer.TrackMapViewer", window)
     open_tool("brake_editor.BrakeEditor", window)
     settle()
-    assert [page.title for page in view.dialog_pages()] == ["Race Calculator", "Brake Editor"]
+    assert [page.title for page in view.dialog_pages()] == ["Race Calculator", "Data Editors"]
     assert view._button_pages.isHidden()  # nothing behind shown page
     view.set_current_index(1)
     settle()
@@ -292,12 +452,12 @@ def test_left_page_with_unsaved_changes_kept(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
-    open_tool("brake_editor.BrakeEditor", window)
-    editor = view.dialog_pages()[0].dialog
+    editor = open_tool("brake_editor.BrakeEditor", window)  # Brakes tab of Data Editors
+    data = view.dialog_pages()[0].dialog
     editor.set_modified()
     view.set_current_index(1)
     settle()
-    assert [page.dialog for page in view.dialog_pages()] == [editor]  # kept, closing would ask to save
+    assert [page.dialog for page in view.dialog_pages()] == [data]  # kept, closing would ask to save
     assert not view._button_pages.isHidden() and view._button_pages.dot_color == QColor(status_color("warning"))
     editor.set_unmodified()  # saved meanwhile: closed as any page left
     settle()
@@ -333,12 +493,12 @@ def test_tool_opened_from_page_is_page_too(window):
     view = window.centralWidget()
     open_tool("heatmap_editor.HeatmapEditor", window)
     editor = view.dialog_pages()[0].dialog
-    other = open_tool("brake_editor.BrakeEditor", editor)  # parent: the page itself, not the main window
+    other = open_tool("replay_view.ReplayView", editor)  # parent: the page itself, not the main window
     settle()
     pages = view.dialog_pages()
     assert other is not None and other.in_app_page and not other.isWindow()
     assert len(pages) == 2 and pages[1].dialog is other and pages[1].opener is pages[0]
-    assert not [widget for widget in QApplication.topLevelWidgets() if type(widget).__name__ == "BrakeEditor"]
+    assert not [widget for widget in QApplication.topLevelWidgets() if type(widget).__name__ == "ReplayView"]
     view.set_current_index(1)
     settle()
     assert not view.dialog_pages()
@@ -420,18 +580,18 @@ def test_window_grows_for_wide_page_and_restores(window):
 
 
 def test_hidden_tool_page_skips_refresh(window, monkeypatch):
+    from neopedal.template.page_registry import PERFORMANCE_PATH
     from neopedal.ui.tools_view import open_tool
 
     calls = []
     view = window.centralWidget()
     window.show()
-    open_tool("perf_view.PerformanceView", window)
-    page = view.dialog_pages()[0]
-    monkeypatch.setattr(type(page.dialog), "refresh", lambda self: calls.append(1))
-    page.dialog.timerEvent(None)
+    performance = open_tool(PERFORMANCE_PATH, window)  # Performance tab of the Modules page
+    monkeypatch.setattr(type(performance), "refresh", lambda self: calls.append(1))
+    performance.timerEvent(None)
     assert calls == [1]  # shown: refreshed
-    view.set_current_index(0)  # other page: tool kept open, hidden
-    page.dialog.timerEvent(None)
+    view.set_current_index(0)  # other page: Modules page kept, hidden
+    performance.timerEvent(None)
     assert calls == [1]  # no work while hidden
 
 
@@ -443,14 +603,14 @@ def test_open_pages_saved_and_reopened(window, monkeypatch):
 
     view = window.centralWidget()
     open_tool("race_calculator.RaceCalculator", window)
-    open_tool("brake_editor.BrakeEditor", window)
+    open_tool("brake_editor.BrakeEditor", window)  # Brakes tab of Data Editors
     UserConfig(parent=window, key_name="speedometer", preset_name="test", config_type="widget",
                user_setting=cfg.user.setting, default_setting=cfg.default.setting,
                reload_func=lambda: None).open()  # config dialogs are not tools: never reopened
     view.show_page_widget(view.dialog_pages()[0])
-    assert view.open_page_paths() == ["*race_calculator.RaceCalculator", "brake_editor.BrakeEditor"]
+    assert view.open_page_paths() == ["*race_calculator.RaceCalculator", "data_editors.DataEditors"]
     window.save_open_pages()
-    assert cfg.application["open_pages"] == "*race_calculator.RaceCalculator,brake_editor.BrakeEditor"
+    assert cfg.application["open_pages"] == "*race_calculator.RaceCalculator,data_editors.DataEditors"
     settle()  # pages left for another one closed, remembered at once
     assert view.open_page_paths() == ["*race_calculator.RaceCalculator"]
     assert cfg.application["open_pages"] == "*race_calculator.RaceCalculator"
@@ -464,7 +624,7 @@ def test_open_pages_saved_and_reopened(window, monkeypatch):
         other_view = other.centralWidget()
         assert not other_view.dialog_pages()  # reopened once window is shown
         QApplication.processEvents()
-        assert [page.title for page in other_view.dialog_pages()] == ["Brake Editor"]
+        assert [page.title for page in other_view.dialog_pages()] == ["Data Editors"]  # former editor: its tab
         assert other_view._pages.currentWidget() is other_view.dialog_pages()[0]
         assert not other.isVisible()
     finally:
@@ -477,6 +637,7 @@ def test_open_pages_current_app_page_kept(window):
     from neopedal.ui.nav_rail import PAGE_INDEX
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open
     view.set_current_index(PAGE_INDEX["preset"])
     # No page was shown at quit: rail tool reopened, other tool left for another page not reopened
     view.restore_pages(["race_calculator.RaceCalculator", "track_map_viewer.TrackMapViewer"])
@@ -488,6 +649,7 @@ def test_open_pages_reopened_without_showing_each(window):
     from neopedal.ui.nav_rail import PAGE_INDEX
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open
     view.set_current_index(PAGE_INDEX["preset"])
     shown = []
     view._pages.currentChanged.connect(lambda index: shown.append(view._pages.widget(index)))
@@ -516,7 +678,7 @@ def test_startup_tool_page_skips_app_page_behind(window, monkeypatch, tool, reop
         QApplication.processEvents()
         assert view._startup_blank is None and view._pages.count() == len(NAV_PAGES) + reopened
         if reopened:
-            assert view.page_title() == "Brake Editor"
+            assert view.page_title() == "Data Editors"  # former editor: its tab
             assert lazy.page is None  # app page behind tool page never built
             view.dialog_pages()[0].dialog.close()
             QApplication.processEvents()
@@ -553,6 +715,7 @@ def test_rail_tool_shows_loading_page_first(window, monkeypatch):
     from neopedal.ui.nav_rail import NAV_PAGES, PAGE_INDEX
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")
     window.show()
     view.select_page(PAGE_INDEX["preset"])
     QApplication.processEvents()
@@ -684,6 +847,7 @@ def test_rail_tools_have_no_close_buttons(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")
 
     def close_buttons(page):
         return [button for button in page.findChildren(QAbstractButton)
@@ -708,6 +872,7 @@ def test_escape_does_not_close_rail_tool_page(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")
 
     def escape(dialog):
         QApplication.sendEvent(dialog, QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier))
@@ -725,11 +890,12 @@ def test_language_change_keeps_config_and_edited_pages(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open
     view.set_current_index(1)
     open_tool("race_calculator.RaceCalculator", window)
-    open_tool("heatmap_editor.HeatmapEditor", window)
+    heatmaps = open_tool("heatmap_editor.HeatmapEditor", window)  # Heatmaps tab of Data Editors
     editor = view.dialog_pages()[-1].dialog
-    editor.set_modified()  # unsaved edits: page kept as it is
+    heatmaps.set_modified()  # unsaved edits: page kept as it is
     config = UserConfig(parent=window, key_name="speedometer", preset_name="test", config_type="widget",
                         user_setting=cfg.user.setting, default_setting=cfg.default.setting, reload_func=lambda: None)
     config.open()
@@ -742,7 +908,7 @@ def test_language_change_keeps_config_and_edited_pages(window):
     assert new_view._pages.currentWidget().dialog is config  # shown page shown again
     config.close()  # back to page shown before, closing still works
     assert config not in [page.dialog for page in new_view.dialog_pages()]
-    editor.set_unmodified()
+    heatmaps.set_unmodified()
 
 
 def test_config_reload_skipped_for_deleted_widget(ui_env):
@@ -785,10 +951,11 @@ def test_go_back_to_previous_pages(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open once left
     view.set_current_index(0)
     view.set_current_index(1)
     open_tool("race_calculator.RaceCalculator", window)
-    view.set_current_index(3)
+    view.set_current_index(2)
     assert view.go_back() and type(view._pages.currentWidget().dialog).__name__ == "RaceCalculator"
     assert view.go_back() and view.current_index() == 1  # further back, no ping-pong
     window.mousePressEvent(QMouseEvent(  # mouse back button
@@ -822,16 +989,17 @@ def test_shown_page_remembered_without_quit(window):
     from neopedal.ui.tools_view import open_tool
 
     view = window.centralWidget()
+    add_to_rail(view, "race_calculator")  # rail page: kept open once left
     QApplication.processEvents()  # startup pages restored: tracking on
     assert view.track_pages
-    view.set_current_index(3)
+    view.set_current_index(2)
     view.set_current_index(1)
-    assert view.go_back() and cfg.application["last_page_index"] == 3  # not only rail clicks
+    assert view.go_back() and cfg.application["last_page_index"] == 2  # not only rail clicks
     open_tool("race_calculator.RaceCalculator", window)
     assert cfg.application["open_pages"] == "*race_calculator.RaceCalculator"  # tool page shown
-    view.set_current_index(2)
+    view.set_current_index(1)
     assert cfg.application["open_pages"] == "race_calculator.RaceCalculator"
-    assert cfg.application["last_page_index"] == 2
+    assert cfg.application["last_page_index"] == 1
 
 
 def test_last_tool_page_shown_at_next_startup(window, monkeypatch):
@@ -950,7 +1118,7 @@ def test_quit_unloads_qml_views(window, monkeypatch):
 
     window.show()
     view = window.centralWidget()
-    for key in ("widget", "module", "preset", "spectate"):  # Qt Quick pages
+    for key in ("widget", "preset"):  # Qt Quick pages
         view.select_page(PAGE_INDEX[key])
         QApplication.processEvents()
     open_tool("driver_stats_viewer.DriverStatsViewer", window)
@@ -972,16 +1140,16 @@ def test_quit_unloads_qml_views(window, monkeypatch):
 def test_language_change_closes_reopened_tool_pages(window):
     """Tool pages reopened in new language: old ones closed first, their close cleanup done (was: only
     deleted, backends never released, vertices of map pages kept in memory, loaders left running)"""
+    from neopedal.template.page_registry import MAP_VIEWER_PATH
     from neopedal.ui.quick.lines import VertexStore, Vertices
     from neopedal.ui.tools_view import open_tool
 
     window.show()
-    open_tool("track_map_viewer.TrackMapViewer", window)
+    tracks = open_tool(MAP_VIEWER_PATH, window)  # map of the Tracks tab (Data Editors)
     QApplication.processEvents()
     view = window.centralWidget()
-    page = view.find_dialog_page("TrackMapViewer")
-    assert page is not None
-    key = page.dialog.backend.key("test")
+    assert view.find_dialog_page("DataEditors") is not None
+    key = tracks.map_viewer.backend.key("test")
     VertexStore.set(key, Vertices(bytearray(), 0))
     language = cfg.application["language"]
     try:
@@ -990,7 +1158,7 @@ def test_language_change_closes_reopened_tool_pages(window):
         window.retranslate()
         settle()
         assert not VertexStore.has(key)  # old page closed: backend released
-        assert window.centralWidget().find_dialog_page("TrackMapViewer") is not None  # reopened
+        assert window.centralWidget().find_dialog_page("DataEditors") is not None  # reopened
     finally:
         VertexStore.remove_prefix(key)
         cfg.application["language"] = language
@@ -1058,27 +1226,26 @@ def test_language_change_leaves_no_menus(window):
 
 
 def test_key_capture_open_while_language_changes(window, monkeypatch):
-    """Key capture (dialog of the hotkey page) open while a language change replaces the page: capture ended,
-    global hotkeys back on, no error"""
+    """Key capture (dialog of the Hotkeys category of Settings) open while a language change replaces the page:
+    capture ended, global hotkeys back on, no error"""
     import sys
 
-    from neopedal.ui.hotkey_view import HotkeyList
-    from neopedal.ui.nav_rail import PAGE_INDEX
+    from PySide6.QtCore import QObject
+
+    from neopedal.ui.app_settings import open_app_settings
     from neopedal.ui.quick import hotkey_backend
 
     calls = []
     for action in ("enable", "disable"):
         monkeypatch.setattr(type(hotkey_backend.kctrl), action, lambda self, _action=action: calls.append(_action))
     monkeypatch.setattr(hotkey_backend, "get_key_state_function", lambda: lambda code: 0)
-    cfg.application["enable_global_hotkey"] = True
     window.show()
-    view = window.centralWidget()
-    view.select_page(PAGE_INDEX["hotkey"])
+    settings = open_app_settings(window, "hotkeys")
     settle()
-    page = window.findChildren(HotkeyList)[0]
-    page.view.rootObject().openCapture("overlay_lock")
+    backend = settings.hosts["hotkeys"].backend
+    settings.view.rootObject().findChild(QObject, "embeddedPage").property("item").openCapture("overlay_lock")
     settle()
-    assert page.backend.capturing and calls[-1] == "disable"
+    assert backend.capturing and calls[-1] == "disable"
     errors = []
     monkeypatch.setattr(sys, "excepthook", lambda *args: errors.append(args[1]))
     language = cfg.application["language"]
@@ -1216,9 +1383,7 @@ def test_language_change_keeps_input_of_kept_page(window):
     from neopedal.ui.tools_view import open_tool
 
     window.show()
-    open_tool("heatmap_editor.HeatmapEditor", window)
-    view = window.centralWidget()
-    editor = view.dialog_pages()[0].dialog
+    editor = open_tool("heatmap_editor.HeatmapEditor", window)  # Heatmaps tab of Data Editors
     editor.set_modified()  # unsaved edits: page kept as it is
     names = []
     TextInputDialog(editor, "New", "Name:", lambda text: names.append((editor.objectName(), text)) or True).show()
@@ -1228,12 +1393,12 @@ def test_language_change_keeps_input_of_kept_page(window):
         change_language(window, "Français")
         new_view = window.centralWidget()
         inputs = open_inputs()
-        assert len(inputs) == 1 and new_view._pages.currentWidget() is new_view.find_dialog_page("HeatmapEditor")
+        assert len(inputs) == 1 and new_view._pages.currentWidget() is new_view.find_dialog_page("DataEditors")
         inputs[0].edit.setText("Dusk")
         inputs[0].accepting()
         assert names == [(editor.objectName(), "Dusk")]
         settle()
-        assert not open_inputs() and new_view._pages.currentWidget() is new_view.find_dialog_page("HeatmapEditor")
+        assert not open_inputs() and new_view._pages.currentWidget() is new_view.find_dialog_page("DataEditors")
     finally:
         editor.set_unmodified()
         change_language(window, language)
@@ -1245,11 +1410,11 @@ def test_stream_page_added_to_navigation_bar_once():
 
     bar = {"application": {"rail_items": "home,broadcast_director,preset"}}
     preupdate_global_setting((2, 51, 2), bar)
-    # Upcoming Races added last too (2.51.8: no Results & Replays in this bar)
-    assert bar["application"]["rail_items"] == "home,broadcast_director,stream_overlay_view,preset,race_schedule_viewer"
+    # Upcoming Races added under Home too (2.51.8)
+    assert bar["application"]["rail_items"] == "home,race_schedule_viewer,broadcast_director,stream_overlay_view,preset"
     bar = {"application": {"rail_items": "home, tools"}}  # no Broadcast Director: last
     preupdate_global_setting((2, 51, 2), bar)
-    assert bar["application"]["rail_items"] == "home,tools,stream_overlay_view,race_schedule_viewer"
+    assert bar["application"]["rail_items"] == "home,race_schedule_viewer,tools,stream_overlay_view"
     bar = {"application": {"rail_items": "stream_overlay_view,home"}}  # already there: kept
     preupdate_global_setting((2, 51, 2), bar)
     assert bar["application"]["rail_items"] == "stream_overlay_view,home,race_schedule_viewer"
@@ -1279,6 +1444,6 @@ def test_page_dialog_shown_without_stack_warning(window):
     finally:
         qInstallMessageHandler(old)
     assert not [message for message in messages if "not contained in stack" in message]
-    assert type(view._pages.currentWidget().dialog).__name__ == "BrakeEditor"
+    assert type(view._pages.currentWidget().dialog).__name__ == "DataEditors"  # former editor: its tab
     assert view.go_back() and type(view._pages.currentWidget().dialog).__name__ == "RaceCalculator"
     assert view.go_back() and view.current_index() == PAGE_INDEX["preset"]

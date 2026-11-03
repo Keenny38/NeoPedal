@@ -176,9 +176,9 @@ def test_spectate_list_reuses_rows(ui_env, monkeypatch, qml_messages):
 
 def test_modules_grid_reuses_cards(ui_env, qml_messages):
     from neopedal.module_control import mctrl, wctrl
-    from neopedal.ui.module_view import ModuleList
+    from tests.test_module_page import ModulesTestPage  # Modules category of Settings alone
 
-    page = ModuleList(None, mctrl, wctrl)
+    page = ModulesTestPage(mctrl, wctrl)
     page.resize(700, 420)
     page.show()
     try:
@@ -192,5 +192,6 @@ def test_modules_grid_reuses_cards(ui_env, qml_messages):
         assert not [text for text in qml_messages if "qml" in text.lower()], qml_messages
     finally:
         page.close()
+        page.release_page()
         page.deleteLater()
         flush()

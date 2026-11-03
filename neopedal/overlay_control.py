@@ -209,6 +209,7 @@ class OverlayControl:
             if self._last_active_state != active:
                 self._last_active_state = active
                 entered = active
+                overlay_signal.driving.emit(active)  # messages held while driving told once stopped
             # Auto load when player enters track, or session changes while driving (practice to qualifying)
             if (entered or (active and session_changed)) and cfg.application["enable_auto_load_preset"]:
                 # Class preset of the session first, then track preset, then class preset (every session)

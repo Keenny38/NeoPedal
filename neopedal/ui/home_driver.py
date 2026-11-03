@@ -30,13 +30,14 @@ import time
 from collections.abc import Sequence
 from typing import NamedTuple
 
+from ..flags import flag_view
 from ..i18n import tr, trm
 from ..process import driver_ranks as dr
 from ..process import results_file as rf
 from ..process import results_index as ri
 from ..process.player_profile import PlayerProfile, player_profile
 from ..setting import cfg
-from .quick.formatting import country_name, format_date, localized_number
+from .quick.formatting import country_name, localized_number, long_date_time, relative_date
 
 STALE_RANKS_DAYS = 7  # remembered ranks older than this: note shown as old (clock, warning color)
 CHART_MIN_SPAN = 0.25  # rank over time zoomed on its values, at least a quarter of a tier high
@@ -114,7 +115,7 @@ def zoomed_chart(points: list[dict]) -> list[dict]:
 
 def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
                 history: Sequence[dr.HistoryEntry], data: DriverData | None,
-                others: list[dr.OtherAccount] | None = None) -> dict | None:
+                others: list[dr.OtherAccount] | None = None, online: bool = False) -> dict | None:
     """Driver card of Home page, None if nothing known (card hidden)
 
     Args:
@@ -123,11 +124,13 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
         history: rank history (change since previous rank, rank over time).
         data: profile & race record, None until read.
         others: last ranks of other game accounts of this computer.
+        online: RaceControl reading on (option enable_online_driver_ranks): ranks remembered can be read again.
 
     Returns:
         name, ranks (label, value, colors of dark & light pages, progress, change & its tone, chart points zoomed
-        on their values, tooltip), badge, identity line, race record figures, note (ranks remembered) & noteStale
-        (seen over a week ago), other accounts (see stats_common.other_account_rows).
+        on their values, tooltip), badge, identity line, race record figures, note (ranks remembered: how long
+        ago), noteTip (date & time), noteStale (seen over a week ago), refresh (ranks remembered while RaceControl
+        reading is on: read again asked from the card), other accounts (see stats_common.other_account_rows).
     """
     from .quick.stats_common import badge_card, other_account_rows, rank_rows
 
@@ -154,8 +157,11 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
         "ranks": ranks,
         "badge": badge_card(player),
         "identity": identity,
+        "flag": flag_view(profile.nationality) if profile is not None else {},
         "figures": record_figures(record) if record is not None and record.races else [],
-        "note": trm(f"Last ranks seen in game menu, {format_date(updated)}") if noted else "",
+        "note": f"{tr('Last ranks known')} · {relative_date(updated)}" if noted else "",
+        "noteTip": long_date_time(updated) if noted else "",
         "noteStale": noted and time.time() - updated > STALE_RANKS_DAYS * 86400,
+        "refresh": noted and online,
         "others": other_account_rows(others),
     }

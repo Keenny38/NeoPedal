@@ -89,7 +89,7 @@ def plugin_status_kind(widget_name: str) -> tuple[str, str, str]:
         return "restart", tr("Restart required"), tr("Plugin found after start, restart NeoPedal to load it.")
     if PLUGIN_ERRORS.get(widget_name) == UNTRUSTED_ERROR:
         return "untrusted", tr("Not trusted"), tr(UNTRUSTED_ERROR)
-    if widget_name in PLUGIN_ERRORS:  # known error texts translated (safe mode...), others as is
+    if widget_name in PLUGIN_ERRORS:  # known error texts translated, others as is
         return "error", tr("Error"), trm(tr(PLUGIN_ERRORS[widget_name]))
     return "loaded", tr("Loaded"), ""
 

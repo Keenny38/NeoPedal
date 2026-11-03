@@ -155,7 +155,7 @@ Item {
             TpButton {
                 flat: true
                 size: "sm"
-                glyph: ""  // settings
+                glyph: theme.glyphs.settings
                 fallback: "⚙"
                 tip: i18n.tr("Options…")
                 opacity: row.hovered || hovered || visualFocus || row.current ? 1 : 0  // revealed: hover, focus, current

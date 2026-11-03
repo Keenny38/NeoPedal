@@ -17,10 +17,12 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Modules page: data modules as cards (what each computes, state, overlays depending on it), search & filter
+Modules: data modules as cards (what each computes, state, overlays depending on it), search & filter, a category of
+the Settings page (former Modules page); its Performance button opens the Overlay Performance page
 
-Qt Quick page (qml/Modules.qml), state & actions in quick/module_backend.py. The QML page is created
-when first shown. sort_key & highlight live here (imported by many pages): this module imports nothing heavy.
+Qt Quick page (qml/config/Modules.qml, context "moduleBackend") shown by the Settings page (app_settings.py), state &
+actions in quick/module_backend.py. sort_key & highlight live here (imported by many pages): this module imports
+nothing heavy.
 """
 
 from __future__ import annotations
@@ -28,15 +30,14 @@ from __future__ import annotations
 import html
 import re
 import unicodedata
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import QUrl, Slot
-from PySide6.QtWidgets import QVBoxLayout, QWidget
-
 if TYPE_CHECKING:
-    from PySide6.QtQuickWidgets import QQuickWidget
+    from PySide6.QtWidgets import QWidget
 
     from ..module_control import ModuleControl
+    from .quick.module_backend import ModuleBackend
 
 
 def sort_key(text: str) -> str:
@@ -66,105 +67,76 @@ def highlight(text: str, words: tuple[str, ...]) -> str:
     return "".join(parts)
 
 
-class ModuleList(QWidget):
-    """Modules page
+
+class ModulesHost:
+    """Modules category of the Settings page: backend of its page & what the backend asks of the page
 
     Args:
-        module_control: module control.
+        page: Settings page (dialogs, toasts; backend parent).
+        open_section: Settings category of a module's options shown.
+        module_control: module control, mctrl if not set.
         widget_control: widget control (overlays depending on each module), wctrl if not set.
     """
 
-    def __init__(self, parent, module_control: ModuleControl, widget_control: ModuleControl | None = None):
-        from ..module_control import wctrl
+    def __init__(self, page: QWidget, open_section: Callable[[str], None],
+                 module_control: ModuleControl | None = None, widget_control: ModuleControl | None = None):
+        from ..module_control import mctrl, wctrl
         from .quick.module_backend import ModuleBackend
 
-        super().__init__(parent)
-        self.module_control = module_control
-        self.backend = ModuleBackend(
-            self, module_control, widget_control or wctrl, self.open_config, self.confirm, self.show_log,
-            self.reset_data, self.ask,
+        self.page = page
+        self._open_section = open_section
+        self.backend: ModuleBackend = ModuleBackend(
+            page, module_control or mctrl, widget_control or wctrl, open_section, self.confirm, self.show_log,
+            self.reset_data, self.ask, open_performance=self.open_performance,
         )
-        self.view: QQuickWidget | None = None  # see ensure_view
-        self._creating = False
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
 
-    def ensure_view(self) -> QQuickWidget | None:
-        """QML page, created on first use"""
-        if self.view is None and not self._creating:
-            from .quick import create_quick_view
-
-            self._creating = True  # page shown again while QML loads: one page only
-            try:
-                view = create_quick_view(self, "Modules.qml", {"backend": self.backend}, samples=0)
-            finally:
-                self._creating = False
-            view.setAcceptDrops(False)  # preset & plugin files dropped go to main window
-            self._layout.addWidget(view)
-            view.show()  # child added to a shown page is not shown by itself
-            self.setFocusProxy(view)
-            self.view = view
-        return self.view
-
-    def showEvent(self, event):
-        self.ensure_view()
+    def page_shown(self):
         self.backend.page_shown()  # states read again: overlays switched on other pages, modules started
         self.backend.loadDependenciesLater()
-        super().showEvent(event)
 
-    def hideEvent(self, event):
+    def page_hidden(self):
         self.backend.page_hidden()  # app refresh signals no longer read every module & overlay while hidden
-        super().hideEvent(event)
 
-    def closeEvent(self, event):
-        super().closeEvent(event)
-        self.release_page()
-
-    def release_page(self):
-        """Page closed or released (see LazyPage.release): QML gone before the backend it binds to, then the
-        backend's jobs, timers & deferred work stopped"""
-        if self.view is not None:
-            view, self.view = self.view, None
-            view.setSource(QUrl())
-            view.deleteLater()
-        self.backend.release()
-
-    @Slot(bool)  # type: ignore[operator]
     def refresh(self, *_):
         """Setting, preset or module state changed elsewhere (hotkey, tray, other page): once shown if hidden"""
         self.backend.settings_changed()
 
-    def open_config(self, name: str):
-        """Module options: Settings page at the module category (saving restarts the module)"""
-        from .app_settings import open_app_settings
-
-        open_app_settings(self, name)
+    def release(self):
+        """Settings page closed (its QML gone first): jobs, timers & deferred work stopped"""
+        self.backend.release()
 
     def confirm(self, text: str) -> bool:
         from ..i18n import tr
         from ._common import confirm_action
 
-        return confirm_action(self, tr("Confirm"), text, tr("Confirm"))
+        return confirm_action(self.page, tr("Confirm"), text, tr("Confirm"))
 
     def ask(self, text: str, on_result):
         """Confirmation over the page (QML dialog of its TpDialogHost), answer by callback"""
         from ..i18n import tr
         from .quick.dialogs import confirm
 
-        confirm(self, tr("Confirm"), text, tr("Confirm"), on_result)
+        confirm(self.page, tr("Confirm"), text, tr("Confirm"), on_result)
 
     def show_log(self):
         from .log_info import LogInfo
 
-        LogInfo(self.window()).show()
+        LogInfo(self.page.window()).show()
 
     def reset_data(self, method: str):
         """Reset saved data (delta best, fuel delta...): asked first, see menu.ResetDataMenu"""
         from ..i18n import tr
         from .menu import ResetDataMenu
 
-        menu = ResetDataMenu(tr("Reset Data"), self.window())
+        menu = ResetDataMenu(tr("Reset Data"), self.page.window())
         try:
             getattr(menu, method)()
         finally:
             menu.deleteLater()
+
+    def open_performance(self):
+        """Overlay Performance page: CPU time of each overlay & module, game data state"""
+        from ..template.page_registry import PERFORMANCE_PATH
+        from .tools_view import open_tool
+
+        open_tool(PERFORMANCE_PATH, self.page)

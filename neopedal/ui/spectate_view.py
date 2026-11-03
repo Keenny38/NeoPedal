@@ -17,7 +17,8 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Spectate page: spectate mode, spectated driver, drivers of the session
+Spectate: spectate mode, spectated driver, drivers of the session (Spectate tab of the Broadcast Director page,
+former Spectate page)
 
 Qt Quick page (qml/Spectate.qml), state & actions in quick/spectate_backend.py. The QML page is
 created when first shown, drivers are read only while it is shown.
@@ -33,7 +34,7 @@ from .quick.spectate_backend import SpectateBackend
 
 
 class SpectateList(QWidget):
-    """Spectate page"""
+    """Spectate tab"""
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -71,10 +72,15 @@ class SpectateList(QWidget):
 
     def closeEvent(self, event):
         super().closeEvent(event)
-        if self.view is not None:  # QML gone before the backend it binds to
+        self.release_page()
+
+    def release_page(self):
+        """Page closed or released: QML gone before the backend it binds to, then the backend released"""
+        if self.view is not None:
             view, self.view = self.view, None
             view.setSource(QUrl())
             view.deleteLater()
+        self.backend.release()
 
     @Slot(bool)  # type: ignore[operator]
     def refresh(self, *_):

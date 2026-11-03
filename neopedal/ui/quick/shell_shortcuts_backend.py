@@ -78,6 +78,8 @@ def window_shortcuts(window: QWidget) -> list[dict]:
     rail_buttons = getattr(view, "rail_shortcut_labels", None)
     for keys, text in (rail_buttons() if callable(rail_buttons) else ()):
         add(tr("Navigation Bar"), native(keys), text)
+    if callable(rail_buttons):  # entry focused (click, arrow keys): moved in the bar, see NavButton.keyPressEvent
+        add(tr("Navigation Bar"), native("Alt+Up") + ", " + native("Alt+Down"), tr("Move the entry up or down"))
     menu_bar = getattr(window, "menuBar", None)
     for action in (menu_bar().actions() if callable(menu_bar) else ()):
         menu = action.menu()
@@ -123,12 +125,6 @@ class ShortcutsBackend(ShellBackend):
     @Property(list, notify=rowsChanged)
     def rows(self) -> list[dict]:
         return self._rows
-
-    @Property(bool, constant=True)
-    def hotkeysEnabled(self) -> bool:
-        from ...setting import cfg
-
-        return bool(cfg.application["enable_global_hotkey"])
 
     @Slot(str)
     def setSearch(self, text: str):

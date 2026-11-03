@@ -57,7 +57,7 @@ If REST data does not show up, check `API` > `API Options` (with `Le Mans Ultima
 - `url_port` (default `6397`) must match the `WebUI port` value of the game file `UserData\player\Settings.JSON`. This value can change in some situations.
 - `enable_vehicle_info`, `enable_race_info`, `enable_garage_setup_info`, `enable_session_info` and `enable_weather_info` turn individual data groups on or off.
 
-The performance monitor (`Help` > `Overlay Performance`, `Game data` section) shows the age of the shared memory data and the state of each REST data group. Details of each option: [Le Mans Ultimate API](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#le-mans-ultimate-api).
+The performance monitor (`Overlay Performance`: `Performance` in `Settings` > `Modules`, or the command palette; `Game data` section) shows the age of the shared memory data and the state of each REST data group. Details of each option: [Le Mans Ultimate API](https://github.com/Keenny38/NeoPedal/blob/master/docs/customization.md#le-mans-ultimate-api).
 
 ## rFactor 2
 

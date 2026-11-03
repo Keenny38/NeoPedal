@@ -79,6 +79,8 @@ DATA_FILES = {
         "images/icon.png",
         "images/icon_dark.png",
         "images/icon_dark.ico",  # installer shortcut icon for dark theme
+        "images/flags.png",  # country flags (flag-icons, MIT), cells listed in flags.json
+        "images/flags.json",
     ],
 }
 
@@ -159,6 +161,7 @@ def build_exe(extra_arguments: list[str]):
         f"--specpath={WORK_FOLDER}",
         "--optimize=2",
         f"--add-data={os.path.abspath('neopedal/i18n/data')}{os.pathsep}neopedal/i18n/data",
+        f"--add-data={os.path.abspath('neopedal/data')}{os.pathsep}neopedal/data",  # driver nationalities
         # Qt Quick pages (ui/qml), loaded by file path
         f"--add-data={os.path.abspath('neopedal/ui/qml')}{os.pathsep}neopedal/ui/qml",
         # Only QML modules used by pages (default PySide6.QtQml hook bundles every one, about 300 MB)

@@ -479,23 +479,22 @@ def test_page_in_app_window_saves_and_closes(dialogs, monkeypatch, tmp_path):
     window = app_module.AppWindow()
     try:
         window.show()
-        open_tool("track_notes_editor.TrackNotesEditor", window)
+        editor = open_tool("track_notes_editor.TrackNotesEditor", window)  # Notes tab of Data Editors
         view = window.centralWidget()
-        page = view.find_dialog_page("TrackNotesEditor")
-        assert page is not None
-        editor = page.dialog
+        page = view.find_dialog_page("DataEditors")
+        assert page is not None and page.dialog.isAncestorOf(editor)
         editor.backend.setValue(editor.backend.rows[0]["key"], "note", "R3")
         assert page.is_modified()
         asked = save_to(monkeypatch, tmp_path / "Spa.tppn")
         assert window.save_current_page() and len(asked) == 1 and not editor.is_modified()
         editor.backend.setValue(editor.backend.rows[0]["key"], "note", "R4")
         answer(monkeypatch, QMessageBox.StandardButton.Cancel)
-        assert not editor.close() and view.find_dialog_page("TrackNotesEditor") is not None
+        assert not page.dialog.close() and view.find_dialog_page("DataEditors") is not None
         answer(monkeypatch, QMessageBox.StandardButton.Discard)
-        assert editor.close()
+        assert page.dialog.close()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         QCoreApplication.processEvents()
-        assert view.find_dialog_page("TrackNotesEditor") is None
+        assert view.find_dialog_page("DataEditors") is None
     finally:
         window.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -503,9 +502,9 @@ def test_page_in_app_window_saves_and_closes(dialogs, monkeypatch, tmp_path):
 
 
 def test_registry_entry_opens_page(dialogs):
-    from neopedal.template.page_registry import page_spec
+    from neopedal.template.page_registry import DATA_EDITOR_TABS
 
-    module_name, class_name = page_spec("track_notes_editor").dialog.split(".")
+    module_name, class_name = dict((key, path) for key, _, path in DATA_EDITOR_TABS)["track_notes_editor"].split(".")
     module = __import__(f"neopedal.ui.{module_name}", fromlist=[class_name])
     page = getattr(module, class_name)(None)
     try:

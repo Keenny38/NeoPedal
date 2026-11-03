@@ -431,7 +431,7 @@ FocusScope {
             }
             TpButton {
                 id: displayButton
-                glyph: ""  // settings
+                glyph: theme.glyphs.settings
                 fallback: "⚙"
                 flat: true
                 size: "sm"

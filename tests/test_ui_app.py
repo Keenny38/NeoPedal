@@ -70,26 +70,19 @@ def test_live_language_switch(ui_env, monkeypatch):
 
 
 def test_navigation_rail(ui_env, monkeypatch):
-    """Tools page, quick toggles & remembered page"""
+    """Quick toggles & remembered page (Tools page gone: Tools menu & command palette, 2026-11-03)"""
     import os
 
     from neopedal.ui import app as app_module
-    from neopedal.ui.tools_view import LISTED_TOOL_SECTIONS, ToolsView
 
     monkeypatch.setattr(app_module.AppWindow, "set_window_state", lambda self: None)
     cfg.application["show_setup_wizard_at_startup"] = False
-    cfg.application["last_page_index"] = app_module.PAGE_INDEX["tools"]
+    cfg.application["last_page_index"] = app_module.PAGE_INDEX["widget"]
     window = app_module.AppWindow()
     try:
         view = window.centralWidget()
-        assert view.current_index() == app_module.PAGE_INDEX["tools"]  # restored
-        # Qt Quick page: one tile per listed tool & per page left out of the navigation bar (Pages section)
-        from neopedal.ui.nav_rail import current_rail_items
-        from neopedal.ui.quick.shell_tools_backend import page_entries
-
-        tools_page = view.findChild(ToolsView)
-        pages = len(page_entries(set(current_rail_items())))
-        assert tools_page.backend.shownCount == pages + sum(len(tools) for _, tools in LISTED_TOOL_SECTIONS)
+        assert view.current_index() == app_module.PAGE_INDEX["widget"]  # restored
+        assert list(app_module.PAGE_INDEX) == ["home", "widget", "preset"]  # Modules, Hotkeys, Spectate moved
         if os.environ.get("RAIL_SHOT"):
             window.resize(560, 820)
             window.show()
@@ -203,7 +196,12 @@ def test_command_palette(ui_env, monkeypatch):
     try:
         palette = CommandPalette(window)
         titles = [command.title for command in palette.commands]
-        assert "Race Calculator" in titles and "Tools" in titles
+        assert "Race Calculator" in titles and "Data Editors" in titles and "Tools" not in titles
+        # Tools of a page (2026-11-03): Plugin Manager of Overlays, Performance tab of Modules
+        assert "Plugin Manager" in titles and "Overlay Performance" in titles
+        assert match_commands(palette.commands, "brake editor")[0].title == "Data Editors"  # former editors
+        # Former Pace Notes page: Data Editors (Notes tab) found too
+        assert "Data Editors" in [command.title for command in match_commands(palette.commands, "pace notes")]
         # Accent & case insensitive, words in any order
         assert match_commands(palette.commands, "calculator RACE")[0].title == "Race Calculator"
         # Former fuel calculator & tyre strategy planner names find the merged tool
@@ -216,10 +214,11 @@ def test_command_palette(ui_env, monkeypatch):
         options = palette.options
         assert CommandPalette(window).options is options  # option index kept while settings unchanged
         palette = CommandPalette(window)
-        palette.set_search("Tools")
-        palette.run_selected()  # first match is the page, run once the palette is closed
+        palette.set_search("Hotkeys")
+        palette.run_selected()  # first match: Settings category (former page), run once the palette is closed
         QCoreApplication.processEvents()
-        assert window.centralWidget().current_index() == app_module.PAGE_INDEX["tools"]
+        settings = window.centralWidget().current_page().dialog
+        assert type(settings).__name__ == "AppSettings" and settings.backend.category == "hotkeys"
     finally:
         cfg.application["last_page_index"] = 0
         tray = window.findChild(QSystemTrayIcon)

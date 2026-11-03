@@ -30,7 +30,7 @@ def overlay(ui_env, monkeypatch):
 
     calls: list = []
     monkeypatch.setattr(overlay_control, "overlay_signal", SimpleNamespace(**{
-        name: recorder(calls, name) for name in ("hidden", "context", "locked", "paused", "iconify")}))
+        name: recorder(calls, name) for name in ("hidden", "context", "locked", "paused", "iconify", "driving")}))
     monkeypatch.setattr(overlay_control, "app_signal", SimpleNamespace(reload=recorder(calls, "reload")))
     for name in ("active", "shown", "paused", "resets", "hidden", "screen_hidden", "session_type", "in_pits"):
         monkeypatch.setattr(realtime_state, name, getattr(realtime_state, name))
@@ -152,10 +152,14 @@ def test_state_signals_sent_on_change_only(overlay):
     run_loop(control, runs=3)
     assert [call for call in calls if call[0] == "paused"] == [("paused", False)]
     assert len([call for call in calls if call[0] == "context"]) == 1
+    assert [call for call in calls if call[0] == "driving"] == [("driving", True)]  # once (held notifications)
     calls.clear()
     game["in_pits"] = True  # visibility context changed
     run_loop(control)
     assert ("context",) in calls and realtime_state.in_pits
+    game["active"] = False
+    run_loop(control)
+    assert ("driving", False) in calls  # stopped: held notifications told
 
 
 def test_track_preset_auto_loaded_once(overlay, monkeypatch):

@@ -597,7 +597,7 @@ def test_api_falls_back_to_game_for_incompatible_replay(tmp_path, monkeypatch):
     from neopedal.replay import replay
 
     errors: list[str] = []
-    app_signal.error.connect(errors.append)
+    app_signal.warning.connect(errors.append)  # game data read instead: a warning
     frame = bytes(ctypes.sizeof(lmu_data.LMUObjectOut))
     replay.load(write_replay(tmp_path, [frame, frame]))
     try:
@@ -607,7 +607,7 @@ def test_api_falls_back_to_game_for_incompatible_replay(tmp_path, monkeypatch):
         replay.load(write_replay(tmp_path, [frame[:-8], frame[:-8]]))  # older, smaller structure
         assert api_connector.SimLMU().replay_player() is None and not replay.active
     finally:
-        app_signal.error.disconnect(errors.append)
+        app_signal.warning.disconnect(errors.append)
         replay.unload()
 
 

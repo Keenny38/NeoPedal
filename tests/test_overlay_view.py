@@ -213,9 +213,6 @@ def test_failed_state(overlays):
     overlays.refresh()
     index = overlays.source.index(overlays.source.index_of["speedometer"], 0)
     assert index.data(OverlayModel.FailedRole) is True and overlays.failedCount == 1
-    overlays._safe_mode = True  # overlays never started in safe mode: not an error
-    overlays.refresh()
-    assert index.data(OverlayModel.FailedRole) is False
 
 
 def test_batch_toggle_shown_only(overlays, monkeypatch):
@@ -574,7 +571,7 @@ def test_main_window_uses_overlay_page(ui_env):
 
     host = QWidget()
     try:
-        page = app_module.build_page("widget", host, view=None, window=host, icon_family="")  # type: ignore[arg-type]
+        page = app_module.build_page("widget", host, view=None, window=host)  # type: ignore[arg-type]
         assert isinstance(page, OverlayView)
     finally:
         host.deleteLater()

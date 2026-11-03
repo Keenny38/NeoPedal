@@ -54,7 +54,6 @@ def test_title_bar_menu_ends_with_restart_and_quit(ui_env):
     bar = TitleBar(main)
     main.setMenuWidget(bar)
     bar.menu_bar.addMenu("Help")
-    bar.customize_rail = lambda: None
     main.show()
     try:
         bar.show_menu()
@@ -62,8 +61,8 @@ def test_title_bar_menu_ends_with_restart_and_quit(ui_env):
         menu = next(widget for widget in qapp.topLevelWidgets() if isinstance(widget, QMenu) and widget.isVisible())
         actions = menu.actions()
         assert [action.text() for action in actions if not action.isSeparator()] == [
-            "Help", "Customize Navigation Bar…", "Restart NeoPedal", "Quit"]
-        assert actions[-3].isSeparator()  # own group, after the rail editor
+            "Help", "Restart NeoPedal", "Quit"]
+        assert actions[-3].isSeparator()  # own group, after the window menus
         actions[-2].trigger()
         actions[-1].trigger()
         assert main.calls == ["restart", "quit"]
@@ -75,17 +74,19 @@ def test_title_bar_menu_ends_with_restart_and_quit(ui_env):
 
 
 def test_tools_menu_leaves_out_tools_of_navigation_bar(window, monkeypatch):  # noqa: F811
+    from neopedal.setting import cfg
     from neopedal.ui import nav_rail
     from neopedal.ui.menu import ToolsMenu
     from neopedal.ui.tools_view import LISTED_TOOL_SECTIONS
 
+    cfg.application["rail_items"] = ",".join([*nav_rail.current_rail_items(), "race_calculator"])
     tools = window.findChild(ToolsMenu)
     rail = nav_rail.current_rail_items()
-    assert "race_calculator" in rail and "lap_viewer" in rail  # default rail
+    assert "race_calculator" in rail and "lap_viewer" in rail
     tools.aboutToShow.emit()
     shown = visible_texts(tools)
     assert "Race Calculator" not in shown and "Lap Telemetry Viewer" not in shown and "Results && Replays" not in shown
-    assert "Track Map Viewer" in shown and "Brake Editor" in shown and "Session Recorder" in shown
+    assert "Data Editors" in shown and "Session Recorder" in shown and "Track Map Viewer" not in shown  # merged
     assert len(shown) < 15  # was 20
     # Removed from the navigation bar: listed again
     monkeypatch.setattr(nav_rail, "current_rail_items", lambda: [key for key in rail if key != "race_calculator"])
@@ -95,7 +96,13 @@ def test_tools_menu_leaves_out_tools_of_navigation_bar(window, monkeypatch):  # 
     names = [path.split(".", 1)[0] for _, entries in LISTED_TOOL_SECTIONS for _, _, path in entries]
     monkeypatch.setattr(nav_rail, "current_rail_items", lambda: names)
     tools.aboutToShow.emit()
-    assert visible_texts(tools) == ["Pages"]
+    assert visible_texts(tools) == ["Home", "Overlays", "Presets"]  # main pages left out of the bar
+    assert not [action for action in tools.actions() if action.isSeparator() and action.isVisible()]
+    # Every page in the navigation bar: one disabled line says so
+    monkeypatch.setattr(nav_rail, "current_rail_items", lambda: ["home", "widget", "preset", *names])
+    tools.aboutToShow.emit()
+    assert visible_texts(tools) == ["Every page is in the navigation bar"]
+    assert not tools.action_none.isEnabled()
     assert not [action for action in tools.actions() if action.isSeparator() and action.isVisible()]
 
 

@@ -1,8 +1,8 @@
 # Broadcast Director
 
-The **Broadcast Director** casts a race of **Le Mans Ultimate**: live (driving, or spectating an online race) or in a replay. It shows every car with live timing, puts the game camera on the car you choose (or lets an automatic director do it), lists race events for the commentators, and feeds TV graphics to your streaming software. rFactor 2 is not supported.
+The **Broadcast Director** casts a race of **Le Mans Ultimate**: live (driving, or spectating an online race) or in a replay. It shows every car with live timing, puts the game camera on the car you choose (or lets an automatic director do it), lists race events for the commentators, and feeds TV graphics to your streaming software. rFactor 2 is not supported by the director. The page has two tabs: `Director` (this guide) and `Spectate` (the driver your overlays show, see [Getting Started](Getting-Started.md#spectate), Le Mans Ultimate and rFactor 2); it opens on `Spectate` when the selected game API is not Le Mans Ultimate.
 
-Open it with the `Broadcast` entry of the navigation bar, the `Tools` page, or the command palette (`Ctrl+K`). The game must be running: cars, cameras and race events come from its REST API (nothing to set up, see [Game Setup](Game-Setup.md#lmu-rest-api-automatic)).
+Open it with the `Broadcast` entry of the navigation bar (under `More` when not in the bar: its `+` adds it), the `Tools` menu, or the command palette (`Ctrl+K`). The game must be running: cars, cameras and race events come from its REST API (nothing to set up, see [Game Setup](Game-Setup.md#lmu-rest-api-automatic)).
 
 ![Broadcast Director: cars, camera desk with the director queue, race events and car sheet](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/docs/changelog/0.23.0-broadcast-director.png)
 
@@ -18,7 +18,7 @@ The header shows the session state (`LIVE` or `REPLAY`) and the weather: full co
 
 The **switch** at the top left turns the director on or off (on by default, kept for next time). While the page is open, even hidden behind another page, the director asks the game about every second. Turned off, it asks the game nothing, cuts no camera, gives the game camera back to you (an instant replay is left for the live session and, when the director moved the camera, it goes back on your car in the cockpit view), turns `Automatic` back to `Assisted`, turns spectate mode off (overlays back on your car, whether the `Spectate` page or `Overlays follow the car on air` turned it on) and empties the broadcast graphics. Director hotkeys then act as with the page closed. Events, battles and notes of the session are kept; turn it back on with the switch, the `Turn On Broadcast Director` button, the `director_toggle` hotkey or the command palette (`Ctrl+K`, `Broadcast Director (On)`). Graphics and director settings can still be changed while off. Turned off and hidden behind another page for 10 minutes, the page is closed to free memory, like any page, and opens again from the navigation bar (turned on, it stays open to follow the session). Closing the page (or quitting the app) with the director on does the same: an instant replay is left for the live session and, when the director moved the camera, the camera goes back on your car in the cockpit view (as an online spectator with no car of your own, it stays on the car on air; camera never moved by the director: your own view is kept).
 
-While the page is open, its `Broadcast` entry of the navigation bar has a dot (green: on, grey: off) and the `Broadcast Director On` notice shows at the bottom of the main window while on (click it to show the page; `Settings` > `Notification` to hide it). Hidden behind another page with nothing needing fresh answers (assisted or manual mode, no graphics source showing, overlays not following the car on air, events log off), the director asks the game every 5 seconds instead of every second, and every second again as soon as the page shows, a graphics source connects or automatic mode starts.
+While the page is open, its `Broadcast` entry of the navigation bar has a dot (green: on, grey: off) and `Broadcast Director On` is listed under `Now` in the notification center (bell) while on (`Open` shows the page; `notify_broadcast_director` in `Settings` > `Notification` to leave it out). Hidden behind another page with nothing needing fresh answers (assisted or manual mode, no graphics source showing, overlays not following the car on air, events log off), the director asks the game every 5 seconds instead of every second, and every second again as soon as the page shows, a graphics source connects or automatic mode starts.
 
 ## Director
 
@@ -32,7 +32,7 @@ Choose the mode at the top of the page:
 | `Assisted` | The stories are listed by interest in the director queue: click one, or `Take Best` (`Enter`). `1` to `6` take the story showing that number: a story keeps its number while it is listed, a new one takes the lowest free number. While the mouse is over the list (or the list has the focus) and one second after, the rows keep their place: new stories are added after them. |
 | `Automatic` | The director cuts by itself, with a camera suited to each story. |
 
-Press `?` (or the keyboard button at the top) for the **keys sheet**: the page keys (`←` `→` previous / next car, `Enter`, `1` to `6`, `Space` play / pause the replay, `F5` ask the game again, `Esc` closes the open popup, never the page) and the director hotkeys set on the `Hotkey` page with their keys. Buttons with a hotkey show it in their tooltip.
+Press `?` (or the keyboard button at the top) for the **keys sheet**: the page keys (`←` `→` previous / next car, `Enter`, `1` to `6`, `Space` play / pause the replay, `F5` ask the game again, `Esc` closes the open popup, never the page) and the director hotkeys set in `Settings` > `Hotkeys` with their keys. Buttons with a hotkey show it in their tooltip.
 
 When the game stops answering about the session for a moment (loading, network), the desk stays as it was, greyed under a `Game not responding for X s` banner, with its stories and the instant replay kept: the game is asked every second, and the page shows the menus only after three answers in a row without the session (or two answers two seconds apart).
 
@@ -120,7 +120,7 @@ TV graphics made for the director, as one **browser source (1920 x 1080)** for O
 
 ## Hotkeys
 
-These commands can be bound on the `Hotkey` page and run from the [remote control](Connections.md#remote-control) (Stream Deck, Companion...). Except the first two, they work while the page is open:
+These commands can be bound in `Settings` > `Hotkeys` and run from the [remote control](Connections.md#remote-control) (Stream Deck, Companion...). Except the first two, they work while the page is open:
 
 | Command | Effect |
 |---|---|
@@ -138,4 +138,4 @@ These commands can be bound on the `Hotkey` page and run from the [remote contro
 
 - The page asks the game about once a second while it is open, also while you look at another page, so the director keeps working. It keeps one connection to the game open; an answer of the game costs about 3 ms of the interface (0.5 ms while the page is hidden).
 - Laps, fuel and stats are only recorded while you drive, not while you direct a race you spectate.
-- `Broadcast` took the place of `Spectate` in the default navigation bar. The `Spectate` page is still in the command palette and the Home page quick access; add it back to the navigation bar with `Customize Navigation Bar…` (right-click the bar).
+- `Broadcast` took the place of `Spectate` in the default navigation bar. The former `Spectate` page is the `Spectate` tab of this page: its entries in your navigation bar or Home page quick access open it.

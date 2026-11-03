@@ -77,6 +77,9 @@ def test_every_global_option_shown_once(settings):
     from neopedal.ui.quick.settings_backend import CATEGORIES
 
     for category in CATEGORIES:
+        if category.page:  # page category (Hotkeys): its own page, no option rows
+            assert not category.groups and not [info for info in settings._infos.values() if info.section == category.key]
+            continue
         expected = [key for key in cfg.user.config[category.key] if key not in HIDDEN_OPTIONS.get(category.key, ())]
         shown = [info.key for info in settings._infos.values() if info.section == category.key]
         assert sorted(shown) == sorted(expected), category.key
@@ -129,10 +132,12 @@ def test_groups_and_editor_kinds(settings):
     settings.selectCategory("user_path")
     paths = settings.model.rows
     assert all(item["kind"] == "path" for item in paths) and paths[0]["group"] == ""  # page title says it
-    settings.selectCategory("notification")
-    color = row(settings, "notification/font_color_locked_preset")
-    assert color["kind"] == "color" and color["color"] == "#FFFFFF" and color["help"] == ""  # generic help skipped
-    assert settings.previews["Preset Locked"]["background"] == "#767676"  # white text 4.5:1 (UI/UX audit N5)
+    settings.selectCategory("vr_overlay")
+    color = row(settings, "vr_overlay/mirror_background_color")
+    assert color["kind"] == "color" and color["color"] == "#000000"
+    settings.selectCategory("notification")  # no chip colors: modes are listed in the notification center
+    assert not [item for item in settings.model.rows if "color" in item["key"]]
+    assert row(settings, "notification/number_of_minutes_before_race_reminder")["kind"] == "integer"
 
 
 def test_pending_edits_undo_redo_discard(settings):
@@ -155,17 +160,18 @@ def test_pending_edits_undo_redo_discard(settings):
 
 
 def test_invalid_values_block_apply(settings):
-    key = "notification/font_color_locked_preset"
+    key = "vr_overlay/mirror_background_color"
+    settings.selectCategory("vr_overlay")
     settings.setText(key, "#12")
     assert settings.errorCount == 1 and "RRGGBB" in settings.firstError
     settings.selectCategory("application")
-    assert settings.apply() is False and settings.category == "notification"  # first error shown
-    assert cfg.notification["font_color_locked_preset"] == "#FFFFFF"
+    assert settings.apply() is False and settings.category == "vr_overlay"  # first error shown
+    assert cfg.user.config["vr_overlay"]["mirror_background_color"] == "#000000"
     settings.setText(key, "#00ff00")
     assert settings.errorCount == 0 and row(settings, key)["color"] == "#00FF00"
     assert settings.apply() is True
-    assert cfg.notification["font_color_locked_preset"] == "#00FF00"
-    assert settings.host.applied_sections == [{"notification"}] and settings.canUndo  # history kept
+    assert cfg.user.config["vr_overlay"]["mirror_background_color"] == "#00FF00"
+    assert settings.host.applied_sections == [{"vr_overlay"}] and settings.canUndo  # history kept
 
 
 def test_number_text_and_choice_edits_applied(settings, ui_env):
@@ -194,14 +200,14 @@ def test_typed_text_taken_while_typing(settings):
     assert row(settings, key)["text"] == "someone/fork"
     settings.undo()  # keys typed in a row: one undo step
     assert settings.pendingCount == 0 and row(settings, key)["text"] == cfg.application["update_repository"]
-    color = "notification/font_color_locked_preset"
-    settings.selectCategory("notification")
+    color = "vr_overlay/mirror_background_color"
+    settings.selectCategory("vr_overlay")
     settings.typeText(color, "#12")
     assert settings.errorCount == 1 and row(settings, color)["text"] == "#12"  # checked as typed
     settings.typeText(color, "#123456")
     assert settings.errorCount == 0 and settings._pending[color] == "#123456"
     settings.revertOption(color)  # Esc: saved value back
-    assert color not in settings._pending and row(settings, color)["text"] == "#FFFFFF"
+    assert color not in settings._pending and row(settings, color)["text"] == "#000000"
     settings.typeText("application/snap_distance", "25")
     assert settings.apply() and cfg.application["snap_distance"] == 25
 
@@ -656,24 +662,22 @@ def test_language_change_keeps_window_size(window):
 
 
 def test_feature_switches_saved_at_once(settings, monkeypatch):
-    """Switch turning a feature on or off (global hotkeys, servers...): saved & applied at once like on its own
-    page, other pending edits kept"""
+    """Switch turning a feature on or off (servers, stream, VR...): saved & applied at once like on its own page,
+    other pending edits kept (global hotkeys always on since 2026-11-03: no switch)"""
     from neopedal.ui.quick import settings_backend
 
     applied = []
     monkeypatch.setattr(settings_backend, "apply_switch", applied.append)
     saved = cfg.application["show_at_startup"]
     settings.setBool("application/show_at_startup", not saved)  # pending until Apply
-    hotkeys = cfg.application["enable_global_hotkey"]
-    settings.setBool("application/enable_global_hotkey", not hotkeys)
-    assert cfg.application["enable_global_hotkey"] == (not hotkeys) and applied == [settings_backend.SWITCH_HOTKEYS]
     assert settings.pendingCount == 1 and cfg.application["show_at_startup"] == saved
+    assert "application/enable_global_hotkey" not in settings_backend.IMMEDIATE_SWITCHES
     settings.selectCategory("web_dashboard")
     web = cfg.user.config["web_dashboard"]["enable_web_dashboard"]
     settings.setBool("web_dashboard/enable_web_dashboard", not web)
     assert cfg.user.config["web_dashboard"]["enable_web_dashboard"] == (not web)
+    assert applied == [settings_backend.SWITCH_SERVERS] and settings.pendingCount == 1
     settings.resetOption("web_dashboard/enable_web_dashboard")  # back to default: at once too
     assert applied[-1] == settings_backend.SWITCH_SERVERS and settings.pendingCount == 1
-    cfg.application["enable_global_hotkey"] = hotkeys
     cfg.user.config["web_dashboard"]["enable_web_dashboard"] = web
     assert set(settings_backend.IMMEDIATE_SWITCHES) <= set(settings._infos)  # every switch is an option shown

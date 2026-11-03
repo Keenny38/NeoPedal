@@ -16,7 +16,7 @@ from test_lap_reference import SHEET
 
 from neopedal.const_common import MAX_SECONDS
 from neopedal.setting import cfg
-from neopedal.ui.quick import stats_common, stats_edits, stats_selection, stats_table
+from neopedal.ui.quick import stats_common, stats_edits, stats_table
 from neopedal.userfile import driver_history, driver_stats, lap_reference
 from neopedal.userfile.driver_history import SessionRecord
 from neopedal.userfile.driver_stats import DriverStats, validate_stats_file
@@ -768,22 +768,18 @@ def test_qml_page_loads_with_bundled_modules(page, tmp_path):
 
 
 def test_open_map_loaded_in_page_already_open(backend, monkeypatch):
-    """Track map viewer already open as page: shown instead, on the track asked (not the one shown before)"""
+    """Map: Tracks tab of the Data Editors page (former Track Map Viewer; shown again if already open), on the
+    track asked (not the one shown before)"""
+    from neopedal.template.page_registry import MAP_VIEWER_PATH
+    from neopedal.ui import tools_view
 
     loaded = []
-    open_page = SimpleNamespace(backend=SimpleNamespace(load_map=lambda path, name: loaded.append(name)))
-
-    class Viewer:
-        def __init__(self, parent):
-            pass
-
-        def show(self):
-            pass
-
-        def shown_dialog(self):
-            return open_page
-
-    monkeypatch.setattr(stats_selection, "TrackMapViewer", Viewer)
+    opened = []
+    tracks = SimpleNamespace(show_track=loaded.append)
+    monkeypatch.setattr(tools_view, "open_tool", lambda path, parent: opened.append(path) or tracks)
+    backend.selected_stats_key = ""
+    backend.openMap()
+    assert not opened  # no track selected: nothing opened
     backend.selected_stats_key = "Spa"
     backend.openMap()
-    assert loaded == ["Spa"]
+    assert opened == [MAP_VIEWER_PATH] and loaded == ["Spa"]

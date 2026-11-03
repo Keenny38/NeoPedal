@@ -5,9 +5,8 @@ import "../components"
 
 // Option row of Settings page: name (searched words in bold), description & editor matching the option kind
 // (TpOptionEditor, shared with Overlay Options), reset to default when changed from it, more actions ("⋯", right
-// click or Menu key: menuRequested). Rows of a group form a card, the group title above its first row (with a
-// notice preview in Notification category). Unsaved edits are marked by an accent bar, invalid values by a red
-// reason under the name.
+// click or Menu key: menuRequested). Rows of a group form a card, the group title above its first row. Unsaved
+// edits are marked by an accent bar, invalid values by a red reason under the name.
 Item {
     id: row
     readonly property bool rowHovered: rowHover.hovered  // hover-revealed actions shown
@@ -36,7 +35,6 @@ Item {
     required property string defaultText
     required property string applies  // "restart", "next_start" or ""
     required property string marked  // label with searched words in bold (rich text), "" if not searching
-    property var preview: null  // notice preview of group: {text, color, background}
     readonly property real editorWidth: Math.min(theme.em * 19, Math.max(theme.em * 11, width * 0.42))
     signal menuRequested(var data, Item anchor, real x, real y)  // x < 0: menu below anchor, right aligned
 
@@ -97,8 +95,7 @@ Item {
             anchors.leftMargin: theme.space1
             anchors.bottom: parent.bottom
             anchors.bottomMargin: theme.em * 0.5
-            // Long (French) titles cut before the notice preview, never under it
-            width: Math.min(implicitWidth, parent.width - theme.space1 - (previewBox.visible ? previewBox.width + theme.space4 : 0))
+            width: Math.min(implicitWidth, parent.width - theme.space1)
             text: row.group
             textFormat: Text.PlainText
             color: theme.text
@@ -107,31 +104,6 @@ Item {
             elide: Text.ElideRight
             Accessible.role: Accessible.Heading
             Accessible.name: text
-        }
-        Rectangle {
-            id: previewBox
-            visible: row.preview !== null && row.preview !== undefined
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: theme.space3
-            height: Math.round(theme.em * 1.6)
-            width: previewText.implicitWidth + theme.em * 1.4
-            radius: theme.radiusSm
-            color: row.preview && row.preview.background !== "" ? row.preview.background : "transparent"
-            border.width: 1
-            border.color: theme.border
-            Text {
-                id: previewText
-                anchors.centerIn: parent
-                text: row.preview ? row.preview.text : ""
-                textFormat: Text.PlainText
-                color: row.preview && row.preview.color !== "" ? row.preview.color : theme.text
-                font.pointSize: theme.fontLabel
-            }
-            MouseArea { id: previewArea; anchors.fill: parent; hoverEnabled: true; acceptedButtons: Qt.NoButton }
-            ToolTip.visible: previewArea.containsMouse
-            ToolTip.text: i18n.tr("Preview of the notice")
-            ToolTip.delay: theme.tipDelay
         }
     }
 

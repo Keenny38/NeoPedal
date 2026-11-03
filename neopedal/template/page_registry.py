@@ -77,28 +77,32 @@ class PageSpec:
         return self.letter or self.rail_label[:1]
 
 
+# Tabs of the Data Editors page, former editor pages: (key: former tool name, tab label, "module.DialogClass")
+DATA_EDITOR_TABS = (
+    ("vehicle_class_editor", "Classes", "vehicle_class_editor.VehicleClassEditor"),
+    ("vehicle_brand_editor", "Brands", "vehicle_brand_editor.VehicleBrandEditor"),
+    ("tyre_compound_editor", "Compounds", "tyre_compound_editor.TyreCompoundEditor"),
+    ("brake_editor", "Brakes", "brake_editor.BrakeEditor"),
+    ("heatmap_editor", "Heatmaps", "heatmap_editor.HeatmapEditor"),
+    ("track_info_editor", "Tracks", "track_info_editor.TrackInfoEditor"),
+    ("track_notes_editor", "Notes", "track_notes_editor.TrackNotesEditor"),
+)
+MAP_VIEWER_PATH = "track_map_viewer.TrackMapViewer"  # former tool page: map of the Tracks tab
+PERFORMANCE_PATH = "perf_view.PerformanceView"  # Performance button of the Modules category of Settings
+
+
 # Every page: main window pages first (in tab order), then tools by category (in card order)
 PAGES: tuple[PageSpec, ...] = (
     PageSpec("home", "Home", "", PAGE_MAIN, letter="A", rail=0,
              description="Game, preset, overlays & last session at a glance", wiki="Getting-Started#home-page"),  # home
-    PageSpec("widget", "Overlays", "", PAGE_MAIN, letter="W", rail=1,
+    PageSpec("widget", "Overlays", "", PAGE_MAIN, letter="W", rail=2,
              description="Turn overlays on or off and open their options", wiki="Overlays"),  # all apps grid
-    PageSpec("module", "Module", "", PAGE_MAIN, short_label="Modules", letter="M",
-             description="Data modules recording what overlays and tools need", wiki="Getting-Started#data-modules"),  # diagnostic
-    PageSpec("preset", "Preset", "", PAGE_MAIN, short_label="Presets", letter="P", rail=9,
+    PageSpec("preset", "Preset", "", PAGE_MAIN, short_label="Presets", letter="P", rail=6,
              description="Load, create, share and restore presets", wiki="Presets-and-Settings#presets"),  # library
-    PageSpec("spectate", "Spectate", "", PAGE_MAIN, letter="S",
-             description="Choose the driver overlays show while spectating", wiki="Getting-Started#spectate"),  # view
-    PageSpec("pacenotes", "Pacenotes", "", PAGE_MAIN, letter="N",
-             description="Pace notes played while driving", wiki="Presets-and-Settings#global-config"),  # quick note
-    PageSpec("hotkey", "Hotkey", "", PAGE_MAIN, short_label="Hotkeys", letter="H",
-             description="Keyboard, wheel and controller shortcuts", wiki="Getting-Started#hotkeys"),  # keyboard
-    PageSpec("tools", "Tools", "", PAGE_MAIN, letter="T",
-             description="Every tool and editor", wiki="Home#wiki-pages"),  # developer tools
     # Utilities
     PageSpec(
         "race_calculator", "Race Calculator", "", "Utilities",  # calculator
-        "race_calculator.RaceCalculator", short_label="Calculator", rail=8,
+        "race_calculator.RaceCalculator", short_label="Calculator",
         keywords=(
             "fuel calculator tyre tire strategy planner energy pit stop stint "
             "carburant calculateur pneus strategie energie arret relais"
@@ -109,28 +113,23 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         "driver_stats_viewer", "Driver Stats", "", "Utilities",  # contact
-        "driver_stats_viewer.DriverStatsViewer", short_label="Stats", rail=2,
+        "driver_stats_viewer.DriverStatsViewer", short_label="Stats", rail=3,
         description="Your laps, personal bests and progress on every track",
         wiki="Driver-Stats",
     ),
     PageSpec(
-        "track_map_viewer", "Track Map Viewer", "", "Utilities",  # map pin
-        "track_map_viewer.TrackMapViewer", short_label="Map",
-        description="Track maps recorded by the app",
-        wiki="Telemetry-Viewer#track-map-viewer",
-    ),
-    PageSpec(
         "lap_viewer", "Lap Telemetry Viewer", "", "Utilities",  # area chart
-        "lap_viewer.LapViewer", short_label="Telemetry", rail=7,
+        "lap_viewer.LapViewer", short_label="Telemetry", rail=5,
         description="Compare recorded laps on charts and on the track map",
         wiki="Telemetry-Viewer",
     ),
     PageSpec(
         "broadcast_director", "Broadcast Director", "", "Utilities",  # sliders (mixing desk)
-        "broadcast_director.BroadcastDirector", short_label="Broadcast", rail=5,
+        "broadcast_director.BroadcastDirector", short_label="Broadcast",
         keywords=(
             "lmu broadcast director cast casting camera cameras spectator stream commentator commentary battle "
-            "auto director tv production regie realisateur spectateur commentateur commentaires bagarre diffusion"
+            "auto director tv production regie realisateur spectateur commentateur commentaires bagarre diffusion "
+            "spectate spectate mode follow driver suivre pilote mode spectateur"
         ),
         status="neopedal.ui.quick.director_backend:director_status",
         description="Cameras, live timing and graphics while spectating",
@@ -138,7 +137,7 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         "race_results_viewer", "Results & Replays", "", "Utilities",  # flag
-        "race_results_viewer.RaceResultsViewer", short_label="Results", rail=3,
+        "race_results_viewer.RaceResultsViewer", short_label="Results", rail=4,
         keywords=(
             "results classification standings finish position grid laps sectors incidents penalties session "
             "resultats classement arrivee grille tours secteurs incidents penalites "
@@ -149,7 +148,7 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         "race_schedule_viewer", "Upcoming Races", "", "Utilities",  # calendar
-        "race_schedule_viewer.RaceScheduleViewer", short_label="Races", rail=4,
+        "race_schedule_viewer.RaceScheduleViewer", short_label="Races", rail=1,
         keywords=(
             "lmu racecontrol online daily race weekly special event championship coop co-op hosted server "
             "schedule calendar upcoming next safety rank sr "
@@ -161,7 +160,7 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     PageSpec(
         "stream_overlay_view", "Stream Overlays", "", "Utilities",  # streaming
-        "stream_overlay_view.StreamOverlaysView", short_label="Stream", rail=6,
+        "stream_overlay_view.StreamOverlaysView", short_label="Stream",
         keywords=(
             "obs streamlabs xsplit vmix twitch youtube stream streaming browser source broadcast layout "
             "diffusion direct source navigateur streamer"
@@ -171,46 +170,16 @@ PAGES: tuple[PageSpec, ...] = (
     ),
     # Editors
     PageSpec(
-        "heatmap_editor", "Heatmap Editor", "", "Editors",  # color
-        "heatmap_editor.HeatmapEditor", short_label="Heatmap",
-        description="Color scales of temperatures and wear",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "brake_editor", "Brake Editor", "", "Editors",  # edit
-        "brake_editor.BrakeEditor", short_label="Brakes",
-        description="Brake temperatures and failure thickness of each car",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "tyre_compound_editor", "Tyre Compound Editor", "", "Editors",  # edit
-        "tyre_compound_editor.TyreCompoundEditor", short_label="Compounds",
-        description="Tyre compound names, letters and colors",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "vehicle_brand_editor", "Vehicle Brand Editor", "", "Editors",  # tag
-        "vehicle_brand_editor.VehicleBrandEditor", short_label="Brands",
-        description="Car brands shown by overlays",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "vehicle_class_editor", "Vehicle Class Editor", "", "Editors",  # car
-        "vehicle_class_editor.VehicleClassEditor", short_label="Classes",
-        description="Class names and colors",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "track_info_editor", "Track Info Editor", "", "Editors",  # info
-        "track_info_editor.TrackInfoEditor", short_label="Tracks",
-        description="Track details: pit lane, orientation and more",
-        wiki="Presets-and-Settings#global-config",
-    ),
-    PageSpec(
-        "track_notes_editor", "Track Notes Editor", "", "Editors",  # quick note
-        "track_notes_editor.TrackNotesEditor", short_label="Notes",
-        description="Notes shown on a track at a given distance",
-        wiki="Telemetry-Viewer",
+        "data_editors", "Data Editors", "\ue70f", "Editors",  # edit
+        "data_editors.DataEditors", short_label="Editors",
+        keywords=(
+            "heatmap brake tyre tire compound vehicle car brand maker class track info pit lane speed trap "
+            "track notes pace notes pacenotes playback sound editor editors "
+            "carte thermique frein pneu gomme voiture marque constructeur classe circuit piste stand "
+            "notes de piste notes de pilotage lecture son editeur editeurs"
+        ),
+        description="Classes, brands, compounds, brakes, heatmaps, tracks and track & pace notes",
+        wiki="Presets-and-Settings#style-presets",
     ),
     # Management
     PageSpec(
@@ -231,12 +200,14 @@ PAGES: tuple[PageSpec, ...] = (
         "plugin_manager.PluginManager", short_label="Plugins",
         description="Install, trust and enable overlay plugins",
         wiki="Overlays#widget-plugins",
+        listed=False,  # Overlays page (Plugins button), command palette
     ),
     PageSpec(
-        "perf_view", "Overlay Performance", "", "Management",  # speed
+        "perf_view", "Overlay Performance", "\uec4a", "Management",  # speed
         "perf_view.PerformanceView", short_label="Performance",
         description="CPU time of each overlay and module, game data state",
         wiki="Troubleshooting#performance",
+        listed=False,  # Performance button of the Modules category of Settings, command palette
     ),
     # Advanced
     PageSpec(
@@ -260,7 +231,6 @@ DIALOG_WIKI = {
     "About": "Home#license-and-credits",
     "LogInfo": "Troubleshooting#logs",
     "BugReport": "Troubleshooting#report-a-bug",
-    "RailEditor": "Getting-Started#the-main-window",
     "QuickAccessEditor": "Getting-Started#home-page",
 }
 

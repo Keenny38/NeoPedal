@@ -181,12 +181,11 @@ def test_hotkeys_shown_in_tooltips_and_keys_sheet(qml_warnings, director_page, m
     from neopedal.setting import cfg
 
     backend, root = shown_director(director_page, *CARS)
-    monkeypatch.setitem(cfg.application, "enable_global_hotkey", True)
     shortcuts = dict(cfg.user.shortcuts)
     shortcuts["director_take_best"] = {"bind": "ctrl+b"}
     monkeypatch.setattr(cfg.user, "shortcuts", shortcuts)
     backend.page_shown()  # hotkeys read again when shown
-    assert backend.keyLabels["director_take_best"] == "Ctrl+B" and backend.globalHotkeys
+    assert backend.keyLabels["director_take_best"] == "Ctrl+B"  # global hotkeys always on: always shown
     assert len(backend.hotkeyRows) == 12 and backend.hotkeyRows[0]["label"]
     pump(0.1)
     take = item_named(root, "takeBestButton")
@@ -198,9 +197,9 @@ def test_hotkeys_shown_in_tooltips_and_keys_sheet(qml_warnings, director_page, m
     assert sheet.property("visible")
     sheet.setProperty("visible", False)
     pump(0.2)
-    monkeypatch.setitem(cfg.application, "enable_global_hotkey", False)
+    shortcuts["director_take_best"] = {"bind": ""}  # binding cleared
     backend.refresh_key_labels()
-    assert backend.keyLabels["director_take_best"] == "" and not backend.globalHotkeys
+    assert backend.keyLabels["director_take_best"] == ""
     assert not qml_warnings, qml_warnings
 
 

@@ -17,11 +17,11 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Pace notes playback & page
+Pace notes playback
 
 Settings of pace notes playback are a category of the Settings page (qml/Settings.qml, see
-quick/settings_backend.py): the Pace Notes page shows that category alone, with its on / off switch
-and a test sound. Audio playback is kept by the main view while the page may not be built.
+quick/settings_backend.py), with a test sound; the Notes tab of Data Editors turns playback on or off (former
+Pace Notes page). Audio playback is kept by the main view while no page is built.
 """
 
 from __future__ import annotations
@@ -31,20 +31,14 @@ import os
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QObject, QUrl, Slot
-from PySide6.QtWidgets import QVBoxLayout, QWidget
 
-from ..i18n import tr, trm
+from ..i18n import trm
 from ..setting import cfg
-from .settings_host import SettingsHostMixin
 
 if TYPE_CHECKING:
-    from PySide6.QtQuickWidgets import QQuickWidget
-
     from .pace_notes_player import PaceNotesPlayer
-    from .quick.settings_backend import SettingsBackend
 
 logger = logging.getLogger(__name__)
-CATEGORY = "pace_notes_playback"
 
 
 class PaceNotesPlayback(QObject):
@@ -132,64 +126,3 @@ def play_test_sound(owner: QObject, values: dict) -> str:
     player.play()
     return trm(f"Playing {os.path.basename(sound_file)}")
 
-
-class PaceNotesControl(SettingsHostMixin, QWidget):
-    """Pace Notes page: pace notes category of the Settings page alone (QML page created when first shown)
-
-    Args:
-        playback: audio playback of main view (kept as is: follows saved settings by app refresh).
-    """
-
-    def __init__(self, parent, playback: PaceNotesPlayback | None = None):
-        super().__init__(parent)
-        self.playback = playback
-        self.backend: SettingsBackend | None = None
-        self.view: QQuickWidget | None = None  # see ensure_view
-        self._layout = QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-
-    def ensure_view(self) -> QQuickWidget | None:
-        if self.view is None:
-            from .quick import create_quick_view
-            from .quick.settings_backend import SettingsBackend
-
-            self.backend = SettingsBackend(self, self, only=CATEGORY)
-            view = create_quick_view(self, "Settings.qml", {"backend": self.backend}, samples=0)
-            view.setAcceptDrops(False)  # preset & plugin files dropped go to main window
-            self._layout.addWidget(view)
-            view.show()  # child added to a shown page is not shown by itself
-            self.setFocusProxy(view)
-            self.view = view
-        return self.view
-
-    def showEvent(self, event):
-        self.ensure_view()
-        if self.backend is not None:
-            self.backend.refresh()  # preset loaded or settings changed while hidden
-        super().showEvent(event)
-
-    def closeEvent(self, event):
-        super().closeEvent(event)
-        self.release_page()
-
-    def release_page(self):
-        """Page closed or released (see LazyPage.release): QML gone before the backend it binds to"""
-        if self.view is not None:
-            view, self.view = self.view, None
-            view.setSource(QUrl())
-            view.deleteLater()
-
-    @Slot(bool)  # type: ignore[operator]
-    def refresh(self, *_):
-        """Setting or preset changed elsewhere: shown values read again (once shown if hidden)"""
-        if self.backend is not None and self.isVisible():
-            self.backend.refresh()
-
-    # Settings host
-    def confirm(self, text: str) -> bool:
-        from ._common import confirm_action
-
-        return confirm_action(self, tr("Confirm"), text, tr("Confirm"))
-
-    def applied(self, sections: set[str], restart: list[str]):
-        """Only pace notes settings (preset) are shown here: nothing of config.json saved"""

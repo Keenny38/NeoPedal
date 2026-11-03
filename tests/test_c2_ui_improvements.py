@@ -94,10 +94,10 @@ def window(ui_env, monkeypatch):
 def open_tool_page(window, path: str):
     from neopedal.ui.tools_view import open_tool
 
-    open_tool(path, window)
+    dialog = open_tool(path, window)
     view = window.centralWidget()
-    name = path.rsplit(".", 1)[-1]
-    return next(page for page in view.dialog_pages() if type(page.dialog).__name__ == name)
+    return next(page for page in view.dialog_pages()
+                if page.dialog is dialog or (page.dialog is not None and page.dialog.isAncestorOf(dialog)))
 
 
 def open_config_page(window, name="speedometer", config_type=ConfigType.WIDGET, user_setting=None, default=None):
@@ -116,8 +116,8 @@ def test_editor_page_marker_title_and_open_pages(window):
     from neopedal.ui._common import MODIFIED_MARKER
 
     view = window.centralWidget()
-    page = open_tool_page(window, "brake_editor.BrakeEditor")
-    editor = page.dialog
+    page = open_tool_page(window, "brake_editor.BrakeEditor")  # Brakes tab of Data Editors
+    editor = page.dialog.current_editor()
     label = page.findChild(QLabel, "dialogPageTitle")
     assert not label.text().startswith(MODIFIED_MARKER) and page.display_title() == page.title
     editor.set_modified()
@@ -125,12 +125,12 @@ def test_editor_page_marker_title_and_open_pages(window):
     assert "Unsaved changes: 1" in view._button_pages.toolTip()
     editor.set_unmodified()
     assert label.text() == page.title and "Unsaved" not in view._button_pages.toolTip()
-    assert page.title == "Brake Editor"  # page title (and its matching) never carries the marker
+    assert page.title == "Data Editors"  # page title (and its matching) never carries the marker
 
 
 def test_undo_back_to_saved_state_keeps_marker_logic(window):
     page = open_tool_page(window, "heatmap_editor.HeatmapEditor")
-    editor = page.dialog
+    editor = page.dialog.current_editor()
     editor.set_modified()
     assert page.is_modified()
     editor.undo()  # restored state still counts as edited until saved
@@ -140,7 +140,9 @@ def test_undo_back_to_saved_state_keeps_marker_logic(window):
 def test_rail_tool_entry_marker(window):
     from neopedal.ui._common import MODIFIED_MARKER
     from neopedal.ui.app import NavButton
+    from tests.test_dialog_pages import add_to_rail
 
+    add_to_rail(window.centralWidget(), "race_calculator")  # under More by default
     page = open_tool_page(window, "race_calculator.RaceCalculator")
     button = window.findChild(NavButton, "railTool:race_calculator.RaceCalculator")
     assert not button.modified
@@ -154,7 +156,9 @@ def test_rail_tool_entry_marker(window):
 
 def test_rail_marker_kept_after_rail_rebuilt(window):
     from neopedal.ui.app import NavButton
+    from tests.test_dialog_pages import add_to_rail
 
+    add_to_rail(window.centralWidget(), "race_calculator")  # under More by default
     page = open_tool_page(window, "race_calculator.RaceCalculator")
     page.dialog.set_modified()
     window.centralWidget().build_rail_items()
@@ -180,9 +184,9 @@ def test_ctrl_s_saves_editor_page(window, saved, monkeypatch):
 
     monkeypatch.setattr(BaseEditor, "reloading", staticmethod(lambda *args, **kwargs: None))
     page = open_tool_page(window, "brake_editor.BrakeEditor")
-    editor = page.dialog
+    editor = page.dialog.current_editor()
     editor.set_modified()
-    save_shortcut(window).activated.emit()  # main window Ctrl+S: shown page
+    save_shortcut(window).activated.emit()  # main window Ctrl+S: shown page (its tab)
     assert not editor.is_modified() and not page.is_modified()
     assert ConfigType.BRAKES in saved
     assert window.centralWidget().dialog_pages()  # Apply: page kept open
@@ -203,7 +207,7 @@ def test_ctrl_s_config_page_saves_and_clears_marker(window, saved):
 def test_ctrl_s_without_save_action(window):
     view = window.centralWidget()
     assert not window.save_current_page()  # app page (home): nothing to save
-    open_tool_page(window, "perf_view.PerformanceView")
+    open_tool_page(window, "plugin_manager.PluginManager")
     view.set_current_index(0)
     assert not window.save_current_page()
 
@@ -301,9 +305,9 @@ def test_invalid_value_marked_inline(window, answers):
 
 
 def test_invalid_color_and_reason_translated(window, french):
-    page = open_config_page(window, "notification", ConfigType.CONFIG, cfg.user.config, cfg.default.config)
+    page = open_config_page(window, "vr_overlay", ConfigType.CONFIG, cfg.user.config, cfg.default.config)
     dialog = page.dialog
-    key = "font_color_locked_preset"
+    key = "mirror_background_color"
     dialog.option_edit[key].setText("#12")
     assert dialog.option_errors[key].startswith("Color as")
     assert "Couleur au format" in dialog.error_marks[key].text()
@@ -866,32 +870,7 @@ def test_new_texts_translated(french):
     assert tr("Press a key, key combination, mouse or controller button").startswith("Appuyez")
 
 
-# --- From package B2: safe mode keeps tool pages closed, plugin errors translated
-def test_safe_mode_skips_reopening_pages(window, monkeypatch):
-    import sys
-    import types
-
-    import neopedal
-    from neopedal.ui import app as app_module
-
-    view = window.centralWidget()
-    restored = []
-    monkeypatch.setattr(view, "restore_pages", lambda paths: restored.append(paths))
-    cfg.application["remember_open_pages"] = True
-    cfg.application["open_pages"] = "*heatmap_editor.HeatmapEditor"
-    fake = types.ModuleType("neopedal.safe_mode")
-    fake.state = types.SimpleNamespace(enabled=True)
-    monkeypatch.setitem(sys.modules, "neopedal.safe_mode", fake)
-    monkeypatch.setattr(neopedal, "safe_mode", fake, raising=False)
-    assert app_module.safe_mode_enabled()
-    window.restore_open_pages()
-    assert not restored and view.track_pages
-    fake.state.enabled = False
-    window.restore_open_pages()
-    assert restored == [["*heatmap_editor.HeatmapEditor"]]
-    cfg.application["open_pages"] = ""
-
-
+# --- From package B2: plugin errors translated
 def test_plugin_error_text_translated(ui_env, french, monkeypatch):
     from neopedal.module_control import wctrl
     from neopedal.ui import plugin_manager

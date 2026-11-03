@@ -113,8 +113,7 @@ TpPage {
                 role: "caption"
                 wrapMode: Text.WordWrap
                 elide: Text.ElideNone
-                text: backend.hotkeysEnabled ? i18n.tr("Global hotkeys work while the game has focus.")
-                                             : i18n.tr("Global hotkeys are off: turn them on in the Hotkeys page.")
+                text: i18n.tr("Global hotkeys work while the game has focus.")
             }
             TpButton {
                 size: "sm"

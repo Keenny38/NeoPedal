@@ -53,7 +53,7 @@ from .page_backend import PageBackend
 from .race_watch import race_watch
 from .schedule_personal import EMPTY as NO_PERSONAL
 from .schedule_personal import PersonalData, personal_row, read_personal
-from .schedule_reminders import MINUTES, reminders
+from .schedule_reminders import default_minutes, reminder_choices, reminders
 from .schedule_view import (
     SOON_SECONDS,
     championship_detail_view,
@@ -97,7 +97,6 @@ LIVE_FIELD_SECONDS = 900.0  # starts this close: their field (drivers, ranks) re
 LIVE_FIELD_MISSES = 2  # live reads in a row not answered: that race's field no longer asked
 LIVE_FIELD_EVERY = 598.0  # seconds between two reads of a field (checked every tick: TICK_MS); count of the
 # lists read every LIVE_READ_SECONDS meanwhile
-REGISTERED_REMINDER = 10  # minutes: reminder set before a start registered from the page (none set yet)
 SERVER_SORTS = ("players", "region", "name")
 
 
@@ -123,7 +122,9 @@ def status_note(status: str, schedule: rs.Schedule) -> tuple[str, str]:
         return "warning", tr("Reading races from RaceControl is off (Driver Rank & Safety Rank online option).")
     old = schedule.read_time > 0
     if status == info.NO_GAME:
-        return "info", (tr("Start Le Mans Ultimate to read the races again: last races read are shown.") if old
+        # Races last read stay shown: told when (game needed only to read them again, never to see them)
+        return "info", (tr("Last read: %1. Start Le Mans Ultimate to update the races.").replace(
+            "%1", start_text(schedule.read_time, time.time())) if old
                         else tr("Start Le Mans Ultimate: races are read from RaceControl with the game sign in."))
     if status == info.NO_ACCOUNT:
         return "warning", tr("No RaceControl account found for this Steam account.")
@@ -850,7 +851,7 @@ class RaceScheduleBackend(PageBackend):
         if upcoming and chosen is not None:
             current = reminders().minutes_of(chosen["key"]) if chosen["key"] else 0
             remind = tr("Remind Me Before %1").replace("%1", when)
-            for minutes in MINUTES:
+            for minutes in reminder_choices():
                 add("plan", {"id": f"remind:{minutes}", "text": tr("%1 min").replace("%1", str(minutes)),
                              "checked": current == minutes}, remind)
             if current:
@@ -1066,7 +1067,7 @@ class RaceScheduleBackend(PageBackend):
         key, start = asked["startKey"], asked["startTime"]
         minutes = reminders().minutes_of(key) if key else 0
         if key and not minutes:
-            minutes = REGISTERED_REMINDER
+            minutes = default_minutes()  # option: reminder of a start registered from the page (none set yet)
             reminders().set(key, asked["title"], asked["track"], start, minutes, registered=True)
         self.publish_all()
         self.toast(tr("Registered to %1 (%2) with %3. Join the server from the game when it opens: reminder %4 min "

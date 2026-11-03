@@ -92,15 +92,6 @@ def test_menu_button_opens_window_menus(bar, qapp):
     menu.close()
     qapp.processEvents()
     assert bar.menu_bar.actions()[0].menu() is not None  # kept by the menu bar once the popup is deleted
-    # Rail editor of the view at the end (More button of the rail not shown)
-    opened = []
-    bar.customize_rail = lambda: opened.append(True)
-    bar.show_menu()
-    qapp.processEvents()
-    menu = next(widget for widget in qapp.topLevelWidgets() if isinstance(widget, QMenu) and widget.isVisible())
-    menu.actions()[-1].trigger()
-    assert menu.actions()[-2].isSeparator() and opened == [True]
-    menu.close()
 
 
 def test_maximize_glyph_and_name_follow_window_state(bar, qapp):

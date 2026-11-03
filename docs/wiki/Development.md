@@ -84,7 +84,7 @@ CI runs every test on Windows and Linux, Python 3.11, 3.13 and 3.14, on shared r
 | Path | Content |
 |---|---|
 | `run.py` | Entry point, command line arguments, `multiprocessing.freeze_support()` |
-| `neopedal/main.py`, `loader.py`, `safe_mode.py` | Start, single instance check, load / reload / close, safe mode |
+| `neopedal/main.py`, `loader.py` | Start, single instance check, load / reload / close |
 | `neopedal/adapter/` | Shared memory readers and REST API connectors (LMU, rFactor 2) |
 | `neopedal/api_connector.py`, `api_control.py` | Game API selection |
 | `neopedal/module/` | Data modules (`module_delta.py`, `module_fuel.py`, `module_recorder.py`, `module_stats.py`...) |
@@ -112,9 +112,9 @@ CI runs every test on Windows and Linux, Python 3.11, 3.13 and 3.14, on shared r
 
 A new overlay touches 7 files (10 before the registry): `neopedal/widget/<name>.py` (classic layout), `neopedal/widget/_modern/<name>.py` (modern design), its default options in `neopedal/template/widget/<category>.py`, one line in `neopedal/template/widget/registry.py`, then option docs in `docs/customization.md` (`python tools/gen_option_help.py` writes `option_help.json`) and French labels and help in `neopedal/i18n/data/fr_options.json` and `fr_option_help.json`. Also run `python tools/gen_widget_config_types.py` (a test checks the generated settings types). `modern.py` only when the modern design reads options of its own.
 
-A new tool page touches 2 files (5 before): its dialog module in `neopedal/ui/` and one `PageSpec` in `neopedal/template/page_registry.py` (label, short rail label, icon glyph, `"module.DialogClass"` path, Tools section, default rail position, command palette words, on / off status function, one-line `description` and `wiki` user guide page opened by the help button; `listed=False` keeps it off the Tools page and menu, like Settings). The Tools page, menu, command palette, navigation rail, home quick access and default rail are derived from it; dialog modules are still imported only when first opened. Add the French label & description in `neopedal/i18n/fr.py`. The short rail label is a short form of the label (`Race Calculator` → `Calculator`), and the window title of the page is its label. A dialog page that is not a `PageSpec` (Overlay Options, Find Option, What's New...) gets its help page from `DIALOG_WIKI` of the same file (`tests/test_ui_audit_2026_10_29_navigation.py` checks that every wiki page and anchor exists).
+A new tool page touches 2 files (5 before): its dialog module in `neopedal/ui/` and one `PageSpec` in `neopedal/template/page_registry.py` (label, short rail label, icon glyph, `"module.DialogClass"` path, Tools section, default rail position, command palette words, on / off status function, one-line `description` and `wiki` user guide page opened by the help button; `listed=False` keeps it off the Tools menu, like Settings). The Tools menu, command palette, navigation rail, home quick access and default rail are derived from it; dialog modules are still imported only when first opened. Add the French label & description in `neopedal/i18n/fr.py`. The short rail label is a short form of the label (`Race Calculator` → `Calculator`), and the window title of the page is its label. A dialog page that is not a `PageSpec` (Overlay Options, Find Option, What's New...) gets its help page from `DIALOG_WIKI` of the same file (`tests/test_ui_audit_2026_10_29_navigation.py` checks that every wiki page and anchor exists).
 
-Shown as a page, a dialog gets the shell header of `app_tab_view.DialogPage`: breadcrumb (page opened from, else page shown when it opened: `Home ›`, `Tools ›`...), title in the `TpText` title look and one `Close` (navigation bar tools: title only) (the dialog's own `Close` buttons are hidden). Class attributes: `OWNS_TITLE = True` when its page shows its own title (found by itself for a Qt Quick `TpPageHeader` with a title), `ESC_CLOSES = False` when Esc must never close it (Broadcast Director). Shell popups (command palette, notification center, keyboard shortcuts) are Qt Quick pages in `ui/qml/shell/` hosted by `quick/shell_popup.ShellPopup` (frameless popup window, closed by a click outside, Esc or the page, deleted once closed). Messages of background work go to the notification center with `app_signal.error` (or `notification.notification_store().add(text, severity, actions)`); window shortcuts get a `whatsThis` text to be listed by the keyboard shortcuts sheet.
+Shown as a page, a dialog gets the shell header of `app_tab_view.DialogPage`: breadcrumb (page opened from, else page shown when it opened: `Home ›`, `Overlays ›`...), title in the `TpText` title look and one `Close` (navigation bar tools: title only) (the dialog's own `Close` buttons are hidden). Class attributes: `OWNS_TITLE = True` when its page shows its own title (found by itself for a Qt Quick `TpPageHeader` with a title), `ESC_CLOSES = False` when Esc must never close it (Broadcast Director). Shell popups (command palette, notification center, keyboard shortcuts) are Qt Quick pages in `ui/qml/shell/` hosted by `quick/shell_popup.ShellPopup` (frameless popup window, closed by a click outside, Esc or the page, deleted once closed). Messages of background work go to the notification center with `app_signal.error` (or `notification.notification_store().add(text, severity, actions)`); window shortcuts get a `whatsThis` text to be listed by the keyboard shortcuts sheet.
 
 ### Qt Quick pages
 
@@ -156,6 +156,7 @@ Action glyphs (`theme.glyphs`, from `GLYPHS` in `neopedal/ui/quick/__init__.py`;
 | Close | `close` | `E711` |
 | Delete (to trash, or for good) | `delete` | `E74D` |
 | Copy, Duplicate | `copy` | `E8C8` |
+| Settings (of a feature) | `settings` | `E713` |
 | Undo, Restore | `undo` / `restore` | `E7A7` |
 | Reset to default | `reset` | `E777` |
 | Refresh, Ask again | `refresh` | `E72C` |
@@ -202,7 +203,7 @@ Rules:
 
 ### Table editors
 
-The style data editors (brakes, tyre compounds, car classes & brands, track info, heatmaps) are one Qt Quick page, `qml/editors/TableEditor.qml`, hosted by `quick/table_editor_host.TableEditorPage` (undo history, unsaved marker, Ctrl+S, warnings & file / color dialogs). Each editor is a `TableEditorBackend` subclass (`quick/table_editor.py`) in its own module: `COLUMNS` (`Column`: kind `name`, `text`, `number` with an optional user `unit` converted for display and stored in base units, `color`, `choice`, `clock`, `symbol`, `preset` among existing presets; `replace`, cell menu `action`), `CONFIG_TYPE`, and the hooks `load`, `default_rows`, `to_setting`, `session_rows` (Add), `new_row`, `choice_values`. Confirmations, warnings and toasts go through the page's `TpDialogHost` (`ui/quick/dialogs.py` `confirm` / `alert`, `show_toast`); a confirmed action is kept as a method name with a weak reference to the backend, never a bound method. Parts of one editor only (heatmap presets & preview) are in `FEATURES` and declared in a mixin with its own signals.
+The style data editors (brakes, tyre compounds, car classes & brands, track info, heatmaps) are tabs of the `Data Editors` page (`ui/data_editors.py`, tabs declared by `DATA_EDITOR_TABS` of `template/page_registry.py`, made when first shown; former editor paths open their tab through `tools_view.PAGE_TABS`), with the track notes editor. Each table tab is one Qt Quick page, `qml/editors/TableEditor.qml`, hosted by `quick/table_editor_host.TableEditorPage` (undo history, unsaved marker, Ctrl+S, warnings & file / color dialogs). Each editor is a `TableEditorBackend` subclass (`quick/table_editor.py`) in its own module: `COLUMNS` (`Column`: kind `name`, `text`, `number` with an optional user `unit` converted for display and stored in base units, `color`, `choice`, `clock`, `symbol`, `preset` among existing presets; `replace`, cell menu `action`), `CONFIG_TYPE`, and the hooks `load`, `default_rows`, `to_setting`, `session_rows` (Add), `new_row`, `choice_values`. Confirmations, warnings and toasts go through the page's `TpDialogHost` (`ui/quick/dialogs.py` `confirm` / `alert`, `show_toast`); a confirmed action is kept as a method name with a weak reference to the backend, never a bound method. Parts of one editor only (heatmap presets & preview) are in `FEATURES` and declared in a mixin with its own signals.
 
 ### App context
 
@@ -267,7 +268,7 @@ French:
 | Track (the surface: temperature, limits, wetness, on / off track) | piste (`Température de la piste`, `Limites de piste`, `en piste`) | circuit |
 | Class | catégorie (overlays: `Cat.`) | classe |
 | Car | voiture | véhicule (kept for the `Vehicle` classification choice and editor names) |
-| Settings (the app: Settings page, global settings, settings import, safe mode) | paramètres | réglages |
+| Settings (the app: Settings page, global settings, settings import) | paramètres | réglages |
 | Settings of an overlay, a preset, the car, the director, the game | réglages | paramètres |
 | Reset … to default, back to default | Rétablir … par défaut, `Rétablir les valeurs par défaut` | Remettre, Revenir aux… |
 | Reset (a view state: zoom, column widths, counters, layout) | Réinitialiser | (`Rétablir` alone is Redo) |

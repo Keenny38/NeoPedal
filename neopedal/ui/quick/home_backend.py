@@ -85,20 +85,20 @@ def record_result(record: SessionRecord) -> str:
     return ""
 
 
-def last_session_card(record: SessionRecord, logos: LogoCache) -> dict:
-    """Last session card: track, vehicle, session, best lap, result, date, logos"""
-    from PySide6.QtCore import QDateTime, QLocale
-
+def last_session_card(record: SessionRecord, logos: LogoCache, now: float | None = None) -> dict:
+    """Last session card: track, vehicle, session, best lap, result, date (how long ago, date & time in its
+    tooltip), logos"""
     from ...calculation import sec2laptime_full
+    from .formatting import long_date_time, relative_date
 
-    when = QDateTime.fromSecsSinceEpoch(int(record.time))
     return {
         "track": record.track,
         "vehicle": record.vehicle,
         "session": session_name(record.session),
         "best": sec2laptime_full(record.best) if record.best > 0 else "",
         "result": record_result(record),
-        "date": QLocale(current_language()).toString(when, QLocale.FormatType.ShortFormat),
+        "date": relative_date(record.time, now),
+        "dateTip": long_date_time(record.time),
         "trackLogo": logos.track(record.track) if record.track else "",
         "brandLogo": vehicle_logo(logos, record.vehicle, record.vehicle_class),
     }
@@ -112,10 +112,44 @@ WEEK_HIGHLIGHTS = (
 )
 
 
-def week_card(items: list[dict]) -> dict:
+def week_days(records: list[SessionRecord], now: float, days: int = 7) -> list[tuple[float, float]]:
+    """Driving time of each of the last days (local calendar days, today last): (midnight, seconds)"""
+    midnight = time.mktime((*time.localtime(now)[:3], 0, 0, 0, 0, 0, -1))
+    starts = [time.mktime((*time.localtime(midnight - 43200 - 86400 * back)[:3], 0, 0, 0, 0, 0, -1))
+              for back in range(days - 2, -1, -1)] + [midnight]  # hour changes kept: midnight of each day
+    seconds = [0.0] * days
+    for record in records:
+        if starts[0] <= record.time <= now:
+            index = max(index for index, start in enumerate(starts) if start <= record.time)
+            seconds[index] += max(record.seconds, 0.0)
+    return list(zip(starts, seconds))
+
+
+def day_bars(days: list[tuple[float, float]]) -> list[dict]:
+    """Bars of week_days: day letter, height (longest day full), today, tooltip (day & driving time); empty when
+    nothing was driven"""
+    from PySide6.QtCore import QDateTime
+
+    from .formatting import date_locale, format_date
+    from .stats_common import format_duration
+
+    longest = max((seconds for _start, seconds in days), default=0.0)
+    if longest <= 0:
+        return []
+    locale = date_locale()
+    bars = []
+    for index, (start, seconds) in enumerate(days):
+        day = QDateTime.fromSecsSinceEpoch(int(start)).date()
+        name = locale.dayName(day.dayOfWeek(), locale.FormatType.ShortFormat)
+        bars.append({"label": name[:1].upper(), "ratio": seconds / longest, "today": index == len(days) - 1,
+                     "tip": f"{name} {format_date(start)} · {format_duration(seconds) if seconds > 0 else tr('Not driven')}"})
+    return bars
+
+
+def week_card(items: list[dict], days: list[tuple[float, float]] | None = None) -> dict:
     """"This week" card of Home (stats_analysis.weekly_progress items, texts translated): summary as on the Driver
-    Stats page ("3 sessions · 1 h 05 min · 42 laps") & counts of goals reached, new personal bests & goals within
-    reach (kind, glyph, text, tone); empty when nothing was driven"""
+    Stats page ("3 sessions · 1 h 05 min · 42 laps"), counts of goals reached, new personal bests & goals within
+    reach (kind, glyph, text, tone) & driving time of each day (see day_bars); empty when nothing was driven"""
     from .stats_common import format_duration, plural
 
     if not items or items[0].get("kind") != "summary":
@@ -129,6 +163,7 @@ def week_card(items: list[dict]) -> dict:
                                format_duration(summary["seconds"]), plural(summary["laps"], "lap", "laps"))),
         "highlights": [{"kind": kind, "glyph": glyph, "text": plural(counts[kind], *nouns), "tone": tone}
                        for kind, glyph, nouns, tone in WEEK_HIGHLIGHTS if counts.get(kind)],
+        "days": day_bars(days or []),
     }
 
 
@@ -171,6 +206,7 @@ class HomeBackend(PageBackend):
     loadingChanged = Signal()
     weekChanged = Signal()
     racesChanged = Signal()
+    shownChanged = Signal()
 
     def __init__(self, parent: QObject | None, window: Any, select_page: Callable[[str], object]):
         super().__init__(parent, "Home")
@@ -195,6 +231,7 @@ class HomeBackend(PageBackend):
         self._records: list[SessionRecord] | None = None  # session history read with the debrief (None: not yet)
         self._week_key: tuple | None = None  # what "This week" card was made from (made again only when changed)
         self._game_window = False  # game window found while game sends no data
+        self._shown = False  # page shown (see shown)
         self._timer = self.page_timer(self.poll, LIVE_MS)
         notifier().changed.connect(self.pictures_changed)  # logos fetched from game meanwhile
         app_signal.updates.connect(self.updates_changed)
@@ -277,6 +314,16 @@ class HomeBackend(PageBackend):
         """Next online races the player may enter (see schedule_view.home_card): rows, empty if none known"""
         return self._values["races"]
 
+    @Property(bool, notify=shownChanged)
+    def shown(self) -> bool:
+        """Page shown: live countdown of the races card runs only then"""
+        return self._shown
+
+    def set_shown(self, shown: bool):
+        if shown != self._shown:
+            self._shown = shown
+            self.shownChanged.emit()
+
     def set_loading(self, name: str, value: bool):
         loading = self._values["loading"]
         if loading.get(name) != value:
@@ -285,10 +332,12 @@ class HomeBackend(PageBackend):
     # Page state
     def page_shown(self):
         self._timer.start()
+        self.set_shown(True)
         self.refresh_all()
 
     def page_hidden(self):
         self._timer.stop()  # nothing read while another page (or the race) is shown
+        self.set_shown(False)
 
     def release_resources(self):
         self._timer.stop()
@@ -372,10 +421,14 @@ class HomeBackend(PageBackend):
 
     def refresh_quick(self):
         from ..home_view import QUICK_SHORTCUTS, current_quick_items, quick_access_entries
+        from ..nav_rail import current_rail_items
 
         entries = quick_access_entries()
+        in_rail = set(current_rail_items())  # one place each: pages & tools of the navigation bar not repeated
         rows = []
         for key in current_quick_items():
+            if key in in_rail:
+                continue
             entry = entries[key]
             rows.append({"key": key, "label": tr(entry.label), "glyph": entry.glyph, "letter": entry.letter,
                          "shortcut": QUICK_SHORTCUTS.get(key, "")})
@@ -485,8 +538,9 @@ class HomeBackend(PageBackend):
 
         record = last_session()
         if self._record_read and record == self._record:
-            if record is not None:  # lap time goal changed on driver stats page since (debrief key checks it)
-                self.refresh_debrief(record)
+            if record is not None:  # how long ago moved on; lap time goal changed on driver stats page since
+                self.publish("lastSession", last_session_card(record, self.logos), self.lastSessionChanged)
+                self.refresh_debrief(record)  # (debrief key checks it)
             return
         self._record_read = True
         self._record = record
@@ -556,7 +610,7 @@ class HomeBackend(PageBackend):
             return
         self._week_key = key
 
-        def progress() -> list[dict]:
+        def progress() -> tuple[list[dict], list[tuple[float, float]]]:
             """Personal bests of the stats file as the driver stats page takes them (lap times completed from
             results files): same goals near or reached on both pages; file only read (never created here)"""
             from ...const_file import FileExt, StatsFile
@@ -566,17 +620,18 @@ class HomeBackend(PageBackend):
             bests = personal_bests(stats_user) if stats_user is not None else None
             # Goals set, else automatic ones of next level (community lap times), as the driver stats page
             automatic = next_level_goals(stats_user or {}, reference_table(cfg.path.config, compared))
-            return weekly_progress(records, {**automatic, **goals}, now, bests=bests)
+            return weekly_progress(records, {**automatic, **goals}, now, bests=bests), week_days(records, now)
 
         self.jobs.run("weekly progress", progress, self.week_read, self.week_failed, key="week")
 
-    def week_read(self, items: list[dict]):
-        self.publish("week", week_card(items), self.weekChanged)
+    def week_read(self, result: tuple[list[dict], list[tuple[float, float]]]):
+        items, days = result
+        self.publish("week", week_card(items, days), self.weekChanged)
         self.set_loading("week", False)
 
     def week_failed(self, error: BaseException):
         logger.warning("HOME: weekly progress not made: %s", error)
-        self.week_read([])
+        self.week_read(([], []))
 
     # Next online races
     def refresh_races(self):
@@ -601,8 +656,12 @@ class HomeBackend(PageBackend):
         schedule = info.state().schedule
         rows = home_card(schedule, player_safety(), time.time(),
                          lambda track: self.logos.track(track) if track else "", HOME_RACES, info.places())
+        signed_in = info.state().status not in (info.NO_GAME, info.OFF)  # RaceControl signs in with the game
         for row in rows:  # reminder set on the Upcoming Races page (minutes before the start, 0 none)
             row["reminder"] = reminders().minutes_of(row["startKey"]) if row["startKey"] else 0
+            # registered from the card (dialog of the Upcoming Races page): solo race open to registration
+            row["canRegister"] = (signed_in and row.get("registrationOpen") is True and bool(row.get("eventId"))
+                                  and row.get("kind") == "daily" and tr("Team race") not in row.get("settings", ""))
         self.publish("races", {"rows": rows} if rows else {}, self.racesChanged)
 
     def races_failed(self, error: BaseException):
@@ -629,12 +688,12 @@ class HomeBackend(PageBackend):
 
     def refresh_driver(self):
         """Driver card: ranks checked in background (game menu file changed), made again only when changed"""
-        from ...rank_info import ranks
+        from ...rank_info import online_enabled, ranks
 
         ranks.poll()
         if monotonic() - self._driver_read_time >= DRIVER_DATA_SECONDS:
             self.read_driver_data()
-        key = (ranks.serial, id(self._driver_data), len(ranks.others), current_language())
+        key = (ranks.serial, id(self._driver_data), len(ranks.others), current_language(), int(time.time() // 60))
         if key == self._driver_key:
             return
         self._driver_key = key
@@ -644,7 +703,8 @@ class HomeBackend(PageBackend):
 
         player = ranks.player
         history = ranks.history_of(player.steam_id) if player is not None else ()  # in memory: no file read here
-        card = driver_card(player, ranks.remembered, ranks.updated, history, self._driver_data, ranks.others)
+        card = driver_card(player, ranks.remembered, ranks.updated, history, self._driver_data, ranks.others,
+                           online_enabled())
         self.publish("driver", card or {}, self.driverChanged)
 
     # Actions
@@ -708,9 +768,6 @@ class HomeBackend(PageBackend):
             from ..bug_report_view import BugReport
 
             BugReport(self._window).show()
-        elif key == "check_updates":
-            update_checker.check(True)
-            self.refresh_header()
 
     @Slot()
     def customizeQuick(self):
@@ -726,8 +783,14 @@ class HomeBackend(PageBackend):
             self.openGameSettings()
         elif action == "update":
             self.updateAction()
-        elif action in ("overlays", "spectate", "modules"):
-            self._select_page({"overlays": "widget", "modules": "module"}.get(action, action))
+        elif action == "overlays":
+            self._select_page("widget")
+        elif action == "spectate":
+            self.open_tool("spectate_view.SpectateList")  # Spectate tab of Broadcast Director
+        elif action == "modules":
+            from ..app_settings import open_app_settings
+
+            open_app_settings(self._window, "modules")  # Modules category of Settings
 
     @Slot(result=list)
     def presetList(self) -> list:
@@ -775,6 +838,38 @@ class HomeBackend(PageBackend):
     @Slot()
     def openRaces(self):
         self.open_tool("race_schedule_viewer.RaceScheduleViewer")
+
+    @Slot(str)
+    def registerRace(self, key: str):
+        """Registration dialog of a race of the card, on the Upcoming Races page (car chosen there)"""
+        viewer = self.open_tool("race_schedule_viewer.RaceScheduleViewer")
+        backend = getattr(viewer, "backend", None)
+        if backend is None:
+            return
+        backend.publish_all()  # rows of the last read (page opened now)
+        backend.openRegistration(key)
+        if backend.registration.get("open") is not True:  # race hidden by the page filters, or start gone
+            self.toast(tr("Register from the race on this page."), "info")
+
+    @Slot()
+    def refreshRanks(self):
+        """Driver & safety ranks read again from RaceControl, at most every few minutes (as Driver Stats)"""
+        from ...rank_info import ranks
+
+        if ranks.read_now():
+            ranks.poll()
+            self.toast(tr("Ranks asked to RaceControl: shown in a moment (the game must be running)."))
+        else:
+            self.toast(tr("Ranks were asked a moment ago: try again in a few minutes."), "info")
+
+    def toast(self, text: str, level: str = "success"):
+        """Toast over the page (its dialog host)"""
+        from PySide6.QtWidgets import QWidget
+
+        from .dialogs import page_toast
+
+        widget = self.parent()
+        page_toast(widget if isinstance(widget, QWidget) else None, text, level)
 
     @Slot()
     def openDriverStats(self):
