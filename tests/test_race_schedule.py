@@ -278,11 +278,35 @@ class FakeClient:
         return answer(payload) if callable(answer) else answer
 
 
+def settle_schedule_reads(timeout: float = 10.0):
+    """Schedule reads started by earlier tests ended: the app's race watch (made by the first Home or Upcoming
+    Races page of the process, read every CHECK_MS while events run) and Home pages read it on page jobs, with
+    the patches of whichever test runs then (none: no game). One ending after this test set the state wrote its
+    own over it (NO_GAME, read just now: no read due, test_live_read_every_minute_while_page_shows)."""
+    from neopedal.jobs import page_pool
+
+    pool = page_pool()
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
+        with pool._lock:  # nothing waiting, every worker idle: no read about to start either
+            if not pool._queue and pool._idle == pool._workers:
+                break
+        time.sleep(0.01)
+    assert info._lock.acquire(timeout=30.0), "schedule read of an earlier test stuck"  # one running ends first
+    info._lock.release()
+
+
 @pytest.fixture
 def fresh_info(monkeypatch, tmp_path):
     from neopedal import rank_info
     from neopedal.setting import cfg
+    from neopedal.ui.quick import race_watch as rw
 
+    watch = rw._watch
+    paused = watch is not None and watch._timer.isActive()
+    if paused:  # app's race watch reads nothing during the test (events run by page tests), started again after
+        watch._timer.stop()
+    settle_schedule_reads()
     monkeypatch.setattr(info, "_state", info.State(rs.EMPTY, "", -1.0, 0))
     monkeypatch.setattr(info, "_disk_read", False)
     monkeypatch.setattr(cfg.path, "config", f"{tmp_path.as_posix()}/")
@@ -290,7 +314,9 @@ def fresh_info(monkeypatch, tmp_path):
     client = FakeClient(answers())
     monkeypatch.setattr(rank_info, "online_client", lambda: client)
     monkeypatch.setattr(rank_info, "online_enabled", lambda: True)
-    return client
+    yield client
+    if paused:
+        watch._timer.start()
 
 
 def test_read_saves_and_waits(fresh_info, monkeypatch):
@@ -1509,10 +1535,16 @@ def test_split_parsed_without_address():
 def test_live_read_every_minute_while_page_shows(fresh_info, monkeypatch):
     info.read()
     tried = info.state().tried
+    # Just past the interval: (tried + 600) - tried is 599.9999999999999 for some read times (909.593: CI runner
+    # started 15 minutes before), never asked exactly on it
     assert not info.due(tried + info.LIVE_READ_SECONDS - 1, live=True)
-    assert info.due(tried + info.LIVE_READ_SECONDS, live=True)
-    assert not info.due(tried + info.LIVE_READ_SECONDS, live=False)  # Home: every READ_SECONDS
-    monkeypatch.setattr(info, "_state", info.state()._replace(tried=tried - info.LIVE_READ_SECONDS))
+    assert info.due(tried + info.LIVE_READ_SECONDS + 0.01, live=True)
+    assert not info.due(tried + info.LIVE_READ_SECONDS + 0.01, live=False)  # Home: every READ_SECONDS
+    # LIVE_READ_SECONDS later (1 s more, same rounding): clocks moved on, not the last read moved back (below 0,
+    # "never read": due for Home too, on a machine started less than LIVE_READ_SECONDS ago, its monotonic clock
+    # counting from boot: CI runners)
+    monotonic = time.monotonic
+    monkeypatch.setattr(time, "monotonic", lambda: monotonic() + info.LIVE_READ_SECONDS + 1)
     later = time.time() + info.LIVE_READ_SECONDS
     monkeypatch.setattr(time, "time", lambda: later)
     count = len(fresh_info.paths)

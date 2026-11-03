@@ -1,5 +1,6 @@
 """Pytest shared setup"""
 
+import collections
 import faulthandler
 import gc
 import os
@@ -219,6 +220,27 @@ def quit_like_app(isolated_user_paths):
 
 def pytest_sessionstart(session):
     SESSION.append(session)
+
+
+# QML engine state leaked (tests/FLAKY.md, "Cannot install element 'StackLayout' into protected module"): once one
+# test of an xdist worker breaks QtQuick.Layouts, every later page of that worker fails. The first failure of the
+# process names the tests run before it in this process, to find the one that broke it.
+_RECENT_TESTS: collections.deque[str] = collections.deque(maxlen=60)
+_QML_LEAK_TOLD: list[str] = []
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item, call):
+    report = yield
+    if report.failed and not _QML_LEAK_TOLD and "into protected module" in str(report.longrepr):
+        _QML_LEAK_TOLD.append(item.nodeid)
+        report.sections.append((
+            "QML engine state leaked",
+            "First 'into protected module' QML error of this process (see tests/FLAKY.md). Tests run before it "
+            "in this process, oldest first:\n" + "\n".join(_RECENT_TESTS)))
+    if call.when == "teardown":
+        _RECENT_TESTS.append(item.nodeid)
+    return report
 
 
 @pytest.hookimpl(trylast=True)

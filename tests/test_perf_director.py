@@ -56,17 +56,31 @@ def test_settings_written_once_changes_pause(director_page, monkeypatch):  # noq
     backend = director_page.backend
     writes: list[dict] = []
     real = page_settings.write_settings
+    written_at: list[float] = []
 
     def save(name, data):
+        if name != db.SETTINGS_FILE:  # settings of another page (one an earlier test left with changes pending)
+            real(name, data)
+            return
+        written_at.append(time.monotonic())
         writes.append(json.loads(json.dumps(data)))
         real(name, data)
 
     monkeypatch.setattr(page_settings, "write_settings", save)
     for value in range(10, 20):  # arrow held on a number
+        changed_at = time.monotonic()  # before the last change (its timer starts after)
         backend.setNumber("minShot", value)
     assert writes == [] and backend.page_file.pending and backend.minShot == 19
-    process_events(db.SAVE_DELAY_MS / 1000 + 0.3)
-    assert len(writes) == 1 and writes[0]["min_shot"] == 19
+    # Written once the changes pause: waited for (a fixed wait missed the timer on a busy machine, a sleep of the
+    # wait loop overshooting its end), then events run on for the delay again: still one write
+    end = changed_at + 10.0
+    while not writes and time.monotonic() < end:
+        QCoreApplication.processEvents()
+        time.sleep(0.01)
+    process_events(db.SAVE_DELAY_MS / 1000)
+    assert len(writes) == 1 and writes[0]["min_shot"] == 19 and not backend.page_file.pending
+    # Not before the pause (coarse timers may fire 5% early, monotonic clock steps of 16 ms on Windows)
+    assert written_at[0] - changed_at >= db.SAVE_DELAY_MS / 1000 * 0.8
     backend.setNumber("battleGap", 2.0)
     assert db.load_page_settings()["battle_gap"] == 2.0  # settings read: changes of the open page written first
     assert len(writes) == 2
