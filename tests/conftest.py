@@ -13,6 +13,11 @@ import pytest
 # Run from repository root, headless Qt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+# Git hooks export the repository (pre-push of a worktree: absolute GIT_DIR): git commands of tests in temp
+# repositories would write in the real one (2026-11-03: core.bare & user of the real .git/config replaced)
+for _name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY",
+              "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_NAMESPACE", "GIT_CEILING_DIRECTORIES", "GIT_PREFIX"):
+    os.environ.pop(_name, None)
 # Global config folder (and its legacy folder migration) in a temp folder, before any app import
 _USER_BASE = tempfile.mkdtemp(prefix="tp_user_base_")
 for _name in ("APPDATA", "XDG_CONFIG_HOME", "XDG_DATA_HOME"):
