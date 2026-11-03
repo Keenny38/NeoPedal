@@ -755,3 +755,24 @@ def test_focus_ring_painter_restored(ui_env):
     painter.end()
     button.deleteLater()
     flush_deleted()
+
+
+def test_saved_position_restored_once_shown(window, monkeypatch):
+    """App title bar: Windows placed the window one caption lower than saved (native caption removed since), the saved
+    position is set again once shown, never for a maximized window"""
+    from PySide6.QtCore import QPoint
+
+    monkeypatch.setitem(cfg.compatibility, "enable_window_position_correction", False)
+    window.show()
+    QApplication.processEvents()
+    wanted = window.pos() + QPoint(40, 25)
+    window.restore_position(wanted)
+    assert window.pos() == wanted
+    window.showMaximized()
+    QApplication.processEvents()
+    moved = []
+    monkeypatch.setattr(window, "move", lambda *args: moved.append(args))
+    window.restore_position(QPoint(5, 5))
+    assert moved == []
+    window.showNormal()
+    window.hide()

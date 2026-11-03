@@ -28,6 +28,7 @@ Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en p
 - **Jeu fermé** : l'état du jeu de l'Accueil et de la barre indiquait le jeu lancé quand Le Mans Ultimate était fermé mais que le plugin laissait une version `unknown` en mémoire partagée ; il indique maintenant `non lancé`, comme les vérifications.
 - **Barre de navigation** : quand toutes les pages sont dans la barre, `Plus` et son séparateur ne s'affichent plus vides, ni l'entrée `Afficher les pages absentes de la barre` de son menu.
 - **Bouton Agrandir de la barre de titre** : un clic sur `Agrandir` ou `Restaurer` ne faisait rien, ni le choix de disposition (Snap Layouts) qu'il ouvre, car Windows donnait le clic à un handle de fenêtre que Qt avait remplacé depuis le démarrage. Le double-clic sur la barre fonctionnait toujours.
+- **Position de la fenêtre mémorisée** : avec la barre de titre dessinée par l'app, la fenêtre revenait une barre de légende plus bas (environ 30 px) à chaque démarrage et enregistrait cette position, elle descendait donc un peu plus à chaque fois ; elle démarre maintenant là où elle a été laissée.
 
 ## 0.29.0 (2026-11-03)
 

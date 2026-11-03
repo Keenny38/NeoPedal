@@ -28,7 +28,7 @@ from collections.abc import Callable
 from functools import partial
 
 import shiboken6
-from PySide6.QtCore import QEvent, QMetaObject, QRect, QSize, Qt, QTimer, Slot
+from PySide6.QtCore import QEvent, QMetaObject, QPoint, QRect, QSize, Qt, QTimer, Slot
 from PySide6.QtGui import (
     QGuiApplication,
     QIcon,
@@ -682,9 +682,21 @@ class AppWindow(QMainWindow):
             self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
         if cfg.application["show_at_startup"]:
             show_restored(self)
+            if self.title_bar is not None and cfg.application["remember_position"] and (pos_x, pos_y) != (0, 0):
+                QTimer.singleShot(0, lambda: self.restore_position(QPoint(pos_x, pos_y)))
         elif not cfg.application["minimize_to_tray"] or not QSystemTrayIcon.isSystemTrayAvailable():
             self.showMinimized()  # no notification area: in the task bar, never hidden with no way back
         self._track_geometry = True
+
+    def restore_position(self, wanted: QPoint):
+        """Saved position again once shown: Windows placed the window with the native caption the app title bar
+        removes since, one caption lower, then saved lower at each start"""
+        if self.isMaximized() or self.isFullScreen() or self.isMinimized() or not self.isVisible():
+            return
+        if self.pos() != wanted:
+            self.move(wanted)
+            if cfg.compatibility["enable_window_position_correction"]:
+                self.verify_window_position()
 
     def verify_window_position(self):
         """Keep window inside screen showing most of it (nearest one if on none: screen unplugged),

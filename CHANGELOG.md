@@ -28,6 +28,7 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 - **Game closed**: the game status of Home and of the bar said the game was running when Le Mans Ultimate was closed but the plugin had left an `unknown` version in shared memory; it now tells `not running`, like the checks.
 - **Navigation bar**: when every page is in the bar, `More` and its divider no longer show empty, nor the `Show pages not in the bar` entry of its menu.
 - **Maximize button of the title bar** did nothing when clicked (`Maximize` and `Restore`), and so did the Snap Layouts flyout it opens: Windows gave the click to a window handle Qt had replaced since the start. Double-clicking the bar always worked.
+- **Window position remembered**: with the title bar drawn by the app, the window came back one caption lower (about 30 px) at each start and saved that position, so it slid down a little more every time; it now starts where it was left.
 
 ## 0.29.0 (2026-11-03)
 
