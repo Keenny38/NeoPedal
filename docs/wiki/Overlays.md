@@ -37,7 +37,7 @@ Other options of `Settings` > `Overlay Style` (they apply to all presets): `enab
 
 **Opacity of all overlays**: `overlay_opacity_percentage` makes every overlay more see-through at once, text included (`100` by default). It multiplies the `opacity` option of each overlay (right click › Opacity in edit mode), so `80` with an overlay at `0.9` shows it at 72%: one setting for all, each overlay keeps its own. It applies on screen, on stream and in VR.
 
-**Darker panels** (modern design): `background_opacity_percentage` sets the opacity of the overlay panels (`92` by default, `100` solid), and `enable_black_background` draws them in neutral black instead of the blue-tinted slate of the dark themes (Modern Light keeps its panels).
+**Darker panels** (modern design): `background_opacity_percentage` sets the opacity of the overlay panels (`92` by default, `100` solid), and `enable_black_background` draws them in neutral black instead of the blue-tinted slate of the dark themes (Modern White keeps its panels).
 
 ## Themes
 
@@ -46,13 +46,13 @@ Other options of `Settings` > `Overlay Style` (they apply to all presets): `enab
 | Theme | Look |
 |---|---|
 | `Modern Dark` | Default: modern design, slate neutrals, softer accent colors |
-| `Modern Light` | Modern design, light panels and dark text |
-| `Legacy Dark` | Classic look: classic layout, colors and fonts |
-| `Legacy Light` | Classic look with light panels and dark text |
+| `Modern Grey` | Modern design, neutral gray panels (no blue tint) |
+| `Modern White` | Modern design, light panels and dark text |
+| `Legacy Grey` | Classic look: classic layout, colors and fonts |
 
 `enable_colorblind_colors` turns on the colorblind safe variant of any theme (Okabe-Ito palette: red / green pairs become orange / blue).
 
-Light themes invert gray panels and text, keep colored backgrounds (flags, warnings) and darken the colors drawn on panels (heatmap temperatures, gains and losses) so they stay readable. Themes only change options that still have their default value: a color you customized is kept in every theme.
+Modern White inverts gray panels and text, keeps colored backgrounds (flags, warnings) and darkens the colors drawn on panels (heatmap temperatures, gains and losses) so they stay readable. Themes only change options that still have their default value: a color you customized is kept in every theme.
 
 The window of the app has the same four themes (`window_color_theme` in `Settings` > `Application` > `Interface`). Window and overlays have separate themes.
 
@@ -114,7 +114,7 @@ The **Speed Delta** overlay (off by default, `Timing` category) shows your speed
 The **Driver Rank** overlay (off by default, `Timing` category, Le Mans Ultimate) shows your **Driver Rank (DR)** and **Safety Rank (SR)** as the game menu shows them (rank, tier and progress to the next tier), and your **track limits points** against the points allowed per penalty of the race (`1.25/5`; no limit in practice and qualifying, which have no penalty).
 
 - Ranks are read from the game folder (`coherent_local_storage.json`, written by the game menu, only read): they change once the game menu shows new ones, after an online race. A dash while they are unknown (game folder not found, never signed in online).
-- Recent game versions no longer keep ranks in that file while the game runs. To keep them up to date, keep `enable_online_driver_ranks` on (`Settings` > `Application` > `Online`, on by default): the app reads your ranks from RaceControl the way the game menu does (sign-in with a Steam ticket of the running game, ranks only; the ticket and sign-in are never saved), at start (unless read less than 30 minutes before), 3 and 15 min after each session and every 30 minutes while the game runs (few requests: RaceControl refuses a connection that asks too much, the game's too, and the app then asks nothing for an hour or more). Privacy: this sends the Steam session ticket of the game (it identifies your Steam account) and, in online sessions, the names of the other drivers, over HTTPS to raceos.gg, the online service of the game run by a third party (not NeoPedal), only while the game runs. Turn the option off to send nothing; ranks then stay at the last ones the game menu saved. The Driver Stats card then says `Ranks of RaceControl, updated <date>`.
+- Recent game versions no longer keep ranks in that file while the game runs. To keep them up to date, keep `enable_online_driver_ranks` on (`Settings` > `Application` > `Online`, on by default): the app reads your ranks from RaceControl the way the game menu does (sign-in with a Steam ticket of the running game, ranks only; the ticket and sign-in are never saved), at start (unless read less than 30 minutes before), 3 and 15 min after each online session (a solo session changes no rank: nothing is asked) and every 30 minutes while the game runs (few requests: RaceControl refuses a connection that asks too much, the game's too, and the app then asks nothing for an hour or more). Privacy: this sends the Steam session ticket of the game (it identifies your Steam account) and, in online sessions, the names of the other drivers, over HTTPS to raceos.gg, the online service of the game run by a third party (not NeoPedal), only while the game runs. Turn the option off to send nothing; ranks then stay at the last ones the game menu saved. The Driver Stats card then says `Ranks of RaceControl, updated <date>`.
 - The game folder is found like for race results (folder chosen on the `Results` page, else your Steam libraries); you are found by the Steam account last signed in, else by your game profile name.
 - `show_progress` shows the progress to the next tier; each item can be shown or hidden (`show_driver_rank`, `show_safety_rank`, `show_track_limits`), with its own prefix and colors in the classic design. The modern design shows each rank in its color, with the progress as a bar.
 

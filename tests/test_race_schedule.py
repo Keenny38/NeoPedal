@@ -1557,9 +1557,11 @@ def test_live_read_every_minute_while_page_shows(fresh_info, monkeypatch):
     info.read()
     assert len(fresh_info.paths) == count  # not due for Home
     answered = set(info._answers[1])
+    slots = info.state().schedule.frequency
     info.read(live=True)  # routes that rarely change not asked again (recent answer), page ones asked
     asked = [key for key in rs.ROUTES
-             if key != "hosted" and (key not in info.SLOW_ROUTES or key not in answered)]
+             if key != "hosted" and (key not in info.SLOW_ROUTES or key not in answered)
+             and not (key.startswith("daily_") and slots.get(key[6:], 0) - info.FRESH_MARGIN > info.LIVE_READ_SECONDS)]
     assert fresh_info.paths[count:] == [rs.ROUTES[key] for key in asked]
     assert not set(info.state().schedule.missing) & info.SLOW_ROUTES & answered  # not asked: not missing
     count = len(fresh_info.paths)

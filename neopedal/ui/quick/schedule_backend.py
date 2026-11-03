@@ -52,7 +52,7 @@ from .models import DictListModel
 from .page_backend import PageBackend
 from .race_watch import race_watch
 from .schedule_personal import EMPTY as NO_PERSONAL
-from .schedule_personal import PersonalData, personal_row, read_personal
+from .schedule_personal import PersonalData, personal_row, read_personal, stats_track
 from .schedule_reminders import default_minutes, reminder_choices, reminders
 from .schedule_view import (
     SOON_SECONDS,
@@ -87,13 +87,19 @@ ROW_ROLES = ("modelData",)  # page lists: one role holding the row (delegates ke
 TICK_MS = 30000  # times to start told again (read again once due, see race_schedule_info.READ_SECONDS)
 FAST_TICK_MS = 5000  # while a start is close (SOON_SECONDS): countdown & pulse follow
 PERSONAL_SECONDS = 300.0  # driver stats files read again this often while the page shows
+MANUAL_SECONDS = 300.0  # Read Again asks RaceControl for the tab shown at most this often (like the ranks Refresh):
+# a press every minute used up the 120 requests an hour; a press sooner reads what is due
 TABS = ("daily", "events", "championships", "coop", "servers")
 BOARD_CACHE_SECONDS = 600.0  # leaderboard pages read again this late (going back & forth: no new ask)
 UNRANKED_SECONDS = 10800.0  # your place in leaderboards where you are not ranked read again this late
 TIMELINE_HOURS = (3, 6, 12)
-PLACES_SECONDS = 1800.0  # your places in the weekly leaderboards read again this often while shown
+PLACES_SECONDS = 7200.0  # your places in the weekly leaderboards read again this often while shown (a place moves
+# when you or others drive it: 2 requests a leaderboard, the biggest part of the page's requests at 30 minutes)
+PLACES_DRIVEN_SECONDS = 8 * 86400.0  # leaderboards asked only for tracks you drove this long ago at most (a week of
+# the leaderboard, one day more): you cannot be ranked on a track you did not drive
 VIEWS = ("cards", "list", "timeline")
-LIVE_FIELD_SECONDS = 900.0  # starts this close: their field (drivers, ranks) read again while the page shows
+LIVE_FIELD_SECONDS = 600.0  # starts this close: their field (drivers, ranks) read while the page shows (once at
+# LIVE_FIELD_EVERY, 18 requests an hour at 15 minutes for 3 tiers)
 LIVE_FIELD_MISSES = 2  # live reads in a row not answered: that race's field no longer asked
 LIVE_FIELD_EVERY = 598.0  # seconds between two reads of a field (checked every tick: TICK_MS); count of the
 # lists read every LIVE_READ_SECONDS meanwhile
@@ -209,6 +215,7 @@ class RaceScheduleBackend(PageBackend):
         self._sources: dict[str, Any] = {}  # row key -> (row, event / championship / co-op event)
         self._personal: PersonalData = NO_PERSONAL
         self._personal_time = -PERSONAL_SECONDS
+        self._manual_read = -MANUAL_SECONDS  # monotonic time Read Again last asked RaceControl
         self._reading = False
         self._rank_serial = -1
         # Places asked, places left, not ranked & forbidden fields kept when the page is made again (fewer requests)
@@ -421,13 +428,13 @@ class RaceScheduleBackend(PageBackend):
         return TABS[self._tab] == "servers"
 
     # Reading
-    def read(self, force: bool = False):
+    def read(self, force: bool = False, tab: str = ""):
         if self._reading:
             return
         self._reading = True
         self.publish_status()
         servers = self.servers_shown()
-        self.jobs.run("race schedule", lambda: info.read(force, live=True, servers=servers), self.read_done,
+        self.jobs.run("race schedule", lambda: info.read(force, live=True, servers=servers, tab=tab), self.read_done,
                       self.read_failed, key="schedule")
 
     def read_done(self, _state: info.State):
@@ -441,10 +448,14 @@ class RaceScheduleBackend(PageBackend):
             return
         schedule = info.state().schedule
         boards = {event.board.key: event.board for event in schedule.events if event.board is not None}
+        tracks = {event.board.key: (event.track, event.scene) for event in schedule.events if event.board is not None}
         for item in schedule.championships:
             current = item.current_round(time.time())
             if current is not None and current.board is not None:
                 boards[current.board.key] = current.board
+                tracks[current.board.key] = (current.track, current.scene)
+        if not force:  # only the tracks driven lately (driver stats read: none before, asked again when read)
+            boards = {key: board for key, board in boards.items() if self.driven_lately(*tracks[key])}
         now = time.monotonic()
         if not force:  # not ranked there a while ago: asked again later (fewer asks)
             boards = {key: board for key, board in boards.items()
@@ -498,9 +509,18 @@ class RaceScheduleBackend(PageBackend):
         self._personal_time = time.monotonic()
         self.jobs.run("your laps", read_personal, self.personal_read, self.personal_failed, key="personal")
 
+    def driven_lately(self, track: str, scene: str) -> bool:
+        """A session on that track in the last PLACES_DRIVEN_SECONDS (history of driver stats)"""
+        data = self._personal
+        key = stats_track(data, track, scene)
+        return bool(key) and 0 <= time.time() - data.last_driven.get(key, 0.0) < PLACES_DRIVEN_SECONDS
+
     def personal_read(self, data: PersonalData):
+        first = self._personal is NO_PERSONAL
         self._personal = data
         self.publish_all()
+        if first:  # places wait for the tracks you drove
+            self.read_places_due()
 
     def personal_failed(self, error: BaseException):
         logger.warning("RACE SCHEDULE: driver stats not read: %s", error)
@@ -767,7 +787,12 @@ class RaceScheduleBackend(PageBackend):
     @Slot()
     def readAgain(self):
         self._personal_time = -PERSONAL_SECONDS
-        self.read(force=True)
+        now = time.monotonic()
+        if now - self._manual_read >= MANUAL_SECONDS:  # asked again too soon: read only what is due
+            self._manual_read = now
+            self.read(force=True, tab=TABS[self._tab])
+        else:
+            self.read()
         self.read_personal_due()
 
     @Slot()

@@ -5,10 +5,16 @@ The full list of commits of each version is on the [Releases](https://github.com
 
 ## 0.29.1 (2026-11-03)
 
-Fewer requests to RaceControl when it is down.
+A Modern Grey theme, and fewer requests to RaceControl when it is down.
+
+### New
+
+- **Modern Grey theme**, for the window and for the overlays: neutral grays without the blue tint of Modern Dark. The themes are now `Modern Dark` (default), `Modern Grey`, `Modern White` and `Legacy Grey`, each for the window (`window_color_theme`) and for the overlays (`overlay_theme`), chosen separately. `Modern Light` became `Modern White`; `Legacy Dark` and `Legacy Light` became `Legacy Grey` (classic look, dark): the theme you had is converted once, `Modern Dark` stays as it is.
 
 ### Fixes
 
+- **Fewer requests to RaceControl** (Upcoming Races): the page asked about 60 to 70 requests an hour while open, now about 20. Your places in weekly leaderboards are read for the tracks you drove in the last 8 days only, every 2 hours instead of 30 minutes (2 requests a leaderboard, 15 leaderboards followed); no special event (RaceControl answers an error then) is remembered for an hour instead of being asked at every read; daily race lists are read once per race slot (15, 20 or 30 minutes by level) instead of every 10 minutes; the daily schedule after midnight UTC, active championships when their round ends; fields of races about to start are read once, in the 10 minutes before the start. The copy of the schedule kept on disk now remembers when each route was read, so a restart no longer makes old answers look new.
+- **Driver & Safety Rank**: a solo session (practice, qualifying or race against the AI) no longer makes the app sign in to RaceControl 3 and 15 minutes after it, nor read the ranks of the field again: only online sessions do (the results file of the game tells which: `Setting`). `Read Again` on Upcoming Races (`F5`) reads the tab shown, at most once every 5 minutes (it used to read the ten routes, once a minute).
 - When RaceControl does not answer (error or no answer on three routes in a row), the Upcoming Races read stops after those three requests instead of asking every route, and tries again after 5 minutes, then 10, 20, 40 and at most every hour, instead of every 5 minutes (up to 57 requests an hour with the page shown, now about 10).
 
 ## 0.29.0 (2026-11-03)

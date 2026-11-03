@@ -8,7 +8,7 @@ Open it with the `Races` entry of the navigation bar, the `Tools` menu, the comm
 
 The races are read from **RaceControl**, the online service of Le Mans Ultimate, signed in with the game exactly as the game menu does (the same sign in as the online Driver Rank & Safety Rank). So:
 
-- **Le Mans Ultimate must be running** (in the menus is enough) for a new read. The page reads again every 10 minutes while it is shown (every 30 minutes for the Home card; championships, weekly & special events and co-op every hour, hosted servers only while their tab shows), and `Read Again` (`F5`) reads everything at once, at most once a minute. Starting the app again asks nothing at once while the last read is recent. When RaceControl does not answer (error or no answer on three routes in a row), the rest of the read is not asked, and the app tries again after 5 minutes, then 10, 20, 40 and at most every hour until it answers. RaceControl refuses a connection that asks too much (the game's too, so you could no longer race online): after a refusal the app asks nothing for an hour or more, even after a restart.
+- **Le Mans Ultimate must be running** (in the menus is enough) for a new read. The daily race lists are read again once per race slot while the page is shown (every 15, 20 or 30 minutes, as the races of a level start; every 30 minutes for the Home card), the daily schedule after midnight UTC (or every 6 hours), the active championships when their current round ends (every Tuesday at 05:00 UTC) or every 6 hours, weekly & special events and co-op every hour (no special event is remembered for an hour too), hosted servers only while their tab shows every 10 minutes, and `Read Again` (`F5`) reads the tab shown at once, at most once every 5 minutes (asked sooner, it reads only what is due). Starting the app again asks nothing at once while the last read is recent. When RaceControl does not answer (error or no answer on three routes in a row), the rest of the read is not asked, and the app tries again after 5 minutes, then 10, 20, 40 and at most every hour until it answers. RaceControl refuses a connection that asks too much (the game's too, so you could no longer race online): after a refusal the app asks nothing for an hour or more, even after a restart.
 - The last races read are kept on disk (`.race_schedule.json` in the global config folder) and shown while the game is closed; the header tells when they were read.
 - The option `enable_online_driver_ranks` (Settings > Application, on by default) turns online reading on or off for both the ranks and the races. When it is off, the page tells so with a button to the option.
 
@@ -43,7 +43,7 @@ Hosted servers tell their sessions (length, time on track) and weather. The dail
 
 ## Your place
 
-Each race and championship round you drove this week shows **your place in its weekly leaderboard** ("#1,204 of 17,836"); click it to open the leaderboard at your page. Places are read again every 30 minutes while the page is shown.
+Each race and championship round you drove this week shows **your place in its weekly leaderboard** ("#1,204 of 17,836"); click it to open the leaderboard at your page. Places are read for the tracks you drove in the last 8 days (a leaderboard lasts a week, you cannot be ranked on a track you did not drive), again every 2 hours while the page is shown, and when you open a leaderboard.
 
 ## Filters
 

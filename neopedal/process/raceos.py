@@ -625,6 +625,11 @@ class RaceOSClient:
         """JSON answer of a RaceControl GET (path without leading slash), None if not read"""
         return self._request("GET", path, None, account)
 
+    def get_status(self, path: str, account: str = "") -> tuple[int, Any]:
+        """Status & JSON answer of a RaceControl GET (path without leading slash), (NOT_SENT, None) if not sent
+        (limits, asked to wait), (NOT_SIGNED, None) if not signed in, (0, None) if sent without answer"""
+        return self._exchange("GET", path, None, account)
+
     def post(self, path: str, payload: Any, account: str = "") -> Any:
         """JSON answer of a RaceControl POST of JSON payload (path without leading slash), None if not read"""
         return self._request("POST", path, json.dumps(payload).encode(), account)

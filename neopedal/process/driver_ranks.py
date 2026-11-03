@@ -39,6 +39,7 @@ import json
 import logging
 import math
 import os
+import re
 import threading
 import time
 import zlib
@@ -261,6 +262,8 @@ ONLINE_SECONDS = 1800.0  # few sign ins: RaceControl refused this connection for
 ONLINE_GAME_SECONDS = 60.0  # game looked for this often while not running
 ONLINE_RETRY_SECONDS = 600.0  # read again this late once a read failed (offline)
 ONLINE_MANUAL_SECONDS = 300.0  # read asked by the player (Refresh) at most this often: few sign ins
+SETTING_BYTES = 4096  # start of a results file read to tell online sessions (<Setting> comes first)
+_SETTING = re.compile(rb"<Setting>([^<]*)</Setting>")
 
 
 class Located(NamedTuple):
@@ -687,6 +690,22 @@ class RankWatcher:
             if changed:
                 self.serial += 1
 
+    @staticmethod
+    def last_session_online(folder: str) -> bool:
+        """The newest results file of folder is of an online session (<Setting>Multiplayer</Setting>): ranks only
+        move after those. True when it cannot be told (no file, unreadable, no setting): read like before"""
+        try:
+            with os.scandir(folder) as entries:
+                files = [entry for entry in entries if entry.name.lower().endswith(".xml") and entry.is_file()]
+            if not files:
+                return True
+            newest = max(files, key=lambda entry: entry.stat().st_mtime)
+            with open(newest.path, "rb") as file:
+                found = _SETTING.search(file.read(SETTING_BYTES))
+        except OSError:
+            return True
+        return found is None or b"multiplayer" in found.group(1).lower()
+
     def check_online(self, now: float, located: Located) -> None:
         """Start online read if due (own thread, applied by a later check): at start, after a session ended, else
         every ONLINE_SECONDS while game runs"""
@@ -715,7 +734,8 @@ class RankWatcher:
         except OSError:
             results_mtime = None
         if results_mtime is not None and results_mtime != self._results_mtime:
-            if self._results_mtime is not None:  # not first seen: a session ended
+            # not first seen: a session ended (an offline one changes no rank: no sign in for it)
+            if self._results_mtime is not None and self.last_session_online(located.results):
                 self._online_due = [now + delay for delay in ONLINE_RESULTS_DELAYS]
                 try:
                     self._session_ended()

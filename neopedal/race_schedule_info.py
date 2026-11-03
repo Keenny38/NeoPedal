@@ -56,7 +56,21 @@ SLOW_ROUTE_SECONDS = 3600.0
 # only while their tab shows
 PAGE_ROUTES = frozenset(("championships", "championships_upcoming", "coop", "hosted"))
 FRESH_MARGIN = 30.0  # answer younger than its read interval minus this not asked again (tab switch, refresh)
+# Routes whose answer changes at a moment it tells (seen 2026-11-03 in answers of RaceControl): read again at it
+SCHEDULE_MAX_SECONDS = 6 * 3600.0  # daily schedule: start times of one UTC day, read again after midnight UTC (or this late)
+ROUND_MAX_SECONDS = 6 * 3600.0  # active championships: rounds change when the current one ends (Tuesday 05:00 UTC),
+# registrations & attempts move slowly: read again at that moment, or this late
+ROUND_MARGIN = 60.0  # read again this long after a round ended (RaceControl moves to the next one)
+NO_SPECIAL_STATUS = 500  # special events answer this when there is none: kept as an empty list like any answer
 FORCE_SECONDS = 60.0  # refresh asked on the page: read again at once at most this often
+# Routes each tab of the Upcoming Races page shows (Read Again asks the tab shown only, not the 10 routes)
+TAB_ROUTES: dict[str, frozenset[str]] = {
+    "daily": frozenset(("schedule", "daily_beginner", "daily_intermediate", "daily_advanced")),
+    "events": frozenset(("weekly", "special")),
+    "championships": frozenset(("championships", "championships_upcoming")),
+    "coop": frozenset(("coop",)),
+    "servers": frozenset(("hosted",)),
+}
 
 # Status of last read
 READ = "read"  # read from RaceControl
@@ -105,19 +119,23 @@ def _set(schedule: rs.Schedule, status: str, tried: float, failures: int | None 
     _state = State(schedule, status, tried, serial, failures=old.failures if failures is None else failures)
 
 
-def _kept_answers(answers: dict, now: float) -> dict:
-    """Answers of routes not answered now, from the schedule shown if read less than KEEP_ANSWER_SECONDS ago"""
+def _kept_answers(answers: dict, now: float, fresh: set[str] | frozenset[str] = frozenset()) -> dict:
+    """Answers of routes not answered now, from the schedule shown if read less than KEEP_ANSWER_SECONDS ago (routes
+    not asked because their answer is still fresh: whatever its age, see _is_fresh)"""
     schedule, known = _answers
     if schedule is not _state.schedule:
         return {}
     return {key: answer for key, (read_time, answer) in known.items()
-            if answers.get(key) is None and 0 <= now - read_time < KEEP_ANSWER_SECONDS}
+            if answers.get(key) is None and (key in fresh or 0 <= now - read_time < KEEP_ANSWER_SECONDS)}
 
 
-def _remember(schedule: rs.Schedule, answers: dict, read_time: float, kept: dict) -> None:
-    """Answers a schedule was made from: answered now, or kept with their own read time"""
+def _remember(schedule: rs.Schedule, answers: dict, read_time: float, kept: dict,
+              times: dict[str, float] | None = None) -> None:
+    """Answers a schedule was made from: answered now (times: own read time of each, from a disk copy), or kept
+    with their own read time"""
     global _answers
-    known = {key: (read_time, answer) for key, answer in answers.items() if answer is not None}
+    known = {key: ((times or {}).get(key, read_time), answer) for key, answer in answers.items()
+             if answer is not None}
     known.update((key, _answers[1][key]) for key in kept)
     _answers = (schedule, known)
 
@@ -130,7 +148,8 @@ def load_disk() -> None:
     _disk_read = True
     from .userfile import read_json
 
-    found = rs.from_cache(read_json(cache_path(), default=None, dict_only=True))
+    saved = read_json(cache_path(), default=None, dict_only=True)
+    found = rs.from_cache(saved)
     if found is None or _state.schedule.read_time:
         return
     answers, cars, tracks, read_time = found
@@ -143,7 +162,8 @@ def load_disk() -> None:
     age = time.time() - read_time
     if 0 <= age < KEEP_ANSWER_SECONDS:  # recent copy: counts as a read (an app restart asks nothing at once)
         _state = _state._replace(disk_tried=time.monotonic() - age)
-    _remember(schedule, answers, read_time, {})  # kept after a restart too (read time of the disk copy)
+    # kept after a restart too, each with the time it was read (not the time the copy was written)
+    _remember(schedule, answers, read_time, {}, rs.cache_times(saved, answers, read_time))
 
 
 def _busy_for(client=None) -> float:
@@ -199,13 +219,34 @@ def _fresh_routes(now: float, live: bool, servers: bool) -> set[str]:
             fresh.add(key)
             continue
         found = known.get(key)
-        if found is not None and 0 <= now - found[0] < (SLOW_ROUTE_SECONDS if key in SLOW_ROUTES else interval):
+        if found is not None and _is_fresh(key, found, now, interval, live):
             fresh.add(key)
     return fresh
 
 
-def read(force: bool = False, live: bool = False, servers: bool = False) -> State:
-    """Read RaceControl if due (force: now and every route, but never twice within FORCE_SECONDS, live: page shown,
+def _is_fresh(key: str, found: tuple[float, object], now: float, interval: float, live: bool) -> bool:
+    """Answer (read time, answer) of a route not to ask again at `now`: the daily schedule until midnight UTC, active
+    championships until their current round ends, daily lists of a tier for one race slot (page shown), other slow
+    routes SLOW_ROUTE_SECONDS, the rest within the read interval"""
+    read_time, answer = found
+    age = now - read_time
+    if age < 0:
+        return False
+    if key == "schedule":
+        return read_time // 86400 == now // 86400 and age < SCHEDULE_MAX_SECONDS
+    if key == "championships":
+        return age < ROUND_MAX_SECONDS and now < rs.next_round_change(answer, read_time) + ROUND_MARGIN
+    if key in SLOW_ROUTES:
+        return age < SLOW_ROUTE_SECONDS
+    if live and key.startswith("daily_"):  # the 3 next races of a tier move on at each race slot (15, 20, 30 minutes)
+        slot = _state.schedule.frequency.get(key.removeprefix("daily_"), 0.0)
+        return age < max(interval, slot - FRESH_MARGIN)
+    return age < interval
+
+
+def read(force: bool = False, live: bool = False, servers: bool = False, tab: str = "") -> State:
+    """Read RaceControl if due (force: now and every route (tab: the routes of that tab of the page only), but never
+    twice within FORCE_SECONDS, live: page shown,
     servers: its Hosted Servers tab shown, read once their answer is old, see due), only routes not answered
     recently (see _fresh_routes), blocking (worker thread); state after it"""
     with _lock:
@@ -225,12 +266,21 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
         if _busy_for(client) > 0:  # RaceControl asked to wait (429): nothing asked, read once the wait is over
             return _state
         account = ranks.account
-        fresh = set() if force else _fresh_routes(time.time(), live, servers)
+        fresh = _fresh_routes(time.time(), live, servers) if not force else (
+            set(rs.ROUTES) - TAB_ROUTES[tab] if tab in TAB_ROUTES else set())
         if not set(rs.ROUTES) - fresh:  # every answer recent: nothing asked
             _set(_state.schedule, _state.status, now)
             return _state
+        get_status = getattr(client, "get_status", None)  # client of tests without it: special read like the others
+
+        def get(path: str):
+            if path != rs.ROUTES["special"] or get_status is None:
+                return client.get(path, account)
+            status, answer = get_status(path, account)
+            return [] if status == NO_SPECIAL_STATUS else answer  # none to come: not asked again before its turn
+
         # rest not asked after a 429, nor once FAIL_STREAK routes in a row gave nothing (RaceControl down)
-        answers = rs.read_answers(lambda path: client.get(path, account), fresh, FAIL_STREAK)
+        answers = rs.read_answers(get, fresh, FAIL_STREAK)
         player = getattr(client, "player", ("", ""))[0]  # races the player is registered to marked (names dropped)
         answers = {key: rs.mark_registered(answer, player) for key, answer in answers.items()}
         if all(answer is None for answer in answers.values()):
@@ -240,7 +290,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
         cars, tracks = _game_lists()
         old = _state.schedule
         read_time = time.time()
-        kept = _kept_answers(answers, read_time)  # routes not answered now: last answer still recent
+        kept = _kept_answers(answers, read_time, fresh)  # routes not answered now: last answer still recent
         try:
             schedule = rs.parse_schedule({**answers, **kept}, cars or old.cars, tracks or old.tracks, read_time)
         except Exception as error:  # answer the parser cannot read: old schedule kept, tried again like a failure
@@ -255,8 +305,9 @@ def read(force: bool = False, live: bool = False, servers: bool = False) -> Stat
         schedule = rs.with_registered(schedule, _registered_now(schedule))
         _remember(schedule, answers, read_time, kept)
         _set(schedule, READ, now, 0)
-        # disk copy: answers of this read & recent ones not asked again (one read time)
-        _save({**answers, **{key: kept[key] for key in fresh if key in kept}}, schedule)
+        # disk copy: every answer the schedule was made from, with the time each was read
+        _save({key: found[1] for key, found in _answers[1].items()}, schedule,
+              {key: found[0] for key, found in _answers[1].items()})
         return _state
 
 
@@ -571,11 +622,11 @@ def _game_lists() -> tuple[dict[str, rs.CarInfo], dict[str, rs.TrackInfo]]:
             rs.parse_track_catalog(rest_cache.json("/rest/race/track", GAME_LISTS_AGE)))
 
 
-def _save(answers: dict, schedule: rs.Schedule) -> None:
+def _save(answers: dict, schedule: rs.Schedule, times: dict[str, float]) -> None:
     from .userfile import write_json
 
     try:
-        write_json(cache_path(), rs.cache_data(answers, schedule.cars, schedule.tracks, schedule.read_time),
+        write_json(cache_path(), rs.cache_data(answers, schedule.cars, schedule.tracks, schedule.read_time, times),
                    fsync=False, raise_error=True)
     except (OSError, TypeError, ValueError) as error:
         logger.info("RACE SCHEDULE: schedule not saved: %s", error)

@@ -5,10 +5,16 @@ C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en 
 
 ## 0.29.1 (2026-11-03)
 
-Moins de requêtes vers RaceControl quand il est en panne.
+Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en panne.
+
+### Nouveautés
+
+- **Thème Moderne gris**, pour la fenêtre et pour les overlays : des gris neutres, sans la teinte bleue de Moderne sombre. Les thèmes sont maintenant `Modern Dark` (par défaut), `Modern Grey`, `Modern White` et `Legacy Grey`, chacun pour la fenêtre (`window_color_theme`) et pour les overlays (`overlay_theme`), choisis séparément. `Modern Light` devient `Modern White` ; `Legacy Dark` et `Legacy Light` deviennent `Legacy Grey` (look classique, sombre) : le thème que tu avais est converti une fois, `Modern Dark` ne change pas.
 
 ### Corrections
 
+- **Moins de requêtes vers RaceControl** (Courses à venir) : la page demandait 60 à 70 requêtes par heure ouverte, environ 20 maintenant. Tes places dans les classements hebdomadaires ne sont lues que pour les pistes roulées dans les 8 derniers jours, toutes les 2 heures au lieu de 30 minutes (2 requêtes par classement, 15 classements suivis) ; l'absence d'événement spécial (RaceControl répond alors une erreur) est retenue une heure au lieu d'être redemandée à chaque lecture ; les listes de courses quotidiennes sont lues une fois par créneau de course (15, 20 ou 30 minutes selon le niveau) au lieu de toutes les 10 minutes ; le calendrier du jour après minuit UTC, les championnats actifs quand leur manche se termine ; le plateau des courses sur le point de partir est lu une fois, dans les 10 minutes avant le départ. La copie du calendrier gardée sur disque retient maintenant l'heure de lecture de chaque route : un redémarrage ne fait plus passer de vieilles réponses pour neuves.
+- **Driver Rank et Safety Rank** : une session solo (essais, qualifications ou course contre l'IA) ne fait plus se connecter l'app à RaceControl 3 et 15 minutes après, ni relire les rangs du plateau : seules les sessions en ligne le font (le fichier de résultats du jeu dit laquelle : `Setting`). `Relire` dans Courses à venir (`F5`) lit l'onglet affiché, au plus une fois toutes les 5 minutes (il lisait les dix routes, une fois par minute).
 - Quand RaceControl ne répond pas (erreur ou aucune réponse sur trois routes de suite), la lecture de Courses à venir s'arrête après ces trois requêtes au lieu de demander toutes les routes, puis réessaie au bout de 5 minutes, puis 10, 20, 40 et au plus toutes les heures, au lieu de toutes les 5 minutes (jusqu'à 57 requêtes par heure avec la page affichée, environ 10 maintenant).
 
 ## 0.29.0 (2026-11-03)

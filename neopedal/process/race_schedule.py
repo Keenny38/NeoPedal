@@ -1019,9 +1019,12 @@ def trimmed(value: Any) -> Any:
 
 
 def cache_data(answers: dict[str, Any], cars: dict[str, CarInfo], tracks: dict[str, TrackInfo],
-               read_time: float) -> dict:
+               read_time: float, times: dict[str, float] | None = None) -> dict:
+    """Disk copy: answers by ROUTES key with the time each was read (times: key -> seconds since epoch, read_time
+    for the ones not given)"""
     return {
         "version": CACHE_VERSION, "read": read_time,
+        "times": {key: times[key] for key in answers if times and key in times and answers[key] is not None},
         "answers": {key: trimmed(value) for key, value in answers.items() if value is not None},
         "cars": {folder: list(car) for folder, car in cars.items()},
         "tracks": {scene: list(track) for scene, track in tracks.items()},
@@ -1045,6 +1048,26 @@ def from_cache(data: Any) -> tuple[dict[str, Any], dict[str, CarInfo], dict[str,
         if len(track) == 2 and isinstance(scene, str):
             tracks[scene] = TrackInfo(_text(track[0]), track[1] is True)
     return _dict(data.get("answers")), cars, tracks, read_time
+
+
+def cache_times(data: Any, answers: dict[str, Any], read_time: float) -> dict[str, float]:
+    """Time each answer of a disk copy was read (seconds since epoch): its own, else the time of the copy (copies
+    written before routes had their own time)"""
+    saved = _dict(_dict(data).get("times"))
+    return {key: (_number(saved.get(key)) or read_time) for key in answers}
+
+
+def next_round_change(answer: Any, after: float) -> float:
+    """Earliest end of a current round after `after` (seconds since epoch) in a championships answer: the moment
+    the round, its sessions & registrations change (every championship: Tuesday 05:00 UTC, seen 2026-11-03), infinity
+    if none"""
+    found = math.inf
+    for item in map(_dict, _list(answer)):
+        for entry in map(_dict, _list(item.get("rounds"))):
+            end = _time(entry.get("endsAt"))
+            if entry.get("current") is True and end > after:
+                found = min(found, end)
+    return found
 
 
 # Views
