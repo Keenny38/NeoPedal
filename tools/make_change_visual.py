@@ -46,6 +46,7 @@ GAP = 48
 LABEL_HEIGHT = 34
 # Overlay theme of each look (render file "<widget>.<look>.png", modern look: "<widget>.png")
 THEMES = {"modern": "Modern Dark", "classic": "Legacy Grey"}
+OPTIONAL_THEMES = {"grey": "Modern Grey"}  # --theme grey only (the scan covers the two looks above)
 # Same pixel noise tolerance as the CI visual check (tools/visual_diff.py)
 CHANNEL_TOLERANCE = 24
 CHANGED_RATIO = 0.002
@@ -153,7 +154,7 @@ def parse_overrides(values: list[str]) -> dict[str, dict]:
 def render_tree(tree: str, names: list[str], overrides: dict, output: str, looks: tuple[str, ...] = ("modern",)):
     """Render widgets (every widget if names is empty) with the code of one source tree"""
     os.makedirs(output, exist_ok=True)
-    themes = {look: THEMES[look] for look in looks}
+    themes = {look: {**THEMES, **OPTIONAL_THEMES}[look] for look in looks}
     leftovers = [os.path.join(tree, name) for name in PREVIEW_LEFTOVERS if not os.path.exists(os.path.join(tree, name))]
     try:
         subprocess.run(
@@ -424,8 +425,8 @@ def main() -> int:
     parser.add_argument("--base", default="HEAD", help="revision rendered as before (default HEAD)")
     parser.add_argument("--set", action="append", default=[], metavar="WIDGET.OPTION=VALUE",
                         help="option override in both renders (repeatable)")
-    parser.add_argument("--theme", choices=("modern", "classic", "both"), default="modern",
-                        help="overlay look rendered (default modern)")
+    parser.add_argument("--theme", choices=("modern", "classic", "grey", "both"), default="modern",
+                        help="overlay look rendered (default modern; grey: Modern Grey theme, before = former code)")
     parser.add_argument("--scan", action="store_true",
                         help="list every widget whose render changed, and the ones no image covers yet")
     parser.add_argument("--images", nargs=2, metavar=("BEFORE", "AFTER"),
