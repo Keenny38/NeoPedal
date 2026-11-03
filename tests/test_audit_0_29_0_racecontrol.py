@@ -305,3 +305,40 @@ def test_l4_summary_in_class_places():
     figures = {item["label"]: item["value"] for item in summary_of([multi, single, unplaced], "Me")["figures"]}
     assert figures["Wins"] == "1" and figures["Podiums"] == "2" and figures["Avg. Finish"] == "P1.5"
     assert figures["Clean Races"] == "2/2"  # the race without your place left out of both counts
+
+
+# Live check 2026-11-03: Upcoming Races read with the account "" (game folder not located yet) and the ranks with the
+# Steam account: each change was taken for a Steam account switch, signed in again and dropped the answer running
+# (4 sign ins in 45 s, player ranks unknown, Register offered for a race the Safety Rank does not allow)
+def test_sign_in_kept_when_game_account_located_after():
+    auth = json.dumps({"accessToken": "tok", "expiresAt": iso(NOW + 3600), "player": PLAYER}).encode()
+    signs = []
+
+    def http(method, url, body, headers, timeout):
+        if url == raceos.AUTH_URL:
+            signs.append(url)
+            return 200, auth
+        return 200, b"[]"
+
+    client = raceos.RaceOSClient(lambda: "ticket", http=http, clock=lambda: 1000.0, wall_clock=lambda: NOW)
+    steam = PLAYER["platforms"][0]["id"]
+    assert client.get("api/v1/daily/schedule", "") == []  # page first, account unknown
+    assert client.fetch(steam) is not None  # ranks, account located: same sign in
+    assert client.get("api/v1/daily/schedule", "") == [] and client.get("api/v1/daily/schedule", steam) == []
+    assert client.token("") == "tok" and len(signs) == 1
+    assert client.fetch("76561190000000002") is not None and len(signs) == 2  # real switch: signed in again
+    assert client.get("api/v1/daily/schedule", "") == [] and len(signs) == 2
+
+
+# Live check 2026-11-03: leaving a race kept the reminder its registration set (told to join a race left at 04:05)
+def test_reminder_of_registration_dropped_when_race_left(ui_env, monkeypatch):
+    from neopedal.ui.quick import schedule_reminders as sr
+
+    monkeypatch.setattr(sr.RaceReminders, "tell", staticmethod(lambda text: None))
+    reminders = sr.RaceReminders(clock=lambda: NOW)
+    reminders.set("daily/beginner/LMGT3 Fixed@1", "LMGT3 Fixed", "Algarve", NOW + 1500, 10, registered=True)
+    reminders.set("daily/beginner/LMP3 Fixed@2", "LMP3 Fixed", "Sebring", NOW + 900, 5)  # set by the player
+    assert sr.RaceReminders(clock=lambda: NOW).drop_registered("daily/beginner/LMGT3 Fixed@1")  # flag saved
+    reminders = sr.RaceReminders(clock=lambda: NOW)
+    assert not reminders.drop_registered("daily/beginner/LMP3 Fixed@2")
+    assert reminders.keys() == {"daily/beginner/LMP3 Fixed@2": 5}

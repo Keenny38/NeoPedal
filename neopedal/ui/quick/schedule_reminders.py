@@ -58,7 +58,7 @@ def _valid(entry: Any) -> dict | None:
     if isinstance(minutes, bool) or not isinstance(minutes, int) or not 0 < minutes <= 24 * 60:
         return None
     return {"key": key, "title": str(entry.get("title") or ""), "track": str(entry.get("track") or ""),
-            "start": float(start), "minutes": minutes}
+            "start": float(start), "minutes": minutes, "registered": entry.get("registered") is True}
 
 
 def due_reminders(reminders: list[dict], now: float) -> tuple[list[dict], list[dict]]:
@@ -151,15 +151,25 @@ class RaceReminders(QObject):
     def minutes_of(self, key: str) -> int:
         return self.keys().get(key, 0)
 
-    def set(self, key: str, title: str, track: str, start: float, minutes: int):
-        """Reminder of a start set (minutes > 0) or removed (0)"""
+    def set(self, key: str, title: str, track: str, start: float, minutes: int, registered: bool = False):
+        """Reminder of a start set (minutes > 0) or removed (0); registered: set by a registration to that start
+        (removed when the player leaves the race, see drop_registered), else set by the player"""
         reminders = [entry for entry in self._reminders if entry["key"] != key]
         if minutes > 0 and start > self._clock():
-            reminders.append({"key": key, "title": title, "track": track, "start": start, "minutes": minutes})
+            reminders.append({"key": key, "title": title, "track": track, "start": start, "minutes": minutes,
+                              "registered": registered})
             reminders = sorted(reminders, key=lambda entry: entry["start"])[:MAX_REMINDERS]
         self._reminders = reminders
         self.save()
         self.changed.emit()
+
+    def drop_registered(self, key: str) -> bool:
+        """Reminder a registration set for that start removed (player left the race: never told to join a race
+        left), one the player set kept; True if removed"""
+        if not any(entry["key"] == key and entry["registered"] for entry in self._reminders):
+            return False
+        self.set(key, "", "", 0.0, 0)
+        return True
 
     def save(self):
         try:

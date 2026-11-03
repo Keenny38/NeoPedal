@@ -1067,7 +1067,7 @@ class RaceScheduleBackend(PageBackend):
         minutes = reminders().minutes_of(key) if key else 0
         if key and not minutes:
             minutes = REGISTERED_REMINDER
-            reminders().set(key, asked["title"], asked["track"], start, minutes)
+            reminders().set(key, asked["title"], asked["track"], start, minutes, registered=True)
         self.publish_all()
         self.toast(tr("Registered to %1 (%2) with %3. Join the server from the game when it opens: reminder %4 min "
                       "before.").replace("%1", asked["title"]).replace("%2", asked["when"]).replace(
@@ -1094,12 +1094,14 @@ class RaceScheduleBackend(PageBackend):
         chosen = self.menu_start(row, source, start)
         if chosen is None or not chosen["eventId"]:
             return
-        entry_type, event_id, title = source.entry_type, chosen["eventId"], row["title"]
+        entry_type, event_id, title, start_key = source.entry_type, chosen["eventId"], row["title"], chosen["key"]
         when = start_text(chosen["time"], time.time())
 
         def answered(result: tuple[bool, str]):
             done, reason = result
             if done:
+                if start_key:  # reminder the registration set: no "join the server" call for a race left
+                    reminders().drop_registered(start_key)
                 self.publish_all()
                 self.toast(tr("No longer registered to %1 (%2).").replace("%1", title).replace("%2", when))
             else:

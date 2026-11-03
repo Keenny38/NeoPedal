@@ -420,7 +420,7 @@ class RaceOSClient:
         earlier run, is older than now), None if not read"""
         with self._lock:
             signed = self._signed
-            if (signed is not None and signed.player is not None and account == self._account
+            if (signed is not None and signed.player is not None and self._same_account(account)
                     and self._clock() - self._signed_time < max_age):
                 return signed.player, signed.time
         saved = self._saved_ranks
@@ -473,11 +473,19 @@ class RaceOSClient:
         """Token of last sign in while valid, else of a new sign in, "" if not signed in"""
         with self._lock:
             signed = self._signed
-            if (signed is not None and account == self._account
+            if (signed is not None and self._same_account(account)
                     and self._wall_clock() < signed.expiry - TOKEN_MARGIN):
                 return signed.token
         signed = self.sign_in(account)
         return signed.token if signed is not None else ""
+
+    def _same_account(self, account: str) -> bool:
+        """Account asked for is the one of the last sign in: "" (game account not located yet) stands for the one in
+        use, never for another; first account asked for after a sign in made without one taken as its own (ticket of
+        the game account in use), so that the next other one is a switch (lock held)"""
+        if account and not self._account and self._signed is not None:
+            self._account = account
+        return not account or not self._account or account == self._account
 
     def sign_in(self, account: str = "", max_age: float = SIGN_IN_SECONDS) -> SignIn | None:
         """Sign in with a game ticket: last one if made less than max_age (SIGN_IN_SECONDS at most) ago, else a new
@@ -485,12 +493,17 @@ class RaceOSClient:
         if self.busy_for() > 0:  # asked to wait or connection refused: no sign in either
             return None
         with self._lock:
-            if account != self._account:  # Steam account switched: failures & token of other account forgotten
-                self._account, self._retry_time, self._retry_wait = account, -1.0, RETRY_SECONDS
+            if not self._same_account(account):  # Steam account switched: failures & token of other account forgotten
+                self._retry_time, self._retry_wait = -1.0, RETRY_SECONDS
                 self._refused_wait = RETRY_SECONDS
                 self._signed = None
                 self.no_account = False
                 self._generation += 1
+            if account:
+                # Account located after a sign in made without it (ticket of the game account in use): sign in kept.
+                # Readers asking with "" (Upcoming Races before the game folder was found) and with the account
+                # (ranks) used to switch back and forth: a new sign in each time, the answer running dropped
+                self._account = account
             now = self._clock()
             signed = self._signed
             if (signed is not None and now - self._signed_time < min(max_age, SIGN_IN_SECONDS)
