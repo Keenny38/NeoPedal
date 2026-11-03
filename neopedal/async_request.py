@@ -44,6 +44,7 @@ MAX_BODY = 16 * 1024 * 1024  # response body size limit (bytes), larger response
 # (host, port): (address, expiry time, resolved): resolved False while nothing answered (game not running)
 _resolved_hosts: dict[tuple[str, int], tuple[str, float, bool]] = {}
 _resolved_lock = threading.Lock()
+_probed = threading.local()  # unresolved: a probe of this thread found no game, see take_unresolved_probe
 _unresolved_warning = ErrorThrottle(UNRESOLVED_WARN_SECONDS)
 
 
@@ -61,8 +62,18 @@ def _cached_hostname(host: str, port: int) -> str | None:
     return None
 
 
+def take_unresolved_probe() -> bool:
+    """Whether a probe of this thread found no game (game not running) since the last call, cleared: a job that
+    waited for it is not worth a log line"""
+    found = getattr(_probed, "unresolved", False)
+    _probed.unresolved = False
+    return found
+
+
 def _store_hostname(host: str, port: int, resolved: str) -> str:
     """Cache probing result, returns address to use (host itself if unresolved)"""
+    if not resolved:
+        _probed.unresolved = True
     hold = RESOLVED_HOLD if resolved else UNRESOLVED_HOLD
     address = resolved or host
     with _resolved_lock:

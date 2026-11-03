@@ -41,6 +41,8 @@ from typing import Any, Protocol
 from PySide6.QtCore import QCoreApplication, QObject, Qt, Signal, Slot
 from shiboken6 import isValid
 
+from .async_request import take_unresolved_probe
+
 logger = logging.getLogger(__name__)
 
 SLOW_JOB = 2.0  # seconds, jobs longer than this are logged (a page waits for their result)
@@ -133,14 +135,17 @@ def execute(job: Job, idle_name: str = WORKER_NAME):
     else:
         thread = threading.current_thread()
         thread.name = f"{job.label} {job.name}"
+        take_unresolved_probe()
         start = perf_counter()
         try:
             job.outcome = (True, work(job.token) if job.cancellable else work())
         except BaseException as error:  # handed to failed callback or logged on UI thread
             job.outcome = (False, error)
         seconds = perf_counter() - start
-        if seconds > SLOW_JOB and not job.token.cancelled:
-            logger.info("%s: %s took %.1f s", job.label, job.name, seconds)
+        game_closed = take_unresolved_probe()
+        if seconds > SLOW_JOB and not job.token.cancelled:  # waiting for a game not running is no slowness
+            logger.log(logging.DEBUG if game_closed else logging.INFO, "%s: %s took %.1f s", job.label, job.name,
+                       seconds)
         thread.name = idle_name
     work = None
     courier = _courier

@@ -255,3 +255,18 @@ def test_slow_job_logged(caplog, monkeypatch):
         jobs.run("slow", lambda: time.sleep(0.01))
         wait_for(lambda: jobs.running == 0)
     assert "Test page: slow took" in caplog.text
+
+
+def test_slow_job_waiting_for_closed_game_not_logged(caplog, monkeypatch):
+    from neopedal import async_request
+
+    monkeypatch.setattr(job_module, "SLOW_JOB", 0.0)
+    jobs = BackgroundJobs(label="Test page")
+    with caplog.at_level(logging.INFO, logger=job_module.__name__):
+        jobs.run("closed", lambda: async_request._store_hostname("localhost", 6397, ""))
+        wait_for(lambda: jobs.running == 0)
+        assert "Test page: closed took" not in caplog.text
+        jobs.run("slow", lambda: time.sleep(0.01))  # flag cleared: next slow job logged again
+        wait_for(lambda: jobs.running == 0)
+    assert "Test page: slow took" in caplog.text
+    async_request.clear_resolved_hosts()
