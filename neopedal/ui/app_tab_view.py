@@ -60,6 +60,7 @@ from PySide6.QtWidgets import (
 
 from .. import app_signal
 from ..api_control import api
+from ..api_control import api_state as game_state
 from ..const_app import APP_NAME
 from ..const_file import ConfigType
 from ..i18n import tr, trm
@@ -1167,6 +1168,12 @@ class TabView(QWidget):
             button.hide()  # never painted over the new entries until deleted
             button.deleteLater()
         self._rail_more_buttons = []
+        if not hidden_rail_items():  # every page is in the bar: nothing to unfold, no More & no divider
+            self._rail_more_open = False
+            self._rail_divider.hide()
+            self.sync_rail_selection()
+            return
+        self._rail_divider.show()
         unfolded = self._rail_more_open
         toggle = NavButton(tr("Less") if unfolded else tr("More"), "\ue70e" if unfolded else "\ue70d",
                            "\u2212" if unfolded else "+", self._icon_family, self._rail)  # chevron up / down
@@ -1285,8 +1292,9 @@ class TabView(QWidget):
                 menu.addAction(tr("Add to Navigation Bar")).triggered.connect(
                     lambda _=False, name=key: self.add_rail_item(name))
             menu.addSeparator()
-        menu.addAction(tr("Hide pages not in the bar") if self._rail_more_open
-                       else tr("Show pages not in the bar")).triggered.connect(self.toggle_rail_more)
+        if self._rail_more_buttons:  # pages left out of the bar: same as More
+            menu.addAction(tr("Hide pages not in the bar") if self._rail_more_open
+                           else tr("Show pages not in the bar")).triggered.connect(self.toggle_rail_more)
         menu.addAction(tr("Reset Navigation Bar…")).triggered.connect(self.reset_rail_items)
         menu.exec(self._rail.mapToGlobal(position))
         menu.deleteLater()
@@ -1316,7 +1324,7 @@ class TabView(QWidget):
 
     def rail_drop_target(self, point: QPoint) -> int:
         """Place in the rail of an entry dropped at point of the rail list, -1 on More & below (left out)"""
-        if point.y() >= self._rail_divider.geometry().top():
+        if not self._rail_divider.isHidden() and point.y() >= self._rail_divider.geometry().top():
             return -1
         for index, button in enumerate(self._rail_buttons):
             if point.y() < button.geometry().center().y():
@@ -2289,11 +2297,7 @@ class TabView(QWidget):
         for option, button in self._toggles.items():
             if button.isChecked() != cfg.overlay[option]:
                 button.setChecked(cfg.overlay[option])
-        if cfg.api["enable_active_state_override"]:
-            api_state = "overriding"
-        else:
-            api_state = api.read.state.version()
-        running = bool(api_state) and api_state not in ("not running", "0.0")
+        api_state, running = game_state()
         dot_color = QColor(status_color("success" if running else "inactive"))
         tooltip = f"{api.alias} \u00b7 {tr(api_state)}"
         if self._button_api.dot_color != dot_color or self._button_api.toolTip() != tooltip:

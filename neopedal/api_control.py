@@ -194,3 +194,16 @@ class APIControl:
 
 
 api = APIControl()
+
+# Game version read while game is closed (version left empty in shared memory: "unknown") or older names of it
+NOT_RUNNING_STATES = ("unknown", "not running", "0.0")
+
+
+def api_state() -> tuple[str, bool]:
+    """API state ("overriding", game version or "not running") & whether game is running (sends data)"""
+    if cfg.api["enable_active_state_override"]:
+        return "overriding", True
+    state = api.read.state.version()
+    if not state or state in NOT_RUNNING_STATES:
+        return "not running", False
+    return state, True

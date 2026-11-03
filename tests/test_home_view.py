@@ -215,6 +215,23 @@ def test_game_card_session_and_checks(home, monkeypatch):
     assert ("In session · Road Atlanta · Race · P3" in texts) == bool(backend.status["rows"])
 
 
+def test_game_closed_not_told_connected(home, monkeypatch):
+    """Game closed: shared memory version empty ("unknown"), never "Ready · Game connected" (UI/UX audit U-050)"""
+    from neopedal.api_control import api, api_state
+
+    monkeypatch.setitem(cfg.api, "enable_active_state_override", False)
+    monkeypatch.setattr(api.read.state, "version", lambda: "unknown")
+    assert api_state() == ("not running", False)
+    backend = home.backend
+    backend.refresh_live()
+    assert backend.game["running"] is False and backend.game["status"] == "Not running"
+    assert "ready" not in keys(backend.checks) and "game" in keys(backend.checks)
+    monkeypatch.setattr(api.read.state, "version", lambda: "1.4200")
+    assert api_state() == ("1.4200", True)
+    monkeypatch.setitem(cfg.api, "enable_active_state_override", True)
+    assert api_state() == ("overriding", True)
+
+
 def test_checks_card_actions(home, monkeypatch):
     from neopedal.ui import app_settings
 

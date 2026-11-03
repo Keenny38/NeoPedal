@@ -34,7 +34,7 @@ from PySide6.QtCore import QUrl, Slot
 from PySide6.QtQuickWidgets import QQuickWidget
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ..api_control import api
+from ..api_control import api_state
 from ..const_app import VERSION
 from ..const_file import ConfigType
 from ..i18n import tr
@@ -309,11 +309,7 @@ def current_release_notes(filename: str = CHANGELOG_FILE, version: str = VERSION
 
 def api_state_text() -> tuple[str, bool]:
     """API state text & whether game is running"""
-    if cfg.api["enable_active_state_override"]:
-        state = "overriding"
-    else:
-        state = api.read.state.version()
-    return state, bool(state) and state not in ("not running", "0.0")
+    return api_state()
 
 
 def last_session() -> SessionRecord | None:

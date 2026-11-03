@@ -136,6 +136,20 @@ def test_rail_more_unfolds_pages_left_out(window):
     assert more_keys(view) == ["railMoreToggle"]
 
 
+def test_rail_more_gone_when_nothing_left_out(window):
+    """Every page in the bar: no More entry & no divider; back once a page is removed"""
+    from neopedal.ui.nav_rail import rail_entries
+
+    view = window.centralWidget()
+    cfg.application["rail_items"] = ",".join(rail_entries())
+    view.build_rail_items()
+    assert more_keys(view) == [] and view._rail_divider.isHidden()
+    view.toggle_rail_more()  # nothing to unfold: stays folded
+    assert more_keys(view) == [] and not view._rail_more_open
+    view.remove_rail_item("preset")
+    assert more_keys(view) == ["railMoreToggle"] and not view._rail_divider.isHidden()
+
+
 def test_rail_drag_and_drop(window):
     """Entries dragged to another place of the rail, from More into it, onto More (left out); drop line shown"""
     from PySide6.QtCore import QPoint

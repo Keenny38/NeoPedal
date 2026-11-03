@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QApplication, QGridLayout, QWidget
 
 from tests.test_audit_g_qml_keys import component  # noqa: F401  (fixture)
 
-PALETTES = ("Modern Dark", "Modern White", "Legacy Grey", "Legacy Light")
+PALETTES = ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey")
 QML = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "neopedal", "ui", "qml")
 
 
@@ -32,7 +32,7 @@ def themed(ui_env):
 # 1. One source of tokens: shell colors equal the Theme ones in every theme
 @pytest.mark.parametrize("name", PALETTES)
 def test_shell_tokens_same_as_theme(themed, name):
-    from neopedal.ui import legacy_style, tokens
+    from neopedal.ui import grey_style, legacy_style, tokens
     from neopedal.ui.quick import Theme
 
     themed(name)
@@ -41,7 +41,7 @@ def test_shell_tokens_same_as_theme(themed, name):
     legacy = legacy_style()
     assert tokens.surface_card(palette) == theme.property("surfaceCard")
     assert tokens.surface_flyout(palette) == theme.property("surfaceFlyout")
-    assert tokens.stroke_subtle(palette, legacy) == theme.property("strokeSubtle")
+    assert tokens.stroke_subtle(palette, legacy, grey_style()) == theme.property("strokeSubtle")
     assert tokens.hover_fill(palette) == theme.property("hover")
     for hovered in (False, True):
         assert tokens.selected_fill(palette, hovered) == theme.rowColor(hovered, True)
@@ -59,7 +59,7 @@ def test_quick_reads_tokens_from_one_source():
         assert getattr(quick, name) is getattr(tokens, name), name
 
 
-@pytest.mark.parametrize("name", ("Modern Dark", "Legacy Light"))
+@pytest.mark.parametrize("name", ("Modern Dark", "Legacy Grey"))
 def test_menus_and_rail_style_from_tokens(themed, name):
     from neopedal.ui import UIScaler, legacy_style, set_style_window, tokens
 
