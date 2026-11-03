@@ -23,6 +23,8 @@ from __future__ import annotations
 import itertools
 import time
 
+import pytest
+
 from neopedal import race_schedule_info as info
 from neopedal.process import race_schedule as rs
 from tests.test_race_schedule import NOW, fresh_info, page  # noqa: F401
@@ -306,3 +308,81 @@ def test_forced_read_asks_the_routes_of_the_tab_only(fresh_info, monkeypatch):  
     monkeypatch.setattr(info, "_state", info.state()._replace(tried=-1000.0))
     info.read(force=True)  # no tab (after a registration): everything
     assert len(fresh_info.paths) == len(rs.ROUTES)
+
+
+def release_body(tag: str = "v0.30.0") -> bytes:
+    import json
+
+    return b"HTTP/1.1 200 OK\r\n\r\n" + json.dumps({
+        "tag_name": tag, "published_at": "2026-11-10T00:00:00Z", "body": "### New\n\n- x", "assets": []}).encode()
+
+
+def test_failed_update_check_keeps_the_last_result(monkeypatch):
+    from neopedal import update, version
+
+    answers = [release_body(), b""]  # second check: offline, rate limit or GitHub error
+
+    async def latest(repo):
+        return answers.pop(0)
+
+    monkeypatch.setattr(update, "request_latest_release", latest)
+    monkeypatch.setattr(update, "verified_release", lambda *args: None)
+    monkeypatch.setattr(update, "fetch_changelog", lambda *args, **kwargs: "")
+    monkeypatch.setattr(version, "__version__", "0.29.0")
+    checker = update.UpdateChecker()
+    checker._UpdateChecker__checking("Keenny38/NeoPedal")
+    assert checker.is_updates() and checker.latest_version() == (0, 30, 0)
+    checker._UpdateChecker__checking("Keenny38/NeoPedal")
+    assert checker.is_updates() and checker.latest_version() == (0, 30, 0)  # notice kept, not erased
+    assert checker.message().startswith("New Updates")
+
+
+def test_changelog_not_read_is_not_kept_as_the_release_changelog(monkeypatch):
+    from neopedal import update
+
+    calls = []
+    results = [update.ChangelogUnavailable("HTTP 503"), "## 0.30.0 (2026-11-10)\n\n- x\n"]
+
+    def fetch(repo, tag, language, timeout=5):
+        calls.append(language)
+        result = results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    monkeypatch.setattr(update, "fetch_changelog", fetch)
+    checker = update.UpdateChecker()
+    assert checker._changelog("a/b", "v0.30.0", "en") == ""  # offline: nothing kept
+    assert checker._changelog("a/b", "v0.30.0", "en").startswith("## 0.30.0")  # next check reads it
+    assert checker._changelog("a/b", "v0.30.0", "en").startswith("## 0.30.0") and len(calls) == 2
+
+
+def test_missing_translation_is_final_but_a_server_error_is_not(monkeypatch):
+    import io
+    import urllib.error
+
+    from neopedal import update
+
+    def failing(code):
+        def open_url(url, timeout):
+            raise urllib.error.HTTPError(url, code, "x", {}, io.BytesIO(b""))  # type: ignore[arg-type]
+        return open_url
+
+    monkeypatch.setattr(update, "open_url", failing(404))
+    assert update.fetch_changelog("a/b", "v1.0.0", "fr") == ""  # not translated
+    monkeypatch.setattr(update, "open_url", failing(503))
+    with pytest.raises(update.ChangelogUnavailable):
+        update.fetch_changelog("a/b", "v1.0.0", "fr")
+
+
+def test_failed_sheet_download_waits_before_the_next_page_opening(tmp_path):
+    from neopedal.ui.quick.stats_common import REFERENCE_RETRY_SECONDS
+    from neopedal.userfile import lap_reference
+
+    folder = str(tmp_path)
+    assert not lap_reference.failed_recently(folder, REFERENCE_RETRY_SECONDS)
+    lap_reference.mark_download(folder, failed=True)
+    assert lap_reference.failed_recently(folder, REFERENCE_RETRY_SECONDS)  # page reopened: no new attempts
+    assert not lap_reference.failed_recently(folder, REFERENCE_RETRY_SECONDS, now=time.time() + 3601)
+    lap_reference.mark_download(folder, failed=False)  # one worked
+    assert not lap_reference.failed_recently(folder, REFERENCE_RETRY_SECONDS)

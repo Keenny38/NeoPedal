@@ -68,6 +68,7 @@ from .stats_common import (
     COLORBLIND_LEVEL_COLORS,
     CONFIG_NAME,
     REFERENCE_MAX_AGE,
+    REFERENCE_RETRY_SECONDS,
     STATS_TABS,
     SYNC_HISTORY_BYTES,
     SYNC_STATS_BYTES,
@@ -217,6 +218,8 @@ class StatsCore(StatsHost):
         cached_time = lap_reference.cache_time(cfg.path.config)
         if not force and cached_time and time.time() - cached_time < REFERENCE_MAX_AGE:
             return
+        if not force and lap_reference.failed_recently(cfg.path.config, REFERENCE_RETRY_SECONDS):
+            return  # last download failed a moment ago: not tried at each page opening
         url = config.get("lap_reference_sheet_url") or lap_reference.DEFAULT_SHEET_URL
         self._downloading = True
         self.referenceChanged.emit()
@@ -234,6 +237,7 @@ class StatsCore(StatsHost):
         """Download over: reference saved & parsed in background (cache read still running dropped)"""
         self._downloading = False
         self.reference_error = error
+        lap_reference.mark_download(cfg.path.config, failed=bool(error) and not text)
         self.referenceChanged.emit()
         if text and not self._released:
             self.jobs.run("lap reference", partial(store_reference, text), self.reference_read, key="reference")

@@ -35,6 +35,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -466,8 +467,18 @@ def tag_version(tag: str) -> str:
     return tag.lstrip("v").split("-")[0]
 
 
+class ChangelogUnavailable(Exception):
+    """Changelog not read for a reason that may pass (offline, rate limit, server error, cut off): asked again at
+    the next check, unlike a changelog the release does not have (404)"""
+
+
 def fetch_changelog(repo: str, tag: str, language: str, timeout: float = 5) -> str:
-    """Changelog of language at release tag (CHANGELOG.<language>.md, CHANGELOG.md for English), empty if none"""
+    """Changelog of language at release tag (CHANGELOG.<language>.md, CHANGELOG.md for English), empty if the release
+    has none (not translated: 404)
+
+    Raises:
+        ChangelogUnavailable: not read (offline, 403, 429, 5xx, cut off).
+    """
     if not tag or not re.fullmatch(r"[\w.-]+/[\w.-]+", repo):
         return ""
     filename = localized_changelog_name(language)
@@ -475,16 +486,24 @@ def fetch_changelog(repo: str, tag: str, language: str, timeout: float = 5) -> s
     try:
         with open_url(url, timeout) as response:
             return response.read(MAX_CHANGELOG_SIZE).decode("utf-8", "replace")
-    except (OSError, ValueError, http.client.HTTPException) as error:  # not translated (404), offline, cut
+    except urllib.error.HTTPError as error:
         logger.info("UPDATES: no %s changelog: %s", language, error)
-        return ""
+        if error.code == 404:  # not translated: final
+            return ""
+        raise ChangelogUnavailable(str(error)) from error
+    except (OSError, ValueError, http.client.HTTPException) as error:  # offline, cut off
+        logger.info("UPDATES: no %s changelog: %s", language, error)
+        raise ChangelogUnavailable(str(error)) from error
 
 
 def fetch_localized_summary(repo: str, tag: str, language: str, timeout: float = 5) -> str:
     """Translated changelog section of release (CHANGELOG.<language>.md at release tag), empty if none"""
     if localized_changelog_name(language) == CHANGELOG_FILE:
         return ""
-    return changelog_section(fetch_changelog(repo, tag, language, timeout), tag_version(tag))
+    try:
+        return changelog_section(fetch_changelog(repo, tag, language, timeout), tag_version(tag))
+    except ChangelogUnavailable:  # offline, rate limit, server error: no translated notes this time
+        return ""
 
 
 # Changelog screenshots: "![caption](https://raw.githubusercontent.com/<repo>/<ref>/docs/changes/<file>)" lines,
@@ -1357,7 +1376,10 @@ class UpdateChecker:
         if key not in self._changelog_cache:
             if any(cached[:2] != key[:2] for cached in self._changelog_cache):
                 self._changelog_cache.clear()  # newer release: older changelogs never used again
-            self._changelog_cache[key] = fetch_changelog(repo, tag, language)
+            try:
+                self._changelog_cache[key] = fetch_changelog(repo, tag, language)
+            except ChangelogUnavailable:  # not kept as the release's changelog: asked again at the next check
+                return ""
         return self._changelog_cache[key]
 
     def latest_version(self) -> tuple[int, int, int]:
@@ -1419,6 +1441,11 @@ class UpdateChecker:
         """Fetch version info from github Rest API"""
         try:
             raw_bytes = asyncio.run(request_latest_release(repo))
+            if not raw_bytes and self._last_checked_version != VERSION_NA:
+                # No answer (offline, rate limit, GitHub error): what the last check found stays (update notice,
+                # installer, notes), tried again at the next check
+                logger.warning("UPDATES: no answer from GitHub, result of the last check kept: %s", self.message())
+                return
             checked_version, checked_date = parse_release(raw_bytes)
             official = is_official_repository(repo)
             # Custom repository: hash given by GitHub (Authenticode signature required at install)

@@ -2,7 +2,7 @@
 
 ## In-app updates
 
-The app checks GitHub for a new release at startup (`check_for_updates_on_startup` in `Settings` > `Application`, on by default), then again every 12 hours while it runs (`number_of_hours_between_update_checks`, `0` = startup only; never while driving). Check by hand any time with `Help` > `Check for Updates`, or the update button of the `Home` page.
+The app checks GitHub for a new release at startup (`check_for_updates_on_startup` in `Settings` > `Application`, on by default), then again every 12 hours while it runs (a check that gets no answer, because you are offline or GitHub limits requests, keeps the update notice found before) (`number_of_hours_between_update_checks`, `0` = startup only; never while driving). Check by hand any time with `Help` > `Check for Updates`, or the update button of the `Home` page.
 
 ### When an update is available
 

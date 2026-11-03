@@ -67,6 +67,8 @@ from .stats_analysis import rank_chart
 logger = logging.getLogger(__name__)
 
 REFERENCE_MAX_AGE = 24 * 3600  # seconds before cached lap time reference is downloaded again
+REFERENCE_RETRY_SECONDS = 3600  # seconds after a failed download before the next page opening asks again (3 attempts
+# each: a page opened often while the service is down or rate limiting sent 3 requests every time)
 REFERENCE_KEYS = ("gap", "level")  # table columns from lap time reference, after personal best
 WATCH_DELAY = 800  # milliseconds after stats or history file changed before reloading
 LAPS_DELAY = 150  # milliseconds after selection changed before recorded laps are read (arrow keys: one read)

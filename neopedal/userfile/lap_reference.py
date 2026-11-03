@@ -56,6 +56,7 @@ DEFAULT_SHEET_URL = (
 SHEET_SOURCE = "ohne_speed"  # sheet author, credited in viewer
 SHEET_SOURCE_URL = "https://www.youtube.com/@ohne_speed"
 CACHE_NAME = "lap_reference.csv"
+FAILED_NAME = "lap_reference.failed"  # its time: last download that failed
 SHEET_CLASSES = ("LMH", "LMP2wec", "LMP2elms", "LMP3", "LMGT3", "GTE")
 MAX_SIZE = 2 * 1024 * 1024
 MAX_XLSX_SIZE = 8 * 1024 * 1024  # xlsx of the sheet tab (~80 KB; the whole workbook ~2.4 MB)
@@ -481,6 +482,28 @@ def load_cache(filepath: str) -> tuple[str, float]:
             return file.read(MAX_SIZE), os.path.getmtime(path)
     except (OSError, UnicodeDecodeError):  # damaged cache: downloaded again
         return "", 0.0
+
+
+def failed_recently(filepath: str, seconds: float, now: float | None = None) -> bool:
+    """A download failed less than `seconds` ago (marker file kept across restarts, removed once one worked)"""
+    try:
+        stamp = os.path.getmtime(os.path.join(filepath, FAILED_NAME))
+    except OSError:
+        return False
+    return 0 <= (time.time() if now is None else now) - stamp < seconds
+
+
+def mark_download(filepath: str, failed: bool) -> None:
+    """Download failed (marker written: the next page opening waits) or worked (marker removed)"""
+    from . import atomic_write
+
+    path = os.path.join(filepath, FAILED_NAME)
+    if failed:
+        with suppress(OSError), atomic_write(path, raise_error=True) as file:
+            file.write("failed")
+    else:
+        with suppress(OSError):
+            os.remove(path)
 
 
 def cache_time(filepath: str) -> float:
