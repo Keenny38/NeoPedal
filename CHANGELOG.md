@@ -24,6 +24,7 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 - **Updates**: a check that gets no answer (offline, GitHub rate limit or error) no longer erases the update notice, installer and notes found by the previous check; a changelog that could not be read (offline, error) is no longer kept as the release's changelog until you restart: it is read again at the next check (a release without a translated changelog is still remembered).
 - **Community lap times** (Driver Stats): after a failed download of the sheet, opening the page no longer tries again (3 attempts each time) for an hour, even after a restart.
 - When RaceControl does not answer (error or no answer on three routes in a row), the Upcoming Races read stops after those three requests instead of asking every route, and tries again after 5 minutes, then 10, 20, 40 and at most every hour, instead of every 5 minutes (up to 57 requests an hour with the page shown, now about 10).
+- **Console log**: with Le Mans Ultimate closed, a read of the race schedule (Home, race watch, Upcoming Races) no longer writes `race schedule took 3.0 s` every 5 minutes: that wait is the game not answering, not a slow job (still in the log at debug level).
 
 ## 0.29.0 (2026-11-03)
 

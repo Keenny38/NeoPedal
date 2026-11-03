@@ -24,6 +24,7 @@ Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en p
 - **Mises à jour** : une vérification sans réponse (hors ligne, limite de GitHub ou erreur) n'efface plus l'avis de mise à jour, l'installateur et les notes trouvés par la vérification précédente ; un journal des modifications non lu (hors ligne, erreur) n'est plus gardé comme celui de la version jusqu'au redémarrage : il est relu à la vérification suivante (une version sans journal traduit reste mémorisée).
 - **Temps de la communauté** (Driver Stats) : après un téléchargement raté de la feuille, ouvrir la page ne retente plus (3 essais à chaque fois) pendant une heure, même après un redémarrage.
 - Quand RaceControl ne répond pas (erreur ou aucune réponse sur trois routes de suite), la lecture de Courses à venir s'arrête après ces trois requêtes au lieu de demander toutes les routes, puis réessaie au bout de 5 minutes, puis 10, 20, 40 et au plus toutes les heures, au lieu de toutes les 5 minutes (jusqu'à 57 requêtes par heure avec la page affichée, environ 10 maintenant).
+- **Journal de la console** : avec Le Mans Ultimate fermé, une lecture du calendrier des courses (Accueil, suivi des courses, Courses à venir) n'écrit plus `race schedule took 3.0 s` toutes les 5 minutes : cette attente est le jeu qui ne répond pas, pas une tâche lente (toujours dans le journal au niveau debug).
 
 ## 0.29.0 (2026-11-03)
 
