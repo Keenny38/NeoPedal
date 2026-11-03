@@ -15,7 +15,7 @@ Un thème Moderne gris, et moins de requêtes vers RaceControl quand il est en p
 
 - **Contraste des quatre thèmes** : le contour des champs, des listes déroulantes et des interrupteurs atteint 3:1 contre la page, les cartes et les menus dans chaque thème (il était de 1,4 à 2:1 en Moderne sombre, Moderne blanc et Classique gris) ; le bleu de Classique gris est plus clair sur les menus (4,5:1) ; gains, pertes, alertes et le violet du meilleur atteignent 4,5:1 sur toutes les surfaces. Un interrupteur activé montre aussi une coche.
 - **Choisir un thème de fenêtre propose le même thème pour les overlays** (un réglage séparé, resté sur l'ancien thème avec ses aperçus et ses pages web) : un message avec un bouton, depuis les Réglages ou la palette de commandes. Le choix du thème dans les Réglages montre les couleurs du thème.
-- Les gris des cartes de tours, des rangs et des badges sont neutres dans tous les thèmes.
+- Les gris des cartes de tours, des rangs, des badges, de la carte de record personnel et des rapports de tours exportés sont neutres dans tous les thèmes.
 
 ### Corrections
 

@@ -42,6 +42,7 @@ from PySide6.QtWidgets import QApplication, QProxyStyle, QStyle, QWidget
 
 from ..const_app import PLATFORM
 from ..const_file import ImageFile
+from ..theme_data import STATUS_COLORS, WINDOW_PALETTES
 
 WINDOWS_THEME_KEY = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
 
@@ -64,45 +65,18 @@ def message_text(text: str) -> str:
     as rich text, plain text as is"""
     return safe_markup(text) if QtGui.Qt.mightBeRichText(text) else text
 
-# Status colors (no QPalette role for them), per window color theme.
-# Text colors keep at least 4.5:1 contrast on window & base background of their theme,
-# badge colors are backgrounds under badge_text.
-STATUS_COLORS = {
-    "Dark": {
-        "success": "#3DDC84",
-        "success_border": "#2E7D52",
-        "inactive": "#808080",
-        "danger": "#FF7B72",
-        "warning": "#E3B341",
-        "info": "#58A6FF",
-        "badge_success": "#238636",
-        "badge_danger": "#C93C37",
-        "badge_warning": "#8A5D00",
-        "badge_neutral": "#5E6670",
-        "badge_text": "#FFFFFF",
-    },
-    "Light": {
-        "success": "#16702F",
-        "success_border": "#16702F",
-        "inactive": "#6E7781",
-        "danger": "#B42318",
-        "warning": "#8A5A00",
-        "info": "#0B5CBF",
-        "badge_success": "#1A7F37",
-        "badge_danger": "#CF222E",
-        "badge_warning": "#8A5A00",
-        "badge_neutral": "#5E6670",
-        "badge_text": "#FFFFFF",
-    },
-}
+_WINDOW_THEMES: dict[int, str] = {}  # window color (rgb) -> "Dark" or "Light"
 
 
 def palette_theme(palette: QPalette | None = None) -> str:
-    """Window color theme of palette (app palette if not set): "Dark" or "Light" """
+    """Window color theme of palette (app palette if not set): "Dark" or "Light" (asked for at every status color)"""
     if palette is None:
         palette = QApplication.palette()
     window = palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.Window)
-    return "Dark" if window.lightness() < 128 else "Light"
+    theme = _WINDOW_THEMES.get(window.rgb())
+    if theme is None:
+        theme = _WINDOW_THEMES[window.rgb()] = "Dark" if window.lightness() < 128 else "Light"
+    return theme
 
 
 def status_color(name: str, palette: QPalette | None = None) -> str:
@@ -306,15 +280,31 @@ def legacy_style() -> bool:
     return _LEGACY[0]
 
 
+def palette_rows(color_theme: str):
+    """QPalette rows (active, inactive, disabled, role) of a window theme (see theme_data.WINDOW_PALETTES)"""
+    return tuple((active, inactive, disabled, getattr(QPalette.ColorRole, role))
+                 for role, (active, inactive, disabled) in WINDOW_PALETTES[color_theme].items())
+
+
 def window_palette(color_theme: str):
     """Palette rows of window theme: Modern Dark, Modern Grey, Modern White or Legacy Grey (classic colors)"""
-    if color_theme == "Legacy Grey":
-        return palette_legacy_grey()
-    if color_theme == "Modern Grey":
-        return palette_grey()
-    if color_theme == "Modern White":
-        return palette_light()
-    return palette_dark()
+    return palette_rows(color_theme if color_theme in WINDOW_PALETTES else "Modern Dark")
+
+
+def palette_light():
+    return palette_rows("Modern White")
+
+
+def palette_dark():
+    return palette_rows("Modern Dark")
+
+
+def palette_grey():
+    return palette_rows("Modern Grey")
+
+
+def palette_legacy_grey():
+    return palette_rows("Legacy Grey")
 
 
 _GREY = [False]  # palette set by set_style_palette is Modern Grey
@@ -349,116 +339,23 @@ def set_style_palette(color_theme: str):
     QApplication.setPalette(palette)
 
 
-def palette_light():
-    """Set palette light"""
-    return (
-        #   Active   Inactive   Disabled  Role
-        ("#F4F5F8", "#F4F5F8", "#ECEDF1", QPalette.ColorRole.Window),
-        ("#1F2328", "#1F2328", "#8C9096", QPalette.ColorRole.WindowText),
-        ("#FFFFFF", "#FFFFFF", "#F3F4F6", QPalette.ColorRole.Base),
-        ("#F6F7F9", "#F6F7F9", "#EEEFF2", QPalette.ColorRole.AlternateBase),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.ToolTipBase),
-        ("#1F2328", "#1F2328", "#1F2328", QPalette.ColorRole.ToolTipText),
-        ("#5B6068", "#5B6068", "#5B6068", QPalette.ColorRole.PlaceholderText),  # 4.5:1 on window, hover & selected rows
-        ("#1F2328", "#1F2328", "#8C9096", QPalette.ColorRole.Text),
-        ("#FFFFFF", "#FFFFFF", "#F3F4F6", QPalette.ColorRole.Button),
-        ("#1F2328", "#1F2328", "#8C9096", QPalette.ColorRole.ButtonText),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.BrightText),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.Light),
-        ("#E9EAED", "#E9EAED", "#F3F4F6", QPalette.ColorRole.Midlight),
-        ("#A3A7AD", "#A3A7AD", "#A3A7AD", QPalette.ColorRole.Dark),
-        ("#D0D3D8", "#D0D3D8", "#D0D3D8", QPalette.ColorRole.Mid),
-        ("#1F2328", "#1F2328", "#1F2328", QPalette.ColorRole.Shadow),
-        ("#2A63D4", "#2559BE", "#DADDE2", QPalette.ColorRole.Highlight),  # 4.5:1 as text on window
-        ("#FFFFFF", "#FFFFFF", "#5F6368", QPalette.ColorRole.HighlightedText),
-        ("#1A7FE0", "#1A7FE0", "#8C9096", QPalette.ColorRole.Link),
-        ("#8E44AD", "#8E44AD", "#8C9096", QPalette.ColorRole.LinkVisited),
-    )
-
-
-def palette_dark():
-    """Set palette dark"""
-    return (
-        #   Active   Inactive   Disabled  Role
-        ("#111318", "#111318", "#0F1115", QPalette.ColorRole.Window),
-        ("#E9ECF2", "#E9ECF2", "#7C828D", QPalette.ColorRole.WindowText),
-        ("#181B21", "#181B21", "#15171C", QPalette.ColorRole.Base),
-        ("#1C1F26", "#1C1F26", "#1A1C22", QPalette.ColorRole.AlternateBase),
-        ("#23262E", "#23262E", "#23262E", QPalette.ColorRole.ToolTipBase),
-        ("#E8EAED", "#E8EAED", "#E8EAED", QPalette.ColorRole.ToolTipText),
-        ("#9CA0A8", "#9CA0A8", "#9CA0A8", QPalette.ColorRole.PlaceholderText),  # 4.5:1 on hover & selected rows
-        ("#E8EAED", "#E8EAED", "#7A7D83", QPalette.ColorRole.Text),
-        ("#20232B", "#20232B", "#1A1C22", QPalette.ColorRole.Button),
-        ("#E8EAED", "#E8EAED", "#7A7D83", QPalette.ColorRole.ButtonText),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.BrightText),
-        ("#5A5D63", "#5A5D63", "#3A3C40", QPalette.ColorRole.Light),
-        ("#30353F", "#30353F", "#20232A", QPalette.ColorRole.Midlight),  # hover visible on Button
-        ("#121315", "#121315", "#101113", QPalette.ColorRole.Dark),
-        ("#2E323C", "#2E323C", "#262931", QPalette.ColorRole.Mid),
-        ("#0B0B0C", "#0B0B0C", "#0B0B0C", QPalette.ColorRole.Shadow),
-        ("#4C8DFF", "#3B78E7", "#2E323C", QPalette.ColorRole.Highlight),
-        ("#FFFFFF", "#FFFFFF", "#9AA0A6", QPalette.ColorRole.HighlightedText),
-        ("#5AAEFF", "#5AAEFF", "#7A7D83", QPalette.ColorRole.Link),
-        ("#C58AF9", "#C58AF9", "#7A7D83", QPalette.ColorRole.LinkVisited),
-    )
-
-
-def palette_grey():
-    """Set palette grey (Modern Grey): neutral gray, no blue tint, text & dim text kept apart"""
-    return (
-        #   Active   Inactive   Disabled  Role
-        ("#1E1E1E", "#1E1E1E", "#1B1B1B", QPalette.ColorRole.Window),
-        ("#ECECEC", "#ECECEC", "#858585", QPalette.ColorRole.WindowText),
-        ("#282828", "#282828", "#232323", QPalette.ColorRole.Base),
-        ("#2C2C2C", "#2C2C2C", "#262626", QPalette.ColorRole.AlternateBase),
-        ("#303030", "#303030", "#303030", QPalette.ColorRole.ToolTipBase),
-        ("#ECECEC", "#ECECEC", "#ECECEC", QPalette.ColorRole.ToolTipText),
-        ("#C0C0C0", "#C0C0C0", "#C0C0C0", QPalette.ColorRole.PlaceholderText),  # 4.5:1 on hover & selected rows
-        ("#ECECEC", "#ECECEC", "#858585", QPalette.ColorRole.Text),
-        ("#303030", "#303030", "#292929", QPalette.ColorRole.Button),
-        ("#ECECEC", "#ECECEC", "#858585", QPalette.ColorRole.ButtonText),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.BrightText),
-        ("#6A6A6A", "#6A6A6A", "#444444", QPalette.ColorRole.Light),
-        ("#3C3C3C", "#3C3C3C", "#303030", QPalette.ColorRole.Midlight),  # hover visible on Button
-        ("#151515", "#151515", "#121212", QPalette.ColorRole.Dark),
-        ("#5C5C5C", "#5C5C5C", "#3A3A3A", QPalette.ColorRole.Mid),  # input & control outlines 3:1 on cards,
-        ("#101010", "#101010", "#101010", QPalette.ColorRole.Shadow),
-        ("#5B9BFF", "#4C8DF0", "#484848", QPalette.ColorRole.Highlight),  # blue accent: 4.5:1 as text on window, cards & rows
-        ("#FFFFFF", "#FFFFFF", "#9AA0A6", QPalette.ColorRole.HighlightedText),
-        ("#79B4FF", "#79B4FF", "#858585", QPalette.ColorRole.Link),
-        ("#C58AF9", "#C58AF9", "#858585", QPalette.ColorRole.LinkVisited),
-    )
-
-
-def palette_legacy_grey():
-    """Palette Legacy Grey (classic colors)"""
-    return (
-        #   Active   Inactive   Disabled  Role
-        ("#202124", "#202124", "#1C1D20", QPalette.ColorRole.Window),
-        ("#E8EAED", "#E8EAED", "#7A7D83", QPalette.ColorRole.WindowText),
-        ("#17181B", "#17181B", "#1C1D20", QPalette.ColorRole.Base),
-        ("#1D1E22", "#1D1E22", "#222327", QPalette.ColorRole.AlternateBase),
-        ("#2B2D31", "#2B2D31", "#2B2D31", QPalette.ColorRole.ToolTipBase),
-        ("#E8EAED", "#E8EAED", "#E8EAED", QPalette.ColorRole.ToolTipText),
-        ("#A8ABB1", "#A8ABB1", "#A8ABB1", QPalette.ColorRole.PlaceholderText),  # 4.5:1 on hover & selected rows
-        ("#E8EAED", "#E8EAED", "#7A7D83", QPalette.ColorRole.Text),
-        ("#2B2D31", "#2B2D31", "#25262A", QPalette.ColorRole.Button),
-        ("#E8EAED", "#E8EAED", "#7A7D83", QPalette.ColorRole.ButtonText),
-        ("#FFFFFF", "#FFFFFF", "#FFFFFF", QPalette.ColorRole.BrightText),
-        ("#5A5D63", "#5A5D63", "#3A3C40", QPalette.ColorRole.Light),
-        ("#3C3F44", "#3C3F44", "#303236", QPalette.ColorRole.Midlight),  # hover: dim text stays 4.5:1
-        ("#121315", "#121315", "#101113", QPalette.ColorRole.Dark),
-        ("#3A3C41", "#3A3C41", "#2A2B2F", QPalette.ColorRole.Mid),
-        ("#0B0B0C", "#0B0B0C", "#0B0B0C", QPalette.ColorRole.Shadow),
-        ("#58A7F8", "#1F6FC5", "#3A3C41", QPalette.ColorRole.Highlight),  # 4.5:1 as text on every surface (Legacy Grey)
-        ("#FFFFFF", "#FFFFFF", "#9AA0A6", QPalette.ColorRole.HighlightedText),
-        ("#5AAEFF", "#5AAEFF", "#7A7D83", QPalette.ColorRole.Link),
-        ("#C58AF9", "#C58AF9", "#7A7D83", QPalette.ColorRole.LinkVisited),
-    )
+_STYLE_SHEETS: dict[tuple, str] = {}  # (font size, palette, look) -> style sheet, a few kept for theme switches
+STYLE_SHEETS_KEPT = 8
 
 
 def set_style_window(base_font_pt: int) -> str:
-    """Set style window (not affecting overlay)"""
+    """Style sheet of the app window & dialogs (not affecting overlay), kept per font size, palette & look: switching
+    back to a theme used before builds nothing"""
+    key = (base_font_pt, QApplication.palette().cacheKey(), legacy_style(), grey_style())
+    sheet = _STYLE_SHEETS.get(key)
+    if sheet is None:
+        if len(_STYLE_SHEETS) >= STYLE_SHEETS_KEPT:
+            _STYLE_SHEETS.clear()
+        sheet = _STYLE_SHEETS[key] = build_style_window(base_font_pt)
+    return sheet
+
+
+def build_style_window(base_font_pt: int) -> str:
     # Scale font (point size)
     font_pt_item_name = 1.2 * base_font_pt
     font_pt_item_button = 1.05 * base_font_pt

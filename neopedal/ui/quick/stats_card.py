@@ -30,10 +30,10 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QImage, QLinearGradient,
 from ...const_app import APP_NAME
 
 WIDTH, HEIGHT = 1200, 630  # social card size
-BACKGROUND = ("#141A24", "#0B0F16")
+BACKGROUND = ("#1E1E1E", "#101010")
 ACCENT = "#3D9BFF"
-TEXT = "#F2F5FA"
-DIM = "#9AA6B8"
+TEXT = "#F2F2F2"
+DIM = "#A0A0A0"
 FAMILIES = ("Barlow", "Segoe UI", "Arial")  # first installed one (Barlow: app font of overlays)
 
 
@@ -66,7 +66,7 @@ def card_font(size: float, bold: bool = False) -> QFont:
 
 def ink_on(color: QColor) -> QColor:
     """Readable text color on a fill"""
-    return QColor("#101418") if color.lightnessF() > 0.6 else QColor(TEXT)
+    return QColor("#111111") if color.lightnessF() > 0.6 else QColor(TEXT)
 
 
 def draw_card(data: CardData) -> QImage:

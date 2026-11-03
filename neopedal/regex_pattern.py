@@ -23,6 +23,7 @@ Regular expression, pattern, string constants
 import re
 from types import MappingProxyType
 
+from . import theme_data
 from .const_api import API_MAP_ALIAS
 
 # Compiled regex function
@@ -273,7 +274,7 @@ CHOICE_UNITS = MappingProxyType({
     "wind_speed_unit": ("m/s", "KPH", "MPH"),
 })
 # App window & overlay themes: modern or legacy (classic look) design, dark or light colors
-THEME_NAMES = ("Modern Dark", "Modern Grey", "Modern White", "Legacy Grey")
+THEME_NAMES = theme_data.THEME_NAMES
 # Built-in languages, language packs are added when loaded (see i18n.load_language_packs)
 LANGUAGE_NAMES: list[str] = ["English", "Français"]
 

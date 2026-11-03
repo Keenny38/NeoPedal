@@ -29,14 +29,14 @@ import html
 from collections.abc import Sequence
 
 STYLE = """
-body { font-family: "Segoe UI", "Barlow", Arial, sans-serif; color: #1F2937; margin: 24px; }
+body { font-family: "Segoe UI", "Barlow", Arial, sans-serif; color: #222222; margin: 24px; }
 h1 { font-size: 22px; margin: 0 0 4px 0; }
 h2 { font-size: 16px; margin: 22px 0 8px 0; }
-.sub { color: #6B7280; margin: 0 0 4px 0; }
+.sub { color: #707070; margin: 0 0 4px 0; }
 .laps span { display: inline-block; margin-right: 14px; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 5px; }
 table { border-collapse: collapse; font-size: 13px; }
-th { text-align: left; color: #6B7280; font-weight: 600; border-bottom: 1px solid #D1D5DB; padding: 5px 8px; }
+th { text-align: left; color: #707070; font-weight: 600; border-bottom: 1px solid #D4D4D4; padding: 5px 8px; }
 td { padding: 4px 8px; border-bottom: 1px solid #F3F4F6; white-space: nowrap; }
 tr.total td { font-weight: 700; background: #F9FAFB; }
 tr.ideal td { color: #7C3AED; font-weight: 600; }
@@ -45,7 +45,7 @@ tr.ideal td { color: #7C3AED; font-weight: 600; }
 .note { margin: 6px 0; }
 .note b { display: inline-block; min-width: 60px; }
 .map { max-width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; }
-.foot { color: #9CA3AF; font-size: 12px; margin-top: 24px; }
+.foot { color: #9E9E9E; font-size: 12px; margin-top: 24px; }
 """
 
 
@@ -76,7 +76,7 @@ def build_report(title: str, subtitle: str, laps: Sequence[dict], headers: Seque
         f"<h1>{html.escape(title)}</h1>", f'<p class="sub">{html.escape(subtitle)}</p>', '<p class="laps">',
     ]
     for lap in laps:
-        color = html.escape(str(lap.get("color", "#9CA3AF")))
+        color = html.escape(str(lap.get("color", "#9E9E9E")))
         role = f" ({html.escape(str(lap['role']))})" if lap.get("role") else ""
         parts.append(f'<span><i class="dot" style="background:{color}"></i>{html.escape(str(lap.get("label", "")))}'
                      f"{role}</span>")

@@ -807,7 +807,7 @@ class LapExports(PagePart):
         def pen(color: str, width: float) -> QPen:
             return QPen(QColor(color), width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
 
-        painter.setPen(pen("#D1D5DB", 10))
+        painter.setPen(pen("#D4D4D4", 10))
         painter.drawPath(path_of(lap_map.simplify(line, 1 / scale)))
         for row in self._page.corner_rows():
             delta = row.time_delta
@@ -827,7 +827,7 @@ class LapExports(PagePart):
             left = x + 7 if x + 7 + width < image.width() - 2 else x - 7 - width  # kept inside picture
             box = QRectF(left - 3, y - 7 - metrics.ascent(), width + 6, metrics.height())
             painter.fillRect(box, QColor(255, 255, 255, 215))
-            color = {COLOR_LOSS: "#B91C1C", COLOR_GAIN: "#15803D"}.get(corner.get("deltaColor", ""), "#1F2937")
+            color = {COLOR_LOSS: "#B91C1C", COLOR_GAIN: "#15803D"}.get(corner.get("deltaColor", ""), "#222222")
             painter.setPen(QColor(color))
             painter.drawText(QPointF(left, y - 7), text)
         painter.end()

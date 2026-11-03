@@ -15,7 +15,7 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 
 - **Contrast of the four themes**: the outline of fields, combo boxes and switches reaches 3:1 against the page, the cards and the menus in every theme (it was 1.4 to 2:1 in Modern Dark, Modern White and Legacy Grey); the blue of Legacy Grey is lighter on menus (4.5:1); gains, losses, warnings and the best purple reach 4.5:1 on every surface. A switch that is on also shows a check mark.
 - **Choosing a window theme offers the same theme for the overlays** (a separate setting, which stayed on the former theme with its previews and web pages): a message with a button, from Settings or the command palette. The theme choice of Settings shows the colors of the theme.
-- Grays of lap maps, ranks and badges are neutral in every theme.
+- Grays of lap maps, ranks, badges, the personal best card and the exported lap reports are neutral in every theme.
 
 ### Fixes
 
