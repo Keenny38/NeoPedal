@@ -27,6 +27,7 @@ A Modern Grey theme, and fewer requests to RaceControl when it is down.
 - **Console log**: with Le Mans Ultimate closed, a read of the race schedule (Home, race watch, Upcoming Races) no longer writes `race schedule took 3.0 s` every 5 minutes: that wait is the game not answering, not a slow job (still in the log at debug level).
 - **Game closed**: the game status of Home and of the bar said the game was running when Le Mans Ultimate was closed but the plugin had left an `unknown` version in shared memory; it now tells `not running`, like the checks.
 - **Navigation bar**: when every page is in the bar, `More` and its divider no longer show empty, nor the `Show pages not in the bar` entry of its menu.
+- **Maximize button of the title bar** did nothing when clicked (`Maximize` and `Restore`), and so did the Snap Layouts flyout it opens: Windows gave the click to a window handle Qt had replaced since the start. Double-clicking the bar always worked.
 
 ## 0.29.0 (2026-11-03)
 

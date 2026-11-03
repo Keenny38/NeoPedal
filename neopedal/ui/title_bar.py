@@ -681,7 +681,7 @@ class FrameHandler:
         if message not in MAXIMIZE_MESSAGES:
             return False
         msg = wintypes.MSG.from_address(address)
-        if msg.hWnd != self._hwnd or msg.wParam != HTMAXBUTTON:
+        if msg.hWnd != int(self._window.winId()) or msg.wParam != HTMAXBUTTON:  # not the one of attach: Qt may recreate it
             return False
         button = self._title_bar.button_maximize
         if message == WM_NCLBUTTONUP:

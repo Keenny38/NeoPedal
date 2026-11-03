@@ -127,14 +127,15 @@ def test_history_buttons_left_of_menus(bar, qapp):
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows messages")
 def test_maximize_clicks_handled_only_while_hovered(bar, qapp, monkeypatch):
     handler = title_bar.FrameHandler(bar.window(), bar)
-    handler._hwnd = 1234
+    handler._hwnd = 1234  # window handle of attach(): Qt created another one since, messages carry the current one
+    hwnd_now = int(bar.window().winId())
     toggled = []
     monkeypatch.setattr(bar, "toggle_maximized", lambda: toggled.append(True))
     filters = []
     monkeypatch.setattr(QApplication, "installNativeEventFilter", lambda self, f: filters.append(f))
     monkeypatch.setattr(QApplication, "removeNativeEventFilter", lambda self, f: filters.remove(f))
 
-    def send(message, hit=HTMAXBUTTON, hwnd=1234):
+    def send(message, hit=HTMAXBUTTON, hwnd=hwnd_now):
         msg = wintypes.MSG(hwnd, message, hit, 0)
         return handler.handle_click(ctypes.addressof(msg))
 
