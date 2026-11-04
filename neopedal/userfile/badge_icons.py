@@ -32,6 +32,7 @@ import os
 import queue
 import threading
 import time
+import urllib.error
 import urllib.request
 from typing import NamedTuple
 
@@ -86,14 +87,21 @@ def icon_url(badge: str) -> str:
 
 def download(url: str) -> bytes:
     """Body of url, empty if failed or too large"""
+    from .. import request_log
+
     request = urllib.request.Request(url, headers={"User-Agent": "NeoPedal"})
+    started = time.monotonic()
+    status = 0
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
-            if response.status != 200:
-                return b""
-            body = response.read(MAX_ICON_BYTES + 1)
+            status = response.status
+            body = response.read(MAX_ICON_BYTES + 1) if status == 200 else b""
+    except urllib.error.HTTPError as error:
+        status = error.code
+        body = b""
     except (OSError, ValueError):
-        return b""
+        body = b""
+    request_log.record(request_log.BADGE_ICONS, "GET badge icon", status, (time.monotonic() - started) * 1000)
     return body if len(body) <= MAX_ICON_BYTES else b""
 
 

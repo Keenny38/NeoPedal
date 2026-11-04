@@ -102,7 +102,7 @@ CI runs every test on Windows and Linux, Python 3.11, 3.13 and 3.14, on shared r
 
 ### Requests to online services
 
-- The durations and limits of the requests to online services (public RaceControl site, GitHub, the lap times sheet) are in `neopedal/net_policy.py`, each with its reason (rhythm at which the data changes, or limit of the service); the modules keep their own names for them. A new duration goes there, with its reason, never as a number in the code. Every request is noted in `neopedal/request_log.py` (route and status, memory only), shown by the `Requests` dialog of Upcoming Races: a new service adds its line there. RaceOS (online service of the game, read with the game ticket) must never be called: a developer of Le Mans Ultimate said third-party apps must not; use shared memory, the game's local Rest API and its files.
+- The durations and limits of the requests to online services (public RaceControl site, GitHub, the lap times sheet, badge icons of the game image server) are in `neopedal/net_policy.py`, each with its reason (rhythm at which the data changes, or limit of the service); the modules keep their own names for them. A new duration goes there, with its reason, never as a number in the code. Every request is noted in `neopedal/request_log.py` (route and status, memory only), shown by the `Requests` dialog of Upcoming Races: a new service adds its line there. RaceOS (online service of the game, read with the game ticket) must never be called: a developer of Le Mans Ultimate said third-party apps must not; use shared memory, the game's local Rest API and its files.
 
 ### Overlays and the modern design
 

@@ -37,6 +37,7 @@ HOUR = 3600.0
 GITHUB = "GitHub"
 SHEET = "Lap times sheet"
 PUBLIC_SITE = "RaceControl public site"  # public home page, no sign in (process/public_schedule.py)
+BADGE_ICONS = "Badge icons"  # game menu image server, no sign in (userfile/badge_icons.py)
 NOT_SENT = -1  # status of a request not sent (limits of the app, service asked to wait)
 
 

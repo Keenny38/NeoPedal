@@ -41,7 +41,7 @@ The menu of a timeline block acts on that start (reminder, calendar).
 
 ## Requests
 
-`Requests` lists the requests the app sent since it started to GitHub (updates), the community lap times sheet and the public RaceControl site: route and answer only (never a name or an address), how many in the last hour. Kept in memory, nothing saved.
+`Requests` lists the requests the app sent since it started to GitHub (updates), the community lap times sheet, the public RaceControl site and the game's image server (badge icons, each downloaded once): route and answer only (never a name or an address), how many in the last hour. Kept in memory, nothing saved.
 
 ## Your online races
 
