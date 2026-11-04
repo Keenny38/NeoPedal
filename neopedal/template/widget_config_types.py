@@ -2803,6 +2803,8 @@ class SessionConfig(WidgetConfig):
     display_order_system_clock: int
     display_order_session_time: int
     display_order_estimated_laps: int
+    show_field_pace: bool
+    display_order_field_pace: int
 
 
 class SlipAngleConfig(WidgetConfig):

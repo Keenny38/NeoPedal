@@ -60,8 +60,7 @@ FADE_TIME = 0.6  # seconds of fade out at end of display
 FADE_STEPS = 8  # opacity steps of fade (widget redrawn only on step change)
 # Message titles (English, translated when shown), for widget width; app messages too (see overlay_messages)
 TITLES = ("Position", "Class position", "Penalty", "Fastest lap", "Blue flag", "Full course yellow", "Red flag",
-          "Green flag", "Lap invalidated", "Reminder", "Server ready", "Race cancelled", "Registration removed",
-          "Error", "Warning")
+          "Green flag", "Lap invalidated", "Reminder", "Error", "Warning")
 APP_KINDS = {"error": LOSS, "warning": WARNING}  # kind of an app message by level, else INFO
 RED_FLAG = 7  # full course yellow state of race halt
 PREVIEW_TITLE = "Race notifications"

@@ -78,8 +78,7 @@ def _valid(entry: Any) -> dict | None:
             isinstance(step, int) and not isinstance(step, bool) and 0 < step <= 24 * 60 for step in steps)):
         steps = [minutes]
     return {"key": key, "title": str(entry.get("title") or ""), "track": str(entry.get("track") or ""),
-            "start": float(start), "minutes": minutes, "steps": sorted(set(steps), reverse=True),
-            "registered": entry.get("registered") is True}
+            "start": float(start), "minutes": minutes, "steps": sorted(set(steps), reverse=True)}
 
 
 def entry_steps(entry: dict) -> list[int]:
@@ -140,7 +139,7 @@ def follow_schedule(reminders: list[dict], schedule: Schedule,
 
 
 def default_minutes() -> int:
-    """Minutes before a start of a reminder set by a registration (option)"""
+    """Minutes before a start of a new reminder (option), first of the reminder choices"""
     minutes = cfg.notification.get("number_of_minutes_before_race_reminder", 10)
     return min(max(minutes, 1), 120) if isinstance(minutes, int) and not isinstance(minutes, bool) else 10
 
@@ -280,15 +279,13 @@ class RaceReminders(QObject):
     def minutes_of(self, key: str) -> int:
         return self.keys().get(key, 0)
 
-    def set(self, key: str, title: str, track: str, start: float, minutes: int, registered: bool = False,
-            steps: list[int] | None = None):
-        """Reminder of a start set (minutes > 0) or removed (0); registered: set by a registration to that start
-        (removed when the player leaves the race, see drop_registered), else set by the player; steps: minutes
-        before the start told (default: minutes & the last reminder, see reminder_steps)"""
+    def set(self, key: str, title: str, track: str, start: float, minutes: int, steps: list[int] | None = None):
+        """Reminder of a start set (minutes > 0) or removed (0); steps: minutes before the start told (default:
+        minutes & the last reminder, see reminder_steps)"""
         reminders = [entry for entry in self._reminders if entry["key"] != key]
         if minutes > 0 and start > self._clock():
             reminders.append({"key": key, "title": title, "track": track, "start": start, "minutes": minutes,
-                              "steps": steps or reminder_steps(minutes), "registered": registered})
+                              "steps": steps or reminder_steps(minutes)})
             reminders = sorted(reminders, key=lambda entry: entry["start"])[:MAX_REMINDERS]
         self._reminders = reminders
         self.save()
@@ -304,18 +301,9 @@ class RaceReminders(QObject):
         entry = next((entry for entry in self._reminders if entry["key"] == key), None)
         if entry is not None:
             steps = sorted({*entry_steps(entry), minutes}, reverse=True)
-            self.set(key, entry["title"], entry["track"], entry["start"], entry["minutes"], entry["registered"],
-                     steps)
+            self.set(key, entry["title"], entry["track"], entry["start"], entry["minutes"], steps)
         else:
             self.set(key, title, track, start, minutes, steps=[minutes])
-        return True
-
-    def drop_registered(self, key: str) -> bool:
-        """Reminder a registration set for that start removed (player left the race: never told to join a race
-        left), one the player set kept; True if removed"""
-        if not any(entry["key"] == key and entry["registered"] for entry in self._reminders):
-            return False
-        self.set(key, "", "", 0.0, 0)
         return True
 
     def save(self):

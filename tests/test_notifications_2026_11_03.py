@@ -591,8 +591,7 @@ def test_reminder_sound_modes_and_taskbar_flash(ui_env, monkeypatch):
     monkeypatch.setattr(QApplication, "alert", staticmethod(lambda widget, duration=0: alerts.append(widget)))
     monkeypatch.setattr(sr, "play_reminder_sound", lambda: None)
     try:
-        sr.RaceReminders.tell((("Server ready: %1 (%2). Join it from the game (Join Event).", ("GT3", "15:00")),),
-                              "Server ready", "GT3", sound=True)
+        sr.RaceReminders.tell((("%1 starts in %2 min", ("GT3", "10")),), "Reminder", "GT3", sound=True)
         assert alerts == [window]
     finally:
         notification.notification_store().clear()
@@ -632,10 +631,10 @@ def test_phone_dashboard_gets_app_messages(ui_env):
     from neopedal import web_dashboard
 
     overlay_messages.post("Reminder", "GT3 Fixed · 10 min")
-    overlay_messages.post("Server ready", "GT3 Fixed")
+    overlay_messages.post("Warning", "GT3 Fixed")
     sent = web_dashboard.app_messages()
     assert len(sent) <= web_dashboard.MESSAGES_SENT
-    assert sent[-1]["title"] == "Server ready" and sent[-1]["detail"] == "GT3 Fixed" and sent[-1]["level"] == "info"
+    assert sent[-1]["title"] == "Warning" and sent[-1]["detail"] == "GT3 Fixed" and sent[-1]["level"] == "info"
     assert sent[-1]["serial"] == overlay_messages.last_serial()
     page = web_dashboard.DASHBOARD_HTML
     assert 'id="note"' in page and "notes(d.messages)" in page and "navigator.vibrate" in page

@@ -200,7 +200,7 @@ Every session you played, online or single player, read from the results files o
 
 ### Upcoming Races
 
-The daily online races of Le Mans Ultimate to come on one page, read from the public RaceControl site as a web browser shows it (no game ticket, no account; RaceOS, the online service of the game, is never asked), once an hour. The page tells how long ago they were read, and a `Requests` button lists what the app sent to GitHub, the lap times sheet and the public RaceControl site.
+The daily online races of Le Mans Ultimate to come on one page, read from the public RaceControl site as a web browser shows it (no game ticket, no account; RaceOS, the online service of the game, is never asked), once an hour, with the races hosted by players and the community series in their own tabs. The page tells how long ago they were read, and a `Requests` button lists what the app sent to GitHub, the lap times sheet and the public RaceControl site.
 
 - **Daily races** of each tier (cards, compact list or a **timeline** of the next hours): next start and time to it (pulses just before), track logo, length, **your personal best & community level** of each class driven there, every following start.
 - A race opens a menu: **Register in the Game** (brings the game to the front), **Driver Stats**, **Recorded Laps**, **Prepare Race** in the calculator, **reminder** 5, 10 or 30 min before the start (notification over the game, kept after a restart, following its start when it moves), **export to calendar** (.ics).

@@ -130,13 +130,33 @@ class Event(NamedTuple):
         return self.tier_label if self.kind == "daily" else self.title
 
 
+class PublicEvent(NamedTuple):
+    """Hosted race or community event of the public pages of RaceControl (no sign in): what a visitor sees"""
+
+    kind: str  # "hosted" (privately organised race), "community" (series of a community)
+    title: str
+    url: str  # its page on www.racecontrol.gg
+    start: float  # next start (seconds since epoch), 0 if not told
+    weekly: bool = False  # starts every week at that day & time (community series)
+    organizer: str = ""
+    drivers: str = ""  # "Solo", "Teams"... as the page writes it
+    track: str = ""
+    classes: str = ""
+    sessions: tuple[str, ...] = ()  # "P 50m", "Q 10m", "R 1h30m"
+    registered: int = -1  # registrations, -1 unknown
+    capacity: int = 0  # places, 0 unknown
+    rounds: str = ""  # "6 Rounds"
+
+
 class Schedule(NamedTuple):
     read_time: float  # seconds since epoch of the read (0: never read)
     events: tuple[Event, ...]
     cars: dict[str, CarInfo]  # car folder (lower case) -> car of the game
     tracks: dict[str, TrackInfo]  # track scene (lower case) -> layout of the game
-    missing: tuple[str, ...] = ()  # kinds of race not read ("daily"...): reminders of their races kept as they are
+    missing: tuple[str, ...] = ()  # kinds of race not read ("daily", "hosted", "community"): earlier ones kept
     frequency: dict[str, float] = {}  # daily tier -> seconds between starts
+    hosted: tuple[PublicEvent, ...] = ()  # hosted races to come, soonest first
+    community: tuple[PublicEvent, ...] = ()  # community events to come (series), soonest first
 
     @property
     def empty(self) -> bool:
@@ -161,40 +181,20 @@ class ResultRow(NamedTuple):
     total: float  # race time, seconds
     laps: int
     status: str  # finish status of the game ("Finished Normally", "DNF"...)
-    dr_change: float | None  # Driver Rank change (None if not given)
-    sr_change: float | None
-    reasons: tuple[str, ...]  # why ranks changed (RaceControl texts)
     lap_times: tuple[float, ...] = ()  # seconds, 0 for a lap without time
     lap_positions: tuple[int, ...] = ()  # position at the end of each lap
     drivers: tuple[str, ...] = ()  # drivers of the car (team races), else the row name
-    driver_rank: tuple[str, int] = ("", 0)  # after the race (rank, tier), ("", 0) unknown
-    safety_rank: tuple[str, int] = ("", 0)
-
-
-class DriverResult(NamedTuple):
-    """Driver of an online race: Driver & Safety Rank changes, why & ranks after the race (see ResultRow)"""
-
-    name: str
-    dr_change: float | None
-    sr_change: float | None
-    reasons: tuple[str, ...]
-    driver_rank: tuple[str, int]
-    safety_rank: tuple[str, int]
 
 
 class OnlineResult(NamedTuple):
-    """Online race the player drove: race classification (names shown, never kept on disk)"""
+    """Online race the player drove, from a results file of the game: race classification (names shown, never kept
+    on disk)"""
 
-    event_id: str
-    split: int
+    path: str  # results file
     time: float
-    event_type: str  # daily, specialevent, championship
-    tier: str
-    title: str
-    track: str  # track scene
+    title: str  # server name, else track
+    track: str  # track as the results file names it
     rows: tuple[ResultRow, ...]
-    # Rank changes & ranks of each driver (team races: rows are cars, these are not on them), names shown only
-    players: tuple[DriverResult, ...] = ()
 
 
 # Values

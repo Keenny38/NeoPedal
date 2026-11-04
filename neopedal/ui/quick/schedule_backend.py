@@ -69,6 +69,7 @@ FAST_TICK_MS = 5000  # while a start is close (SOON_SECONDS): countdown & pulse 
 PERSONAL_SECONDS = policy.PAGE_PERSONAL_SECONDS
 TIMELINE_HOURS = (3, 6, 12)
 VIEWS = ("cards", "list", "timeline")
+TABS = ("daily", "hosted", "community")  # daily races, hosted races, community events (public pages of RaceControl)
 NO_SAFETY = ("", 0)  # races of the public page tell no Safety Rank needed: every race open
 
 
@@ -82,6 +83,22 @@ def status_note(status: str, schedule: rs.Schedule) -> tuple[str, str]:
     if status == info.PUBLIC:
         return "info", tr("Daily races of the public RaceControl site, read without signing in. Register in the game.")
     return "", ""
+
+
+def public_row(event: rs.PublicEvent, now: float) -> dict:
+    """What a card of a hosted race or community event shows: title, organizer, when (next start, "every week"),
+    track, classes, sessions, places taken, rounds, its page"""
+    when = start_text(event.start, now) if event.start > 0 else ""
+    if event.weekly and when:
+        when = tr("%1 · every week").replace("%1", when)
+    places = f"{event.registered}/{event.capacity}" if event.registered >= 0 and event.capacity > 0 else ""
+    details = [part for part in (event.drivers, event.rounds) if part]
+    row = {"key": event.url or event.title, "title": event.title, "organizer": event.organizer, "when": when,
+           "startTime": event.start, "track": event.track, "classes": event.classes,
+           "sessions": "  ·  ".join(event.sessions), "places": places, "full": bool(places) and
+           event.registered >= event.capacity, "details": "  ·  ".join(details), "url": event.url}
+    row["search"] = " ".join((event.title, event.organizer, event.track, event.classes)).casefold()
+    return row
 
 
 def requests_status(status: int) -> str:
@@ -113,9 +130,11 @@ class RaceScheduleBackend(PageBackend):
                                                     self.page_settings)
         saved = self.page_file.load()
         self._view = _int_setting(saved, "view", len(VIEWS))
+        self._tab = _int_setting(saved, "tab", len(TABS))
         self._owned_only = saved.get("owned_only") is True
         self._search = ""
-        self._values: dict[str, Any] = {"status": {}, "daily": [], "count": 0, "timeline": {}}
+        self._values: dict[str, Any] = {"status": {}, "daily": [], "count": 0, "timeline": {}, "hosted": [],
+                                        "community": [], "counts": [0, 0, 0]}
         # Lists as the page shows them: rows updated in place by key (cards kept, a click or an open menu never lost
         # to a list made again at each tick)
         self._models = {name: self.row_model() for name in ("daily", "timeline")}
@@ -151,6 +170,44 @@ class RaceScheduleBackend(PageBackend):
     def count(self) -> int:
         """Races shown"""
         return self._values["count"]
+
+    @Property(list, notify=listsChanged)
+    def hosted(self) -> list:
+        """Hosted races to come (see public_row)"""
+        return self._values["hosted"]
+
+    @Property(list, notify=listsChanged)
+    def community(self) -> list:
+        """Community events to come (see public_row)"""
+        return self._values["community"]
+
+    @Property(list, notify=listsChanged)
+    def counts(self) -> list:
+        """Rows of each tab (TABS) as filtered"""
+        return self._values["counts"]
+
+    @Property(int, notify=settingsChanged)
+    def tab(self) -> int:
+        """Tab shown: daily races (0), hosted races (1), community events (2)"""
+        return self._tab
+
+    @Slot(int)
+    def setTab(self, index: int):
+        if 0 <= index < len(TABS) and index != self._tab:
+            self._tab = index
+            self.settingsChanged.emit()
+            self.page_file.save()
+
+    @Slot(str)
+    def openEvent(self, url: str):
+        """Page of a hosted race or community event on the RaceControl site, in the web browser (register there)"""
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+
+        from ...process.public_schedule import SITE
+
+        if url.startswith(SITE + "/"):
+            QDesktopServices.openUrl(QUrl(url))
 
     def row_model(self) -> DictListModel:
         from PySide6.QtQml import QQmlEngine
@@ -223,7 +280,8 @@ class RaceScheduleBackend(PageBackend):
             reminders().changed.disconnect(self.reminders_changed)
 
     def page_settings(self) -> dict:
-        return {"view": self._view, "owned_only": self._owned_only, "timeline_hours": self._timeline_hours}
+        return {"view": self._view, "tab": self._tab, "owned_only": self._owned_only,
+                "timeline_hours": self._timeline_hours}
 
     def tick(self):
         if not self.page_visible:
@@ -363,6 +421,13 @@ class RaceScheduleBackend(PageBackend):
         self.sync_rows(self._models["timeline"], line["lanes"])
         self.publish("timeline", line, self.timelineChanged)
         count = sum(len(group["races"]) for group in daily)
+        hosted = [row for row in (public_row(event, now) for event in schedule.hosted) if self.shown(row)]
+        community = [row for row in (public_row(event, now) for event in schedule.community) if self.shown(row)]
+        counts = [count, len(hosted), len(community)]
+        if self._values["hosted"] != hosted or self._values["community"] != community or self._values["counts"] != counts:
+            self._values.update(hosted=hosted, community=community, counts=counts)
+            if self._values["daily"] == daily and self._values["count"] == count:
+                self.listsChanged.emit()
         if self._values["daily"] != daily or self._values["count"] != count:
             self._values["daily"], self._values["count"] = daily, count
             groups = {group["tier"]: group for group in daily}

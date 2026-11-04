@@ -18,7 +18,7 @@
 
 """
 App messages shown while driving by the Race Notifications overlay (option show_app_messages) and on the phone by
-the Web Dashboard: race reminders, servers ready, errors. Windows may hide its own notifications over a full screen
+the Web Dashboard: race reminders, errors. Windows may hide its own notifications over a full screen
 game: this is the way they are seen while driving.
 
 Posted on the UI thread, read by the overlay timer (UI thread) & the dashboard server (its own thread): each message

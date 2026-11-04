@@ -18,7 +18,7 @@
 
 """
 Journal of the requests the app sends to online services (GitHub, community lap times sheet, public RaceControl
-site)
+site, badge icons of the game image server)
 
 Memory only, never written: the route (no address of a server, no name, no query) and the status of the last
 requests of each service, and how many were sent in the last hour. Shown by the requests dialog of Upcoming Races
@@ -27,7 +27,6 @@ and told in the bug report. Any thread may add a line.
 
 from __future__ import annotations
 
-import re
 import threading
 import time
 from collections import deque
@@ -35,7 +34,6 @@ from typing import NamedTuple
 
 KEEP_LINES = 40  # lines kept for each service
 HOUR = 3600.0
-_id = re.compile(r"/(?:[0-9]+|[0-9a-fA-F-]{16,})(?=/|$)")  # numbers & identifiers of a route
 GITHUB = "GitHub"
 SHEET = "Lap times sheet"
 PUBLIC_SITE = "RaceControl public site"  # public home page, no sign in (process/public_schedule.py)
@@ -56,12 +54,6 @@ _lines: dict[str, deque[Line]] = {}
 _sent: dict[str, deque[float]] = {}  # time of each request sent in the last hour
 
 
-def route_of(path: str) -> str:
-    """Route of a path without query and identifiers: "api/v1/event/entries/*" (80 characters at most)"""
-    path = path.partition("?")[0]
-    return _id.sub("/*", "/" + path.lstrip("/")).lstrip("/")[:80] or "/"
-
-
 def record(service: str, route: str, status: int, milliseconds: float = 0.0, now: float | None = None) -> None:
     """Add a request of service (status: HTTP status, 0 no answer, NOT_SENT not sent: limits)"""
     now = time.time() if now is None else now
@@ -73,12 +65,6 @@ def record(service: str, route: str, status: int, milliseconds: float = 0.0, now
             sent.append(now)
             while sent and now - sent[0] >= HOUR:
                 sent.popleft()
-
-
-def sent_last_hour(service: str, now: float | None = None) -> int:
-    now = time.time() if now is None else now
-    with _lock:
-        return sum(1 for moment in _sent.get(service, ()) if now - moment < HOUR)
 
 
 def snapshot(now: float | None = None) -> dict[str, dict]:

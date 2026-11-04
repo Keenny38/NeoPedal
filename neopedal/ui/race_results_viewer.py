@@ -49,8 +49,7 @@ class RaceResultsViewer(BaseDialog):
         self.setMinimumSize(UIScaler.size(60), UIScaler.size(30))
         self.backend = RaceResultsBackend(self)
         self.replays = GameReplaysBackend(self)
-        self.online = OnlineResultsBackend(self)  # races driven online (RaceControl), read when its list shows
-        self.online.sessions = lambda: self.backend.sessions
+        self.online = OnlineResultsBackend(self)  # races driven online (results files), read when its list shows
         self.online.sessionWanted.connect(self.open_local_session)
         self._replays_active = False  # game asked (replay tab or replays list shown)
         self.backend.replaysLinked.connect(self.replays.set_results_links)

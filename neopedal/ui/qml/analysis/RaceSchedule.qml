@@ -80,7 +80,18 @@ TpPage {
             onAction: backend.openOnlineOption()
         }
 
-        // Filters: search, view, owned tracks only
+        TpTabBar {
+            objectName: "scheduleTabs"
+            Layout.fillWidth: true
+            name: i18n.tr("Races")
+            model: [{ text: i18n.tr("Daily Races") }, { text: i18n.tr("Hosted Races") },
+                    { text: i18n.tr("Community Events") }]
+            counts: backend.counts
+            currentIndex: backend.tab
+            onActivated: function(index) { backend.setTab(index) }
+        }
+
+        // Filters: search, view (daily races), owned tracks only (daily races)
         Flow {
             objectName: "filters"
             Layout.fillWidth: true
@@ -98,6 +109,7 @@ TpPage {
             }
             TpSegmented {
                 objectName: "viewMode"
+                visible: backend.tab === 0
                 name: i18n.tr("View")
                 options: [{ glyph: "", text: "", tip: i18n.tr("Cards") },
                           { glyph: "", text: "", tip: i18n.tr("List") },
@@ -107,7 +119,7 @@ TpPage {
             }
             TpSegmented {
                 objectName: "timelineHours"
-                visible: backend.view === 2
+                visible: backend.tab === 0 && backend.view === 2
                 name: i18n.tr("Hours shown")
                 options: ["3 h", "6 h", "12 h"]
                 currentIndex: [3, 6, 12].indexOf(backend.timelineHours)
@@ -115,6 +127,7 @@ TpPage {
             }
             TpChip {
                 objectName: "ownedOnly"
+                visible: backend.tab === 0
                 text: i18n.tr("Owned Cars & Tracks")
                 selected: backend.ownedOnly
                 multi: true
@@ -130,10 +143,73 @@ TpPage {
             }
         }
 
+        // Hosted races & community events of the public pages: one card each, its page opened in the web browser
+        ScrollPane {
+            objectName: "publicEvents"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: backend.tab !== 0
+            readonly property var rows: backend.tab === 1 ? backend.hosted : backend.community
+            empty: rows.length === 0
+            emptyTitle: backend.tab === 1 ? i18n.tr("No hosted race to come") : i18n.tr("No community event to come")
+            filtered: page.filtered
+            GridLayout {
+                Layout.fillWidth: true
+                columns: page.columns
+                columnSpacing: theme.space4
+                rowSpacing: theme.space4
+                uniformCellWidths: true
+                Repeater {
+                    model: backend.tab === 1 ? backend.hosted : backend.community
+                    TpSectionCard {
+                        id: publicCard
+                        objectName: "publicEvent"
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignTop
+                        fillContent: false
+                        eyebrow: modelData.organizer
+                        title: modelData.title
+                        clickable: modelData.url !== ""
+                        tip: i18n.tr("Open its page on the RaceControl site (register there)")
+                        onOpened: backend.openEvent(modelData.url)
+                        TpText {
+                            Layout.fillWidth: true
+                            visible: text !== ""
+                            role: "strong"
+                            text: publicCard.modelData.when
+                        }
+                        TpText {
+                            Layout.fillWidth: true
+                            visible: text !== ""
+                            wrap: true
+                            text: publicCard.modelData.track
+                        }
+                        TpText {
+                            Layout.fillWidth: true
+                            visible: text !== ""
+                            role: "caption"
+                            wrap: true
+                            text: [publicCard.modelData.classes, publicCard.modelData.sessions,
+                                   publicCard.modelData.details].filter(function(part) { return part !== "" })
+                                  .join("  ·  ")
+                        }
+                        TpText {
+                            visible: publicCard.modelData.places !== ""
+                            role: "caption"
+                            color: publicCard.modelData.full === true ? theme.warning : theme.dimText
+                            text: i18n.tr("%1 places taken").replace("%1", publicCard.modelData.places)
+                        }
+                    }
+                }
+            }
+        }
+
         // Daily races: timeline of the next hours, or one section per tier
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: backend.tab === 0
             ScrollPane {  // timeline view too while no race is shown: its empty, filtered or loading state
                 anchors.fill: parent
                 visible: backend.view !== 2 || empty
@@ -338,7 +414,7 @@ TpPage {
             glyph: ""  // calendar
             title: pane.emptyTitle
             text: pane.filtered ? i18n.tr("No race matches the filters.")
-                  : (backend.status.note || "") !== "" ? "" : i18n.tr("Races are read from RaceControl while Le Mans Ultimate runs.")
+                  : (backend.status.note || "") !== "" ? "" : i18n.tr("Races are read from the public RaceControl site.")
             actionText: pane.filtered ? i18n.tr("Clear Filters") : ""
             onAction: backend.clearFilters()
             loadingText: i18n.tr("Reading races…")

@@ -97,7 +97,9 @@ def public_info(ui_env, fresh_info, monkeypatch):  # noqa: F811
     monkeypatch.setattr(ps, "read", READ)
     pages = []
 
-    def fetch(timeout=ps.TIMEOUT):
+    def fetch(timeout=ps.TIMEOUT, path=""):
+        if path:  # hosted races & community events: none (see test_public_pages_field_pace_2026_11_04)
+            return "<html></html>"
         pages.append(1)
         return PAGE
 
@@ -121,7 +123,7 @@ def test_public_page_read_once_an_hour(public_info, monkeypatch):
 def test_public_page_not_read_keeps_the_races_shown(public_info, monkeypatch):
     _client, _pages = public_info
     state = info.read()
-    monkeypatch.setattr(ps, "fetch", lambda timeout=ps.TIMEOUT: (_ for _ in ()).throw(OSError("offline")))
+    monkeypatch.setattr(ps, "fetch", lambda timeout=ps.TIMEOUT, path="": (_ for _ in ()).throw(OSError("offline")))
     monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS)
     again = info.read(force=True)
     assert again.status == info.PUBLIC and again.schedule is state.schedule and again.failures == 1
@@ -166,26 +168,45 @@ def test_online_races_from_results_files(tmp_path, monkeypatch):
     assert [race.rsplit("\\", 1)[-1].rsplit("/", 1)[-1] for race in races] == [
         "2026_11_03_14_42_57-81R1.xml", "2026_11_01_20_00_00-80R1.xml"]  # races of online servers only, newest first
     monkeypatch.setattr(rf, "read_results", lambda path, names=(), keep=True: session(path))
-    page = local_online.read_page([str(tmp_path)], 1, 5)
-    assert len(page) == 2 and page[0].event_id == local_online.PREFIX + races[0] and page[0].title == "LMP2 Fixed"
+    page, answered = local_online.read_page([str(tmp_path)], 1, 5)
+    assert len(page) == answered == 2 and page[0].path == races[0] and page[0].title == "LMP2 Fixed"
     row = page[0].rows[0]
     assert (row.position, row.name, row.laps, row.lap_times, row.lap_positions) == (
         1, "Keenny Hess", 3, (101.0, 102.0, 103.0), (1, 1, 1))
-    assert row.dr_change is None and row.reasons == () and local_online.player_name() == "Keenny Hess"
-    assert local_online.read_page([str(tmp_path)], 2, 5) == []
-    assert local_online.read_race(page[0].event_id).rows[1].name == "Other"
+    assert local_online.player_name() == "Keenny Hess"
+    assert local_online.read_page([str(tmp_path)], 2, 5) == ([], 0)
+    assert local_online.read_race(page[0].path).rows[1].name == "Other"
+
+
+def test_unreadable_results_file_does_not_end_the_online_list(tmp_path, monkeypatch):
+    names = [f"2026_11_0{day}_20_00_00-80R1.xml" for day in range(1, 4)]
+    for name in names:
+        (tmp_path / name).write_text("<?xml version='1.0'?><rFactorXML><RaceResults><Setting>Multiplayer</Setting>",
+                                     encoding="utf-8")
+    monkeypatch.setattr(local_online, "_online", {})
+
+    def read_results(path, names=(), keep=True):
+        if path.endswith(names_[1]):
+            raise ValueError("broken file")
+        return session(path)
+
+    names_ = names
+    monkeypatch.setattr(rf, "read_results", read_results)
+    page, answered = local_online.read_page([str(tmp_path)], 1, 3)
+    assert len(page) == 2 and answered == 3  # a full page of files: More Results still offered
 
 
 def test_online_results_page_from_files(ui_env, fresh_info, monkeypatch):  # noqa: F811
     monkeypatch.setattr(info, "_local_folders", lambda: ("folder",))
     monkeypatch.setattr(info, "_local_names", lambda: ())
-    races = [rs.OnlineResult("local:a", 1, NOW, "daily", "", "Race", "Monza", ())]
-    monkeypatch.setattr(local_online, "read_page", lambda folders, page, take, names=(): races if page == 1 else [])
-    monkeypatch.setattr(local_online, "read_race", lambda event_id, names=(): races[0])
-    found = info.read_results("daily", 1)
-    assert list(found) == races and found.answered == 1
-    assert list(info.read_results("championship", 1)) == []  # kind of event unknown in files: listed with daily races
-    assert info.read_result("local:a", 1) is races[0] and info.read_result("race-1", 1) is None
+    races = [rs.OnlineResult("a.xml", NOW, "Race", "Monza", ())]
+    monkeypatch.setattr(local_online, "read_page",
+                        lambda folders, page, take, names=(): (races, 2) if page == 1 else ([], 0))
+    monkeypatch.setattr(local_online, "read_race", lambda path, names=(): races[0] if path == "a.xml" else None)
+    found = info.read_results(1)
+    assert list(found) == races and found.answered == 2  # files of the page, one unreadable
+    assert list(info.read_results(2)) == []
+    assert info.read_result("a.xml") is races[0] and info.read_result("b.xml") is None
 
 
 def test_nationalities_of_an_online_server_from_the_game(monkeypatch):
@@ -227,3 +248,12 @@ def test_team_nations_read_in_background(monkeypatch):
 
         time.sleep(0.01)
     assert len(asked) == 2
+
+
+def test_badges_of_an_online_server_from_the_game():
+    answer = {"teams": [{"drivers": {"Keenny Hess": {"nationality": "FR", "badge": "trusted_racer"},
+                                     "Other Driver": {"badge": "none"}, "Third": {"badge": ""}}}]}
+    assert driver_nations.team_values(answer, "badge") == {driver_nations.name_key("Keenny Hess"): "trusted_racer"}
+    nations = driver_nations.TeamNations(clock=lambda: 0.0)
+    nations._codes, nations._badges, nations._read_at = {}, driver_nations.team_values(answer, "badge"), 0.0
+    assert nations.badge("Keenny Hess") == "trusted_racer" and nations.badge("Other Driver") == ""

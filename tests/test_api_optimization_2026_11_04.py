@@ -34,12 +34,6 @@ def clean_log():
     request_log.clear()
 
 
-def test_route_without_query_and_identifiers():
-    assert request_log.route_of("repos/a/releases/12345?page=2") == "repos/a/releases/*"
-    assert request_log.route_of("files/0f8fad5b-d9cb-469f-a165-70867728950e") == "files/*"
-    assert request_log.route_of("/") == "/" and len(request_log.route_of("a/" * 100)) <= 80
-
-
 def test_journal_counts_last_hour_and_keeps_lines():
     for index in range(50):
         request_log.record(request_log.GITHUB, "GET repos/*/releases/latest", 200, 12, now=1000.0 + index)
@@ -47,8 +41,8 @@ def test_journal_counts_last_hour_and_keeps_lines():
     snapshot = request_log.snapshot(now=1200.0)[request_log.GITHUB]
     assert snapshot["hour"] == 50  # a request not sent is not counted
     assert len(snapshot["lines"]) == request_log.KEEP_LINES and snapshot["lines"][0].status == request_log.NOT_SENT
-    assert request_log.sent_last_hour(request_log.GITHUB, now=1000.0 + 3600.0 + 25) == 24  # older than an hour
-    assert request_log.sent_last_hour("Nobody") == 0
+    assert request_log.snapshot(now=1000.0 + 3600.0 + 25)[request_log.GITHUB]["hour"] == 24  # older than an hour
+    assert "Nobody" not in request_log.snapshot()
 
 
 def test_raceos_options_and_files_removed(tmp_path):

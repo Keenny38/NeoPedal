@@ -4,9 +4,8 @@ import QtQuick.Layouts
 import "../components"
 import "schedule.js" as Js
 
-// Online race picked (Results & Replays, "Online" list): title, date, track, split; your place, best lap, Driver &
-// Safety Rank changes & why; your ranks race after race & a summary of the races read; positions lap by lap (you,
-// the winner, the cars around you); whole classification (rank changes of every driver in a tooltip). Export to CSV.
+// Online race picked (Results & Replays, "Online" list): title, date, track; your place & best lap; a summary of the
+// races read; positions lap by lap (you, the winner, the cars around you); whole classification. Export to CSV.
 Flickable {
     id: view
     objectName: "onlineResultView"
@@ -39,7 +38,7 @@ Flickable {
         TpSectionCard {
             Layout.fillWidth: true
             visible: view.race.title !== undefined
-            eyebrow: Js.joined([view.race.tierText, view.race.date, view.race.split, view.race.drivers])
+            eyebrow: Js.joined([view.race.date, view.race.drivers])
             title: view.race.title || ""
             actions: [
                 TpButton {
@@ -76,35 +75,15 @@ Flickable {
                 }
                 Pill { visible: (view.mine.grid || "") !== ""; size: "sm"; text: i18n.tr("Grid") + " " + (view.mine.grid || ""); tint: theme.dimText }
                 Pill { visible: (view.mine.best || "") !== ""; size: "sm"; text: view.mine.best || ""; tint: theme.dimText }
-                Pill {
-                    visible: (view.mine.dr || "") !== ""
-                    size: "sm"
-                    text: "DR " + (view.mine.dr || "")
-                    tint: view.mine.drTone > 0 ? theme.gain : view.mine.drTone < 0 ? theme.loss : theme.dimText
-                }
-                Pill {
-                    visible: (view.mine.sr || "") !== ""
-                    size: "sm"
-                    text: "SR " + (view.mine.sr || "")
-                    tint: view.mine.srTone > 0 ? theme.gain : view.mine.srTone < 0 ? theme.loss : theme.dimText
-                }
                 Pill { visible: (view.mine.status || "") !== ""; size: "sm"; text: view.mine.status || ""; tint: theme.warning }
-            }
-            TpSectionLabel { visible: (view.mine.reasons || "") !== ""; text: i18n.tr("Why your ranks changed") }
-            TpText {
-                Layout.fillWidth: true
-                role: "caption"
-                wrap: true
-                visible: text !== ""
-                text: view.mine.reasons || ""
             }
         }
 
-        // Your ranks race after race & the races read
+        // The races read
         TpSectionCard {
             objectName: "onlineRanks"
             Layout.fillWidth: true
-            visible: online.ranks.dr !== undefined || online.summary.races !== undefined
+            visible: online.summary.races !== undefined
             title: i18n.tr("Your Online Races")
             tip: i18n.tr("Races read so far (More Results reads older ones)")
             Flow {
@@ -121,22 +100,6 @@ Flickable {
                 }
             }
             TpText { Layout.fillWidth: true; role: "caption"; visible: text !== ""; text: online.summary.races || "" }
-            TpRankLine {
-                Layout.fillWidth: true
-                visible: online.ranks.dr !== undefined
-                labelShown: true
-                label: "DR " + (online.ranks.drText || "")
-                points: online.ranks.dr || []
-                tint: theme.accent
-            }
-            TpRankLine {
-                Layout.fillWidth: true
-                visible: online.ranks.sr !== undefined
-                labelShown: true
-                label: "SR " + (online.ranks.srText || "")
-                points: online.ranks.sr || []
-                tint: theme.gain
-            }
         }
 
         // Positions lap by lap
@@ -250,8 +213,6 @@ Flickable {
                     required property int index
                     Layout.fillWidth: true
                     implicitHeight: Math.max(theme.row, rowLayout.implicitHeight + theme.space1 * 2)
-                    ToolTip.visible: resultArea.containsMouse && resultRow.modelData.reasons !== ""
-                    ToolTip.text: resultRow.modelData.reasons
                     TpListRow {
                         anchors.fill: parent
                         striped: resultRow.index % 2 === 1
@@ -290,7 +251,6 @@ Flickable {
                         TpText { role: "caption"; text: resultRow.modelData.car; Layout.preferredWidth: theme.em * 12 }
                         TpText { role: "numeric"; text: resultRow.modelData.best; Layout.preferredWidth: theme.em * 5 }
                         TpText { role: "caption"; text: resultRow.modelData.lapsLine; Layout.preferredWidth: theme.em * 6 }
-                        TpText { role: "caption"; tabular: true; text: resultRow.modelData.ranksLine; Layout.preferredWidth: theme.em * 6 }
                     }
                 }
             }

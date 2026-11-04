@@ -145,8 +145,9 @@ def read_player_code() -> str:
 player_nation = PlayerNation()
 
 
-def team_nationalities(data: object, depth: int = 0) -> dict[str, str]:
-    """Driver name key -> nationality of the answer of TEAMS_ROUTE (every "drivers" mapping found, any depth)"""
+def team_values(data: object, field: str, depth: int = 0) -> dict[str, str]:
+    """Driver name key -> value of field ("nationality", "badge") of the answer of TEAMS_ROUTE (every "drivers"
+    mapping found, any depth), "none" & empty values left out"""
     found: dict[str, str] = {}
     if depth > 8:
         return found
@@ -154,41 +155,56 @@ def team_nationalities(data: object, depth: int = 0) -> dict[str, str]:
         drivers = data.get("drivers")
         if isinstance(drivers, dict):
             for name, driver in drivers.items():
-                code = driver.get("nationality") if isinstance(driver, dict) else None
-                if isinstance(name, str) and isinstance(code, str) and code.strip():
-                    found[name_key(name)] = code.strip()
+                value = driver.get(field) if isinstance(driver, dict) else None
+                if isinstance(name, str) and isinstance(value, str) and value.strip().lower() not in ("", "none"):
+                    found[name_key(name)] = value.strip()
         for value in data.values():
             if isinstance(value, (dict, list)):
-                found.update(team_nationalities(value, depth + 1))
+                found.update(team_values(value, field, depth + 1))
     elif isinstance(data, list):
         for value in data:
-            found.update(team_nationalities(value, depth + 1))
+            found.update(team_values(value, field, depth + 1))
     return found
 
 
+def team_nationalities(data: object) -> dict[str, str]:
+    """Driver name key -> nationality of the answer of TEAMS_ROUTE"""
+    return team_values(data, "nationality")
+
+
 class TeamNations:
-    """Nationalities the game gives for the drivers of an online server (local Rest API, no RaceControl), read on
-    its own thread when due (empty meanwhile, outside online servers & if the game gives none)"""
+    """Nationalities & badges the game gives for the drivers of an online server (local Rest API, no RaceControl),
+    read on its own thread when due (empty meanwhile, outside online servers & if the game gives none)"""
 
     def __init__(self, clock=time.monotonic):
         self._clock = clock
         self._codes: dict[str, str] = {}
+        self._badges: dict[str, str] = {}
         self._read_at: float | None = None
         self._busy = False
 
-    def code(self, name: str) -> str:
+    def _due(self) -> None:
         now = self._clock()
         if not self._busy and (self._read_at is None or now - self._read_at >= TEAMS_SECONDS):
             self._busy = True
             self._read_at = now
             threading.Thread(target=self._read, name="team nations", daemon=True).start()
+
+    def code(self, name: str) -> str:
+        self._due()
         return self._codes.get(name_key(name), "")
+
+    def badge(self, name: str) -> str:
+        """Game badge of a driver of the online server ("" if none told)"""
+        self._due()
+        return self._badges.get(name_key(name), "")
 
     def _read(self) -> None:
         try:
             from .game_rest_cache import rest_cache
 
-            self._codes = team_nationalities(rest_cache.json(TEAMS_ROUTE, TEAMS_SECONDS))
+            answer = rest_cache.json(TEAMS_ROUTE, TEAMS_SECONDS)
+            self._codes, self._badges = team_nationalities(answer), team_values(answer, "badge")
         except Exception:  # any error of the game: read again later
             logger.exception("DRIVER NATIONS: online teams not read")
         finally:

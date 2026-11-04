@@ -34,7 +34,7 @@ def test_find_name_same_as_find_driver():
     for name in ("Keenny Hess", "KEENNY HESS ", " flo", "", "  ", "Nobody"):
         assert watcher.find_name(name) is dr.find_driver(drivers, name=name)
     assert watcher.find_name("keenny hess") is drivers[0]  # first one kept
-    assert watcher.team_ranks("FLO") is drivers[2]
+    assert watcher.find_name("FLO") is drivers[2]
     watcher.drivers = [ranks_of("Other")]  # list replaced: index made again
     assert watcher.find_name("Flo") is None and watcher.find_name("other") is not None
 

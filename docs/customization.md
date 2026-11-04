@@ -1125,13 +1125,13 @@ Show a Windows notification when an update is found while the main window is hid
 Hold Windows notifications of errors and warnings while driving (not with the active state override): one notification tells them once you stop driving (garage, menu), and they are not shown in the `Race notifications` overlay meanwhile. Race reminders are never held. Messages still go to the notification center at once. Default is disabled.
 
     number_of_minutes_before_race_reminder
-Set minutes before the start of the reminder set when you register to a race from the `Upcoming Races` page (no reminder set yet). Also offered in the `Remind Me Before` menu of each race. Default is `10`.
+Set minutes before the start offered in the `Remind Me Before` menu of each race, besides the usual choices. Default is `10`.
 
     number_of_minutes_before_last_race_reminder
 Set minutes before the start of a last reminder, told again after the one you chose (for example `30` then `2`). `0` for none. Default is `0`.
 
     race_reminder_sound
-Play a sound with race reminders and when the server of your race is ready: `When Windows Hides Notifications` (full screen game, presentation, locked screen: Windows shows no notification then; Windows 11 Do Not Disturb is not detected), `Always` or `Never`. The taskbar button of the app also flashes until you use the window. Default is `When Windows Hides Notifications`.
+Play a sound with race reminders: `When Windows Hides Notifications` (full screen game, presentation, locked screen: Windows shows no notification then; Windows 11 Do Not Disturb is not detected), `Always` or `Never`. The taskbar button of the app also flashes until you use the window. Default is `When Windows Hides Notifications`.
 
     race_reminder_sound_file_name
 Choose a sound file (WAV, MP3, OGG, FLAC) played for race reminders. Empty for the Windows information sound.
@@ -4436,7 +4436,7 @@ Modern design column after relative time gap (on by default): gap change per lap
 Modern design column (Relative & Standings), off by default (`LMU` only): Driver Rank & Safety Rank of each driver, short and in rank color (`S2 P3`), dashes while unknown. Yours and your team members' come from the game menu file (last ranks seen: the game writes them when it closes). Other drivers' ranks are not known (they came from RaceOS, the online service of the game, which third-party apps must not call): dashes.
 
     column_driver_badge
-Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (yours and your team members'), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
+Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Yours and your team members' come from the game menu file; on an online server, the game tells the badges of the other drivers too (local Rest API, no RaceControl). Shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
 
     column_car_number
 Modern design column (Relative & Standings), off by default (`LMU` only): car number as the game shows it (`#4`), from the game Rest API (`/rest/watch/standings`, read every 5 seconds while the column is shown). Online, the server gives each car of a split its own number, whatever its livery (a car with livery `#397` can be `#4`): shared memory only has the livery number, so a dash is shown while the game does not answer (rFactor 2, menus). Your own number is brighter. Column header: `#`. Its place among the columns is set by `display_order_car_number`.
@@ -4847,7 +4847,7 @@ Modern design column, off by default (`LMU` only): track limits points of each d
 Modern design column, off by default (`LMU` only): Driver Rank & Safety Rank of each rival, short and in rank color, as the column of [Relative](#relative) (yours and your team members' only).
 
     column_driver_badge
-Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (yours and your team members'), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
+Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Yours and your team members' come from the game menu file; on an online server, the game tells the badges of the other drivers too (local Rest API, no RaceControl). Shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
 
     column_gap_trend
 Modern design column, off by default: gap change per lap between you and each car by race position (gap to a car ahead of you, gap of a car behind you), averaged over about 30 seconds. Arrow up when the gap grows, down when it shrinks; green when you gain, red when you lose; dash while steady (under 0.05 s per lap), unknown or in pit lane.
@@ -4992,6 +4992,9 @@ Show estimated total remaining laps (from current lap position towards finish li
 Note, this is the same value that used for calculating estimated refueling value in Fuel Module.
 
 This reading does not concern about race leader's lap time pace, which means there may be an extra final lap on top of it. See `show_predicted_extra_laps` option below for extra laps prediction.
+
+    show_field_pace
+Modern design, off by default (`LMU` only): pace of the drivers of your class, as the community level (`Alien`, `Competitive`, `Good`, `Midpack`, `Tail-ender`, `Offline`, in its color) of the middle one of their best laps of the session on the community lap times sheet of Driver Stats (kept on disk when Driver Stats downloads it; no request from the overlay). Worked out every 5 seconds from shared memory; a dash while no car of your class has a best lap, or when the sheet has no line for the track and class. It replaces the field Driver & Safety Rank average, which needed RaceControl.
 
     show_predicted_extra_laps
 Show number of more (or less) laps prediction on top of total estimated laps in race, based on leader's lap time pace and player's estimated pit stop duration.

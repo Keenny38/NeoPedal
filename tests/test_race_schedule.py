@@ -464,12 +464,11 @@ def test_rail_migration_adds_page_once():
 # Your online races (results files)
 def row(position: int, name: str, laps: tuple[float, ...] = ()) -> rs.ResultRow:
     return rs.ResultRow(position, position, position, name, "Ligier JS P325", "LMP3", str(position), "Team", 100.0,
-                        1800.0, 4, "Finished Normally", None, None, (), laps,
-                        tuple(position for _lap in laps), (name,))
+                        1800.0, 4, "Finished Normally", laps, tuple(position for _lap in laps), (name,))
 
 
 def result(number: int, when: float) -> rs.OnlineResult:
-    return rs.OnlineResult(f"local:race-{number}.xml", 1, when, "daily", "", "LMP3 Fixed", "PortimaoWEC",
+    return rs.OnlineResult(f"race-{number}.xml", when, "LMP3 Fixed", "PortimaoWEC",
                            (row(1, "Keenny Hess", (101.0, 100.0)), row(2, "Other", (102.0, 101.0))))
 
 
@@ -494,13 +493,11 @@ def wait_online(backend):
 def test_online_results_list_and_race(online, monkeypatch, tmp_path):
     from PySide6.QtWidgets import QFileDialog
 
-    from neopedal.ui.quick.online_results import local_session
-
     asked = []
 
-    def read_results(kind, page=1):
-        asked.append((kind, page))
-        found = info.ResultsPage([result(1, NOW - 86400)] * info.results_take(kind) if page == 1
+    def read_results(page=1):
+        asked.append(page)
+        found = info.ResultsPage([result(1, NOW - 86400)] * info.RESULTS_TAKE if page == 1
                                  else [result(0, NOW - 3 * 86400)])
         found.answered = len(found)
         return found
@@ -508,7 +505,7 @@ def test_online_results_list_and_race(online, monkeypatch, tmp_path):
     monkeypatch.setattr(info, "read_results", read_results)
     online.list_shown(True)
     wait_online(online)
-    assert asked == [("daily", 1)] and len(online.rows) == 1 and online.state["more"]
+    assert asked == [1] and len(online.rows) == 1 and online.state["more"]
     assert online.selected["title"] == "LMP3 Fixed" and online.chart["laps"] == 2  # laps of the file
     online.more()
     wait_online(online)
@@ -517,20 +514,27 @@ def test_online_results_list_and_race(online, monkeypatch, tmp_path):
     path = tmp_path / "race.csv"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *args, **kwargs: (str(path), ""))
     online.exportClassification()
-    assert path.read_text(encoding="utf-8").splitlines()[1].startswith("1,1,LMP3,1,Keenny Hess")
-    track = "Algarve International Circuit"
-    sessions = [type("Info", (), {"kind": "Race", "time": NOW - 86400 + 1500, "path": "race.xml", "track": track,
-                                  "course": track})()]
-    assert local_session(result(1, NOW - 86400), sessions, track) == "race.xml"
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert lines[0].endswith(",Laps,Status") and lines[1].startswith("1,1,LMP3,1,Keenny Hess")
+    wanted = []
+    online.sessionWanted.connect(wanted.append)
+    online.openLocal()
+    assert wanted == [] and online.state["note"]  # results file gone: told
+    race = tmp_path / "race-1.xml"
+    race.write_text("", encoding="utf-8")
+    online._results[0] = online._results[0]._replace(path=str(race))
+    online.select(f"result/{race}")
+    online.openLocal()
+    assert wanted == [str(race)]  # the race is that results file
 
 
 def test_results_page_online_list(qml_warnings, ui_env, fresh_info, monkeypatch):  # noqa: F811
     from neopedal.ui.race_results_viewer import RaceResultsViewer
 
     monkeypatch.setattr(info, "player_name", lambda: "Keenny Hess")
-    monkeypatch.setattr(info, "read_results", lambda kind, page=1: info.ResultsPage(
+    monkeypatch.setattr(info, "read_results", lambda page=1: info.ResultsPage(
         [result(1, NOW - 86400)] if page == 1 else []))
-    monkeypatch.setattr(info, "read_result", lambda event_id, split=1: None)
+    monkeypatch.setattr(info, "read_result", lambda path: None)
     viewer = RaceResultsViewer(None)
     viewer.resize(1300, 850)
     viewer.show()

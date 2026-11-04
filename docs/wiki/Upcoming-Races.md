@@ -19,6 +19,10 @@ The daily races of each tier and how often a race of the tier starts, as cards, 
 
 Each race card tells the next start (`Tomorrow` for the next day) and the time to it (accent within 15 minutes, pulsing in the last 2 minutes), the track (with its logo), **your personal best and community level of each class you drove there** (from Driver Stats, `Never driven here` else), the race length, a track you don't own, the following starts (`+n more` shows them all) and the reminder you set.
 
+## Hosted races and community events
+
+Two more tabs come from the public pages of RaceControl, read with the daily races (three requests an hour at most): `Hosted Races` lists the races hosted by players and communities (date, track, classes, sessions, places taken, in orange when full), `Community Events` the community series of Le Mans Ultimate (organizer, next start, every week, rounds). A card opens its page on the RaceControl site in the web browser: you register there. A page that could not be read keeps the races of its last read.
+
 ## Menu of a race
 
 Click a race (card, line or timeline block) for its menu, in three groups: the race, planning, then your own data on the track:

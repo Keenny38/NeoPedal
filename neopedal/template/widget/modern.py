@@ -85,6 +85,10 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "column_track_limits": False,
         "display_order_track_limits": 27,
     },
+    "session": {
+        "show_field_pace": False,  # median community level of the best laps of your class (lap times sheet, local)
+        "display_order_field_pace": 4,
+    },
     "standings": {
         "column_position": True,
         "column_class": True,

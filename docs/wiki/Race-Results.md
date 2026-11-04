@@ -85,8 +85,8 @@ The `Online` list shows the online races you drove, from the results files of th
 
 - Each race: date, track, your place.
 - The race picked: your place, class place, grid, best lap, the **positions lap by lap** of you, the winner and the cars around you, the whole classification, export to CSV.
-- `Open Local Session`: the results file of the same race on this computer, with its replay, events and recorded laps.
-- `Your Online Races`: wins, podiums, average finish and clean races of the races read.
+- `Open Local Session`: the same race in the sessions list (it is a results file), with its replay, events and recorded laps.
+- `Your Online Races`: wins, podiums and average finish of the races read.
 
 
 ## Used by other pages

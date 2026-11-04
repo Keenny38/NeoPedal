@@ -346,8 +346,8 @@ class DriverTable(TableMixin, ModernOverlay):
         return lambda veh, ctx, player, alias, class_color, extra: extra_cell(key, veh, ctx, extra)
 
     def ranks_builder(self) -> CellBuilder:
-        """Driver & Safety Rank of driver (short, in rank color), dashes if unknown: player & team members, other
-        drivers of an online race (RaceControl option)"""
+        """Driver & Safety Rank of driver (short, in rank color), dashes if unknown: player & team members (game menu
+        file); the ranks of other drivers are only on RaceOS, never asked"""
         from ...process import driver_ranks as dr
 
         theme = self.theme
@@ -378,7 +378,9 @@ class DriverTable(TableMixin, ModernOverlay):
 
     def badge_builder(self) -> CellBuilder:
         """Game badge of driver (icon fetched once in background, dot of its color meanwhile), empty if unknown:
-        same drivers as driver & safety rank column"""
+        player & team members (game menu file), else what the game tells of the drivers of an online server (local
+        Rest API)"""
+        from ...driver_nations import team_nations
         from ...userfile.badge_icons import badge_info, icons
 
         theme = self.theme
@@ -387,6 +389,8 @@ class DriverTable(TableMixin, ModernOverlay):
         def badge_cell(veh, ctx, player, alias, class_color, extra):
             found = known_ranks(veh)
             badge = found.badge if found is not None else ""
+            if not badge and not self.demo:
+                badge = team_nations.badge(veh.driverName)
             info = badge_info(badge) if badge else None
             if info is None:
                 return EMPTY_CELL
@@ -421,8 +425,8 @@ class DriverTable(TableMixin, ModernOverlay):
         return number_cell
 
     def nation_builder(self) -> CellBuilder:
-        """Flag of driver nationality: game profile (player), RaceControl profile (online), real driver of the
-        same name (AI); empty if unknown"""
+        """Flag of driver nationality: game profile (player), what the game tells of the drivers of an online server
+        (local Rest API), real driver of the same name (AI); empty if unknown"""
         outline = self.theme.border
         cells: dict[str, Cell] = {}  # same cell objects for same countries: rows compare fast
 
@@ -881,8 +885,8 @@ _rank_modules: tuple | None = None
 
 
 def rank_modules() -> tuple:
-    """(driver_ranks, rank_info) modules, imported when a rank column, badge or strength of field is first drawn,
-    not at widget import (rank_info loads the RaceControl client), then kept: called for every row & update"""
+    """(driver_ranks, rank_info) modules, imported when a rank or badge column is first drawn, not at widget import
+    (rank_info reads the game folder), then kept: called for every row & update"""
     global _rank_modules
     if _rank_modules is None:
         from ... import rank_info

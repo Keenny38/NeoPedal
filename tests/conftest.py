@@ -329,7 +329,7 @@ def offline_public_schedule(monkeypatch):
     """Public page of RaceControl (daily races, on by default) never downloaded in tests (tests feed it themselves)"""
     from neopedal.process import public_schedule
 
-    def offline(timeout=public_schedule.TIMEOUT):
+    def offline(timeout=public_schedule.TIMEOUT, path=""):
         raise OSError("offline in tests")
 
     monkeypatch.setattr(public_schedule, "fetch", offline)

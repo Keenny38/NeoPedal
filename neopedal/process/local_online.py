@@ -17,13 +17,11 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Your online races from the results files of the game (UserData/Log/Results), without RaceControl
+Your online races from the results files of the game (UserData/Log/Results)
 
-Used by the Online list of Results & Replays when the online option (sign in with the game ticket) is off: race
-sessions of the files whose <Setting> is Multiplayer, newest first, as online results (classification, lap times &
-positions lap by lap). What only RaceControl knows is left out: Driver & Safety Rank changes and their reasons,
-the kind of event (daily, weekly, championship: every race is listed with the daily races) and races driven on
-another computer. Nothing is sent anywhere.
+Used by the Online list of Results & Replays: race sessions of the files whose <Setting> is Multiplayer, newest
+first, as online results (classification, lap times & positions lap by lap). The files do not tell Driver & Safety
+Rank changes, the kind of event (daily, weekly...) nor races driven on another computer. Nothing is sent anywhere.
 """
 
 from __future__ import annotations
@@ -39,7 +37,6 @@ from . import results_file as rf
 
 logger = logging.getLogger(__name__)
 
-PREFIX = "local:"  # event id of a race read from a results file: "local:<path>"
 SETTING_BYTES = 4096  # <Setting> comes first in a results file
 _setting = re.compile(rb"<Setting>([^<]*)</Setting>")
 _race_name = re.compile(r"R\d+\.xml$", re.I)  # "2026_11_03_14_42_57-81R1.xml": race session
@@ -86,7 +83,7 @@ def online_races(folders: Iterable[str]) -> list[str]:
 
 
 def _status(entry: rf.Entry) -> str:
-    """Finish status as RaceControl tells it"""
+    """Finish status: "Finished Normally" for a finished car, else why it stopped"""
     if entry.status.upper() == "FINISHED" or entry.status == "Finished Normally":
         return "Finished Normally"
     return entry.dnf_reason or entry.status or "DNF"
@@ -102,32 +99,32 @@ def online_result(result: rf.SessionResult, with_laps: bool = True) -> rs.Online
             position=entry.position, class_position=entry.class_position, grid=entry.grid, name=entry.name,
             car=entry.car or entry.vehicle, vehicle_class=entry.car_class, number=entry.number, team=entry.team,
             best_lap=entry.best_lap, total=entry.finish_time, laps=entry.laps_completed, status=_status(entry),
-            dr_change=None, sr_change=None, reasons=(),
             lap_times=tuple(lap.time for lap in laps), lap_positions=tuple(lap.position for lap in laps),
             drivers=tuple(dict.fromkeys(swap.driver for swap in entry.swaps)) or (entry.name,)))
         if entry.player:
             _player = entry.name
-    title = result.server or result.track
-    # split 0: none told (a results file is the one server you drove on)
-    return rs.OnlineResult(f"{PREFIX}{result.path}", 0, result.time, "daily", "", title, result.track, tuple(rows))
+    return rs.OnlineResult(result.path, result.time, result.server or result.track, result.track, tuple(rows))
 
 
-def read_race(event_id: str, names: Iterable[str] = ()) -> rs.OnlineResult | None:
-    """Race of a results file ("local:<path>") with its laps, None if not readable"""
+def read_race(path: str, names: Iterable[str] = ()) -> rs.OnlineResult | None:
+    """Race of a results file with its laps, None if not readable"""
     try:
-        return online_result(rf.read_results(event_id.removeprefix(PREFIX), names, keep=False))
+        return online_result(rf.read_results(path, names, keep=False))
     except (OSError, ValueError) as error:
         logger.info("LOCAL ONLINE: race not read: %s", error)
         return None
 
 
-def read_page(folders: Iterable[str], page: int, take: int, names: Iterable[str] = ()) -> list[rs.OnlineResult]:
-    """Page of your online races (newest first), take per page; files not readable left out"""
+def read_page(folders: Iterable[str], page: int, take: int,
+              names: Iterable[str] = ()) -> tuple[list[rs.OnlineResult], int]:
+    """Page of your online races (newest first), take per page, & files of the page (last page when fewer than
+    take); files not readable left out"""
     start = (max(page, 1) - 1) * take
+    paths = online_races(folders)[start:start + take]
     found = []
-    for path in online_races(folders)[start:start + take]:
+    for path in paths:
         try:
             found.append(online_result(rf.read_results(path, names, keep=False)))
         except (OSError, ValueError) as error:
             logger.info("LOCAL ONLINE: %s not read: %s", os.path.basename(path), error)
-    return found
+    return found, len(paths)

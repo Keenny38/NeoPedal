@@ -111,6 +111,9 @@ def read(force: bool = False) -> State:
             cars, tracks = _game_lists()
             found = public_schedule.with_game_lists(found, cars or _state.schedule.cars,
                                                     tracks or _state.schedule.tracks)
+            old = _state.schedule  # a list page not read: the races of its last read kept
+            found = found._replace(hosted=found.hosted if "hosted" not in found.missing else old.hosted,
+                                   community=found.community if "community" not in found.missing else old.community)
             _set(found, PUBLIC, now)
         elif _state.status == PUBLIC:  # not read: races of the last read stay shown, tried again soon
             _set(_state.schedule, PUBLIC, now, _state.failures + 1)
@@ -129,31 +132,27 @@ def _game_lists() -> tuple[dict[str, rs.CarInfo], dict[str, rs.TrackInfo]]:
 
 # Your online races: results files of the game
 class ResultsPage(list[rs.OnlineResult]):
-    """Online races of a page & races read (a file may be unreadable: last page when fewer than results_take)"""
+    """Online races of a page & files of the page (a file may be unreadable: last page when fewer than
+    RESULTS_TAKE files)"""
 
     answered = 0
 
 
-def results_take(_event_type: str = "") -> int:
-    return RESULTS_TAKE
-
-
-def read_results(event_type: str, page: int = 1) -> ResultsPage:
-    """Page of your online races (newest first) from the results files of the game; the files do not tell the kind
-    of event: every race is listed with the daily races"""
+def read_results(page: int = 1) -> ResultsPage:
+    """Page of your online races (newest first) from the results files of the game"""
     from .process import local_online
 
-    found = ResultsPage(local_online.read_page(_local_folders(), max(page, 1), RESULTS_TAKE, _local_names())
-                        if event_type == "daily" else ())
-    found.answered = len(found)
+    races, answered = local_online.read_page(_local_folders(), max(page, 1), RESULTS_TAKE, _local_names())
+    found = ResultsPage(races)
+    found.answered = answered
     return found
 
 
-def read_result(event_id: str, _split: int = 1) -> rs.OnlineResult | None:
-    """One of your online races with its laps ("local:<results file>"), None if not readable"""
+def read_result(path: str) -> rs.OnlineResult | None:
+    """One of your online races with its laps (results file), None if not readable"""
     from .process import local_online
 
-    return local_online.read_race(event_id, _local_names()) if event_id.startswith(local_online.PREFIX) else None
+    return local_online.read_race(path, _local_names())
 
 
 def player_name() -> str:

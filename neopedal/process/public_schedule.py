@@ -138,12 +138,67 @@ def with_game_lists(schedule: rs.Schedule, cars: dict[str, rs.CarInfo],
     return schedule._replace(events=events, cars=cars, tracks=tracks)
 
 
-def fetch(timeout: float = TIMEOUT) -> str:
-    """Public home page of RaceControl (raise OSError if not read)"""
+HOSTED_PATH = "hosted_races"  # public list of the races hosted by players & communities
+EVENTS_PATH = "events"  # public list of the community events (series, championships)
+_event_card = re.compile(r'class="community-event-card(.*?)(?=class="community-event-card|<footer|\Z)', re.S)
+_event_title = re.compile(r'<h3[^>]*>\s*<a[^>]*href="(/[^"]*)"[^>]*>([^<]+)</a>', re.S)
+_organizer = re.compile(r'<div class="community">.*?<a[^>]*>([^<]+)</a>', re.S)
+_item = re.compile(r"<dt[^>]*>.*?<span[^>]*>\s*([A-Za-z ]+?)\s*</span>\s*</dt>\s*<dd[^>]*>(.*?)</dd>", re.S)
+_datetime = re.compile(r'<time datetime="(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2})?Z"')
+_slots = re.compile(r'slots-entered">\s*(\d+)\s*<.*?slots-capacity">\s*(\d+)\s*<', re.S)
+_pill = re.compile(r"<span class='badge[^']*'>([^<]+)</span>")
+_tags = re.compile(r"<[^>]+>")
+WEEK = 7 * 86400.0
+SITE = "https://www.racecontrol.gg"
+
+
+def _plain(fragment: str) -> str:
+    return " ".join(html.unescape(_tags.sub(" ", fragment)).split())
+
+
+def parse_public_events(page: str, kind: str, now: float) -> tuple[rs.PublicEvent, ...]:
+    """Hosted races ("hosted") or community events ("community") of Le Mans Ultimate of a public list page, still to
+    come (a weekly series: its next start), soonest first; completed ones & other games left out"""
+    found = []
+    for match in _event_card.finditer(page):
+        card = match.group(1)
+        if kind == "community" and not re.search(r"fa-gamepad[^>]*></i>\s*LMU\s*<", card):
+            continue  # other game
+        title = _event_title.search(card)
+        if title is None:
+            continue
+        items = {name.strip().lower(): body for name, body in _item.findall(card)}
+        when = items.get("date") or items.get("start date") or ""
+        if "Completed" in when:
+            continue
+        stamp = _datetime.search(when)
+        start = float(calendar.timegm((*(int(part) for part in stamp.groups()), 0))) if stamp else 0.0
+        weekly = bool(re.search(r"</time>\s*</span>\s*s\b", when))  # "6:15pm on Mondays"
+        if weekly and start:
+            while start < now - 3 * 3600:  # its next start (started less than 3 hours ago: still on)
+                start += WEEK
+        elif start and start < now - 3 * 3600:
+            continue  # over
+        slots = _slots.search(items.get("registrations", ""))
+        organizer = _organizer.search(card)
+        found.append(rs.PublicEvent(
+            kind=kind, title=html.unescape(title.group(2)).strip(), url=SITE + title.group(1), start=start,
+            weekly=weekly, organizer=html.unescape(organizer.group(1)).strip() if organizer else "",
+            drivers=_plain(items.get("drivers", "")), track=_plain(items.get("track", "")),
+            classes=_plain(items.get("classes", "")),
+            sessions=tuple(html.unescape(pill).strip() for pill in _pill.findall(items.get("sessions", ""))),
+            registered=int(slots.group(1)) if slots else -1, capacity=int(slots.group(2)) if slots else 0,
+            rounds=_plain(items.get("rounds", ""))))
+    return tuple(sorted(found, key=lambda event: (event.start <= 0, event.start, event.title.casefold())))
+
+
+def fetch(timeout: float = TIMEOUT, path: str = "") -> str:
+    """Public page of RaceControl (path: "" home page, HOSTED_PATH, EVENTS_PATH), raise OSError if not read"""
     from .. import request_log, version
     from ..const_app import APP_NAME
 
-    request = urllib.request.Request(PUBLIC_URL, headers={"User-Agent": f"{APP_NAME}/{version.__version__}",
+    route = f"GET /{path}"
+    request = urllib.request.Request(PUBLIC_URL + path, headers={"User-Agent": f"{APP_NAME}/{version.__version__}",
                                                           "Accept": "text/html"})
     started = time.monotonic()
     try:
@@ -151,19 +206,20 @@ def fetch(timeout: float = TIMEOUT) -> str:
             data = response.read(MAX_PAGE + 1)
             status = response.status
     except urllib.error.HTTPError as error:
-        request_log.record(request_log.PUBLIC_SITE, "GET /", error.code, (time.monotonic() - started) * 1000)
+        request_log.record(request_log.PUBLIC_SITE, route, error.code, (time.monotonic() - started) * 1000)
         raise
     except OSError:
-        request_log.record(request_log.PUBLIC_SITE, "GET /", 0, (time.monotonic() - started) * 1000)
+        request_log.record(request_log.PUBLIC_SITE, route, 0, (time.monotonic() - started) * 1000)
         raise
-    request_log.record(request_log.PUBLIC_SITE, "GET /", status, (time.monotonic() - started) * 1000)
+    request_log.record(request_log.PUBLIC_SITE, route, status, (time.monotonic() - started) * 1000)
     if len(data) > MAX_PAGE:
         raise OSError("public page too large")
     return data.decode("utf-8", "replace")
 
 
 def read(now: float | None = None) -> rs.Schedule | None:
-    """Daily races of the public page as a schedule (other tabs empty), None if not read or nothing found"""
+    """Daily races, hosted races & community events of the public pages as a schedule (3 requests), None if the daily
+    races were not read or none found; a list page not read is told in missing (the page keeps the earlier one)"""
     now = time.time() if now is None else now
     try:
         events = parse_daily(fetch(), now)
@@ -173,4 +229,14 @@ def read(now: float | None = None) -> rs.Schedule | None:
     if not events:
         logger.warning("PUBLIC SCHEDULE: no daily race found on the public page (page changed?)")
         return None
-    return rs.EMPTY._replace(read_time=now, events=events, missing=(), frequency=frequency(events))
+    lists: dict[str, tuple[rs.PublicEvent, ...]] = {}
+    missing = []
+    for kind, path in (("hosted", HOSTED_PATH), ("community", EVENTS_PATH)):
+        try:
+            lists[kind] = parse_public_events(fetch(path=path), kind, now)
+        except (OSError, ValueError) as error:
+            logger.info("PUBLIC SCHEDULE: %s not read: %s", path, error)
+            lists[kind] = ()
+            missing.append(kind)
+    return rs.EMPTY._replace(read_time=now, events=events, missing=tuple(missing), frequency=frequency(events),
+                             hosted=lists["hosted"], community=lists["community"])

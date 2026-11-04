@@ -43,10 +43,10 @@ def test_rank_level_order():
 def test_invalid_or_missing_file(tmp_path):
     assert dr.parse_storage("{broken") == []
     assert dr.parse_storage(json.dumps({"a": "{not json Rank"})) == []
-    assert dr.read_storage(str(tmp_path / "missing.json")) == []
+    assert dr.parse_raw(dr.read_raw(str(tmp_path / "missing.json"))) == []
     path = tmp_path / dr.STORAGE_FILE
     path.write_text(storage_text(), encoding="utf-8")
-    assert len(dr.read_storage(str(path))) == 2
+    assert len(dr.parse_raw(dr.read_raw(str(path)))) == 2
 
 
 def test_watcher_reads_when_changed_and_keeps_history(tmp_path):
@@ -58,7 +58,7 @@ def test_watcher_reads_when_changed_and_keeps_history(tmp_path):
                              lambda: str(history))
     watcher.check()
     assert watcher.player is not None and watcher.player.driver.text == "Silver 2" and watcher.serial == 1
-    assert len(watcher.drivers) == 2 and watcher.team_ranks("Flo Veninski") is not None
+    assert len(watcher.drivers) == 2 and watcher.find_name("Flo Veninski") is not None
     watcher.check()  # file unchanged: not read again, located once (cached)
     assert watcher.serial == 1 and len(located) == 1
     assert [entry.driver for entry in dr.read_history(str(history))] == [dr.Rank("Silver", 2, 40)]

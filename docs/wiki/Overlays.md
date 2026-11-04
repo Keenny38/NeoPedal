@@ -184,7 +184,7 @@ Overlays are grouped by the categories of the `Overlays` page filter. Names are 
 | Relative Finish Order | Estimated finish order between the leader and you, with refuelling estimate |
 | Rivals | Cars ahead and behind you in your class |
 | Sectors | Sector times and gaps; best sectors from the first lap, the out and in lap included (only the sectors through the pit lane or of a lap invalidated by the game are left out) |
-| Session | Clock, session name, time left, lap, position |
+| Session | Clock, session name, time left, lap, position, field pace (community level of your class, option) |
 | Speed Delta | Speed difference to the best, session best, stint best and last lap at the same place of the lap, see [above](#speed-delta) |
 | Standings | Classification with selectable columns, class headers and class order |
 | Stint History | Previous stints |

@@ -220,11 +220,6 @@ def valid_raw(raw: bytes) -> bool:
     return True
 
 
-def read_storage(path: str) -> list[DriverRanks]:
-    """Drivers with ranks of storage file, empty if missing or unreadable"""
-    return parse_raw(read_raw(path))
-
-
 def find_driver(drivers: list[DriverRanks], name: str = "", steam_id: str = "") -> DriverRanks | None:
     """Ranks of driver: by Steam ID first (player profile), else by name (case ignored), see name_index too"""
     if steam_id:
@@ -692,10 +687,6 @@ class RankWatcher:
         if last is not None and mtime < last.time:  # older ranks: never after newer ones
             return
         self._add_history(path, HistoryEntry(mtime, player.driver, player.safety, player.badge, steam_id))
-
-    def team_ranks(self, name: str) -> DriverRanks | None:
-        """Ranks of player or team member by name, None if unknown"""
-        return self.find_name(name)
 
     def find_name(self, name: str) -> DriverRanks | None:
         """Ranks of player or team member by name (case ignored, first one like find_driver), None if unknown: index

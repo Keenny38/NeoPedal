@@ -327,23 +327,10 @@ def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, no
     return {"marks": marks, "lanes": lanes, "hours": hours, "now": now, "period": period}
 
 
-# Details read on demand
-# Weekly leaderboards & online results
-def rank_text(rank: tuple[str, int]) -> str:
-    return f"{rank[0]} {rank[1]}" if rank[0] and rank[1] else rank[0]
-
-
-def change_text(value: float | None) -> str:
-    """Rank change of a race: "+1", "-2", "0", "" if unknown"""
-    if value is None:
-        return ""
-    return f"{value:+g}" if value else "0"
-
-
+# Online results
 def result_view(result: rs.OnlineResult, schedule: rs.Schedule, player: str, now: float, logo: Logo) -> dict:
-    """Online race you drove: date, title, track, tier, split, your place & rank changes (and why), whole
-    classification (rows: position, class position, driver, car, number, class badge, best lap, laps, status, Driver
-    & Safety Rank changes, why)"""
+    """Online race you drove: date, title, track, your place, whole classification (rows: position, class position,
+    driver, car, number, class badge, best lap, laps, status)"""
     from ...calculation import sec2laptime_full
     from .formatting import date_text
 
@@ -358,28 +345,20 @@ def result_view(result: rs.OnlineResult, schedule: rs.Schedule, player: str, now
             "grid": f"P{row.grid}" if row.grid else "", "name": row.name, "car": row.car, "number": row.number,
             "team": row.team, "classLabel": alias, "classColor": color,
             "best": sec2laptime_full(row.best_lap) if row.best_lap > 0 else "", "laps": str(row.laps or ""),
-            "status": "" if row.status in ("Finished Normally", "") else row.status,
-            "dr": change_text(row.dr_change), "sr": change_text(row.sr_change),
-            "drTone": 0 if not row.dr_change else (1 if row.dr_change > 0 else -1),
-            "srTone": 0 if not row.sr_change else (1 if row.sr_change > 0 else -1),
-            "reasons": reasons_text(row.reasons), "me": me,
+            "status": "" if row.status in ("Finished Normally", "") else row.status, "me": me,
             "drivers": ", ".join(row.drivers) if row.drivers and row.drivers != (row.name,) else "",
             "nameLine": f"#{row.number} {row.name}" if row.number else row.name,
             "lapsLine": " · ".join(part for part in (counted(row.laps, "lap", "laps") if row.laps else "",
                                                      "" if row.status in ("Finished Normally", "") else row.status)
                                    if part),
-            "ranksLine": " · ".join(f"{label} {text}" for label, text in (("DR", change_text(row.dr_change)),
-                                                                          ("SR", change_text(row.sr_change))) if text),
         }
         rows.append(shown)
         if me and mine is None:
             mine = shown
     track = track_of(result.track, result.track, schedule)[0]
     return {
-        "key": f"result/{result.event_id}/{result.split}",
+        "key": f"result/{result.path}",
         "title": result.title, "date": date_text(result.time), "track": track, "trackLogo": logo(track),
-        "tierText": tier_text(result.tier) if result.tier else "",
-        "split": _filled("Split %1", str(result.split)) if result.split else "",
         "drivers": counted(len(result.rows), "driver", "drivers"),
         "mine": mine or {}, "rows": rows,
     }
@@ -389,55 +368,6 @@ def result_view(result: rs.OnlineResult, schedule: rs.Schedule, player: str, now
 def ics_event(uid: str, title: str, start: float, end: float, location: str, description: str) -> dict:
     return {"uid": uid, "title": title, "start": start, "end": max(end, start + 60), "location": location,
             "description": description}
-
-
-# Why your ranks changed: RaceControl texts in app language (names & numbers kept)
-REASONS = (
-    (r"^(Quali|Race) (\d+) clean laps$", ("Qualifying: %2 clean laps", "Race: %2 clean laps")),
-    (r"^(Quali|Race) (\d+) invalid laps$", ("Qualifying: %2 invalid laps", "Race: %2 invalid laps")),
-    (r"^(Quali|Race) contact with Barrier \(x(\d+)\)$", ("Qualifying: barrier contact (x%2)", "Race: barrier contact (x%2)")),
-    (r"^(Quali|Race) contact with Barrier$", ("Qualifying: barrier contact", "Race: barrier contact")),
-    (r"^(Quali|Race) contact with Immovable$", ("Qualifying: contact with an object", "Race: contact with an object")),
-    (r"^(Quali|Race) contact with another vehicle (.+?) \(x(\d+)\)$",
-     ("Qualifying: contact with %2 (x%3)", "Race: contact with %2 (x%3)")),
-    (r"^(Quali|Race) contact with another vehicle (.+)$", ("Qualifying: contact with %2", "Race: contact with %2")),
-    (r"^(Qualifying|Race) you finished (\d+)\w* of (\d+)$", ("Qualifying: finished %2 of %3", "Race: finished %2 of %3")),
-    (r"^(Qualifying|Race) you beat (\d+) drivers with a higher Driver Rank$",
-     ("Qualifying: beat %2 drivers of higher Driver Rank", "Race: beat %2 drivers of higher Driver Rank")),
-    (r"^(Qualifying|Race) you lost to (\d+) drivers with a lower Driver Rank$",
-     ("Qualifying: beaten by %2 drivers of lower Driver Rank", "Race: beaten by %2 drivers of lower Driver Rank")),
-    (r"^(Race) DNF$", ("", "Race: did not finish")),
-    (r"^(Split) Strength of Field (\w+)$", ("Strength of field of the split: %2", "Strength of field of the split: %2")),
-    (r"^(Team) Participation Ratio (\d+)% for (\d+) laps$",
-     ("Part in the team race: %2% of %3 laps", "Part in the team race: %2% of %3 laps")),
-    (r"^(You) gained Driver Rank$", ("Driver Rank gained", "Driver Rank gained")),
-    (r"^(You) lost Driver Rank$", ("Driver Rank lost", "Driver Rank lost")),
-    (r"^(You) were expected to finish (\d+)\w*$", ("Expected place: %2", "Expected place: %2")),
-)
-
-
-def reason_text(text: str) -> str:
-    """A reason of a rank change in app language ("Race 5 clean laps" -> "Race: 5 clean laps"), as given if
-    unknown; its change ("(+2)") kept"""
-    import re
-
-    change = ""
-    found = re.match(r"^(.*?)( \([+-][\d.]+\))?$", text)
-    if found:
-        text, change = found.group(1), found.group(2) or ""
-    for pattern, (qualifying, race) in REASONS:
-        match = re.match(pattern, text)
-        if match:
-            template = qualifying if match.group(1) in ("Quali", "Qualifying") else race
-            if not template:
-                break
-            return _filled(template, *match.groups()) + change
-    return text + change
-
-
-def reasons_text(reasons) -> str:
-    """Reasons of rank changes, one a line, "" if RaceControl gave none"""
-    return "\n".join(reason_text(reason) for reason in reasons)
 
 
 def is_player(name: str, player: str) -> bool:

@@ -66,13 +66,7 @@ ColumnLayout {
                 TpText {
                     Layout.fillWidth: true
                     role: "caption"
-                    text: Js.joined([raceRow.modelData.date, raceRow.modelData.track, raceRow.modelData.split])
-                }
-                TpText {
-                    Layout.fillWidth: true
-                    role: "caption"
-                    visible: text !== ""
-                    text: raceRow.modelData.mine.ranksLine || ""
+                    text: Js.joined([raceRow.modelData.date, raceRow.modelData.track])
                 }
             }
         }

@@ -66,7 +66,7 @@ def test_rank_watcher_keeps_values_while_file_written(tmp_path, monkeypatch):
 
 def test_read_raw_and_storage_of_missing_file(tmp_path):
     assert dr.read_raw(str(tmp_path / "missing.json")) is None
-    assert dr.read_storage(str(tmp_path / "missing.json")) == []
+    assert dr.parse_raw(dr.read_raw(str(tmp_path / "missing.json"))) == []
     assert dr.valid_raw(b"{}") and not dr.valid_raw(b"") and not dr.valid_raw(b'{"a": ')
 
 

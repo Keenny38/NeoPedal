@@ -22,7 +22,7 @@ Web dashboard: show live telemetry on phone or tablet (browser), disabled by def
     GET  /                            dashboard page (session cookie), or login form
     POST /login                       login form, access code in request body
     GET  /?code=<access code>         login link shown in app, redirects to "/" with session cookie
-    GET  /api/telemetry               live data (JSON) & latest app messages (race reminders, server ready, errors:
+    GET  /api/telemetry               live data (JSON) & latest app messages (race reminders, errors:
                                       banner of the page), requires session cookie or "X-Access-Code" header
 
 Listens on 127.0.0.1 only, unless LAN access is enabled. Access code is always required (8 characters at least),
@@ -333,7 +333,7 @@ MESSAGES_SENT = 3  # latest app messages sent with each telemetry answer (see ov
 
 
 def app_messages() -> list[dict]:
-    """Latest app messages (race reminders, server ready, errors) for the page banner, titles in app language"""
+    """Latest app messages (race reminders, errors) for the page banner, titles in app language"""
     from . import overlay_messages
     from .i18n import tr_overlay
 
