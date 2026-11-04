@@ -19,9 +19,8 @@
 """
 Rows of online races to come shown by the Upcoming Races page & the Home card (texts in app language)
 
-Built from a race_schedule.Schedule, the player's Safety Rank & the time now: starts over are left out, races the
-player cannot enter are marked (open: 1 yes, 0 no, -1 rank unknown). Details read on demand (field of a start,
-championship sessions, co-op leaderboard) are worded here too.
+Built from a race_schedule.Schedule (daily races of the public RaceControl site) & the time now: starts over are
+left out. Your online races of Results & Replays (results files) are worded here too.
 """
 
 from __future__ import annotations
@@ -34,7 +33,6 @@ from ...i18n import percent_sign, plural, tr
 from ...process import race_schedule as rs
 from .formatting import (
     clock_minutes,
-    day_month,
     day_month_minutes,
     number_text,
     temperature_text,
@@ -48,11 +46,6 @@ FORECAST_NODES = 4  # race weather nodes worded at most
 TIMELINE_HOURS = 6  # hours of the day timeline
 TIER_LABELS = {"beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced",
                "weekly": "Weekly", "special": "Special Event"}
-KIND_LABELS = {"solo": "Solo", "endurance": "Endurance", "team": "Team"}
-REGIONS = (("eu-", "Europe"), ("us-west", "US West"), ("us-east", "US East"), ("ap-", "Asia Pacific"),
-           ("sa-", "South America"), ("ca-", "Canada"), ("me-", "Middle East"), ("af-", "Africa"))
-RANK_COLORS = {"Bronze": "#B87333", "Silver": "#B0B0B0", "Gold": "#D4A72C", "Platinum": "#7FD1C8"}
-
 Logo = Callable[[str], str]  # track name -> logo url ("" if none)
 
 
@@ -176,13 +169,6 @@ def track_time_text(sessions: Iterable[rs.Session]) -> str:
     return _filled("Track time %1", race.time_of_day) if race is not None else ""
 
 
-def region_text(region: str) -> str:
-    for prefix, name in REGIONS:
-        if region.startswith(prefix):
-            return tr(name)
-    return region
-
-
 def class_rows(classes: Iterable[str]) -> list[dict]:
     """Class badges: alias, full name, color (vehicle class editor)"""
     rows = []
@@ -290,118 +276,7 @@ def event_row(event: rs.Event, schedule: rs.Schedule, safety: tuple[str, int], n
         "classNames": list(classes),
         "eventId": first.event_id,
         "entryType": event.entry_type,
-        "board": event.board.key if event.board is not None else "",
         "search": " ".join((event.title, track, event.track, tier_text(event.tier), *classes)).casefold(),
-    }
-
-
-def championship_row(item: rs.Championship, schedule: rs.Schedule, safety: tuple[str, int], now: float,
-                     logo: Logo) -> dict:
-    current = item.current_round(now)
-    rounds = []
-    for entry in item.rounds:
-        track = track_of(entry.scene, entry.track, schedule)[0]
-        rounds.append({
-            "number": entry.number, "track": track, "trackLogo": logo(track),
-            "dates": " \u2013 ".join(day_month(moment) for moment in (entry.starts, entry.ends) if moment > 0),
-            "current": entry is current, "past": 0 < entry.ends <= now,
-            "length": length_text(entry.race_seconds),
-            "points": f"\u00d7{entry.points:g}" if entry.points != 1 else "",
-        })
-    race = current.race_seconds if current else 0.0
-    starts = [start for start in item.starts if start + race > now]
-    starts = [start for start in starts if start > now] or starts[:1]  # next to enter, else the one running
-    round_track, round_owned = track_of(current.scene, current.track, schedule) if current else ("", None)
-    classes = rs.classes_of(item.cars, schedule.cars)
-    cars_owned = rs.owned_state(item.cars, schedule.cars)
-    rules = []
-    if item.attempts > 0:
-        rules.append(_filled("%1 per round", counted(item.attempts, "attempt", "attempts")))
-    if item.drop_rounds > 0:
-        rules.append(_filled("%1 dropped", counted(item.drop_rounds, "round", "rounds")))
-    if current is not None and current.points != 1:
-        rules.append(_filled("Points \u00d7%1", f"{current.points:g}"))
-    return {
-        "key": f"championship/{item.key or item.name}",
-        "id": item.key,
-        "name": item.name,
-        "tierText": tier_text(item.tier),
-        "kindText": tr(KIND_LABELS[item.kind]) if item.kind in KIND_LABELS else item.kind.capitalize(),
-        "requirement": requirement_text(item.requirement),
-        "open": open_state(item.requirement, safety),
-        "registered": item.registered,
-        "registrations": counted(item.registrations, "driver", "drivers") if item.registrations > 0 else "",
-        "upcoming": item.upcoming,
-        "round": _filled("Round %1 of %2", str(current.number), str(len(item.rounds))) if current else "",
-        "roundNumber": current.number if current else 0,
-        "board": current.board.key if current is not None and current.board is not None else "",
-        "roundTrack": round_track,
-        "roundScene": current.scene if current else "",
-        "roundLogo": logo(round_track) if round_track else "",
-        "roundEnds": _filled("until %1", day_month_minutes(current.ends)) if current and current.ends else "",
-        "roundStart": current.starts if current else 0.0,
-        "roundEnd": current.ends if current else 0.0,
-        "next": start_text(starts[0], now) if starts else "",
-        "until": until_text(starts[0], now, race) if starts else "",
-        "running": bool(starts) and starts[0] <= now,
-        "soon": bool(starts) and 0 < starts[0] - now <= SOON_SECONDS,
-        "imminent": bool(starts) and 0 < starts[0] - now <= IMMINENT_SECONDS,
-        "later": [start_text(start, now) for start in starts[1:]],
-        "rounds": rounds,
-        "rules": " · ".join(rules),
-        "owned": owned_note(cars_owned, round_owned),
-        "carsOwned": cars_owned is not False and round_owned is not False,
-        "classes": class_rows(classes),
-        "classNames": list(classes),
-        "startTime": starts[0] if starts else (current.ends if current else 0.0),
-        "raceSeconds": race,
-        "search": " ".join((item.name, round_track, tier_text(item.tier), *classes)).casefold(),
-    }
-
-
-def coop_row(event: rs.CoopEvent, schedule: rs.Schedule, now: float, logo: Logo) -> dict | None:
-    """Co-op event, None once over"""
-    if event.ends and event.ends <= now:
-        return None
-    track, owned = track_of(event.scene, event.track, schedule)
-    return {
-        "key": f"coop/{event.name}",
-        "name": event.name,
-        "track": track,
-        "scene": event.scene,
-        "trackLogo": logo(track),
-        "length": length_text(event.length),
-        "open": event.starts <= now,
-        "dates": (_filled("until %1", day_month(event.ends)) if event.starts <= now
-                  else _filled("from %1", day_month(event.starts))) if event.ends else "",
-        "owned": owned_note(None, owned),
-        "carsOwned": owned is not False,
-        "search": " ".join((event.name, track)).casefold(),
-    }
-
-
-def server_row(server: rs.Server, schedule: rs.Schedule, logo: Logo) -> dict:
-    track, track_owned = track_of(server.scene, server.track, schedule)
-    classes = rs.classes_of(server.cars, schedule.cars)
-    return {
-        "key": f"server/{server.name}/{server.track}/{server.region}",
-        "name": server.name,
-        "track": track,
-        "trackLogo": logo(track),
-        "session": tr(server.session),
-        "players": f"{server.players}/{server.max_players}" if server.max_players else str(server.players),
-        "playerCount": server.players,
-        "fill": min(server.players / server.max_players, 1.0) if server.max_players > 0 else 0.0,
-        "full": server.max_players > 0 and server.players >= server.max_players,
-        "empty": server.players == 0,
-        "password": server.password,
-        "region": region_text(server.region),
-        "official": server.official,
-        "owned": owned_note(rs.owned_state(server.cars, schedule.cars), track_owned),
-        "classes": class_rows(classes),
-        "classNames": list(classes),
-        "search": " ".join((server.name, track, *classes)).casefold(),
-        **server_detail(server),
     }
 
 
@@ -415,14 +290,9 @@ def upcoming_races(schedule: rs.Schedule, safety: tuple[str, int], now: float, l
     return rows
 
 
-def home_card(schedule: rs.Schedule, safety: tuple[str, int], now: float, logo: Logo, count: int,
-              places: dict[str, tuple[int, int]] | None = None) -> list[dict]:
-    """Next races the player may enter (or rank unknown), one row per race, soonest first, with your place in its
-    weekly leaderboard (places read by the Upcoming Races page)"""
-    rows = upcoming_races(schedule, safety, now, logo, open_only=True)[:count]
-    for row in rows:
-        row["place"] = place_text(*(places or {}).get(row.get("board", ""), (0, 0)))
-    return rows
+def home_card(schedule: rs.Schedule, safety: tuple[str, int], now: float, logo: Logo, count: int) -> list[dict]:
+    """Next races the player may enter (or rank unknown), one row per race, soonest first"""
+    return upcoming_races(schedule, safety, now, logo, open_only=True)[:count]
 
 
 def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, now: float,
@@ -458,106 +328,9 @@ def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, no
 
 
 # Details read on demand
-def field_view(field: rs.FieldLevel) -> dict:
-    """Drivers registered to a start: count text, classes, Driver Rank & Safety Rank shares (rank, count, ratio,
-    color: never told by color alone, rank names written)"""
-    def shares(ranks: tuple[tuple[str, int], ...]) -> list[dict]:
-        total = sum(count for _, count in ranks) or 1
-        return [{"rank": rank, "count": count, "ratio": count / total, "color": RANK_COLORS.get(rank, "#8E8E8E")}
-                for rank, count in ranks]
-
-    drivers = counted(field.drivers, "driver registered", "drivers registered")
-    return {
-        "text": drivers if field.complete else f"{drivers}+",
-        "classes": " · ".join(f"{name} {count}" for name, count in field.classes),
-        "driverRanks": shares(field.driver_ranks),
-        "safetyRanks": shares(field.safety_ranks),
-        "empty": field.drivers == 0,
-    }
-
-
-def championship_detail_view(detail: rs.ChampionshipDetail, now: float) -> dict:
-    """Sessions of the current round to come with registrations, attempts used, practice servers (players only)"""
-    sessions = [{"time": start_text(start.time, now), "until": until_text(start.time, now),
-                 "registered": counted(start.registrations, "driver", "drivers") if start.registrations >= 0 else ""}
-                for start in detail.sessions if start.time > now][:LATER_STARTS]
-    practice = practice_lines(detail.practice, now)
-    attempts = (_filled("Attempts used: %1 of %2", str(detail.attempts_used), str(detail.attempts_total))
-                if detail.attempts_total > 0 else "")
-    return {"sessions": sessions, "attempts": attempts, "practice": practice}
-
-
-def practice_lines(servers: tuple[rs.PracticeServer, ...], now: float) -> list[str]:
-    """One line per practice server: players, until when (end over or unknown: not told)"""
-    return [_filled("Practice server: %1/%2 players until %3", str(server.players), str(server.max_players),
-                    start_text(server.ends, now)) if server.ends > now
-            else _filled("Practice server: %1/%2 players", str(server.players), str(server.max_players))
-            for server in servers]
-
-
-def practice_view(servers: tuple[rs.PracticeServer, ...], now: float) -> dict:
-    """Practice servers of a race (Practice Servers of its menu), the read time kept to tell how old it is"""
-    lines = practice_lines(servers, now)
-    return {"servers": lines, "text": "" if lines else tr("No practice server open now"),
-            "read": time.strftime("%H:%M", time.localtime(now))}
-
-
-def coop_board_view(board: rs.CoopBoard) -> dict:
-    """Best teams of a co-op event & your entry: position, team, drivers, class, fastest & average lap"""
-    from ...calculation import sec2laptime_full
-
-    def row(entry: rs.CoopEntry) -> dict:
-        return {"position": f"P{entry.position}" if entry.position else "", "team": entry.team,
-                "drivers": ", ".join(entry.drivers), "vehicleClass": entry.vehicle_class,
-                "fastest": sec2laptime_full(entry.fastest_lap) if entry.fastest_lap > 0 else "",
-                "average": sec2laptime_full(entry.average_lap) if entry.average_lap > 0 else ""}
-
-    return {"count": counted(board.teams, "team ranked", "teams ranked"), "top": [row(entry) for entry in board.top],
-            "mine": row(board.mine) if board.mine is not None else {}}
-
-
 # Weekly leaderboards & online results
-def whole_number(value: int) -> str:
-    """Number with the thousands separator of the app language ("17 836", "17,836")"""
-    from .formatting import date_locale
-
-    return date_locale().toString(int(value))
-
-
-def place_text(rank: int, count: int) -> str:
-    """Your place in a weekly leaderboard: "#1,204 of 17,836" ("1 204e sur 17 836"), "" if not ranked"""
-    if rank <= 0:
-        return ""
-    return _filled("#%1 of %2", whole_number(rank), whole_number(count)) if count else _filled(
-        "#%1", whole_number(rank))
-
-
 def rank_text(rank: tuple[str, int]) -> str:
     return f"{rank[0]} {rank[1]}" if rank[0] and rank[1] else rank[0]
-
-
-def leaderboard_rows(board: rs.Leaderboard, me: str) -> list[dict]:
-    """Rows of a page of a weekly leaderboard: rank, driver, lap time & gap to the first of the page, sectors, car,
-    class badge, tyres, ranks, team, me (your entry)"""
-    from ...calculation import sec2laptime_full
-
-    best = next((entry.seconds for entry in board.entries if entry.seconds > 0), 0.0)
-    rows = []
-    for entry in board.entries:
-        alias, color = class_style(entry.vehicle_class) if entry.vehicle_class else ("", "")
-        rows.append({
-            "rank": whole_number(entry.rank), "name": entry.name,
-            "lap": sec2laptime_full(entry.seconds) if entry.seconds > 0 else "",
-            "gap": f"+{entry.seconds - best:.3f}" if best and entry.seconds > best else "",
-            "sectors": "  ".join(f"{value:.3f}" for value in entry.sectors),
-            "car": entry.car, "classLabel": alias, "className": entry.vehicle_class, "classColor": color,
-            "compound": entry.compound, "dr": rank_text(entry.driver_rank), "sr": rank_text(entry.safety_rank),
-            "team": entry.team, "me": bool(me) and entry.player_id == me,
-            "carLine": " · ".join(part for part in (entry.car, entry.team, entry.compound) if part),
-            "ranks": " · ".join(f"{label} {text}" for label, text in (("DR", rank_text(entry.driver_rank)),
-                                                                      ("SR", rank_text(entry.safety_rank))) if text),
-        })
-    return rows
 
 
 def change_text(value: float | None) -> str:
@@ -589,7 +362,7 @@ def result_view(result: rs.OnlineResult, schedule: rs.Schedule, player: str, now
             "dr": change_text(row.dr_change), "sr": change_text(row.sr_change),
             "drTone": 0 if not row.dr_change else (1 if row.dr_change > 0 else -1),
             "srTone": 0 if not row.sr_change else (1 if row.sr_change > 0 else -1),
-            "reasons": reasons_text(row.reasons) or (tr("No detail given by RaceControl") if me else ""), "me": me,
+            "reasons": reasons_text(row.reasons), "me": me,
             "drivers": ", ".join(row.drivers) if row.drivers and row.drivers != (row.name,) else "",
             "nameLine": f"#{row.number} {row.name}" if row.number else row.name,
             "lapsLine": " · ".join(part for part in (counted(row.laps, "lap", "laps") if row.laps else "",
@@ -667,72 +440,10 @@ def reasons_text(reasons) -> str:
     return "\n".join(reason_text(reason) for reason in reasons)
 
 
-def leaderboard_class_choices(names) -> list[dict]:
-    """Class chips of a leaderboard: name asked (game class), label & color of the vehicle class editor"""
-    choices = []
-    for name in names:
-        alias, color = class_style(name)
-        choices.append({"name": name, "label": alias, "color": color})
-    return choices
-
-
-def standing_text(rank: int, count: int, mine: float, board: rs.Leaderboard | None) -> str:
-    """Where you stand: "Top 7% · 0.812 s to the top 10% · 2.104 s to the first" ("" if not ranked)"""
-    if rank <= 0 or count <= 0:
-        return ""
-    share = rs.percentile(rank, count)
-    parts = [_filled("Top %1%", f"{max(share, 0.1):.1f}" if share < 1 else f"{share:.0f}")]
-    if board is not None and mine > 0 and board.entries and board.entries[0].rank == 1:
-        first = board.entries[0].seconds
-        if first > 0:
-            parts.append(_filled("%1 s to the first", f"{mine - first:.3f}"))
-    return " · ".join(parts)
-
-
-def profile_view(profile: rs.Profile | None) -> dict:
-    """Driver profile: name, nationality, ranks, badge, "" texts if unknown"""
-    if profile is None:
-        return {"error": tr("Profile not found")}
-    from ...flags import flag_view
-    from .formatting import country_name
-
-    return {"name": profile.name, "nationality": country_name(profile.nationality) if profile.nationality else "",
-            "flag": flag_view(profile.nationality) if profile.nationality else {},
-            "dr": rank_text(profile.driver_rank), "sr": rank_text(profile.safety_rank), "badge": profile.badge}
-
-
-def server_detail(server: rs.Server) -> dict:
-    """Sessions (length & time on track), weather, cars of a hosted server"""
-    return {"sessions": " · ".join(
-        " ".join(part for part in (tr(session.kind), length_text(session.seconds),
-                                   _filled("at %1", session.time_of_day) if session.time_of_day else "") if part)
-        for session in server.sessions),
-        "weather": forecast_text(server.forecast)}
-
-
 def is_player(name: str, player: str) -> bool:
     """Name of a driver is the player's (tags "#1234" left out, case not minded)"""
     key = player.split("#", 1)[0].strip().casefold()
     return bool(key) and name.split("#", 1)[0].strip().casefold() == key
-
-
-def championship_progress(results, rounds: int, player: str) -> dict:
-    """Your races of a championship: one line per round driven (races, best place), rounds driven"""
-    import re
-
-    by_round: dict[int, list] = {}
-    for result in results:
-        found = re.search(r"Week\s*(\d+)", result.title)
-        by_round.setdefault(int(found.group(1)) if found else 0, []).append(result)
-    lines = []
-    for number in sorted(by_round):
-        races = by_round[number]
-        places = [row.position for result in races for row in result.rows
-                  if row.position and any(is_player(name, player) for name in (row.name, *row.drivers))]
-        lines.append({"round": _filled("Round %1", str(number)) if number else "",
-                      "races": counted(len(races), "race", "races"), "best": f"P{min(places)}" if places else ""})
-    return {"rounds": lines,
-            "summary": _filled("%1 of %2 rounds driven", str(len(by_round)), str(rounds)) if rounds else ""}
 
 
 def csv_text(header: list[str], rows: list[list[str]]) -> str:

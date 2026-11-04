@@ -19,11 +19,10 @@
 """
 Online races you drove (Results & Replays page, "Online" list: qml/analysis/OnlineResults.qml)
 
-Read from RaceControl with the game sign in (race_schedule_info.read_results): daily, weekly & special races,
-championships, newest first, a page at a time (More Results). Race picked: its whole classification, your place,
-Driver & Safety Rank changes & why (in app language), positions & lap times lap by lap (you, the winner, the cars
-around you), your ranks race after race & a summary of the races read. Names of other drivers are shown, never kept
-on disk. Read only while the list shows (the page tells list_shown).
+Read from the results files of the game (race_schedule_info.read_results: sessions of online servers), newest
+first, a page at a time (More Results). Race picked: its whole classification, your place, positions & lap times lap
+by lap (you, the winner, the cars around you) & a summary of the races read. Nothing is asked online. Read only while
+the list shows (the page tells list_shown).
 """
 
 from __future__ import annotations
@@ -46,7 +45,7 @@ from .schedule_view import counted, csv_text, is_player, result_view, track_of
 logger = logging.getLogger(__name__)
 
 SETTINGS_FILE = "online_results.json"
-KINDS = ("daily", "specialevent", "championship")  # RaceControl event types
+KINDS = ("daily",)  # the results files do not tell the kind of event: every race listed with the daily ones
 CHART_CARS = 3  # cars around you drawn on the lap chart (each side)
 LOCAL_MARGIN = 3 * 3600.0  # results file of an online race: race session started at most this late after the event
 LOCAL_EARLY = 600.0  # or this early before (clocks): the online event starts with its practice
@@ -79,17 +78,13 @@ def local_session(result: rs.OnlineResult, sessions, track: str) -> str:
 
 
 def read_page(kind: str, page: int) -> tuple[list[rs.OnlineResult] | None, str]:
-    """Page of your online races of a kind & why not read (race_schedule_info status, "" if read), blocking (worker
-    thread: the game may be asked)"""
-    found = info.read_results(kind, page)
-    return found, "" if found is not None else info.unread_status()
+    """Page of your online races (results files) & why not read ("" if read), blocking (worker thread)"""
+    return info.read_results(kind, page), ""
 
 
-def not_read_text(status: str) -> str:
-    """Why your online races were not read (texts of the Upcoming Races page)"""
-    from .schedule_backend import status_note
-
-    return status_note(status, rs.EMPTY)[1] or tr("Not read: start Le Mans Ultimate and try again.")
+def not_read_text(_status: str) -> str:
+    """Why your online races were not read"""
+    return tr("Results files of the game not read: try again in a moment.")
 
 
 def own_result(result: rs.OnlineResult, player: str) -> rs.OnlineResult:
@@ -130,8 +125,8 @@ def rank_lines(results: list[rs.OnlineResult], player: str) -> dict:
 
 def summary_of(results: list[rs.OnlineResult], player: str) -> dict:
     """Races read: count, wins, podiums, average finish (place in your class in multi-class races), clean races
-    (Safety Rank kept), Driver Rank change"""
-    places, clean, changes = [], 0, 0.0
+    (Safety Rank kept) & Driver Rank change when the races tell rank changes (the results files do not)"""
+    places, clean, changes, ranked = [], 0, 0.0, False
     for result in (own_result(race, player) for race in results):
         mine = next((row for row in result.rows if any(is_player(name, player) for name in (row.name, *row.drivers))),
                     None)
@@ -143,6 +138,7 @@ def summary_of(results: list[rs.OnlineResult], player: str) -> dict:
             places.append(place)
             clean += mine.sr_change is not None and mine.sr_change >= 0
         changes += mine.dr_change or 0.0
+        ranked = ranked or mine.dr_change is not None or mine.sr_change is not None
     if not places:
         return {}
     return {
@@ -151,8 +147,8 @@ def summary_of(results: list[rs.OnlineResult], player: str) -> dict:
             {"label": tr("Wins"), "value": str(sum(place == 1 for place in places))},
             {"label": tr("Podiums"), "value": str(sum(place <= 3 for place in places))},
             {"label": tr("Avg. Finish"), "value": f"P{sum(places) / len(places):.1f}"},
-            {"label": tr("Clean Races"), "value": f"{clean}/{len(places)}"},
-            {"label": "DR", "value": f"{changes:+g}"},
+            *([{"label": tr("Clean Races"), "value": f"{clean}/{len(places)}"},
+               {"label": "DR", "value": f"{changes:+g}"}] if ranked else []),
         ],
     }
 
@@ -326,7 +322,7 @@ class OnlineResultsBackend(PageBackend):
 
     def read_failed(self, kind: str, error: BaseException):
         logger.warning("ONLINE RESULTS: not read: %s", error)
-        self.read_done(kind, 0, None, info.FAILED)
+        self.read_done(kind, 0, None, "failed")
 
     # Publishing
     def view_of(self, result: rs.OnlineResult) -> dict:

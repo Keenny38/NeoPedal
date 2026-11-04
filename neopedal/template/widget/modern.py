@@ -85,10 +85,6 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "column_track_limits": False,
         "display_order_track_limits": 27,
     },
-    "session": {
-        "show_field_level": False,  # average driver & safety rank of online race (RaceControl option)
-        "display_order_field_level": 4,
-    },
     "standings": {
         "column_position": True,
         "column_class": True,
@@ -138,7 +134,6 @@ MODERN_ONLY_OPTIONS: MappingProxyType[str, dict[str, Any]] = MappingProxyType({
         "show_lap_difference": True,
         "show_class_header": True,
         "show_class_column_with_class_header": False,
-        "show_class_sof": False,  # strength of field (average driver & safety rank) in class headers
         "show_column_headers": True,
     },
     "rivals": {

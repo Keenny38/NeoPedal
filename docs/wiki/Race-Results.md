@@ -80,16 +80,14 @@ Contacts (a contact reported by both cars is shown once, with its impact strengt
 
 ## Online races (Le Mans Ultimate)
 
-Without the online option (`enable_online_driver_ranks` off), the `Online` list shows your online races from the results files of the game (sessions of online servers): classification, lap times and positions lap by lap, with no request. Driver & Safety Rank changes, their reasons and the kind of event (weekly, championship) only come from RaceControl: every race is listed under the daily races.
+The `Online` list shows the online races you drove, from the results files of the game (sessions of online servers), newest first, `More Results` for older ones: no request, the game does not need to run. RaceOS (the online service of the game, read with the game's Steam ticket) is never asked: a developer of Le Mans Ultimate said third-party apps must not call it. The kind of event (weekly, championship) and Driver & Safety Rank changes are not in the files: every race is listed with the daily races.
 
-The `Online` list shows the online races you drove, read from RaceControl with the game sign in (the game must run): daily races, weekly & special events, championships, newest first, `More Results` for older ones.
 
-- Each race: date, track, split, your place, your Driver Rank & Safety Rank changes.
-- The race picked: your place, class place, grid, best lap, **why your ranks changed** (RaceControl reasons, in the app language), the **positions lap by lap** of you, the winner and the cars around you, the whole classification (rank changes of every driver in its tooltip), export to CSV.
+- Each race: date, track, your place.
+- The race picked: your place, class place, grid, best lap, the **positions lap by lap** of you, the winner and the cars around you, the whole classification, export to CSV.
 - `Open Local Session`: the results file of the same race on this computer, with its replay, events and recorded laps.
-- `Your Online Races`: wins, podiums, average finish, clean races and Driver Rank change of the races read, with your Driver Rank & Safety Rank race after race.
+- `Your Online Races`: wins, podiums, average finish and clean races of the races read.
 
-Names of other drivers are shown but never kept on disk.
 
 ## Used by other pages
 

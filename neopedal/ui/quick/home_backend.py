@@ -635,8 +635,8 @@ class HomeBackend(PageBackend):
 
     # Next online races
     def refresh_races(self):
-        """Next races of RaceControl (read in background when due, shared with the Upcoming Races page; last
-        read of the disk shown meanwhile), none while online reading is off"""
+        """Next daily races of the public RaceControl site (read in background when due, shared with the Upcoming
+        Races page), none while that reading is off"""
         from ... import race_schedule_info as info
 
         if not info.enabled():
@@ -649,19 +649,15 @@ class HomeBackend(PageBackend):
 
     def publish_races(self):
         from ... import race_schedule_info as info
-        from .schedule_backend import player_safety
+        from .schedule_backend import NO_SAFETY
         from .schedule_reminders import reminders
         from .schedule_view import home_card
 
         schedule = info.state().schedule
-        rows = home_card(schedule, player_safety(), time.time(),
-                         lambda track: self.logos.track(track) if track else "", HOME_RACES, info.places())
-        signed_in = info.state().status not in (info.NO_GAME, info.OFF)  # RaceControl signs in with the game
+        rows = home_card(schedule, NO_SAFETY, time.time(),
+                         lambda track: self.logos.track(track) if track else "", HOME_RACES)
         for row in rows:  # reminder set on the Upcoming Races page (minutes before the start, 0 none)
             row["reminder"] = reminders().minutes_of(row["startKey"]) if row["startKey"] else 0
-            # registered from the card (dialog of the Upcoming Races page): solo race open to registration
-            row["canRegister"] = (signed_in and row.get("registrationOpen") is True and bool(row.get("eventId"))
-                                  and row.get("kind") == "daily" and tr("Team race") not in row.get("settings", ""))
         self.publish("races", {"rows": rows, "read": getattr(schedule, "read_time", 0.0)} if rows else {}, self.racesChanged)
 
     def races_failed(self, error: BaseException):
@@ -688,7 +684,7 @@ class HomeBackend(PageBackend):
 
     def refresh_driver(self):
         """Driver card: ranks checked in background (game menu file changed), made again only when changed"""
-        from ...rank_info import online_enabled, ranks
+        from ...rank_info import ranks
 
         ranks.poll()
         if monotonic() - self._driver_read_time >= DRIVER_DATA_SECONDS:
@@ -703,8 +699,7 @@ class HomeBackend(PageBackend):
 
         player = ranks.player
         history = ranks.history_of(player.steam_id) if player is not None else ()  # in memory: no file read here
-        card = driver_card(player, ranks.remembered, ranks.updated, history, self._driver_data, ranks.others,
-                           online_enabled())
+        card = driver_card(player, ranks.remembered, ranks.updated, history, self._driver_data, ranks.others)
         self.publish("driver", card or {}, self.driverChanged)
 
     # Actions
@@ -838,29 +833,6 @@ class HomeBackend(PageBackend):
     @Slot()
     def openRaces(self):
         self.open_tool("race_schedule_viewer.RaceScheduleViewer")
-
-    @Slot(str)
-    def registerRace(self, key: str):
-        """Registration dialog of a race of the card, on the Upcoming Races page (car chosen there)"""
-        viewer = self.open_tool("race_schedule_viewer.RaceScheduleViewer")
-        backend = getattr(viewer, "backend", None)
-        if backend is None:
-            return
-        backend.publish_all()  # rows of the last read (page opened now)
-        backend.openRegistration(key)
-        if backend.registration.get("open") is not True:  # race hidden by the page filters, or start gone
-            self.toast(tr("Register from the race on this page."), "info")
-
-    @Slot()
-    def refreshRanks(self):
-        """Driver & safety ranks read again from RaceControl, at most every few minutes (as Driver Stats)"""
-        from ...rank_info import ranks
-
-        if ranks.read_now():
-            ranks.poll()
-            self.toast(tr("Ranks asked to RaceControl: shown in a moment (the game must be running)."))
-        else:
-            self.toast(tr("Ranks were asked a moment ago: try again in a few minutes."), "info")
 
     def toast(self, text: str, level: str = "success"):
         """Toast over the page (its dialog host)"""

@@ -4,25 +4,13 @@ import QtQuick.Layouts
 import "../components"
 import "schedule.js" as Js
 
-// Online races you drove (Results & Replays, "Online" list): kind (daily, weekly & special, championships), your
-// races newest first (your place, Driver & Safety Rank changes), More Results for older ones. Read from RaceControl
-// with the game sign in ("online" backend, see quick/online_results.py); a race picked shows on the right.
+// Online races you drove (Results & Replays, "Online" list): your races newest first (your place), More Results for
+// older ones. Read from the results files of the game ("online" backend, see quick/online_results.py); a race picked
+// shows on the right.
 ColumnLayout {
     id: onlineList
     objectName: "onlineResults"
     spacing: theme.space2
-
-    TpSegmented {
-        objectName: "onlineKind"
-        Layout.fillWidth: true
-        Layout.leftMargin: theme.padCard
-        Layout.rightMargin: theme.padCard
-        Layout.topMargin: theme.space2
-        name: i18n.tr("Races")
-        options: [i18n.tr("Daily"), i18n.tr("Weekly & Special"), i18n.tr("Championships")]
-        currentIndex: online.state.kind || 0
-        onActivated: function(index) { online.setKind(index) }
-    }
 
     ListView {
         id: raceList
@@ -117,8 +105,8 @@ ColumnLayout {
             visible: raceList.count === 0 && online.state.loading !== true
             empty: raceList.count === 0
             glyph: ""  // globe
-            title: i18n.tr("No online race of this kind")
-            text: i18n.tr("Your online races are read from RaceControl while Le Mans Ultimate runs.")
+            title: i18n.tr("No online race")
+            text: i18n.tr("Your online races are read from the results files Le Mans Ultimate writes after each session.")
             actionText: i18n.tr("Read Again")
             onAction: online.readAgain()
         }

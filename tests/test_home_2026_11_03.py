@@ -70,30 +70,16 @@ def test_week_days_and_bars():
     assert len(home_backend.week_card(items, days)["days"]) == 7
 
 
-# --- Driver: ranks remembered, read again
-def test_driver_note_relative_and_refresh(ui_env):
+# --- Driver: ranks remembered
+def test_driver_note_relative(ui_env):
     from neopedal.process import driver_ranks as dr
 
     player = dr.DriverRanks("Keenny Hess", "", "", "", dr.Rank("Silver", 2, 25), dr.Rank("Bronze", 2, 31), "")
-    card = home_driver.driver_card(player, True, time.time() - 86400 * 9, (), None, online=True)
+    card = home_driver.driver_card(player, True, time.time() - 86400 * 9, (), None)
     assert card["note"].startswith("Last ranks known · ") and card["noteTip"] and card["noteStale"]
-    assert card["refresh"] is True
-    assert home_driver.driver_card(player, True, time.time() - 60, (), None)["refresh"] is False  # online off
-    card = home_driver.driver_card(player, False, time.time(), (), None, online=True)  # current: no note, no refresh
-    assert card["note"] == "" and card["refresh"] is False
-
-
-def test_refresh_ranks_from_card(home, monkeypatch):  # noqa: F811
-    from neopedal import rank_info
-    from neopedal.ui.quick import dialogs
-
-    asked, toasts = [], []
-    monkeypatch.setattr(rank_info.ranks, "read_now", lambda: not asked and not asked.append(1))
-    monkeypatch.setattr(rank_info.ranks, "poll", lambda: None)
-    monkeypatch.setattr(dialogs, "page_toast", lambda widget, text, level="success", *args: toasts.append(level))
-    home.backend.refreshRanks()
-    home.backend.refreshRanks()  # asked again too soon: told to wait
-    assert asked == [1] and toasts == ["success", "info"]
+    assert "refresh" not in card  # read from the game file only: nothing to ask again
+    card = home_driver.driver_card(player, False, time.time(), (), None)  # current: no note
+    assert card["note"] == ""
 
 
 # --- Quick access: the navigation bar not repeated
@@ -195,9 +181,9 @@ def race_row(start: float, **values) -> dict:
     return {**row, **values}
 
 
-def test_races_countdown_and_register(qml_warnings, home, monkeypatch):  # noqa: F811
+def test_races_countdown(qml_warnings, home, monkeypatch):  # noqa: F811
     from neopedal import race_schedule_info as info
-    from neopedal.ui.quick import schedule_backend, schedule_view
+    from neopedal.ui.quick import schedule_view
 
     backend = home.backend
     root = home.view.rootObject()
@@ -205,41 +191,13 @@ def test_races_countdown_and_register(qml_warnings, home, monkeypatch):  # noqa:
     rows = [race_row(start), race_row(start + 3600, key="daily:2", soon=False, until="in 1 h 02",
                                       settings="Team race")]
     monkeypatch.setattr(schedule_view, "home_card", lambda *args: [dict(row) for row in rows])
-    monkeypatch.setattr(schedule_backend, "player_safety", lambda: ("Bronze", 2))
-    monkeypatch.setattr(info, "state", lambda: SimpleNamespace(schedule=None, status="ready"))
+    monkeypatch.setattr(info, "state", lambda: SimpleNamespace(schedule=None, status=info.PUBLIC))
     backend.publish_races()
-    assert [row["canRegister"] for row in backend.races["rows"]] == [True, False]  # team race: in the game
+    assert not any("canRegister" in row for row in backend.races["rows"])  # registered in the game
     pump(1.2)  # countdown ticks
     countdowns = {item.property("text") for item in items_of(root) if item.objectName() == "raceCountdown"}
     assert any(text.startswith("in 2:0") for text in countdowns), countdowns  # minutes & seconds within 10 min
     assert "in 1 h 02" in item_texts(home.view)
-    monkeypatch.setattr(info, "state", lambda: SimpleNamespace(schedule=None, status=info.NO_GAME))
-    backend.publish_races()
-    assert not any(row["canRegister"] for row in backend.races["rows"])  # RaceControl signs in with the game
     assert not qml_warnings, qml_warnings
 
 
-def test_register_race_opens_races_dialog(home, monkeypatch):  # noqa: F811
-    from neopedal.ui.quick import dialogs
-
-    calls, toasts = [], []
-
-    class Races:
-        registration: dict = {}
-
-        def publish_all(self):
-            calls.append("rows")
-
-        def openRegistration(self, key):
-            calls.append(key)
-            if key == "daily:1":
-                self.registration = {"open": True}
-
-    viewer = SimpleNamespace(backend=Races())
-    monkeypatch.setattr(home.backend, "open_tool", lambda path: calls.append(path) or viewer)
-    monkeypatch.setattr(dialogs, "page_toast", lambda widget, text, level="success", *args: toasts.append(text))
-    home.backend.registerRace("daily:1")
-    assert calls == ["race_schedule_viewer.RaceScheduleViewer", "rows", "daily:1"] and toasts == []
-    viewer.backend.registration = {}
-    home.backend.registerRace("gone")  # hidden by the page filters: told where to register
-    assert toasts == ["Register from the race on this page."]

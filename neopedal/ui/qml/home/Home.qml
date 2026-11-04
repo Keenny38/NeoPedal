@@ -490,17 +490,6 @@ TpPage {
                                     delay: theme.tipDelay
                                 }
                             }
-                            TpButton {
-                                objectName: "refreshRanks"
-                                // ranks are read with the game's sign in: offered only while Le Mans Ultimate runs
-                                visible: page.driver.refresh === true && page.game.running === true && page.game.lmu === true
-                                flat: true
-                                size: "xs"
-                                glyph: ""  // sync
-                                text: i18n.tr("Refresh")
-                                tip: i18n.tr("Read your ranks again from RaceControl")
-                                onClicked: backend.refreshRanks()
-                            }
                         }
                         Repeater {  // other game accounts of this computer
                             model: page.driver.others || []
@@ -985,39 +974,6 @@ TpPage {
                                                                              ? classBadges.itemAt(0).height : 0)
                                             verticalAlignment: Text.AlignVCenter
                                             text: page.joined([raceItem.modelData.tierText, raceItem.modelData.length])
-                                        }
-                                    }
-                                    Flow {  // your place in the weekly leaderboard, registered, else register
-                                        Layout.fillWidth: true
-                                        Layout.topMargin: theme.space1
-                                        visible: (raceItem.modelData.place || "") !== "" || raceItem.modelData.registeredMe === true
-                                                 || raceItem.modelData.canRegister === true
-                                        spacing: theme.space2
-                                        Pill {
-                                            visible: (raceItem.modelData.place || "") !== ""
-                                            size: "sm"
-                                            glyph: ""  // flag
-                                            fallback: "#"
-                                            text: raceItem.modelData.place || ""
-                                            tint: theme.accent
-                                            tip: i18n.tr("Your place in the weekly leaderboard")
-                                        }
-                                        Pill {
-                                            visible: raceItem.modelData.registeredMe === true
-                                            size: "sm"
-                                            glyph: ""  // check
-                                            fallback: "✓"
-                                            text: i18n.tr("Registered")
-                                            tint: theme.gain
-                                        }
-                                        TpButton {  // registration dialog of the Upcoming Races page (car chosen there)
-                                            objectName: "registerRace"
-                                            visible: raceItem.modelData.canRegister === true
-                                            size: "xs"
-                                            accent: raceItem.soon
-                                            text: i18n.tr("Register…")
-                                            tip: i18n.tr("Choose your car and register to this race")
-                                            onClicked: backend.registerRace(raceItem.modelData.key)
                                         }
                                     }
                                 }

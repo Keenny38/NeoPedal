@@ -115,7 +115,7 @@ def zoomed_chart(points: list[dict]) -> list[dict]:
 
 def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
                 history: Sequence[dr.HistoryEntry], data: DriverData | None,
-                others: list[dr.OtherAccount] | None = None, online: bool = False) -> dict | None:
+                others: list[dr.OtherAccount] | None = None) -> dict | None:
     """Driver card of Home page, None if nothing known (card hidden)
 
     Args:
@@ -124,7 +124,6 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
         history: rank history (change since previous rank, rank over time).
         data: profile & race record, None until read.
         others: last ranks of other game accounts of this computer.
-        online: RaceControl reading on (option enable_online_driver_ranks): ranks remembered can be read again.
 
     Returns:
         name, ranks (label, value, colors of dark & light pages, progress, change & its tone, chart points zoomed
@@ -162,6 +161,5 @@ def driver_card(player: dr.DriverRanks | None, remembered: bool, updated: float,
         "note": f"{tr('Last ranks known')} · {relative_date(updated)}" if noted else "",
         "noteTip": long_date_time(updated) if noted else "",
         "noteStale": noted and time.time() - updated > STALE_RANKS_DAYS * 86400,
-        "refresh": noted and online,
         "others": other_account_rows(others),
     }

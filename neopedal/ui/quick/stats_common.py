@@ -309,11 +309,8 @@ def rank_info_text(player: dr.DriverRanks | None) -> str:
     """Where ranks come from & when game menu updated them"""
     if player is None or not ranks.updated:
         return ""
-    if ranks.remembered:  # game emptied its menu cache: last ranks seen, RaceControl read while the game runs
-        return trm(f"Last ranks seen in game menu, {format_date(ranks.updated)}") + " · " + tr(
-            "updated from RaceControl while the game runs")
-    if ranks.online:
-        return trm(f"Ranks of RaceControl, updated {format_date(ranks.updated)}")
+    if ranks.remembered:  # game emptied its menu cache: last ranks seen
+        return trm(f"Last ranks seen in game menu, {format_date(ranks.updated)}")
     return trm(f"Ranks of game menu, updated {format_date(ranks.updated)}")
 
 

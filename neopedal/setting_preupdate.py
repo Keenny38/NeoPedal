@@ -37,6 +37,7 @@ def preupdate_global_setting(preset_version: tuple[int, int, int], dict_user: di
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 13), _global_prior_2_51_13),  # 2026-11-04
         ((2, 51, 12), _global_prior_2_51_12),  # 2026-11-03
         ((2, 51, 11), _global_prior_2_51_11),  # 2026-11-03
         ((2, 51, 8), _global_prior_2_51_8),  # 2026-11-02
@@ -59,6 +60,7 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
     # Create target version and update function list
     # Very old version may be removed later
     target_versions = (
+        ((2, 51, 13), _user_prior_2_51_13),  # 2026-11-04
         ((2, 51, 10), _user_prior_2_51_10),  # 2026-11-02
         ((2, 51, 9), _user_prior_2_51_9),  # 2026-11-02
         ((2, 51, 7), _user_prior_2_51_7),  # 2026-11-01
@@ -94,6 +96,15 @@ def preupdate_user_setting(preset_version: tuple[int, int, int], dict_user: dict
 
 # Global setting update function
 RENAMED_THEMES = {"Modern Light": "Modern White", "Legacy Dark": "Legacy Grey", "Legacy Light": "Legacy Grey"}
+
+
+def _global_prior_2_51_13(dict_user: dict):
+    # Reading RaceOS (online service of the game, signed in with the game ticket) removed: a developer of Le Mans
+    # Ultimate said third-party apps must not call it. Its options dropped (files: rank_info.remove_former_files)
+    application = dict_user.get("application")
+    if isinstance(application, dict):
+        application.pop("enable_online_driver_ranks", None)
+        application.pop("enable_online_requests_economy", None)
 
 
 def _global_prior_2_51_12(dict_user: dict):
@@ -198,6 +209,18 @@ def _global_prior_2_43_0(dict_user: dict):
 
 
 # User setting update function
+def _user_prior_2_51_13(dict_user: dict):
+    # Ranks of the other drivers of an online session were read from RaceOS (removed): strength of field of Standings
+    # class headers & field level of Session gone with them
+    standings = dict_user.get("standings")
+    if isinstance(standings, dict):
+        standings.pop("show_class_sof", None)
+    session = dict_user.get("session")
+    if isinstance(session, dict):
+        session.pop("show_field_level", None)
+        session.pop("display_order_field_level", None)
+
+
 def _user_prior_2_51_10(dict_user: dict):
     # Recorder: laps kept per track no longer limited (former default 50 removed laps of a few sessions for good),
     # out & in laps recorded by default; values still at former default updated once, other limits kept

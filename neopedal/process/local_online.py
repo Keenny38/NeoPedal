@@ -108,7 +108,8 @@ def online_result(result: rf.SessionResult, with_laps: bool = True) -> rs.Online
         if entry.player:
             _player = entry.name
     title = result.server or result.track
-    return rs.OnlineResult(f"{PREFIX}{result.path}", 1, result.time, "daily", "", title, result.track, tuple(rows))
+    # split 0: none told (a results file is the one server you drove on)
+    return rs.OnlineResult(f"{PREFIX}{result.path}", 0, result.time, "daily", "", title, result.track, tuple(rows))
 
 
 def read_race(event_id: str, names: Iterable[str] = ()) -> rs.OnlineResult | None:

@@ -4,14 +4,11 @@ footnote without a color name & empty state; Lap viewer lost-corner stepper; sha
 
 import os
 
-from PySide6.QtCore import QCoreApplication, QEvent, QObject
+from PySide6.QtCore import QCoreApplication, QEvent
 
 from neopedal import i18n
-from neopedal import race_schedule_info as info
-from neopedal.process import race_schedule as rs
 from neopedal.ui import home_debrief
 from tests.test_audit_g_qml_pages import item_named, items_of, pump
-from tests.test_bug_audit_2026_11_02_upcoming_races import wait
 from tests.test_home_2026_11_03 import publish_cards
 from tests.test_lap_viewer import wait_loaded
 from tests.test_lap_viewer_features import laps  # noqa: F401
@@ -56,98 +53,18 @@ def test_debrief_lap_count_singular_and_plural(ui_env):
         i18n.set_language("English")
 
 
-def test_rank_refresh_offered_only_while_game_runs(qml_warnings, home):  # noqa: F811
-    backend = home.backend
-    root = home.view.rootObject()
-    publish_cards(backend)
-    backend.publish("driver", {"name": "Keenny Hess", "ranks": [], "figures": [], "note": "Last ranks known · 2 h ago",
-                               "refresh": True}, backend.driverChanged)
-    button = item_named(root, "refreshRanks")
-    for running, lmu, shown in ((False, True, False), (True, False, False), (True, True, True)):
-        backend.publish("game", {"name": "Le Mans Ultimate", "running": running, "status": "", "lmu": lmu},
-                        backend.gameChanged)
-        QCoreApplication.processEvents()
-        assert button.property("visible") is shown, (running, lmu)
-    assert not qml_warnings, qml_warnings
-
-
-# --- Upcoming Races
-def test_not_read_text_names_the_cause(fresh_info, monkeypatch):  # noqa: F811
-    from neopedal.ui.quick import schedule_backend as sb
-
-    assert sb.unread_text(info.NO_GAME) == "Not read: start Le Mans Ultimate and try again."
-    assert sb.unread_text(info.FAILED) == "Not read: RaceControl did not answer. Try again in a moment."
-    assert sb.unread_text(info.OFF) == sb.status_note(info.OFF, rs.EMPTY)[1]
-    assert sb.unread_text(info.NO_ACCOUNT) == sb.status_note(info.NO_ACCOUNT, rs.EMPTY)[1]
-    monkeypatch.setattr(fresh_info, "room", lambda: 0)  # request budget used: nothing sent
-    assert "too many requests" in sb.unread_text(info.FAILED)
-    monkeypatch.setattr(info, "blocked_minutes", lambda: 12)  # 403: the game is refused too
-    for status in (info.FAILED, info.NO_GAME):
-        text = sb.unread_text(status)
-        assert "refuses requests" in text and "12 min" in text and "start Le Mans" not in text
-    i18n.set_language("Français")
-    try:
-        assert sb.unread_text(info.FAILED).startswith("Non lu : RaceControl refuse")
-    finally:
-        i18n.set_language("English")
-
-
-def test_detail_not_read_tells_why(page, monkeypatch):  # noqa: F811
-    backend = page.backend
-    backend.setOpenOnly(False)
-    key = backend.coop[0]["key"]
-    detail = f"coop:{key}"
-    monkeypatch.setattr(info, "read_coop_board", lambda name, player: None)
-    for running, words in ((True, "RaceControl did not answer"), (False, "start Le Mans Ultimate")):
-        monkeypatch.setattr(info, "_game_running", lambda running=running: running)
-        backend.readCoopBoard(key)
-        assert wait(lambda: "error" in backend.details.get(detail, {}))
-        assert words in backend.details[detail]["error"], backend.details[detail]
-    monkeypatch.setattr(info, "_game_running", lambda: True)
-    backend.set_registration({"open": True, "eventId": "id"})
-    backend.registration_read("id", None, None, "Not read: RaceControl did not answer. Try again in a moment.")
-    assert "did not answer" in backend.registration["error"]
-
-
-def test_coop_tab_hides_class_chips(qml_warnings, page, monkeypatch):  # noqa: F811
-    backend = page.backend
-    backend.setOpenOnly(False)
-    root = page.view.rootObject()
-
-    def chips() -> list[QObject]:
-        return [item for item in items_of(root) if "TpChip" in item.metaObject().className()
-                and item.property("showDot") and item.isVisible()]
-
-    backend.setTab(0)
-    pump(0.2)
-    names = [choice["name"] for choice in backend.classChoices]
-    assert names and chips()
-    backend.toggleClass(names[0])
-    pump(0.1)
-    assert root.property("filtered") is True
-    backend.setTab(3)  # co-op events give no class: no chip, the class chosen tells no "filtered" state there
-    pump(0.2)
-    assert not chips() and root.property("filtered") is False and backend.counts[3] == 1
-    backend.toggleClass(names[0])
-    QCoreApplication.processEvents()
-    assert not qml_warnings, qml_warnings
-
-
 def test_timeline_empty_state_and_footnote(qml_warnings, page, monkeypatch):  # noqa: F811
     backend = page.backend
-    backend.setOpenOnly(False)
-    backend.setTab(0)
     backend.setView(2)
     pump(0.2)
     root = page.view.rootObject()
     timeline = item_named(root, "raceTimeline")
     assert timeline.isVisible()
     texts = [item.property("text") for item in items_of(timeline) if isinstance(item.property("text"), str)]
-    assert any("locked races in the warning color" in text for text in texts) and not any("orange" in text
-                                                                                         for text in texts)
+    assert any("Click a race for its menu" in text for text in texts)
     backend.setSearch("no race has this name")
     pump(0.2)
-    assert backend.counts[0] == 0 and not timeline.isVisible()
+    assert backend.count == 0 and not timeline.isVisible()
     states = [item for item in items_of(root) if "TpStateView" in item.metaObject().className() and item.isVisible()]
     assert [state.property("title") for state in states] == ["No daily race to come"]
     assert states[0].property("text") == "No race matches the filters."

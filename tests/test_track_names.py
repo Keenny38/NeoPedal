@@ -183,8 +183,7 @@ def test_upcoming_races_page_shows_layout_name(ui_env, monkeypatch):
     from neopedal.ui.quick import schedule_view
     from neopedal.userfile import game_images
 
-    schedule = rs.parse_schedule({}, {}, {"bahrainwec_outer": rs.TrackInfo("Bahrain International Circuit", True)},
-                                 0.0)
+    schedule = rs.EMPTY._replace(tracks={"bahrainwec_outer": rs.TrackInfo("Bahrain International Circuit", True)})
     # Game lists never read: name /rest/race/track gives the scene (as before)
     assert schedule_view.track_of("BahrainWEC_Outer", "Bahrain Outer Circuit", schedule) == (
         "Bahrain International Circuit", True)

@@ -825,15 +825,8 @@ Show setup wizard at next startup. The wizard asks for language, game, units, wi
     update_repository
 Set GitHub repository (`owner/name`) used by `Check for Updates`. Empty value disables update checks. Default is `Keenny38/NeoPedal` (this fork), so updates never offer the upstream releases.
 
-    enable_online_driver_ranks
-Read Driver Rank (DR) & Safety Rank (SR) of Le Mans Ultimate online from RaceControl, the way the game menu does: the app asks the running game for a Steam sign-in ticket, signs in to RaceControl (raceos.gg) with it and reads ranks only (nothing else sent, no change made to your account; ticket & sign-in kept in memory only, never saved). Privacy: the Steam session ticket of the game (it identifies your Steam account) and the names of the drivers of an online session are sent over HTTPS to raceos.gg, a third-party service (not NeoPedal), only while the game runs. Turn this option off to send nothing. The game no longer keeps ranks in its menu file while it runs, so without this option the Driver Rank overlay, driver cards & Broadcast Director show the last ranks seen. Ranks are read when the app starts (game running), after each session (new race results file: read 3 and 15 minutes later, as RaceControl updates them a moment after) and every 30 minutes while the game runs. While the game is on an online server, the ranks of the other drivers of the session are read too, by name (kept in memory only), for the Driver & Safety Rank column, strength of field and Broadcast Director cards. Requests to RaceControl are few and spaced out (it refuses a connection that asks too much, the game's too): after a refusal nothing is asked for an hour or more, even after the app restarts. Your last ranks and their time are kept in `.raceos_ranks.json` (never the ticket or sign-in) so that starting the app again does not sign in at once; turning the option off removes it. The online races you drove that are over for a day (Results & Replays, `Online`) are kept in `.online_results.json` (names of the drivers of those races included, tied to your game account, 12 races and 40 results at most) so that opening the page again asks RaceControl nothing; turning the option off removes it. This option is enabled by default.
-
-
     enable_public_race_schedule
-When `enable_online_driver_ranks` is off (no sign in to RaceControl with the game ticket), the daily races of Upcoming Races, of the `Next Races` card of Home and of the race reminders are read from the public home page of RaceControl (www.racecontrol.gg), as a web browser shows it: no ticket, no account, nothing about you is sent, one request an hour at most. That page gives the title, level, length, track and start times of the next daily races only: registration (`Register in the Game` brings the game to the front), fields, leaderboards and the other tabs need `enable_online_driver_ranks`. Your online races of Results & Replays are then read from the results files of the game, with no request. This option is enabled by default; turned off, nothing is read without the online option.
-
-    enable_online_requests_economy
-Economy mode of the requests to RaceControl (raceos.gg), for a connection that was refused or that you want to keep quiet: every wait between two reads lasts twice as long (races of Upcoming Races, your places in leaderboards, Driver & Safety Ranks of the field, weekly series), and at most 60 requests are sent in any hour instead of 120. The price is older data: the page tells when it was last read. Turning it off goes back to the normal waits. The requests are already few and spaced out in normal mode (see `enable_online_driver_ranks`). This option is disabled by default.
+Read the daily races of Upcoming Races, of the `Next Races` card of Home and of the race reminders from the public home page of RaceControl (www.racecontrol.gg), as a web browser shows it: no game ticket, no account, nothing about you is sent, one request an hour at most. That page gives the title, level, length, track and start times of the next daily races: registration stays in the game (`Register in the Game` brings it to the front). Your online races of Results & Replays are read from the results files of the game, with no request. RaceOS, the online service of the game, is never asked: a developer of Le Mans Ultimate said third-party apps must not call it. This option is enabled by default; turned off, Upcoming Races shows nothing.
 
     number_of_automatic_backups
 Set number of automatic backups kept per preset file. A backup is created before saving a preset, at most once every 10 minutes. Backups can be restored from `Restore Backup` dialog. Set `0` to disable. Default is `10`.
@@ -1123,7 +1116,7 @@ Note, messages of the app (errors of background tasks, saving problems, updates 
 Show a Windows notification for a new error or warning while the main window is hidden in the notification area or minimized (racing): at most one a minute, the next one telling how many came meanwhile. Click it to open the notification center. Default is enabled.
 
     show_tray_messages_for_race_reminders
-Show a Windows notification for race reminders and RaceControl news of your registered races (server ready, race cancelled, registration removed), whether the main window is shown or not. Click it to open the `Upcoming Races` page. Default is enabled.
+Show a Windows notification for race reminders (and the moved or cancelled starts of reminded races), whether the main window is shown or not. Click it to open the `Upcoming Races` page. Default is enabled.
 
     show_tray_messages_for_updates
 Show a Windows notification when an update is found while the main window is hidden. Click it to see what's new. Default is enabled.
@@ -4208,7 +4201,7 @@ Show message when full course yellow starts and ends, and when race is halted (r
 Show message when game invalidates current lap.
 
     show_app_messages
-Show messages of the app while driving: race reminders, RaceControl news of your registered races (server ready, race cancelled) and errors. Windows may hide its own notifications over a full screen game, this shows them in game. Full messages stay in the notification center (bell). Default is enabled.
+Show messages of the app while driving: race reminders and errors. Windows may hide its own notifications over a full screen game, this shows them in game. Full messages stay in the notification center (bell). Default is enabled.
 
 [**`Back to Top`**](#)
 
@@ -4440,16 +4433,16 @@ Modern design, class column (on by default): class name, then position in class.
 Modern design column after relative time gap (on by default): gap change per lap to each car, averaged over about 30 seconds. Arrow up when the gap grows, down when it shrinks; green when you gain (closing on a car ahead, pulling away from a car behind), red when you lose; dash while steady (under 0.05 s per lap), unknown or in pit lane.
 
     column_driver_ranks
-Modern design column (Relative & Standings), off by default (`LMU` only): Driver Rank & Safety Rank of each driver, short and in rank color (`S2 P3`), dashes while unknown. Yours and your team members' come from the game menu (or RaceControl with `enable_online_driver_ranks`). Other drivers' need `enable_online_driver_ranks` (Settings > Application > Online): while the game is on an online server (practice, race, private server), the app asks RaceControl the profiles of the drivers of the session by name (drivers joining the session asked within 15 s, known ones hourly and 5 min after each session; drivers leaving are no longer shown). Drivers without a RaceControl profile: dashes.
+Modern design column (Relative & Standings), off by default (`LMU` only): Driver Rank & Safety Rank of each driver, short and in rank color (`S2 P3`), dashes while unknown. Yours and your team members' come from the game menu file (last ranks seen: the game writes them when it closes). Other drivers' ranks are not known (they came from RaceOS, the online service of the game, which third-party apps must not call): dashes.
 
     column_driver_badge
-Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (others need `enable_online_driver_ranks`), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
+Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (yours and your team members'), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
 
     column_car_number
 Modern design column (Relative & Standings), off by default (`LMU` only): car number as the game shows it (`#4`), from the game Rest API (`/rest/watch/standings`, read every 5 seconds while the column is shown). Online, the server gives each car of a split its own number, whatever its livery (a car with livery `#397` can be `#4`): shared memory only has the livery number, so a dash is shown while the game does not answer (rFactor 2, menus). Your own number is brighter. Column header: `#`. Its place among the columns is set by `display_order_car_number`.
 
     column_nationality
-Modern design column (Relative & Standings), off by default: flag of each driver's country, before the driver name. Yours comes from your game profile (`Nationality` of `UserData/player/Settings.JSON`); other drivers of an online session from their RaceControl profile, read with Driver & Safety Ranks (needs `enable_online_driver_ranks` on, no extra request); AI drivers, who carry the names of real FIA WEC, Le Mans and ELMS drivers, from a list of those drivers' nationalities bundled with the app (entry lists of 2023 to 2026). No flag when the nationality is unknown. Column header: `Nat`. Its place among the columns is set by `display_order_nationality`.
+Modern design column (Relative & Standings), off by default: flag of each driver's country, before the driver name. Yours comes from your game profile (`Nationality` of `UserData/player/Settings.JSON`); other drivers of an online server from the nationality the game gives for them (local Rest API of the game, no extra request); AI drivers, who carry the names of real FIA WEC, Le Mans and ELMS drivers, from a list of those drivers' nationalities bundled with the app (entry lists of 2023 to 2026). No flag when the nationality is unknown. Column header: `Nat`. Its place among the columns is set by `display_order_nationality`.
 
     column_delta_laptime
 Modern design column, off by default: lap time difference to player over recent laps (green if player was faster, most recent lap at right), as in Standings.
@@ -4851,10 +4844,10 @@ Enable this option to invert layout order for delta lap time records.
 Modern design column, off by default (`LMU` only): track limits points of each driver in current session, amber once any, red one point before penalty in races (points allowed per penalty given by the game; no penalty in practice and qualifying).
 
     column_driver_ranks
-Modern design column, off by default (`LMU` only): Driver Rank & Safety Rank of each rival, short and in rank color, as the column of [Relative](#relative) (ranks of other drivers need `enable_online_driver_ranks`).
+Modern design column, off by default (`LMU` only): Driver Rank & Safety Rank of each rival, short and in rank color, as the column of [Relative](#relative) (yours and your team members' only).
 
     column_driver_badge
-Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (others need `enable_online_driver_ranks`), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
+Modern design column, off by default (`LMU` only): game badge of each driver (Good Driver, Trusted Racer, Rookie, Warning...) as the game icon, downloaded once from Studio 397's public image server (no sign-in) and kept in `gameimage/badge`, a dot of the badge color until it is there; empty while unknown. Same drivers as `column_driver_ranks` (yours and your team members'), shown with or without the ranks column, and moved on its own in the Columns list. The Broadcast Director driver card shows the badge name.
 
     column_gap_trend
 Modern design column, off by default: gap change per lap between you and each car by race position (gap to a car ahead of you, gap of a car behind you), averaged over about 30 seconds. Arrow up when the gap grows, down when it shrinks; green when you gain, red when you lose; dash while steady (under 0.05 s per lap), unknown or in pit lane.
@@ -5008,9 +5001,6 @@ Predicted extra laps reading is not added to the estimated laps reading, and is 
 For example, a `12.45(+1)` reading means there are `12.45` total estimated laps, plus `1` predicted final lap, which may result `12.45 + 1` = `13.45` final estimated laps.
 
 Note, this option only works for time-based race type, and there is no guarantee that prediction will be 100% accurate, as anything can happen in the last hour of race.
-
-    show_field_level
-Modern design, off by default (`LMU` only): average Driver Rank & Safety Rank of the drivers of an online race (`S3 · G1`, in color of the average Driver Rank), from their RaceControl profiles (see `column_driver_ranks` of Relative). Needs `enable_online_driver_ranks`; dashes offline.
 
     layout
 2 layouts are available: 0 = vertical layout, 1 = horizontal layout.
@@ -5192,9 +5182,6 @@ Show class name above the vehicles of each class (modern design), in multi-class
 
     show_class_column_with_class_header
 Keep class column next to each driver while class names are shown above their vehicles (`show_class_header`, modern design): each row then keeps its class alias and position in class, and the position badge shows the overall position. The class color edge of each row is drawn whenever the class column is enabled, with or without class headers. Disabled by default: class headers replace class column.
-
-    show_class_sof
-Show the strength of field of each class at the right end of its class header (modern design, `LMU` only, disabled by default): average Driver Rank & Safety Rank of the drivers of the class whose ranks are known (`SoF S2 40% · G1 15%`: rank, tier and progress to the next tier, in color of the average Driver Rank), from their RaceControl profiles (needs `enable_online_driver_ranks`, see `column_driver_ranks` of Relative). Nothing shown while no rank is known (offline). Needs `show_class_header`, in multi-class split mode or single-class exclusive mode.
 
     minimum_top_vehicles
 Set minimum amount top place vehicles to display: top of player's class in split mode, top of all vehicles otherwise. This value has higher priority over `maximum_vehicles_per_split_player`, `maximum_vehicles_exclusive_mode` and `maximum_vehicles_combined_mode`, not over `maximum_vehicles_per_split_others`. Default is `3`, which always shows top 3 vehicles if present.

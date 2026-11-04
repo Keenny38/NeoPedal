@@ -89,10 +89,10 @@ _PATCH_BASELINE: dict[str, object] = {}  # target name: value at session start (
 
 def _patch_targets() -> dict[str, tuple[object, str]]:
     """Name shown in the failure: (owner, attribute) patched by ui_env & the autouse fixtures"""
-    from neopedal import rank_info, vr_shared
+    from neopedal import vr_shared
     from neopedal.api_control import api
     from neopedal.game_rest_cache import rest_cache
-    from neopedal.process import results_file
+    from neopedal.process import public_schedule, results_file
     from neopedal.setting import FilePath, Setting, cfg
     from neopedal.userfile import game_images, lap_reference, track_geometry
 
@@ -107,7 +107,7 @@ def _patch_targets() -> dict[str, tuple[object, str]]:
         "lap_reference.fetch_sheet": (lap_reference, "fetch_sheet"),
         "track_geometry.rest_get": (track_geometry, "rest_get"),
         "rest_cache.fetch": (rest_cache, "fetch"),
-        "rank_info._game_get": (rank_info, "_game_get"),
+        "public_schedule.fetch": (public_schedule, "fetch"),
         "game_images.fetch_from_game": (game_images, "fetch_from_game"),
     })
     return targets
@@ -325,12 +325,14 @@ def offline_rest_cache(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def offline_online_ranks(monkeypatch):
-    """Online ranks (on by default) never ask a running game for a Steam ticket nor sign in to RaceControl
-    in tests (tests feed online sources themselves)"""
-    from neopedal import rank_info
+def offline_public_schedule(monkeypatch):
+    """Public page of RaceControl (daily races, on by default) never downloaded in tests (tests feed it themselves)"""
+    from neopedal.process import public_schedule
 
-    monkeypatch.setattr(rank_info, "_game_get", lambda *args, **kwargs: (0, b""))
+    def offline(timeout=public_schedule.TIMEOUT):
+        raise OSError("offline in tests")
+
+    monkeypatch.setattr(public_schedule, "fetch", offline)
 
 
 @pytest.fixture(autouse=True)

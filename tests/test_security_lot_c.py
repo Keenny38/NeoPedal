@@ -118,12 +118,11 @@ def test_replay_header_nested_too_deeply():
 
 
 def test_untrusted_json_sweep_never_raises_recursion_error(tmp_path, monkeypatch):
-    from neopedal.process import driver_ranks, raceos
+    from neopedal.process import driver_ranks
     from neopedal.userfile import layout_profile, preset_check, tyre_strategy
 
     assert driver_ranks.parse_storage('{"driverRank": ' + DEEP + "}") == []
     assert not driver_ranks.valid_raw(b'{"driverRank": ' + DEEP.encode() + b"}")
-    assert raceos._json(DEEP.encode()) is None
     path = tmp_path / "deep.json"
     path.write_text(DEEP, encoding="utf-8")
     assert layout_profile.load_profiles(str(path)) == {}

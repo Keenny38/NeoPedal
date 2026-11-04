@@ -115,11 +115,7 @@ GLOBAL_DEFAULT = {
         # What's New of the versions since the newest one run (last_run_version), once at first start of a newer one
         "show_release_notes_after_update": True,
         "last_run_version": "",
-        # Driver & Safety Rank read online from RaceControl (sign in with a game ticket), see process/raceos.py:
-        # sends the Steam session ticket of the running game to raceos.gg (online service of the game, not the app)
-        "enable_online_driver_ranks": True,
-        "enable_online_requests_economy": False,  # RaceControl read half as often (see net_policy.stretch)
-        # Online option off: daily races of the public page of RaceControl, no sign in (process/public_schedule.py)
+        # Daily races of the public page of RaceControl, no sign in (process/public_schedule.py)
         "enable_public_race_schedule": True,
         'snap_distance': 10,
         "snap_gap": 0,

@@ -29,7 +29,6 @@ short column labels is drawn above the cars.
 from __future__ import annotations
 
 from collections.abc import Callable
-from itertools import islice
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from PySide6.QtCore import QRectF
@@ -159,7 +158,6 @@ class DriverTable(TableMixin, ModernOverlay):
     # Class shown by a header above each class group (widget sets): no class column, position in class
     class_headers = False
     class_column_hidden = False  # class column left out (class name in class headers)
-    class_sof = False  # strength of field of each class shown in its class header (Standings sets)
     # Running lap time of other cars in tenths (else whole seconds: long lists repainted once a second, not
     # 10 times); player's always in tenths
     running_tenths = True
@@ -452,15 +450,13 @@ class DriverTable(TableMixin, ModernOverlay):
         return self.driver_nations
 
     def poll_ranks(self, data_set) -> None:
-        """Ranks of drivers of session read in background when due (driver & safety rank, badge or nationality
-        column, or strength of field of classes shown)"""
+        """Your ranks & your team members' read in background when due (game menu file), driver & safety rank or
+        badge column shown"""
         wcfg = self.wcfg
-        if (wcfg.get("column_driver_ranks", False) or wcfg.get("column_driver_badge", False)
-                or wcfg.get("column_nationality", False) or self.class_sof) and not drawing_demo():  # class_sof: strength of field really shown
-            from ...rank_info import poll_field
+        if (wcfg.get("column_driver_ranks", False) or wcfg.get("column_driver_badge", False)) and not drawing_demo():
+            from ...rank_info import poll_ranks
 
-            # Cars of session only: slots beyond keep drivers of a former (bigger) session
-            poll_field([veh.driverName for veh in islice(data_set, minfo.vehicles.totalVehicles)])
+            poll_ranks()
 
     def poll_columns(self, data_set) -> None:
         """Data of shown columns read once per update: track limits points per penalty, energy usage (background

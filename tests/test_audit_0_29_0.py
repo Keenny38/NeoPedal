@@ -30,7 +30,6 @@ import sys
 
 import pytest
 
-from neopedal.process import raceos
 from neopedal.setting_validator import PresetValidator
 from neopedal.template.setting_global import GLOBAL_DEFAULT
 from tests.test_audit_pending_lap_files import (  # noqa: F401  fixtures: scripted game & clocks
@@ -41,7 +40,6 @@ from tests.test_audit_pending_lap_files import (  # noqa: F401  fixtures: script
     tele,
 )
 from tests.test_ci_preflight import repo  # noqa: F401
-from tests.test_raceos_fewer_requests import AUTH, client_of
 from tests.test_ui_audit_2026_10_29_shell import window  # noqa: F401
 
 STATS_VALUES = {
@@ -110,39 +108,6 @@ def test_menu_shortcuts_run_under_app_title_bar(title_bar_on, window, monkeypatc
     monkeypatch.setattr(menu_module, "open_config_application", lambda parent, section="": opened.append(section))
     shortcuts[QKeySequence("Ctrl+,").toString()].trigger()
     assert opened == [""]
-
-
-class EntriesForbidden:
-    """Sign in answered, entry lists forbidden (403), other reads answered"""
-
-    def __init__(self):
-        self.calls: list[str] = []
-
-    def __call__(self, method, url, body, headers, timeout):
-        self.calls.append(url)
-        if url == raceos.AUTH_URL:
-            return 200, AUTH
-        if "/event/entries/" in url or url.endswith("/refused"):
-            return 403, b""
-        return 200, b"[]"
-
-
-def test_forbidden_entry_list_after_sign_in_never_blocks():
-    """A3: a 403 on an entry list just after a sign in stopped every request for 1 h (then 2, 4, 6 h)"""
-    now = [1000.0]
-    http = EntriesForbidden()
-    client = client_of(http, now)
-    assert client.get("api/v1/event/entries/123") is None  # sign in, then that list refused
-    assert client.busy_for() == 0
-    assert client.get("api/v1/hosted") == []  # token kept: no new sign in
-    assert http.calls.count(raceos.AUTH_URL) == 1
-
-
-def test_other_403_after_sign_in_still_blocks():
-    now = [1000.0]
-    client = client_of(EntriesForbidden(), now)
-    assert client.get("api/v1/refused") is None
-    assert client.busy_for() > 0
 
 
 def source_script() -> str:

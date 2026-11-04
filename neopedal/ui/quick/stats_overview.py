@@ -157,19 +157,6 @@ class StatsOverview(StatsHost):
             "importText": trm(f"{imports} session(s) of the game not in your stats") if imports else "",
         }
 
-    @Slot()
-    def refreshRanks(self):
-        """Driver & safety ranks read again from RaceControl (online ranks option), at most every few minutes"""
-        from ...rank_info import online_enabled
-
-        if not online_enabled():
-            self.toast(tr("Online driver ranks are off (Settings): ranks come from the game menu only."))
-        elif ranks.read_now():
-            ranks.poll()
-            self.toast(tr("Ranks asked to RaceControl: shown in a moment (the game must be running)."))
-        else:
-            self.toast(tr("Ranks were asked a moment ago: try again in a few minutes."))
-
     @Property(dict, notify=StatsCore.driverChanged)
     def driver(self) -> dict:
         """Driver card: name, initials, detail, avatar URL, figures (label, value), ranks (see rank_rows), ranksInfo,

@@ -38,7 +38,7 @@ from ...process import championship as champ
 from ...process import director as dr
 from ...process.game_info import Standing
 from ...process.results_text import MISSING, sector_text
-from ...rank_info import driver_ranks, poll_field
+from ...rank_info import driver_ranks, poll_ranks
 from ...setting import cfg
 from ...template.setting_status_colors import SAME_TIME
 from ...userfile.badge_icons import badge_info
@@ -315,8 +315,8 @@ class BroadcastGraphics(DirectorPart):
         logo, picture = self.picture_links(car.vehicle)
         gained = grid.get(car.slot, 0) - places.get(car.slot, 0) if car.slot in grid else 0
         name = car.driver.split("#", 1)[0].strip() or car.driver
-        poll_field([other.driver for other in self.page.standings])
-        known = driver_ranks(name)  # player & team members, other drivers of an online race (RaceControl option)
+        poll_ranks()
+        known = driver_ranks(name)  # player & team members (game menu file)
         return {
             "number": car.number, "name": name,
             "team": car.team or car.vehicle, "cls": car.car_class, "color": class_color(car.car_class),

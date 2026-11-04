@@ -547,30 +547,8 @@ def test_b026_backup_with_date_out_of_platform_range_skipped(tmp_path, monkeypat
     assert names == ["driver.stats.backup-auto-2026-11-02-10-00-00-000000"]
 
 
-# Ranks: online source simulated (network never called)
+# Ranks of the game storage file
 ACCOUNT_A, ACCOUNT_B = "76561190000000001", "76561190000000002"
-
-
-class FakeOnline:
-    """Online ranks source (RaceControl) answering given ranks"""
-
-    def __init__(self, ranks):
-        self.ranks = ranks
-        self.calls = 0
-        self.on = True
-
-    def enabled(self):
-        return self.on
-
-    def game_running(self):
-        return True
-
-    def fetch(self, account, max_age=0.0):
-        self.calls += 1
-        return self.ranks
-
-    def forget(self):
-        pass
 
 
 def rank_storage(*entries) -> str:
@@ -582,50 +560,6 @@ def rank_profile(name: str, steam_id: str, rank: str, tier: int, team_only: bool
             "safetyRank": {"rank": "Gold", "tier": 1, "progress": 0}}
     data["driverId" if team_only else "steamId"] = "x1" if team_only else steam_id
     return data
-
-
-# B-009
-def test_b009_online_ranks_without_steam_id_never_given_to_next_account(tmp_path):
-    from neopedal.process import driver_ranks as dr
-
-    storage = os.path.join(tmp_path, "storage.json")
-    with open(storage, "w", encoding="utf-8") as file:
-        file.write("{}")
-    located = {"value": dr.Located(storage, ACCOUNT_A, ("Me",))}
-    online = FakeOnline(dr.DriverRanks("Me", "", "", "", dr.Rank("Platinum", 3, 50), None))  # no platforms
-    history = os.path.join(tmp_path, "ranks.history")
-    watcher = dr.RankWatcher(lambda: located["value"], lambda: history, online=online, run_online=lambda work: work(),
-                             active_account=lambda: located["value"].steam_id)
-    watcher.check()
-    watcher.check()
-    online.ranks = None  # account B: online read not done yet
-    located["value"] = dr.Located(storage, ACCOUNT_B, ("Other",))
-    watcher._checked_time = -99
-    watcher.check()
-    watcher.check()
-    assert [entry.steam_id for entry in dr.read_history(history)] == [ACCOUNT_A]
-    assert watcher.player is None or watcher.player.driver != dr.Rank("Platinum", 3, 50)
-
-
-# B-010
-def test_b010_older_file_ranks_never_saved_after_online_ones(tmp_path):
-    from neopedal.process import driver_ranks as dr
-
-    storage = os.path.join(tmp_path, "storage.json")
-    with open(storage, "w", encoding="utf-8") as file:
-        file.write(rank_storage(rank_profile("Me", ACCOUNT_A, "Silver", 1)))
-    os.utime(storage, (1_600_000_000, 1_600_000_000))  # game file written long ago
-    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_A, "", "", dr.Rank("Gold", 2, 10), None))
-    history = os.path.join(tmp_path, "ranks.history")
-    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)), lambda: history, online=online,
-                             run_online=lambda work: work())
-    watcher.check()
-    watcher.check()
-    online.on = False  # online ranks turned off: game file ranks again
-    watcher.check()
-    entries = dr.read_history(history)
-    assert [entry.time for entry in entries] == sorted(entry.time for entry in entries)
-    assert entries[-1].driver == dr.Rank("Gold", 2, 10)
 
 
 def test_b010_history_saved_out_of_order_read_sorted(tmp_path):
@@ -652,65 +586,6 @@ def test_b019_player_found_by_name_gets_account_history_only(tmp_path):
     watcher.check()
     assert watcher.player.steam_id == ACCOUNT_B
     assert all(entry.steam_id == ACCOUNT_B for entry in watcher.history_of(watcher.player.steam_id))
-
-
-# B-017
-def test_b017_cut_short_game_file_still_shows_online_ranks(tmp_path):
-    """Game killed while writing its storage file: online ranks applied all the same, file read again later"""
-    from neopedal.process import driver_ranks as dr
-
-    storage = os.path.join(tmp_path, "storage.json")
-    with open(storage, "w", encoding="utf-8") as file:
-        file.write('{"profile": "{\\"x\\": 1')  # no ranks, invalid JSON
-    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_A, "", "", dr.Rank("Gold", 2, 10), None))
-    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)),
-                             lambda: os.path.join(tmp_path, "ranks.history"), online=online,
-                             run_online=lambda work: work())
-    for _ in range(3):
-        watcher.check()
-    assert watcher.online and watcher.player is not None and watcher.player.driver == dr.Rank("Gold", 2, 10)
-    with open(storage, "w", encoding="utf-8") as file:  # written again in full
-        file.write(rank_storage(rank_profile("Me", ACCOUNT_A, "Silver", 1)))
-    os.utime(storage, (2_000_000_000, 2_000_000_000))
-    watcher._checked_time = -99
-    watcher.check()
-    assert watcher.find_name("Me") is not None
-
-
-# B-018
-def test_b018_online_answer_for_other_account_not_read_again_every_check(tmp_path):
-    from neopedal.process import driver_ranks as dr
-
-    storage = os.path.join(tmp_path, "storage.json")
-    with open(storage, "w", encoding="utf-8") as file:
-        file.write("{}")
-    online = FakeOnline(dr.DriverRanks("Me", ACCOUNT_B, "", "", dr.Rank("Gold", 2, 10), None))
-    watcher = dr.RankWatcher(lambda: dr.Located(storage, ACCOUNT_A, ("Me",)),
-                             lambda: os.path.join(tmp_path, "ranks.history"), online=online,
-                             run_online=lambda work: work())
-    for _ in range(5):
-        watcher._checked_time = -99
-        watcher.check()
-    assert online.calls == 1  # one sign in, not one per check
-    assert watcher.player is None or watcher.player.driver != dr.Rank("Gold", 2, 10)
-
-
-# B-037
-def test_b037_driver_username_never_given_ranks_of_a_homonym():
-    """Driver Y's username is the real name of driver X: Y keeps own ranks whatever the answer order"""
-    from neopedal.process import driver_ranks as dr
-    from neopedal.process import field_ranks as fr
-    from tests.test_field_ranks import FakeSource, profile
-
-    mate = profile("Alex Martin", ("Gold", 2, 10))
-    other = profile("Speedy", ("Bronze", 1, 0))
-    other["name"] = "Alex Martin"  # real name of driver "Speedy"
-    source = FakeSource()
-    source.post = lambda path, payload: [mate, other]  # homonym answered last
-    field = fr.FieldRanks(source, clock=lambda: 0.0, run=lambda work: work())
-    field.poll(["Alex Martin", "Speedy"])
-    assert field.ranks_of("Alex Martin").driver == dr.Rank("Gold", 2, 10)
-    assert field.ranks_of("Speedy").driver == dr.Rank("Bronze", 1, 0)
 
 
 # Home debrief: laps recorded as the recorder module writes them

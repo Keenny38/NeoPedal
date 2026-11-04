@@ -102,8 +102,8 @@ def due_reminders(reminders: list[dict], now: float) -> tuple[list[dict], list[d
 
 
 def _routes(event: Event) -> tuple[str, ...]:
-    """Requests (race_schedule ROUTES keys) a race is read from"""
-    return ("schedule", f"daily_{event.tier}") if event.kind == "daily" else (event.kind,)
+    """Kinds of race read a race comes from (Schedule.missing: not read)"""
+    return (event.kind,)
 
 
 def follow_schedule(reminders: list[dict], schedule: Schedule,
@@ -350,7 +350,7 @@ class RaceReminders(QObject):
         if state.serial == self._serial:
             return []
         self._serial = state.serial
-        if state.status != info.READ or not state.schedule.read_time:
+        if state.status != info.PUBLIC or not state.schedule.read_time:
             return []
         self._reminders, moved, dropped = follow_schedule(self._reminders, state.schedule, now)
         return ([change_message(new, "Reminder moved: %1 now starts at %2", now) for _old, new in moved]
@@ -391,5 +391,5 @@ def reminders() -> RaceReminders:
         _reminders = RaceReminders(QCoreApplication.instance())
         from .race_watch import race_watch
 
-        race_watch()  # your registered races followed live, started with the reminders
+        race_watch()  # public daily races kept read for the reminders, started with them
     return _reminders

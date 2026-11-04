@@ -104,6 +104,9 @@ def start():
     cfg.load_user()
     sync_screen_layout()
     cfg.save_loaded()  # preset written only if missing, repaired or migrated (unchanged file left alone)
+    from .rank_info import remove_former_files
+
+    remove_former_files()  # files of the former RaceOS reading (removed 2026-11-04), names of drivers among them
     # 2 start api
     api.connect()
     api.start()

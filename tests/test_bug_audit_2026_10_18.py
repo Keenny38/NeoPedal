@@ -67,20 +67,6 @@ def test_restore_style_backup_pauses_style_saving(ui_env, monkeypatch):
     assert os.path.exists(f"{folder}classes.json") and not os.path.exists(f"{folder}{backup}")
 
 
-# --- 3: ranks of the session's cars only (slots beyond keep drivers of a former bigger session)
-def test_rank_poll_cars_of_session_only(monkeypatch):
-    from neopedal import rank_info
-    from neopedal.module_info import minfo
-    from neopedal.widget._modern.drivers import DriverTable
-
-    asked = []
-    monkeypatch.setattr(rank_info, "poll_field", lambda names: asked.append(list(names)))
-    monkeypatch.setattr(minfo.vehicles, "totalVehicles", 1)
-    cars = (SimpleNamespace(driverName="Now"), SimpleNamespace(driverName="Gone"))
-    DriverTable.poll_ranks(SimpleNamespace(wcfg={"column_driver_ranks": True}), cars)
-    assert asked == [["Now"]]
-
-
 # --- 4: Black box position moved by auto resize kept by its widget config (placement applied again later)
 def test_black_box_anchored_move_kept_by_widget_config(ui_env):
     from neopedal.widget._style import StyledConfig
@@ -361,20 +347,6 @@ def test_rank_history_unknown_account_not_repeated(tmp_path):
     assert len(dr.read_history(history)) == 1
     watcher.record(player._replace(driver=dr.Rank("Gold", 1, 11)), 3.0, "")
     assert len(dr.read_history(history)) == 2
-
-
-# --- 20: stale token refused: signed in again at once (token of a new sign in refused: waits, see test_field_ranks)
-def test_raceos_stale_token_refused_signs_in_again():
-    from neopedal.process import raceos
-    from tests.test_field_ranks import NOW, FakeHttp, iso
-
-    http = FakeHttp()
-    client = raceos.RaceOSClient(lambda: "ticket", http=http, clock=lambda: 0.0, wall_clock=lambda: NOW)
-    auth = {"accessToken": "tok", "expiresAt": iso(NOW + 1800), "player": None}
-    http.answers = [(200, auth), (200, [1]), (401, None), (200, auth), (200, [2])]
-    assert client.get("api/v1/x") == [1]
-    assert client.get("api/v1/x") is None  # kept token refused (revoked)
-    assert client.get("api/v1/x") == [2]  # new sign in at once
 
 
 # --- 21: consumption history rewritten as it is now (laps deleted meanwhile never back in file)

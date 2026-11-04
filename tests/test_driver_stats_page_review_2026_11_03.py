@@ -133,16 +133,6 @@ def test_sheet_date_and_rival_names():
         "Paul Atreides", "Nigel Wood", "#123"]
 
 
-# --- 17. Ranks read again on demand, a few minutes apart
-def test_ranks_read_now_rate_limited():
-    clock = [1000.0]
-    watcher = dr.RankWatcher(lambda: dr.Located("", "", ()), clock=lambda: clock[0])
-    assert watcher.read_now() and watcher._online_due == [1000.0]
-    assert not watcher.read_now()  # asked again at once: refused
-    clock[0] += dr.ONLINE_MANUAL_SECONDS
-    assert watcher.read_now()
-
-
 # --- 19. Lap times of race results completed at once, each once (an undo keeps it out)
 def test_lap_times_of_results_completed_once(backend, monkeypatch):  # noqa: F811
     monkeypatch.setattr(backend, "_page_visible", True)

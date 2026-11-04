@@ -20,7 +20,7 @@
 Nationality of the drivers of a session (country code as given: "FR"), without Qt
 
 Player: game profile ("Nationality" of UserData/player/Settings.JSON, read on its own thread). Other drivers
-of an online session: RaceControl profile, read with driver ranks (rank_info, option enable_online_driver_ranks).
+of an online server: the nationality the game gives for them (local Rest API, /rest/multiplayer/teams).
 Drivers without either (AI, offline): real drivers whose names LMU gives its AI, from FIA WEC, Le Mans & ELMS
 entry lists (data/driver_nations.json), matched by name without accents, dots, case or "Jr." suffixes.
 """

@@ -122,28 +122,6 @@ def test_classic_logo_not_drawn_in_separator_row(list_field, monkeypatch):
 
 
 # 6 - strength of field: ranks polled only while class headers show it
-@pytest.mark.parametrize(("options", "polled"), [
-    ({"show_class_header": False}, False),
-    ({"enable_multi_class_split_mode": False, "enable_single_class_exclusive_mode": False}, False),
-    ({"show_class_header": True, "enable_multi_class_split_mode": True}, True),
-])
-def test_sof_polls_ranks_only_when_shown(list_field, monkeypatch, options, polled):
-    import neopedal.rank_info as rank_info
-    from neopedal.widget._modern import drivers
-
-    calls = []
-    monkeypatch.setattr(rank_info, "poll_field", lambda names: calls.append(list(names)))
-    monkeypatch.setattr(drivers, "drawing_demo", lambda: False)
-    widget = make_widget("standings", True, monkeypatch, show_class_sof=True, column_driver_ranks=False,
-                         column_driver_badge=False, **options)
-    try:
-        assert widget.class_sof == polled
-        widget.poll_ranks(minfo.vehicles.dataSet)
-        assert bool(calls) == polled
-    finally:
-        widget.deleteLater()
-
-
 # 7 - interval outside race: dash while the car ahead has no time
 def test_modern_interval_outside_race_without_time_ahead(list_field, monkeypatch):
     widget = make_widget("standings", True, monkeypatch, enable_multi_class_split_mode=True)

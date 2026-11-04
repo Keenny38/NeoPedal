@@ -188,7 +188,7 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 }
             }
         }
-        RowLayout {  // where ranks come from & when, read again on demand (RaceControl, a few minutes apart)
+        RowLayout {  // where ranks come from & when
             visible: (card.driver.ranksInfo || "") !== ""
             Layout.fillWidth: true
             spacing: theme.space3
@@ -200,15 +200,6 @@ TpSectionCard {  // driver: game profile, Steam picture, races of game results f
                 font.pointSize: theme.fontCaption
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
-            }
-            TpButton {
-                objectName: "statsRefreshRanks"
-                size: "xs"
-                flat: true
-                text: i18n.tr("Refresh")
-                tip: i18n.tr("Read driver & safety ranks again from RaceControl")
-                Layout.alignment: Qt.AlignTop
-                onClicked: backend.refreshRanks()
             }
         }
     }

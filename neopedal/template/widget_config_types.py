@@ -2803,8 +2803,6 @@ class SessionConfig(WidgetConfig):
     display_order_system_clock: int
     display_order_session_time: int
     display_order_estimated_laps: int
-    show_field_level: bool
-    display_order_field_level: int
 
 
 class SlipAngleConfig(WidgetConfig):
@@ -3230,7 +3228,6 @@ class StandingsConfig(WidgetConfig):
     show_lap_difference: bool
     show_class_header: bool
     show_class_column_with_class_header: bool
-    show_class_sof: bool
     show_column_headers: bool
 
 

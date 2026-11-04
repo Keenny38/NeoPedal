@@ -26,22 +26,18 @@ single class mode.
 
 from __future__ import annotations
 
-from math import ceil, inf
-from time import monotonic
-from typing import TYPE_CHECKING, Any
-
-from PySide6.QtGui import QColor
+from math import ceil
+from typing import TYPE_CHECKING
 
 from ...const_common import MAX_SECONDS
 from ...i18n import tr_overlay
 from ...module_info import minfo
 from ...template.widget.drivers_ui import STANDINGS_COLUMNS
-from .drivers import DRIVER_OPTIONS, SAMPLE_RANKS, Context, DriverTable, gap_text, live_trends, rank_modules
+from .drivers import DRIVER_OPTIONS, Context, DriverTable, gap_text, live_trends
 from .rows import DASH, class_style
 from .table import RIGHT, SEPARATOR, TEXT, Cell, ClassHeader, Column
 
 DEFAULT_SPLIT_GAP = 5  # split_gap template default: space between class groups of design
-LEVELS_INTERVAL = 1.0  # seconds between strength of field reads (see class_levels)
 
 if TYPE_CHECKING:
     from ...template.widget_config_types import StandingsConfig
@@ -58,7 +54,7 @@ class Realtime(DriverTable):
         *DRIVER_OPTIONS,
         "show_column_headers",
         "enable_multi_class_split_mode", "enable_single_class_exclusive_mode", "minimum_top_vehicles",
-        "show_class_header", "show_class_column_with_class_header", "show_class_sof", "class_order",
+        "show_class_header", "show_class_column_with_class_header", "class_order",
         "maximum_vehicles_exclusive_mode", "maximum_vehicles_combined_mode", "maximum_vehicles_split_mode",
         "maximum_vehicles_per_split_player", "maximum_vehicles_per_split_others", "split_gap",
         "column_delta_laptime", "number_of_delta_laptime", "show_inverted_delta_laptime_layout",
@@ -96,10 +92,6 @@ class Realtime(DriverTable):
         self.class_headers = bool(wcfg["show_class_header"]) and (
             split or wcfg["enable_single_class_exclusive_mode"])
         self.class_column_hidden = self.class_headers and not wcfg["show_class_column_with_class_header"]
-        self.class_sof = self.class_headers and bool(wcfg["show_class_sof"])  # strength of field in class headers
-        self.sof_label = tr_overlay("SoF")
-        self.rank_colors: dict[str, QColor] = {}
-        self.levels_cache: tuple[float, int, dict[str, Any]] = (-inf, -1, {})  # (read time, cars, class levels)
         self.setup_table()
         # Space between class groups follows split gap (pixels in classic design, design space at default)
         self.table = self.table._replace(split_scale=max(float(wcfg["split_gap"]), 0.0) / DEFAULT_SPLIT_GAP)
@@ -162,50 +154,10 @@ class Realtime(DriverTable):
             return Cell(TEXT, DASH, "strong", theme.text_faint)
         return Cell(TEXT, f"+{gap:.{self.gap_decimals}f}", "strong", theme.text)
 
-    def class_header(self, class_name: str, level: Any = None) -> ClassHeader:
-        """Header of a class group: class name (game name, words apart) on class color, strength of field of
-        class at right end (average driver & safety rank with progress, in color of driver rank) if known"""
+    def class_header(self, class_name: str) -> ClassHeader:
+        """Header of a class group: class name (game name, words apart) on class color"""
         _, color = class_style(self.cfg, class_name, self.theme)
-        text = class_name.replace("_", " ").strip() or DASH
-        if level is None or level.driver is None:
-            return ClassHeader(text, color)
-        dr = rank_modules()[0]
-        colors = self.rank_colors
-        if not colors:  # rank colors made once
-            colors.update((name, QColor(value)) for name, value in
-                          (dr.RANK_COLORS_LIGHT if self.theme.light else dr.RANK_COLORS).items())
-        info = f"{self.sof_label} {level.driver.short} {level.driver.progress}%"
-        if level.safety is not None:
-            info = f"{info} · {level.safety.short} {level.safety.progress}%"
-        return ClassHeader(text, color, info, colors.get(level.driver.name.casefold(), self.theme.text_dim))
-
-    def class_levels(self, data_set) -> dict[str, Any]:
-        """Strength of field of each class: average ranks of its drivers (all cars of class, shown or not)"""
-        from ...process import field_ranks as fr
-
-        dr, rank_info = rank_modules()
-        if self.demo:
-            ranks: dict[str, list] = {}
-            for veh in data_set:
-                if veh.driverName:
-                    sample = SAMPLE_RANKS[veh.positionOverall % len(SAMPLE_RANKS)]
-                    ranks.setdefault(veh.vehicleClass, []).append(
-                        dr.DriverRanks("", "", "", "", dr.Rank(*sample[:2], 50), dr.Rank(*sample[2:4], 50)))
-            return {name: fr.average_level(found) for name, found in ranks.items()}
-        field_level = rank_info.field_level
-        # Driver names change at driver swaps only (ranks arrive in background): levels read again every
-        # LEVELS_INTERVAL or once the field size changed, not on every update
-        now = monotonic()
-        read_at, cars, levels = self.levels_cache
-        if cars == len(data_set) and now - read_at < LEVELS_INTERVAL:
-            return levels
-        names: dict[str, list[str]] = {}
-        for veh in data_set:
-            if veh.driverName:
-                names.setdefault(veh.vehicleClass, []).append(veh.driverName)
-        levels = {name: field_level(class_names) for name, class_names in names.items()}
-        self.levels_cache = (now, len(data_set), levels)
-        return levels
+        return ClassHeader(class_name.replace("_", " ").strip() or DASH, color)
 
     def timerEvent(self, event):
         """Update when vehicle on track"""
@@ -226,7 +178,6 @@ class Realtime(DriverTable):
         above each class group if class headers, widget height follows"""
         rows: list = []
         shown_class = None
-        levels = self.class_levels(data_set) if self.class_sof else {}
         for index in standings[:self.max_rows]:
             if index == -1:
                 if rows and rows[-1] is not SEPARATOR:
@@ -235,7 +186,7 @@ class Realtime(DriverTable):
                 veh = data_set[index]
                 if self.class_headers and veh.vehicleClass != shown_class:
                     shown_class = veh.vehicleClass
-                    rows.append(self.class_header(shown_class, levels.get(shown_class)))
+                    rows.append(self.class_header(shown_class))
                 rows.append(self.driver_row(veh, ctx, **self.position_trend(veh, index, ctx)))
         while rows and rows[-1] is SEPARATOR:
             rows.pop()

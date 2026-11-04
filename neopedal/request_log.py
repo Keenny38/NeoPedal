@@ -17,7 +17,8 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
-Journal of the requests the app sends to online services (RaceControl, GitHub, community lap times sheet)
+Journal of the requests the app sends to online services (GitHub, community lap times sheet, public RaceControl
+site)
 
 Memory only, never written: the route (no address of a server, no name, no query) and the status of the last
 requests of each service, and how many were sent in the last hour. Shown by the requests dialog of Upcoming Races
@@ -35,11 +36,10 @@ from typing import NamedTuple
 KEEP_LINES = 40  # lines kept for each service
 HOUR = 3600.0
 _id = re.compile(r"/(?:[0-9]+|[0-9a-fA-F-]{16,})(?=/|$)")  # numbers & identifiers of a route
-RACE_CONTROL = "RaceControl"
 GITHUB = "GitHub"
 SHEET = "Lap times sheet"
 PUBLIC_SITE = "RaceControl public site"  # public home page, no sign in (process/public_schedule.py)
-NOT_SENT = -1  # status of a request not sent (limits of the app, RaceControl asked to wait)
+NOT_SENT = -1  # status of a request not sent (limits of the app, service asked to wait)
 
 
 class Line(NamedTuple):

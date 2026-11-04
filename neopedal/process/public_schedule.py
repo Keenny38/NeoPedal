@@ -19,8 +19,8 @@
 """
 Daily races of Le Mans Ultimate from the public home page of RaceControl (www.racecontrol.gg), without signing in
 
-Used when the online option (enable_online_driver_ranks: sign in with the game ticket) is off: no Steam ticket, no
-account, nothing about the player is sent; one GET of a public page, as a web browser does. The page lists the next
+No Steam ticket, no account, nothing about the player is sent: one GET of a public page, as a web browser does
+(RaceOS, the online service read with the game ticket, is never asked). The page lists the next
 daily races of each tier (title, tier, duration, track, start times in UTC: "4 Nov at 2:45pm", seen 2026-11-04);
 no registrations, cars, sessions or fields (those need the sign in). The page is HTML made for people: when it
 changes, nothing is found and the page says so (no wrong race shown).
@@ -173,5 +173,4 @@ def read(now: float | None = None) -> rs.Schedule | None:
     if not events:
         logger.warning("PUBLIC SCHEDULE: no daily race found on the public page (page changed?)")
         return None
-    missing = tuple(key for key in rs.ROUTES if not key.startswith("daily"))
-    return rs.EMPTY._replace(read_time=now, events=events, missing=missing, frequency=frequency(events))
+    return rs.EMPTY._replace(read_time=now, events=events, missing=(), frequency=frequency(events))

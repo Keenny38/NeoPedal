@@ -4,7 +4,6 @@ PERF-005, 034, 035, 036, 061, 062"""
 import inspect
 import threading
 import time
-from math import inf
 from types import SimpleNamespace
 
 from PySide6.QtCore import QCoreApplication, QEvent, QRect, Qt
@@ -360,28 +359,6 @@ def test_arrow_key_refreshes_toolbar_once_title_only(editing, monkeypatch):  # n
     assert toolbar.detail.startswith(f"X {widget.x()}")
     undo = next(item for item in toolbar.items if item.key == "undo")
     assert undo.enabled and "Move" in undo.tip
-
-
-# PERF-036: strength of field of classes read again once a second, not on every update
-def test_class_levels_cached_between_reads(monkeypatch):
-    from neopedal import rank_info
-    from neopedal.widget._modern import standings
-
-    calls = []
-    monkeypatch.setattr(rank_info, "field_level", lambda names: calls.append(tuple(names)) or len(names))
-    clock = [100.0]
-    monkeypatch.setattr(standings, "monotonic", lambda: clock[0])
-    widget = SimpleNamespace(demo=False, levels_cache=(-inf, -1, {}))
-    cars = [SimpleNamespace(driverName=f"D{index}", vehicleClass="GT3" if index < 3 else "LMP2")
-            for index in range(5)]
-    levels = standings.Realtime.class_levels(widget, cars)
-    assert levels == {"GT3": 3, "LMP2": 2} and len(calls) == 2
-    clock[0] += 0.5
-    assert standings.Realtime.class_levels(widget, cars) is levels and len(calls) == 2
-    assert standings.Realtime.class_levels(widget, cars[:4]) == {"GT3": 3, "LMP2": 1}  # car left: read again
-    clock[0] += 1.1
-    standings.Realtime.class_levels(widget, cars[:4])
-    assert len(calls) == 6
 
 
 # PERF-061: paint serial counted in paint, move, size, show & hide handlers, no event() override

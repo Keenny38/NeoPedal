@@ -18,32 +18,30 @@
 
 
 """
-Player Driver Rank & Safety Rank (Le Mans Ultimate), shared by overlay & Driver Stats page
+Player Driver Rank & Safety Rank (Le Mans Ultimate), shared by overlays, Home, Driver Stats & the Broadcast Director
 
-Read from the game menu storage file of the game folder found like race results (folder chosen on
-race results page, else Steam libraries), see process/driver_ranks.py. Read online from RaceControl when
-enable_online_driver_ranks is on (game no longer keeps them in that file), see process/raceos.py, with ranks of
-the other drivers of an online session (RaceControl profiles by name), see process/field_ranks.py.
+Read from the game menu storage file of the game folder found like race results (folder chosen on race results
+page, else Steam libraries), see process/driver_ranks.py: yours & your team members'. The game writes it less
+often since 2026-10 (at game exit): the last ranks seen are kept with their date. Nothing is read online (RaceOS,
+the online service of the game, is never asked: a developer of Le Mans Ultimate said third-party apps must not).
 """
 
 from __future__ import annotations
 
+import contextlib
 import os
-import time
+import re
 from typing import NamedTuple
 
 from .process import driver_ranks as dr
-from .process import field_ranks as fr
 from .process import player_profile as pp
 from .process import results_file as rf
 from .setting import cfg
 
 GAME = "LMU"  # only game with ranks
-PROBE_ROUTE = "/rest/watch/focus"  # cheap answer of a running game (in menus too)
-JOIN_ROUTE = "/rest/multiplayer/join/state"  # "JOIN_JOINED_SERVER" while on an online server
-GAME_TIMEOUT = 3.0
-BLOCK_FILE = ".raceos_block.json"  # end of the wait after RaceControl refused this connection (403), see raceos.py
-RANKS_FILE = ".raceos_ranks.json"  # your ranks of the last sign in & its time: no sign in at each app start
+# Files of the former online reading (RaceOS, removed 2026-11-04) deleted from the config folder at start
+FORMER_FILES = (".raceos_ranks.json", ".raceos_block.json", ".online_results.json", ".race_schedule.json")
+_SUFFIX = re.compile(r"\s*#\d+\s*$")  # "#1234" the game adds to some names online
 
 
 def locate() -> dr.Located:
@@ -63,138 +61,57 @@ def history_path() -> str:
     return os.path.join(cfg.path.config, dr.HISTORY_FILE)
 
 
-def _game_get(route: str) -> tuple[int, bytes]:
-    """Status & body of game Rest API GET route, (0, b"") if game not running or access disabled"""
-    from .game_rest_cache import fetch_game, lmu_address
-
-    address = lmu_address()
-    return fetch_game(address, route, GAME_TIMEOUT) if address is not None else (0, b"")
-
-
-_client = None
-
-
-def online_client():
-    """RaceControl client shared by player & field ranks (one sign in at a time)"""
-    global _client
-    if _client is None:
-        from .const_app import APP_NAME, VERSION
-        from .process import raceos
-
-        _client = raceos.RaceOSClient(lambda: raceos.game_ticket(_game_get), user_agent=f"{APP_NAME}/{VERSION}",
-                                      block_file=os.path.join(cfg.path.config, BLOCK_FILE),
-                                      ranks_file=os.path.join(cfg.path.config, RANKS_FILE))
-    return _client
+def remove_former_files(folder: str = "") -> list[str]:
+    """Files of the former online reading removed from the config folder (sign in ranks, waits, RaceControl
+    answers, online races with driver names), names removed"""
+    folder = folder or cfg.path.config
+    removed = []
+    for name in FORMER_FILES:
+        with contextlib.suppress(OSError):
+            os.remove(os.path.join(folder, name))
+            removed.append(name)
+    return removed
 
 
-def online_enabled() -> bool:
-    return bool(cfg.application.get("enable_online_driver_ranks", True))
+def strip_suffix(name: str) -> str:
+    """Driver name without "#1234" suffix the game adds online"""
+    return _SUFFIX.sub("", name)
 
 
-class OnlineRanks:
-    """Player ranks of RaceControl (option enable_online_driver_ranks, on by default), see dr.OnlineSource"""
-
-    enabled = staticmethod(online_enabled)
-
-    @staticmethod
-    def game_running() -> bool:
-        return _game_get(PROBE_ROUTE)[0] != 0
-
-    @staticmethod
-    def fetch(account: str, max_age: float) -> dr.DriverRanks | None:
-        return online_client().fetch(account, max_age)
-
-    @staticmethod
-    def fetch_timed(account: str, max_age: float) -> tuple[dr.DriverRanks, float] | None:
-        """Ranks of fetch & time of the sign in that read them (older than now when reused)"""
-        client = online_client()
-        fetch_timed = getattr(client, "fetch_timed", None)
-        if fetch_timed is not None:
-            return fetch_timed(account, max_age)
-        ranks = client.fetch(account, max_age)  # client without sign in time (tests): read now
-        return (ranks, time.time()) if ranks is not None else None
-
-    @staticmethod
-    def forget() -> None:
-        if _client is not None:
-            _client.forget()
+ranks = dr.RankWatcher(locate, lambda: history_path(), active_account=pp.active_steam_user)
 
 
-class FieldReads:
-    """Reads of field ranks, see fr.FieldSource"""
-
-    enabled = staticmethod(online_enabled)
-
-    @staticmethod
-    def joined() -> bool:
-        status, body = _game_get(JOIN_ROUTE)
-        return status == 200 and b"JOIN_JOINED_SERVER" in body
-
-    @staticmethod
-    def post(path: str, payload):
-        return online_client().post(path, payload, ranks.account)
-
-
-def _session_ended() -> None:
-    field.session_ended()
-
-
-ranks = dr.RankWatcher(locate, lambda: history_path(), active_account=pp.active_steam_user, online=OnlineRanks(),
-                       session_ended=_session_ended)
-field = fr.FieldRanks(FieldReads())
-
-
-def poll_field(names) -> None:
-    """Player, team & field ranks read in background when due (names of drivers of session)"""
+def poll_ranks() -> None:
+    """Player & team ranks read in background when due"""
     ranks.poll()
-    field.poll(names)
 
 
-# Lookups of overlays (each row, each update) kept until ranks change: drivers list & field ranks are replaced whole
-# when they change (never changed in place), compared by identity, serials & size (a dict filled in place is seen)
+# Lookups of overlays (each row, each update) kept until ranks change: drivers list replaced whole when it changes
+# (never changed in place), compared by identity & serial
 MEMO_NAMES = 1024  # names kept at most (memo emptied beyond: names of many sessions while ranks never change)
-MEMO_LEVELS = 64  # driver lists kept at most (field level of each class)
 
 
 class _Memo(NamedTuple):
     drivers: list[dr.DriverRanks]  # ranks.drivers when made
-    known: dict[str, dr.DriverRanks]  # field.known when made
-    key: tuple[int, int, int]  # ranks.serial, field.serial, len(known)
+    serial: int  # ranks.serial when made
     ranks: dict[str, dr.DriverRanks | None]  # name -> ranks found
-    levels: dict[tuple[str, ...], fr.FieldLevel]  # names of drivers -> field level
 
 
-_memo = _Memo([], {}, (-1, -1, -1), {}, {})
+_memo = _Memo([], -1, {})
 
 
 def _current_memo() -> _Memo:
     """Memo of current ranks, new one once they changed (any thread: replaced whole)"""
     global _memo
-    drivers, known = ranks.drivers, field.known
-    key = (ranks.serial, field.serial, len(known))
+    drivers, serial = ranks.drivers, ranks.serial
     memo = _memo
-    if memo.drivers is not drivers or memo.known is not known or memo.key != key:
-        memo = _memo = _Memo(drivers, known, key, {}, {})
+    if memo.drivers is not drivers or memo.serial != serial:
+        memo = _memo = _Memo(drivers, serial, {})
     return memo
 
 
-def field_level(names) -> fr.FieldLevel:
-    """Average ranks of drivers of session whose ranks are known (player, team members & online field)"""
-    names = tuple(names)
-    levels = _current_memo().levels
-    level = levels.get(names)
-    if level is None:
-        if len(levels) >= MEMO_LEVELS:
-            levels.clear()
-        level = levels[names] = fr.average_level(
-            found for name in {fr.driver_key(name): name for name in names}.values()
-            if (found := driver_ranks(name)) is not None)
-    return level
-
-
 def driver_ranks(name: str) -> dr.DriverRanks | None:
-    """Ranks of a driver of session: player & team members (game menu, RaceControl), else RaceControl profile of
-    a driver of the online session (option on), None if unknown"""
+    """Ranks of a driver of session: player & team members (game menu file), None if unknown"""
     found_by_name = _current_memo().ranks
     try:
         return found_by_name[name]
@@ -202,5 +119,5 @@ def driver_ranks(name: str) -> dr.DriverRanks | None:
         pass
     if len(found_by_name) >= MEMO_NAMES:
         found_by_name.clear()
-    found = found_by_name[name] = ranks.find_name(fr.strip_suffix(name)) or field.ranks_of(name)
+    found = found_by_name[name] = ranks.find_name(strip_suffix(name))
     return found

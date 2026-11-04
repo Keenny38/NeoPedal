@@ -87,7 +87,7 @@ With Le Mans Ultimate, the app also reads the game's local REST API (nothing to 
 
 - **One rounded panel per overlay**, Barlow font, short translated labels above the values.
 - **Values colored by meaning**, the same in every overlay, app page and stream source: purple best, green gain or personal best, red loss or penalty, orange pit, yellow slower sector, gray garage.
-- **Standings, Relative and Rivals like a timing tower**: running lap time with sector bars, then the completed lap with its colors, pit status and pit stops in one column, the **real penalties** of the game (`DT`, `SG10`), column labels, gaps in class timed like a timing screen, tyre compound badges, `Energy per Lap` and `Track Limits` columns, a header per class and classes in the order you choose. Gap trend (gaining or losing per lap), `Track Limits`, `Energy per Lap`, lap time delta and Driver Rank columns in Relative, Standings and Rivals alike. A `Car Number` column in Relative and Standings shows the number Le Mans Ultimate gives each car of an online split (`#4`), as the game standings do. A `Nationality` column shows each driver's flag: yours from your game profile, online drivers from RaceControl, AI drivers from the real WEC and ELMS drivers they are named after.
+- **Standings, Relative and Rivals like a timing tower**: running lap time with sector bars, then the completed lap with its colors, pit status and pit stops in one column, the **real penalties** of the game (`DT`, `SG10`), column labels, gaps in class timed like a timing screen, tyre compound badges, `Energy per Lap` and `Track Limits` columns, a header per class and classes in the order you choose. Gap trend (gaining or losing per lap), `Track Limits`, `Energy per Lap`, lap time delta and Driver Rank columns in Relative, Standings and Rivals alike. A `Car Number` column in Relative and Standings shows the number Le Mans Ultimate gives each car of an online split (`#4`), as the game standings do. A `Nationality` column shows each driver's flag: yours from your game profile, online drivers from the game, AI drivers from the real WEC and ELMS drivers they are named after.
 - **Driver Rank** (Le Mans Ultimate): your Driver Rank and Safety Rank as the game menu shows them, with the progress to the next tier and your track limits points.
 - **Track map** with each sector colored like the game live timing (purple class best, green personal best, yellow slower) and a ring on cars less than 1 s ahead or behind. Official corner numbers (or names) on the track map and the elevation profile (`show_corner_numbers`).
 - **Speed Delta**: your speed difference to your best, session best, stint best and last lap at the same place of the lap.
@@ -175,7 +175,7 @@ Your numbers per track and per car, compared with the LMU community times (sheet
 - **Lap time goal** per car (suggested from the next community level): progress bar, goal line on the progression chart, a message once it is beaten.
 - **Places gained** in races, **clean race** rate and streak, **rivals** met in several online races (ahead / behind, best lap gap), **rank history** of your Driver & Safety Ranks.
 - Table **search**, **class filter** and **grouping by class**, combos not driven for a month marked, activity of **any year** with driving time **by track and by class**.
-- **Official races to come** (option, RaceControl) with your best laps on their track, and your personal best shared as a **picture card** or a **code** to paste in a chat (a friend's code is compared and can become your goal).
+- **Official daily races to come** (public RaceControl site) with your best laps on their track, and your personal best shared as a **picture card** or a **code** to paste in a chat (a friend's code is compared and can become your goal).
 
 | Track: goal, filters, wet PB, sessions | All tracks: driving time by track & class, official races |
 |---|---|
@@ -200,15 +200,12 @@ Every session you played, online or single player, read from the results files o
 
 ### Upcoming Races
 
-The online races of Le Mans Ultimate to come on one page, read from RaceControl with the game sign in, as the game menu shows them (the last ones read stay shown while the game is closed). The page tells how long ago they were read, a `Requests` button lists what the app sent to RaceControl, GitHub and the lap times sheet, and an economy mode (`enable_online_requests_economy`) asks half as often. Without the online option, the daily races come from the public RaceControl site and your online results from the game's results files: the game ticket is never used.
+The daily online races of Le Mans Ultimate to come on one page, read from the public RaceControl site as a web browser shows it (no game ticket, no account; RaceOS, the online service of the game, is never asked), once an hour. The page tells how long ago they were read, and a `Requests` button lists what the app sent to GitHub, the lap times sheet and the public RaceControl site.
 
-- **Daily races** of each tier with every start of the day (cards, compact list or a **timeline** of the next hours), **weekly races & special events**, **championships** (current round, attempts, dropped rounds, points, sessions with drivers registered, practice servers), **co-op events** (leaderboard with your team) and **servers hosted by players** (players, session, region, password lock, sorting).
-- Each race: next start and time to it (pulses just before), track logo, classes, **your personal best & community level** of each class driven there, sessions, time on track, weather from start to end, setup rules, registrations and when they open, every following start.
-- A race opens a menu: **Driver Stats**, **Recorded Laps**, **Prepare Race** in the calculator, **reminder** 5, 10 or 30 min before the start (notification over the game, kept after a restart), **field** of the next start by class & rank, **export to calendar** (.ics), **weekly leaderboard** (every page, any class, your friends, find a driver, where you stand, driver profiles, CSV).
-- **Your place this week** on each race and championship round you drove ("#1,204 of 17,836"), also on the Home card; **your progress** in each championship.
-- Your **online races** are in Results & Replays (`Online` list): whole classification, positions lap by lap, your **Driver Rank & Safety Rank changes and why**, your ranks race after race, link to the results file of the same race.
-- **Safety Rank** needed, a lock on the races yours does not open yet, `Open to Me` (on by default) to hide them; search, class filters, owned cars & tracks only.
-- **Next Races** card on the Home page: the three next races you can enter, with their track, classes, your place this week and your reminder; `Races` in the navigation bar.
+- **Daily races** of each tier (cards, compact list or a **timeline** of the next hours): next start and time to it (pulses just before), track logo, length, **your personal best & community level** of each class driven there, every following start.
+- A race opens a menu: **Register in the Game** (brings the game to the front), **Driver Stats**, **Recorded Laps**, **Prepare Race** in the calculator, **reminder** 5, 10 or 30 min before the start (notification over the game, kept after a restart, following its start when it moves), **export to calendar** (.ics).
+- Your **online races** are in Results & Replays (`Online` list), from the results files of the game: whole classification, positions lap by lap, link to the results file of the same race.
+- Search and owned tracks only; **Next Races** card on the Home page: the three next races with their track and your reminder; `Races` in the navigation bar.
 
 See [Upcoming Races](docs/wiki/Upcoming-Races.md).
 
@@ -218,7 +215,7 @@ See [Upcoming Races](docs/wiki/Upcoming-Races.md).
 
 - In-game **chat** as an overlay, handy in VR.
 - **Game replays** linked to the race results, see [Results & Replays](#results--replays).
-- **Driver Rank & Safety Rank** of the game menu, kept with their history per Steam account (last ones shown when the game forgets them), or read live from RaceControl after each session (`enable_online_driver_ranks`, on by default), with every driver's ranks on online servers (Relative & Standings column, strength of field of each class, field average, Broadcast Director cards).
+- **Driver Rank & Safety Rank** of the game menu, kept with their history per Steam account (last ones shown when the game forgets them), for you and your team members (Relative & Standings column, Broadcast Director cards).
 - **Broadcast Director** to cast a race, see [below](#broadcast-director-le-mans-ultimate).
 - **Contacts** written to the Dashboard HUD incident log, with the other driver's name.
 - **Fuel consumption estimated by the game** until a lap is recorded on the track.

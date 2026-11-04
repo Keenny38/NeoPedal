@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Online option off (no sign in with the game ticket): daily races of the public page of RaceControl, your online
+"""Without RaceOS (never signed in with the game ticket): daily races of the public page of RaceControl, your online
 races from the results files of the game, nationalities of an online server from the game, registration in the game"""
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ from neopedal.process import results_file as rf
 from tests.test_race_schedule import fresh_info  # noqa: F401
 
 NOW = float(calendar.timegm((2026, 11, 4, 14, 14, 0)))
+READ = ps.read  # real read of the public page (fresh_info answers it: put back here, fetch faked)
 
 
 def card(tier: str, title: str, duration: str, track: str, starts: list[str]) -> str:
@@ -93,11 +94,7 @@ def test_track_scene_from_the_game_catalog():
 
 @pytest.fixture
 def public_info(ui_env, fresh_info, monkeypatch):  # noqa: F811
-    from neopedal import rank_info
-    from neopedal.setting import cfg
-
-    monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
-    monkeypatch.setitem(cfg.application, "enable_public_race_schedule", True)
+    monkeypatch.setattr(ps, "read", READ)
     pages = []
 
     def fetch(timeout=ps.TIMEOUT):
@@ -109,14 +106,15 @@ def public_info(ui_env, fresh_info, monkeypatch):  # noqa: F811
     return fresh_info, pages
 
 
-def test_option_off_reads_the_public_page_and_never_race_control(public_info, monkeypatch):
-    client, pages = public_info
+def test_public_page_read_once_an_hour(public_info, monkeypatch):
+    _page, pages = public_info
     state = info.read()
     assert state.status == info.PUBLIC and [event.title for event in state.schedule.events] == [
         "LMP3 Fixed", "LMGT3 Fixed", "ELMS Super 60"]
-    assert not client.paths and pages == [1]  # nothing asked to RaceControl
+    assert pages == [1] and not state.schedule.missing  # reminders judge every race read
+    assert [event.scene for event in state.schedule.events][:2] == ["", "monzawec"]  # scene of the game catalog
     assert not info.due()  # read again an hour later
-    assert info.due(info._state.tried + info.PUBLIC_SECONDS)
+    assert info.due(info._state.tried + info.READ_SECONDS)
     assert info.read() is state and pages == [1]
 
 
@@ -124,29 +122,26 @@ def test_public_page_not_read_keeps_the_races_shown(public_info, monkeypatch):
     _client, _pages = public_info
     state = info.read()
     monkeypatch.setattr(ps, "fetch", lambda timeout=ps.TIMEOUT: (_ for _ in ()).throw(OSError("offline")))
+    monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS)
     again = info.read(force=True)
     assert again.status == info.PUBLIC and again.schedule is state.schedule and again.failures == 1
     assert info.due(again.tried + info.RETRY_SECONDS)  # tried again soon
 
 
 def test_public_page_off_reads_nothing(public_info, monkeypatch):
-    from neopedal.setting import cfg
-
-    _client, pages = public_info
-    monkeypatch.setitem(cfg.application, "enable_public_race_schedule", False)
+    _page, pages = public_info
+    monkeypatch.setattr(info, "enabled", lambda: False)
     assert info.read().status == info.OFF and not pages
 
 
-def test_registration_in_the_game_when_public(public_info, monkeypatch):
+def test_status_tells_the_public_site(public_info):
     from neopedal.ui.quick import schedule_backend
 
     info.read()
-    event = info.state().schedule.events[0]
-    chosen = {"eventId": "", "registered": False, "opens": 0.0}
-    entries = schedule_backend.RaceScheduleBackend.registration_entries({}, event, chosen, NOW)
-    assert entries == [{"id": "game", "text": "Register in the Game", "enabled": True, "vehicle": ""}]
     level, note = schedule_backend.status_note(info.PUBLIC, info.state().schedule)
-    assert level == "info" and "public" in note
+    assert level == "info" and "public" in note and "Register in the game" in note
+    level, note = schedule_backend.status_note(info.FAILED, info.state().schedule)
+    assert level == "warning" and "did not answer" in note
 
 
 def entry(name: str, position: int, player: bool = False) -> rf.Entry:
@@ -181,10 +176,7 @@ def test_online_races_from_results_files(tmp_path, monkeypatch):
     assert local_online.read_race(page[0].event_id).rows[1].name == "Other"
 
 
-def test_online_results_page_from_files_when_option_off(ui_env, fresh_info, monkeypatch):  # noqa: F811
-    from neopedal import rank_info
-
-    monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
+def test_online_results_page_from_files(ui_env, fresh_info, monkeypatch):  # noqa: F811
     monkeypatch.setattr(info, "_local_folders", lambda: ("folder",))
     monkeypatch.setattr(info, "_local_names", lambda: ())
     races = [rs.OnlineResult("local:a", 1, NOW, "daily", "", "Race", "Monza", ())]
@@ -193,8 +185,7 @@ def test_online_results_page_from_files_when_option_off(ui_env, fresh_info, monk
     found = info.read_results("daily", 1)
     assert list(found) == races and found.answered == 1
     assert list(info.read_results("championship", 1)) == []  # kind of event unknown in files: listed with daily races
-    assert info.read_result("local:a", 1) is races[0]
-    assert not fresh_info.paths  # nothing asked to RaceControl
+    assert info.read_result("local:a", 1) is races[0] and info.read_result("race-1", 1) is None
 
 
 def test_nationalities_of_an_online_server_from_the_game(monkeypatch):

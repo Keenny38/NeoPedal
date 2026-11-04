@@ -164,7 +164,7 @@ def standings_inactive(values: Mapping) -> dict[str, tuple[str, str]]:
             inactive[key] = ("off", "enable_single_class_exclusive_mode")
     elif not split:  # cars of every class in one list: no class group
         # (split mode with one class in session: combined list too, its car count used, B-013)
-        for key in ("show_class_header", "show_class_column_with_class_header", "show_class_sof",
+        for key in ("show_class_header", "show_class_column_with_class_header",
                     "show_time_gap_from_same_class", "show_time_interval_from_same_class"):
             inactive[key] = ("on", "enable_multi_class_split_mode")
     class_headers = bool(values.get("show_class_header", False)) and (split or exclusive)
@@ -177,8 +177,7 @@ RELATIVE_UI = driver_list_ui(RELATIVE_COLUMNS, (
 STANDINGS_UI = driver_list_ui(STANDINGS_COLUMNS, (
     ("Rows", ("show_column_headers", *ROW_OPTIONS)),
     ("Classes & Number of Cars", (
-        "enable_multi_class_split_mode", "show_class_header", "show_class_column_with_class_header", "show_class_sof",
-        "class_order", "maximum_vehicles_split_mode", "maximum_vehicles_per_split_player",
+        "enable_multi_class_split_mode", "show_class_header", "show_class_column_with_class_header", "class_order", "maximum_vehicles_split_mode", "maximum_vehicles_per_split_player",
         "maximum_vehicles_per_split_others", "enable_single_class_exclusive_mode", "maximum_vehicles_exclusive_mode",
         "maximum_vehicles_combined_mode", "minimum_top_vehicles", "split_gap",
     )),
@@ -188,7 +187,6 @@ STANDINGS_UI = STANDINGS_UI._replace(inactive=standings_inactive, dependencies={
     **STANDINGS_UI.dependencies,
     "maximum_vehicles_split_mode": "enable_multi_class_split_mode",
     "show_class_column_with_class_header": "show_class_header",
-    "show_class_sof": "show_class_header",
     "class_order": "enable_multi_class_split_mode",
     "maximum_vehicles_per_split_player": "enable_multi_class_split_mode",
     "maximum_vehicles_per_split_others": "enable_multi_class_split_mode",

@@ -24,7 +24,6 @@ Session type, system clock, remaining session time, estimated remaining laps.
 
 from __future__ import annotations
 
-from itertools import islice
 from time import strftime
 from typing import TYPE_CHECKING
 
@@ -32,11 +31,10 @@ from PySide6.QtGui import QColor, QPainter
 
 from ... import calculation as calc
 from ...api_control import api
-from ...demo_state import drawing_demo
 from ...i18n import tr_overlay
 from ...module_info import minfo
 from .._common import player_race_laps, system_clock_samples
-from .base import DASH, ModernOverlay, signed
+from .base import ModernOverlay, signed
 from .stats import Stat, StatsMixin, Value
 
 if TYPE_CHECKING:
@@ -58,7 +56,7 @@ class Realtime(StatsMixin, ModernOverlay):
         "font_size", "layout", "show_session_name", *SESSION_TEXT_OPTIONS, "show_system_clock",
         "system_clock_format", "show_session_time", "show_estimated_laps", "show_predicted_extra_laps",
         "display_order_session_name", "display_order_system_clock", "display_order_session_time",
-        "display_order_estimated_laps", "show_field_level", "display_order_field_level",
+        "display_order_estimated_laps",
     )
 
     def __init__(self, config, widget_name):
@@ -81,8 +79,6 @@ class Realtime(StatsMixin, ModernOverlay):
         if wcfg["show_estimated_laps"]:
             sample = "888.888 (+8)" if wcfg["show_predicted_extra_laps"] else "888.888"
             stats.append(Stat("estimated_laps", "Laps left", sample))
-        if wcfg["show_field_level"]:
-            stats.append(Stat("field_level", "Field DR/SR", "P3 · P3"))
         stats = self.display_ordered(stats)
         self.keys = tuple(stat.key for stat in stats)
         self.rank_colors: dict[str, QColor] = {}
@@ -117,37 +113,7 @@ class Realtime(StatsMixin, ModernOverlay):
                 values.append(Value(text))
             elif key == "estimated_laps":
                 values.append(Value(self.laps_left(est_remaining)))
-            elif key == "field_level":
-                values.append(self.field_level_value())
         self.refresh(tuple(values))
-
-    def field_level_value(self) -> Value:
-        """Average driver & safety rank of drivers of online race found in RaceControl entries, dashes if none"""
-        from ...process import driver_ranks as dr
-
-        theme = self.theme
-        driver: dr.Rank | None
-        safety: dr.Rank | None
-        if drawing_demo():
-            driver, safety = dr.Rank("Silver", 3, 0), dr.Rank("Gold", 1, 0)
-        else:
-            from ...rank_info import field_level, poll_field
-
-            # Cars of session only: slots beyond keep drivers of a former (bigger) session
-            names = [veh.driverName for veh in islice(minfo.vehicles.dataSet, minfo.vehicles.totalVehicles)]
-            poll_field(names)
-            level = field_level(names)
-            driver, safety = level.driver, level.safety
-        if driver is None and safety is None:
-            return Value(f"{DASH} · {DASH}", theme.text_dim)
-        text = f"{driver.short if driver else DASH} · {safety.short if safety else DASH}"
-        if driver is None:
-            return Value(text, theme.text)
-        colors = self.rank_colors
-        if not colors:  # rank colors made once
-            colors.update((name, QColor(color)) for name, color in
-                          (dr.RANK_COLORS_LIGHT if theme.light else dr.RANK_COLORS).items())
-        return Value(text, colors.get(driver.name.casefold(), theme.text))
 
     def laps_left(self, est_remaining: float) -> str:
         """Estimated remaining laps"""
