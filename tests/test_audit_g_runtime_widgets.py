@@ -134,9 +134,9 @@ def test_local_server_short_poll_interval():
 def test_non_ascii_session_cookie(monkeypatch):
     token = "abc"
     now = time.monotonic()
-    from neopedal.web_dashboard import Session
+    from neopedal.web_dashboard import Session, token_hash
 
-    monkeypatch.setattr(DashboardHandler, "sessions", {token: Session(now, "127.0.0.1", True)})
+    monkeypatch.setattr(DashboardHandler, "sessions", {token_hash(token): Session(now, "127.0.0.1", True)})
     handler = DashboardHandler.__new__(DashboardHandler)
     handler.client_address = ("127.0.0.1", 50000)
     handler.headers = {"Cookie": "np_session=été"}  # type: ignore[assignment]
