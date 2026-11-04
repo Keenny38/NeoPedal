@@ -99,12 +99,10 @@ def parse_daily(page: str, now: float) -> tuple[rs.Event, ...]:
                          for day, month, hour, minute, meridiem in _start.findall(card) if month in _MONTHS})
         if not starts:
             continue
-        race = duration_seconds(rows.get("duration", ""))
         events.append(rs.Event(
             kind="daily", tier=tier.group(1).lower(), title=html.unescape(title.group(1)).strip(),
             track=rows.get("track", "").strip(), scene="", starts=tuple(rs.Start(start) for start in starts),
-            total=race, sessions=(rs.Session("Race", race),) if race else (), cars=(),
-            requirement=rs.Requirement("", 0), tier_label=tier.group(1).lower()))
+            length=duration_seconds(rows.get("duration", ""))))
     order = {tier: index for index, tier in enumerate(TIERS)}
     return tuple(sorted(events, key=lambda event: (order[event.tier], event.starts[0].time)))
 
@@ -131,11 +129,11 @@ def scene_of(track: str, scenes: Iterable[str]) -> str:
     return found[0] if found else ""
 
 
-def with_game_lists(schedule: rs.Schedule, cars: dict[str, rs.CarInfo],
-                    tracks: dict[str, rs.TrackInfo]) -> rs.Schedule:
-    """Schedule with the scene of each race found in the track catalog of the game (names, logos, your laps on it)"""
+def with_game_tracks(schedule: rs.Schedule, tracks: dict[str, rs.TrackInfo]) -> rs.Schedule:
+    """Schedule with the scene of each race found in the track catalog of the game (names, logos, owned, your laps
+    on it)"""
     events = tuple(event._replace(scene=scene_of(event.track, tracks)) for event in schedule.events)
-    return schedule._replace(events=events, cars=cars, tracks=tracks)
+    return schedule._replace(events=events, tracks=tracks)
 
 
 HOSTED_PATH = "hosted_races"  # public list of the races hosted by players & communities

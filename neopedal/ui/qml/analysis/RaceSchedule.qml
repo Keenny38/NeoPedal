@@ -6,8 +6,8 @@ import "schedule.js" as Js
 
 // Upcoming Races: daily online races of Le Mans Ultimate to come, read from the public RaceControl site (no sign in,
 // no game ticket), by tier: cards, compact list or timeline of the next hours. Each race: next start & time to it
-// (pulses just before), track, your personal best & level of each class driven there, length, track or cars not
-// owned, reminder set. A race opens a menu: register in the game, driver stats, recorded laps, race calculator,
+// (pulses just before), track, your personal best & level of each class driven there, length, track not owned,
+// reminder set. A race opens a menu: register in the game, driver stats, recorded laps, race calculator,
 // reminder, calendar export. Filters: search, owned tracks only.
 TpPage {
     id: page
@@ -128,10 +128,10 @@ TpPage {
             TpChip {
                 objectName: "ownedOnly"
                 visible: backend.tab === 0
-                text: i18n.tr("Owned Cars & Tracks")
+                text: i18n.tr("Owned Tracks")
                 selected: backend.ownedOnly
                 multi: true
-                tip: i18n.tr("Hide races and servers needing a car or a track you don't own")
+                tip: i18n.tr("Hide races on a track you don't own")
                 onClicked: backend.setOwnedOnly(!backend.ownedOnly)
             }
             TpButton {
@@ -478,7 +478,7 @@ TpPage {
         }
     }
 
-    // Fact of a race with its icon (sessions, weather, settings), hidden when unknown
+    // Fact of a race with its icon (race length), hidden when unknown
     component FactLine: RowLayout {
         id: fact
         property string glyph: ""
@@ -496,7 +496,7 @@ TpPage {
         TpText { Layout.fillWidth: true; role: "caption"; wrap: true; text: fact.text }
     }
 
-    // Daily, weekly or special race; a click opens its menu below the title (no menu button: same menu)
+    // Daily race; a click opens its menu below the title (no menu button: same menu)
     component EventCard: TpSectionCard {
         id: card
         required property var modelData
@@ -539,9 +539,8 @@ TpPage {
             Layout.topMargin: theme.space1
             color: theme.border
         }
-        FactLine { glyph: "\uE916"; text: Js.joined([card.race.sessions, card.race.trackTime]) }  // stopwatch
-        FactLine { glyph: card.race.wet === true ? "\uEB42" : "\uE706"; text: card.race.weather }  // water drop, sun
-        Pill {  // track or cars you don't own
+        FactLine { glyph: "\uE916"; text: card.race.sessions }  // stopwatch
+        Pill {  // track you don't own
             visible: card.race.owned !== ""
             size: "sm"
             text: card.race.owned
@@ -570,8 +569,8 @@ TpPage {
         }
     }
 
-    // Race of the compact list: start, time to it, title, track, classes, your best, requirement; a click opens its
-    // menu below the line
+    // Race of the compact list: start, time to it, title, track, length, your best; a click opens its menu below the
+    // line
     component EventRow: Item {
         id: raceRow
         required property var modelData

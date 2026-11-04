@@ -108,9 +108,7 @@ def read(force: bool = False) -> State:
 
         found = public_schedule.read()
         if found is not None:  # scenes from the track catalog of the game (local, kept from before if closed)
-            cars, tracks = _game_lists()
-            found = public_schedule.with_game_lists(found, cars or _state.schedule.cars,
-                                                    tracks or _state.schedule.tracks)
+            found = public_schedule.with_game_tracks(found, _game_tracks() or _state.schedule.tracks)
             old = _state.schedule  # a list page not read: the races of its last read kept
             found = found._replace(hosted=found.hosted if "hosted" not in found.missing else old.hosted,
                                    community=found.community if "community" not in found.missing else old.community)
@@ -122,12 +120,11 @@ def read(force: bool = False) -> State:
         return _state
 
 
-def _game_lists() -> tuple[dict[str, rs.CarInfo], dict[str, rs.TrackInfo]]:
-    """Cars & tracks of the game (class, names & owned: local Rest API of the game), empty if not answered"""
+def _game_tracks() -> dict[str, rs.TrackInfo]:
+    """Tracks of the game (names & owned: local Rest API of the game), empty if not answered"""
     from .game_rest_cache import rest_cache
 
-    return (rs.parse_car_catalog(rest_cache.json("/rest/race/car", GAME_LISTS_AGE)),
-            rs.parse_track_catalog(rest_cache.json("/rest/race/track", GAME_LISTS_AGE)))
+    return rs.parse_track_catalog(rest_cache.json("/rest/race/track", GAME_LISTS_AGE))
 
 
 # Your online races: results files of the game

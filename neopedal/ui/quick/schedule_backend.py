@@ -70,7 +70,6 @@ PERSONAL_SECONDS = policy.PAGE_PERSONAL_SECONDS
 TIMELINE_HOURS = (3, 6, 12)
 VIEWS = ("cards", "list", "timeline")
 TABS = ("daily", "hosted", "community")  # daily races, hosted races, community events (public pages of RaceControl)
-NO_SAFETY = ("", 0)  # races of the public page tell no Safety Rank needed: every race open
 
 
 def status_note(status: str, schedule: rs.Schedule) -> tuple[str, str]:
@@ -387,7 +386,7 @@ class RaceScheduleBackend(PageBackend):
         """Row kept by the filters: owned only, search"""
         if row is None:
             return False
-        if self._owned_only and row.get("carsOwned") is False:
+        if self._owned_only and row.get("trackOwned") is False:
             return False
         return not (self._search and self._search not in row.get("search", ""))
 
@@ -412,7 +411,7 @@ class RaceScheduleBackend(PageBackend):
         for tier in rs.DAILY_TIERS:
             rows = [self.with_extras(row, event, row["track"], event.scene) for event in schedule.events
                     if event.kind == "daily" and event.tier == tier
-                    if self.shown(row := event_row(event, schedule, NO_SAFETY, now, logo))]
+                    if self.shown(row := event_row(event, schedule, now, logo))]
             if rows:
                 rows.sort(key=lambda row: row["startTime"])
                 daily.append({"tier": tier, "tierText": tier_text(tier), "races": rows,

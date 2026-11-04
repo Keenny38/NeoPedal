@@ -958,8 +958,7 @@ def test_b038_upcoming_races_without_started_ones(ui_env):
     from neopedal.ui.quick.schedule_view import home_card
 
     now = 1_793_600_000.0
-    over = rs.Event("daily", "advanced", "Over", "Spa", "", (rs.Start(now - 3600),), 0.0,
-                    (rs.Session("Race", 1200.0),), (), rs.Requirement("", 0))
+    over = rs.Event("daily", "advanced", "Over", "Spa", "", (rs.Start(now - 3600),), 1200.0)
     soon = over._replace(title="Sprint", starts=(rs.Start(now - 3600), rs.Start(now + 3600)))
-    rows = home_card(rs.EMPTY._replace(events=(over, soon)), ("", 0), now, lambda track: "", 6)
+    rows = home_card(rs.EMPTY._replace(events=(over, soon)), now, lambda track: "", 6)
     assert [(row["title"], row["startTime"]) for row in rows] == [("Sprint", now + 3600)]

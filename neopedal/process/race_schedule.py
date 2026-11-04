@@ -20,8 +20,8 @@
 Online races to come of Le Mans Ultimate & your online races, without Qt: what the pages show of them
 
 Daily races of the public RaceControl site (process/public_schedule.py), your online races of the results files
-of the game (process/local_online.py), cars & tracks of the game (local Rest API /rest/race/car & /rest/race/track:
-class, model name & ownership of each car folder, names & ownership of each track scene). Nothing is read from RaceOS
+of the game (process/local_online.py), tracks of the game (local Rest API /rest/race/track: names & ownership of each
+track scene). Nothing is read from RaceOS
 (online service of the game): a developer of Le Mans Ultimate said third-party apps must not call it (2026-11-04).
 """
 
@@ -33,27 +33,7 @@ from collections.abc import Iterable
 from typing import Any, NamedTuple
 
 DAILY_TIERS = ("beginner", "intermediate", "advanced")  # game menu order
-RANK_ORDER = ("Bronze", "Silver", "Gold", "Platinum")
 _VERSION = re.compile(r"\s+v?\d+(?:\.\d+)+$")  # " 1.27" after a track short name
-
-
-class Requirement(NamedTuple):
-    """Safety Rank needed (rank "" for none)"""
-
-    rank: str
-    tier: int
-
-    @property
-    def number(self) -> int:
-        return rank_number(self.rank, self.tier)
-
-
-class CarInfo(NamedTuple):
-    """Car of the game: class ("Hyper", "LMP2_ELMS", "GT3"...), model name, owned (DLC bought)"""
-
-    car_class: str
-    model: str
-    owned: bool
 
 
 class TrackInfo(NamedTuple):
@@ -63,71 +43,22 @@ class TrackInfo(NamedTuple):
     owned: bool
 
 
-class Session(NamedTuple):
-    kind: str  # Practice, Qualifying, Warmup, Race
-    seconds: float
-    time_of_day: str = ""  # time on track at session start ("19:20"), "" if unknown
-
-
-class Weather(NamedTuple):
-    """Weather node of the race forecast"""
-
-    temperature: float | None  # Celsius
-    rain: int | None  # rain chance, percent
-
-
 class Start(NamedTuple):
-    """One start of a race: time, registrations (-1 unknown), registration opening (0 unknown), player registered,
-    RaceControl event id ("" unknown: field not readable)"""
+    """One start of a race"""
 
-    time: float
-    registrations: int = -1
-    opens: float = 0.0
-    registered: bool = False
-    event_id: str = ""
+    time: float  # seconds since epoch
 
 
 class Event(NamedTuple):
-    """Daily, weekly or special race: every start known (soonest first)"""
+    """Daily race of the public page: every start known (soonest first)"""
 
-    kind: str  # daily, weekly, special
-    tier: str  # beginner, intermediate, advanced, weekly...
+    kind: str  # daily
+    tier: str  # beginner, intermediate, advanced
     title: str
-    track: str
-    scene: str
+    track: str  # as the page writes it
+    scene: str  # track scene of the game ("" if not found in its track list)
     starts: tuple[Start, ...]
-    total: float  # practice to race end, seconds (0 unknown)
-    sessions: tuple[Session, ...]
-    cars: tuple[str, ...]  # car folders of RaceControl ("Oreca_07_ELMS_2023")
-    requirement: Requirement
-    forecast: tuple[Weather, ...] = ()  # race weather nodes, first at race start
-    fixed_setup: bool | None = None
-    tyre_warmers: bool | None = None
-    max_players: int = 0
-    team: bool = False
-    tier_label: str = ""  # tier name as RaceControl writes it (practice server lists of a daily race)
-
-    @property
-    def race_seconds(self) -> float:
-        return sum(session.seconds for session in self.sessions if session.kind == "Race")
-
-    @property
-    def temperature(self) -> float | None:
-        return self.forecast[0].temperature if self.forecast else None
-
-    @property
-    def rain(self) -> int | None:
-        return self.forecast[0].rain if self.forecast else None
-
-    @property
-    def entry_type(self) -> str:
-        """Event type of RaceControl entry lists"""
-        return "daily" if self.kind == "daily" else "specialevent"
-
-    @property
-    def practice_tier(self) -> str:
-        """Tier of RaceControl practice server lists, as the game asks: tier of a daily race, title of the others"""
-        return self.tier_label if self.kind == "daily" else self.title
+    length: float  # race length, seconds (0 unknown)
 
 
 class PublicEvent(NamedTuple):
@@ -151,7 +82,6 @@ class PublicEvent(NamedTuple):
 class Schedule(NamedTuple):
     read_time: float  # seconds since epoch of the read (0: never read)
     events: tuple[Event, ...]
-    cars: dict[str, CarInfo]  # car folder (lower case) -> car of the game
     tracks: dict[str, TrackInfo]  # track scene (lower case) -> layout of the game
     missing: tuple[str, ...] = ()  # kinds of race not read ("daily", "hosted", "community"): earlier ones kept
     frequency: dict[str, float] = {}  # daily tier -> seconds between starts
@@ -163,7 +93,7 @@ class Schedule(NamedTuple):
         return not self.events
 
 
-EMPTY = Schedule(0.0, (), {}, {}, ("daily",))
+EMPTY = Schedule(0.0, (), {}, ("daily",))
 
 
 class ResultRow(NamedTuple):
@@ -210,43 +140,6 @@ def _list(value: Any) -> list:
     return value if isinstance(value, list) else []
 
 
-def rank_number(rank: str, tier: int) -> int:
-    """Order of a rank (game menu rankToNumber: Bronze 0-9, Silver 10-19...), -1 if unknown"""
-    try:
-        return RANK_ORDER.index(rank) * 10 + tier
-    except ValueError:
-        return -1
-
-
-def can_enter(requirement: Requirement, rank: str, tier: int) -> bool | None:
-    """Player of Safety Rank (rank, tier) may enter, None if not known (rank unknown)"""
-    if not requirement.rank:
-        return True
-    if not rank:
-        return None
-    return rank_number(rank, tier) >= requirement.number
-
-
-def parse_car_catalog(data: Any) -> dict[str, CarInfo]:
-    """Cars of the game (/rest/race/car) by folder (lower case): class & model from the path tree
-    ("ELMS 2025, LMP2_ELMS, Oreca 07"), owned"""
-    cars: dict[str, CarInfo] = {}
-    for item in map(_dict, _list(data)):
-        parts = _text(item.get("vehFile")).replace("\\", "/").split("/")
-        folder = ""
-        for index, part in enumerate(parts[:-1]):
-            if part.lower() == "vehicles":
-                folder = parts[index + 1]
-                break
-        tree = [part.strip() for part in _text(item.get("fullPathTree")).split(",")]
-        if not folder or len(tree) < 2:
-            continue
-        known = cars.get(folder.lower())
-        owned = item.get("owned") is True or (known is not None and known.owned)
-        cars[folder.lower()] = CarInfo(tree[1], tree[2] if len(tree) > 2 else _text(item.get("manufacturer")), owned)
-    return cars
-
-
 def parse_track_catalog(data: Any) -> dict[str, TrackInfo]:
     """Track layouts of the game (/rest/race/track) by scene (lower case): short name without version, owned"""
     tracks: dict[str, TrackInfo] = {}
@@ -262,8 +155,7 @@ def parse_track_catalog(data: Any) -> dict[str, TrackInfo]:
 # Views
 def next_starts(event: Event, now: float) -> list[Start]:
     """Starts not over yet (running: started less than its whole length ago)"""
-    length = event.total or event.race_seconds
-    return [start for start in event.starts if start.time + length > now]
+    return [start for start in event.starts if start.time + event.length > now]
 
 
 def _ics_value(text: str) -> str:
@@ -309,22 +201,3 @@ def track_of(scene: str, fallback: str, tracks: dict[str, TrackInfo]) -> tuple[s
     """Name of a track scene in the game (fallback if unknown) & owned (None if unknown)"""
     info = tracks.get(scene.lower())
     return (info.name or fallback, info.owned) if info is not None else (fallback, None)
-
-
-def classes_of(cars: Iterable[str], catalog: dict[str, CarInfo]) -> tuple[str, ...]:
-    """Classes of cars (game names), in first seen order"""
-    found: dict[str, None] = {}
-    for car in cars:
-        info = catalog.get(car.lower())
-        if info is not None and info.car_class:
-            found.setdefault(info.car_class, None)
-    return tuple(found)
-
-
-def owned_state(cars: Iterable[str], catalog: dict[str, CarInfo]) -> bool | None:
-    """At least one car owned (any car known: base game ones are owned), None if none known"""
-    known = [catalog[car.lower()] for car in cars if car.lower() in catalog]
-    if not known:
-        return None
-    return any(car.owned for car in known)
-

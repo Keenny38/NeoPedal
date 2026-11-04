@@ -37,7 +37,7 @@ The menu of a timeline block acts on that start (reminder, calendar).
 ## Filters
 
 - **Search** by race, track or tier.
-- **Owned Cars & Tracks**: hides the races on a track you don't own (DLC), from the track list of the running game.
+- **Owned Tracks**: hides the races on a track you don't own (DLC), from the track list of the running game.
 
 ## Requests
 

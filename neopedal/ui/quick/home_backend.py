@@ -311,7 +311,7 @@ class HomeBackend(PageBackend):
 
     @Property(dict, notify=racesChanged)
     def races(self) -> dict:
-        """Next online races the player may enter (see schedule_view.home_card): rows, empty if none known"""
+        """Next online races (see schedule_view.home_card): rows, empty if none known"""
         return self._values["races"]
 
     @Property(bool, notify=shownChanged)
@@ -649,12 +649,11 @@ class HomeBackend(PageBackend):
 
     def publish_races(self):
         from ... import race_schedule_info as info
-        from .schedule_backend import NO_SAFETY
         from .schedule_reminders import reminders
         from .schedule_view import home_card
 
         schedule = info.state().schedule
-        rows = home_card(schedule, NO_SAFETY, time.time(),
+        rows = home_card(schedule, time.time(),
                          lambda track: self.logos.track(track) if track else "", HOME_RACES)
         for row in rows:  # reminder set on the Upcoming Races page (minutes before the start, 0 none)
             row["reminder"] = reminders().minutes_of(row["startKey"]) if row["startKey"] else 0

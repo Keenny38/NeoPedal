@@ -29,23 +29,15 @@ import time
 from collections.abc import Callable, Iterable
 
 from ...formatter import class_style
-from ...i18n import percent_sign, plural, tr
+from ...i18n import plural, tr
 from ...process import race_schedule as rs
-from .formatting import (
-    clock_minutes,
-    day_month_minutes,
-    number_text,
-    temperature_text,
-    temperature_value,
-)
+from .formatting import clock_minutes, day_month_minutes
 
 LATER_STARTS = 8  # following starts listed under a race before "+n more"
 SOON_SECONDS = 900.0  # start shown as soon (accent) this close
 IMMINENT_SECONDS = 120.0  # start pulses this close
-FORECAST_NODES = 4  # race weather nodes worded at most
 TIMELINE_HOURS = 6  # hours of the day timeline
-TIER_LABELS = {"beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced",
-               "weekly": "Weekly", "special": "Special Event"}
+TIER_LABELS = {"beginner": "Beginner", "intermediate": "Intermediate", "advanced": "Advanced"}
 Logo = Callable[[str], str]  # track name -> logo url ("" if none)
 
 
@@ -65,19 +57,6 @@ def counted(count: int, one: str, many: str) -> str:
 def tier_text(tier: str) -> str:
     label = TIER_LABELS.get(tier)
     return tr(label, "tier") if label else tier.capitalize()
-
-
-def requirement_text(requirement: rs.Requirement) -> str:
-    """Safety Rank needed ("SR Silver 2"), "" if none"""
-    if not requirement.rank:
-        return ""
-    return f"SR {requirement.rank} {requirement.tier}" if requirement.tier else f"SR {requirement.rank}"
-
-
-def open_state(requirement: rs.Requirement, safety: tuple[str, int]) -> int:
-    """1 player may enter, 0 rank too low, -1 rank unknown"""
-    state = rs.can_enter(requirement, *safety)
-    return -1 if state is None else int(state)
 
 
 def day_offset(moment: float, now: float) -> int:
@@ -125,79 +104,9 @@ def frequency_text(seconds: float) -> str:
     return _filled("every %1", length_text(seconds)) if seconds > 0 else ""
 
 
-def sessions_text(sessions: Iterable[rs.Session]) -> str:
-    """Sessions & lengths: "Practice 3 min · Qualifying 10 min · Race 20 min" """
-    return " · ".join(" ".join(part for part in (tr(session.kind), length_text(session.seconds)) if part)
-                      for session in sessions)
-
-
-def weather_text(temperature: float | None, rain: int | None) -> str:
-    """Weather of a node: "25 °C · Dry", "16 °C · Rain 100 %", "" if unknown"""
-    parts = []
-    if temperature is not None:
-        parts.append(temperature_text(temperature))
-    if rain is not None:
-        parts.append(tr("Dry", "weather") if rain <= 0 else f"{tr('Rain', 'weather')} {rain}{percent_sign()}")
-    return " · ".join(parts)
-
-
-def forecast_text(forecast: Iterable[rs.Weather]) -> str:
-    """Race weather from start to end: temperature at start & end, rain changes only: "22 → 19 °C · Dry",
-    "16 °C · Rain 100 % → Rain 80 % → Dry" """
-    nodes = list(forecast)
-    temperatures = [node.temperature for node in nodes if node.temperature is not None]
-    rains: list[str] = []
-    for node in nodes:
-        if node.rain is not None:
-            text = weather_text(None, node.rain)
-            if not rains or rains[-1] != text:
-                rains.append(text)
-    if len(rains) > FORECAST_NODES:
-        rains = rains[:FORECAST_NODES - 1] + rains[-1:]
-    parts = []
-    if temperatures:
-        first, last = temperature_text(temperatures[0]), temperature_text(temperatures[-1])
-        parts.append(first if first == last else f"{number_text(temperature_value(temperatures[0]), 0)} → {last}")
-    if rains:
-        parts.append(" → ".join(rains))
-    return " · ".join(parts)
-
-
-def track_time_text(sessions: Iterable[rs.Session]) -> str:
-    """Time on track at race start: "Track time 19:20", "" if unknown"""
-    race = next((session for session in sessions if session.kind == "Race" and session.time_of_day), None)
-    return _filled("Track time %1", race.time_of_day) if race is not None else ""
-
-
-def class_rows(classes: Iterable[str]) -> list[dict]:
-    """Class badges: alias, full name, color (vehicle class editor)"""
-    rows = []
-    for name in classes:
-        alias, color = class_style(name)
-        rows.append({"label": alias, "full": name, "color": color})
-    return rows
-
-
-def owned_note(cars: bool | None, track: bool | None) -> str:
-    """What the player does not own ("" if all owned or unknown)"""
-    if cars is False and track is False:
-        return tr("Car & track not owned")
-    if cars is False:
-        return tr("No car owned")
-    if track is False:
-        return tr("Track not owned")
-    return ""
-
-
-def registration_text(start: rs.Start, now: float) -> str:
-    """Registration state of a start: "Registered", "Registration opens 02:15", "Registration open", ""."""
-    if start.registered:
-        return tr("Registered")
-    if start.opens > now:
-        return _filled("Registration opens %1", start_text(start.opens, now))
-    if 0 < start.opens <= now < start.time:
-        return tr("Registration open")
-    return ""
+def owned_note(track: bool | None) -> str:
+    """Track you do not own ("" if owned or unknown)"""
+    return tr("Track not owned") if track is False else ""
 
 
 def track_of(scene: str, fallback: str, schedule: rs.Schedule) -> tuple[str, bool | None]:
@@ -216,24 +125,15 @@ def race_key(event: rs.Event, events: Iterable[rs.Event]) -> str:
     return f"{key}#{event.scene}" if twins > 1 else key
 
 
-def event_row(event: rs.Event, schedule: rs.Schedule, safety: tuple[str, int], now: float, logo: Logo) -> dict | None:
-    """Daily, weekly or special race, None once its starts are over"""
-    length = event.total or event.race_seconds
+def event_row(event: rs.Event, schedule: rs.Schedule, now: float, logo: Logo) -> dict | None:
+    """Daily race, None once its starts are over"""
+    length = event.length
     starts = rs.next_starts(event, now)
     if not starts:
         return None
     starts = [start for start in starts if start.time > now] or starts[:1]  # next to enter, else the running one
     first = starts[0]
     track, track_owned = track_of(event.scene, event.track, schedule)
-    cars_owned = rs.owned_state(event.cars, schedule.cars)
-    classes = rs.classes_of(event.cars, schedule.cars)
-    settings = []
-    if event.fixed_setup is not None:
-        settings.append(tr("Fixed setup") if event.fixed_setup else tr("Open setup"))
-    if event.tyre_warmers:
-        settings.append(tr("Tyre warmers"))
-    if event.team:
-        settings.append(tr("Team race"))
     key = race_key(event, schedule.events)
     return {
         "key": key,
@@ -254,45 +154,19 @@ def event_row(event: rs.Event, schedule: rs.Schedule, safety: tuple[str, int], n
         "endTime": first.time + length,
         "later": [start_text(start.time, now) for start in starts[1:]],
         "laterFirst": [start_text(start.time, now) for start in starts[1:1 + LATER_STARTS]],
-        "length": length_text(event.race_seconds),
-        "total": length_text(event.total),
-        "sessions": sessions_text(event.sessions),
-        "trackTime": track_time_text(event.sessions),
-        "weather": forecast_text(event.forecast),
-        "wet": any((node.rain or 0) > 0 for node in event.forecast),
-        "settings": " · ".join(settings),
-        "registered": (counted(first.registrations, "driver registered", "drivers registered")
-                       if first.registrations > 0 else ""),
-        "registration": registration_text(first, now),
-        # open as for every race until its start: not told on cards (registered, opening time told)
-        "registrationOpen": not first.registered and 0 < first.opens <= now < first.time,
-        "registeredMe": first.registered,
-        "maxPlayers": event.max_players,
-        "requirement": requirement_text(event.requirement),
-        "open": open_state(event.requirement, safety),
-        "owned": owned_note(cars_owned, track_owned),
-        "carsOwned": cars_owned is not False and track_owned is not False,
-        "classes": class_rows(classes),
-        "classNames": list(classes),
-        "eventId": first.event_id,
-        "entryType": event.entry_type,
-        "search": " ".join((event.title, track, event.track, tier_text(event.tier), *classes)).casefold(),
+        "length": length_text(length),
+        "sessions": f"{tr('Race')} {length_text(length)}" if length > 0 else "",
+        "owned": owned_note(track_owned),
+        "trackOwned": track_owned is not False,
+        "search": " ".join((event.title, track, event.track, tier_text(event.tier))).casefold(),
     }
 
 
-def upcoming_races(schedule: rs.Schedule, safety: tuple[str, int], now: float, logo: Logo,
-                   open_only: bool = False) -> list[dict]:
-    """Daily, weekly & special races, soonest start first"""
-    rows = [row for event in schedule.events
-            if (row := event_row(event, schedule, safety, now, logo)) is not None
-            and not (open_only and row["open"] == 0)]
+def home_card(schedule: rs.Schedule, now: float, logo: Logo, count: int) -> list[dict]:
+    """Next races, one row per race, soonest start first"""
+    rows = [row for event in schedule.events if (row := event_row(event, schedule, now, logo)) is not None]
     rows.sort(key=lambda row: row["startTime"])
-    return rows
-
-
-def home_card(schedule: rs.Schedule, safety: tuple[str, int], now: float, logo: Logo, count: int) -> list[dict]:
-    """Next races the player may enter (or rank unknown), one row per race, soonest first"""
-    return upcoming_races(schedule, safety, now, logo, open_only=True)[:count]
+    return rows[:count]
 
 
 def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, now: float,
@@ -310,7 +184,7 @@ def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, no
             event = events.get(row["key"])
             if event is None:
                 continue
-            length = event.total or event.race_seconds or 1800.0
+            length = event.length or 1800.0
             items = []
             for start in rs.next_starts(event, now):
                 if start.time >= now + period:
@@ -319,11 +193,11 @@ def timeline(groups: Iterable[tuple[str, list[dict]]], schedule: rs.Schedule, no
                 items.append({
                     "key": row["key"], "start": start.time, "end": start.time + length, "title": row["title"],
                     "track": row["track"], "time": start_text(start.time, now), "running": start.time <= now,
-                    "open": row["open"], "soon": 0 < start.time - now <= SOON_SECONDS,
+                    "soon": 0 < start.time - now <= SOON_SECONDS,
                     "tip": " · ".join((start_text(start.time, now), row["title"], row["track"])),
                 })
             lanes.append({"tier": tier, "tierText": tier_text(tier) if index == 0 else "", "title": row["title"],
-                          "track": row["track"], "open": row["open"], "key": row["key"], "items": items})
+                          "track": row["track"], "key": row["key"], "items": items})
     return {"marks": marks, "lanes": lanes, "hours": hours, "now": now, "period": period}
 
 

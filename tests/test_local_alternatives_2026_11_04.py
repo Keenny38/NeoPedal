@@ -65,10 +65,9 @@ def test_public_page_daily_races_of_lmu_only():
     assert [(event.tier, event.title) for event in events] == [
         ("beginner", "LMP3 Fixed"), ("beginner", "LMGT3 Fixed"), ("advanced", "ELMS Super 60")]  # rF2 & unknown left out
     lmp3 = events[0]
-    assert lmp3.track == "Fuji Wec 2023" and lmp3.total == 32 * 60 and lmp3.kind == "daily"
+    assert lmp3.track == "Fuji Wec 2023" and lmp3.length == 32 * 60 and lmp3.kind == "daily"
     assert [start.time for start in lmp3.starts] == [NOW + 46 * 60, NOW + 91 * 60]  # UTC
-    assert all(not start.event_id and start.registrations == -1 for start in lmp3.starts)  # nothing of RaceControl
-    assert events[2].total == 73 * 60
+    assert events[2].length == 73 * 60
     assert ps.frequency(events) == {"beginner": 900.0}
 
 

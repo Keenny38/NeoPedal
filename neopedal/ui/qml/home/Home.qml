@@ -883,7 +883,7 @@ TpPage {
                         Repeater {
                             model: page.races.rows || []
                             // One race: start & time to it (live within 10 min), reminder; title; track logo & name;
-                            // classes, tier & length; your place this week, registered or register
+                            // tier & length
                             Rectangle {
                                 id: raceItem
                                 objectName: "nextRace"
@@ -955,26 +955,10 @@ TpPage {
                                             boxHeight: theme.em * 2.6
                                         }
                                     }
-                                    Flow {  // classes, tier & race length
+                                    TpText {  // tier & race length
                                         Layout.fillWidth: true
-                                        spacing: theme.space2
-                                        Repeater {
-                                            id: classBadges
-                                            model: raceItem.modelData.classes || []
-                                            TpClassBadge {
-                                                required property var modelData
-                                                label: modelData.label
-                                                fullName: modelData.full
-                                                fill: modelData.color
-                                            }
-                                        }
-                                        TpText {  // centered on the badges
-                                            role: "caption"
-                                            height: Math.max(implicitHeight, classBadges.count > 0 && classBadges.itemAt(0)
-                                                                             ? classBadges.itemAt(0).height : 0)
-                                            verticalAlignment: Text.AlignVCenter
-                                            text: page.joined([raceItem.modelData.tierText, raceItem.modelData.length])
-                                        }
+                                        role: "caption"
+                                        text: page.joined([raceItem.modelData.tierText, raceItem.modelData.length])
                                     }
                                 }
                             }

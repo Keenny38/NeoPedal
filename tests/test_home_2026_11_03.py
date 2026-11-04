@@ -176,7 +176,7 @@ def test_debrief_best_lap_big_and_bars(qml_warnings, home):  # noqa: F811
 def race_row(start: float, **values) -> dict:
     row = {"key": "daily:1", "startKey": f"daily:1@{int(start)}", "kind": "daily", "title": "LMGT3 Fixed",
            "track": "Algarve", "trackLogo": "", "start": "12:00", "until": "in 3 min", "running": False, "soon": True,
-           "imminent": False, "startTime": start, "classes": [], "tierText": "Beginner", "length": "20 min",
+           "imminent": False, "startTime": start, "tierText": "Beginner", "length": "20 min",
            "place": "", "registeredMe": False, "registrationOpen": True, "eventId": "abc", "settings": "", "open": 1}
     return {**row, **values}
 

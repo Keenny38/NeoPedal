@@ -18,12 +18,6 @@ def iso(seconds: float) -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
 
 
-CARS = [
-    {"vehFile": "C:\\LMU\\Installed\\Vehicles\\Oreca_07_ELMS_2023\\1.61\\10.VEH",
-     "fullPathTree": "ELMS 2025, LMP2_ELMS, Oreca 07", "manufacturer": "Oreca", "owned": True},
-    {"vehFile": "C:\\LMU\\Installed\\Vehicles\\Ferrari_499P_2023\\1.6\\50.VEH",
-     "fullPathTree": "WEC 2023, Hypercar, Ferrari 499P", "manufacturer": "Ferrari", "owned": False},
-]
 TRACKS = [
     {"sceneDesc": "PORTIMAOWEC", "displayProperties": {"shortName": "Algarve International Circuit"},
      "shortName": "Algarve International Circuit 1.27", "owned": True},
@@ -34,16 +28,14 @@ TRACKS = [
 
 def event(title: str, tier: str, track: str, scene: str, starts: list[float], minutes: float) -> rs.Event:
     """Daily race as the public page gives it (process/public_schedule.parse_daily)"""
-    return rs.Event("daily", tier, title, track, scene, tuple(rs.Start(start) for start in starts), minutes * 60,
-                    (rs.Session("Race", minutes * 60),), (), rs.Requirement("", 0), tier_label=tier)
+    return rs.Event("daily", tier, title, track, scene, tuple(rs.Start(start) for start in starts), minutes * 60)
 
 
 def schedule(now_read: float = NOW) -> rs.Schedule:
     events = (event("LMP2 Fixed", "beginner", "Portimao Wec 2023", "portimaowec", [NOW - 1800, NOW + 600, NOW + 3300],
                     31.5),
               event("Hyper Hour", "advanced", "Monza", "monzawec", [NOW + 1200], 72.5))
-    return rs.Schedule(now_read, events, rs.parse_car_catalog(CARS), rs.parse_track_catalog(TRACKS), (),
-                       {"beginner": 900.0, "advanced": 1800.0})
+    return rs.Schedule(now_read, events, rs.parse_track_catalog(TRACKS), (), {"beginner": 900.0, "advanced": 1800.0})
 
 
 def logo(_track):
@@ -51,12 +43,6 @@ def logo(_track):
 
 
 def test_game_catalogs():
-    cars = rs.parse_car_catalog(CARS)
-    assert cars["oreca_07_elms_2023"] == rs.CarInfo("LMP2_ELMS", "Oreca 07", True)
-    assert rs.classes_of(("Ferrari_499P_2023", "Oreca_07_ELMS_2023", "Unknown"), cars) == ("Hypercar", "LMP2_ELMS")
-    assert rs.owned_state(("Ferrari_499P_2023",), cars) is False
-    assert rs.owned_state(("Ferrari_499P_2023", "Oreca_07_ELMS_2023"), cars) is True
-    assert rs.owned_state(("Unknown",), cars) is None
     tracks = rs.parse_track_catalog(TRACKS)
     assert rs.track_of("PortimaoWEC", "x", tracks) == ("Algarve International Circuit", True)  # version cut
     assert rs.track_of("MonzaWEC", "Monza", tracks) == ("Monza", False)  # name broken by the game (U+FFFD)
@@ -121,7 +107,7 @@ def fresh_info(monkeypatch, tmp_path):
     settle_schedule_reads()
     monkeypatch.setattr(info, "_state", info.State(rs.EMPTY, "", -1.0, 0))
     monkeypatch.setattr(cfg.path, "config", f"{tmp_path.as_posix()}/")
-    monkeypatch.setattr(info, "_game_lists", lambda: (rs.parse_car_catalog(CARS), rs.parse_track_catalog(TRACKS)))
+    monkeypatch.setattr(info, "_game_tracks", lambda: rs.parse_track_catalog(TRACKS))
     monkeypatch.setattr(info, "enabled", lambda: True)
     page = PublicPage()
     monkeypatch.setattr(public_schedule, "read", page.read)
@@ -171,15 +157,15 @@ def test_event_rows_next_start(ui_env):
 
     found = schedule()
     lmp2 = next(item for item in found.events if item.title == "LMP2 Fixed")
-    row = view.event_row(lmp2, found, ("", 0), NOW, logo)
+    row = view.event_row(lmp2, found, NOW, logo)
     assert row["startTime"] == NOW + 600 and not row["running"] and row["soon"]  # running one skipped
-    assert row["until"] == "in 10 min" and row["track"] == "Algarve International Circuit" and row["open"] == 1
-    assert row["registration"] == "" and row["eventId"] == "" and row["requirement"] == ""  # public page: none
+    assert row["until"] == "in 10 min" and row["track"] == "Algarve International Circuit"
+    assert row["length"] == "32 min" and row["sessions"] == "Race 32 min" and row["owned"] == "" and row["trackOwned"]
     hyper = next(item for item in found.events if item.title == "Hyper Hour")
-    row = view.event_row(hyper, found, ("", 0), NOW, logo)
-    assert row["owned"] == "Track not owned" and not row["carsOwned"]
-    assert view.event_row(lmp2, found, ("", 0), NOW + 4 * 3600, logo) is None  # all over
-    cards = view.home_card(found, ("", 0), NOW, logo, 3)
+    row = view.event_row(hyper, found, NOW, logo)
+    assert row["owned"] == "Track not owned" and not row["trackOwned"]
+    assert view.event_row(lmp2, found, NOW + 4 * 3600, logo) is None  # all over
+    cards = view.home_card(found, NOW, logo, 3)
     assert [card["title"] for card in cards] == ["LMP2 Fixed", "Hyper Hour"]
     assert view.until_text(NOW + 3 * 86400, NOW) == "in 3 days"
     assert view.until_text(NOW - 60, NOW, 600) == "Running"
@@ -194,7 +180,7 @@ def test_day_names_and_timeline(ui_env):
     assert view.start_text(noon + 86400, noon).startswith("Tomorrow ")
     assert view.start_text(noon + 3 * 86400, noon) != view.start_text(noon + 86400, noon)
     found = schedule()
-    rows = [row for item in found.events if (row := view.event_row(item, found, ("", 0), NOW, logo))]
+    rows = [row for item in found.events if (row := view.event_row(item, found, NOW, logo))]
     line = view.timeline([("beginner", [rows[0]]), ("advanced", rows[1:])], found, NOW)
     assert [lane["tierText"] for lane in line["lanes"]] == ["Beginner", "Advanced"]
     blocks = line["lanes"][0]["items"]

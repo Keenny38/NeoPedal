@@ -30,7 +30,7 @@ asked: a developer of Le Mans Ultimate said third-party apps must not call it (2
 SCHEDULE_PUBLIC_SECONDS = 3600.0  # the page lists the starts of the next 9 hours or so: an hour old still shows every race to come
 SCHEDULE_RETRY_SECONDS = 300.0  # page not read (offline, error): tried again this late
 SCHEDULE_FORCE_SECONDS = 300.0  # Read Again asks the page at most this often (a press sooner shows the last read)
-SCHEDULE_GAME_LISTS_AGE = 3600.0  # cars & tracks of the game (local Rest API) asked again this late (owned DLC)
+SCHEDULE_GAME_LISTS_AGE = 3600.0  # tracks of the game (local Rest API) asked again this late (owned DLC)
 
 # Upcoming Races page (ui/quick/schedule_backend.py)
 PAGE_PERSONAL_SECONDS = 300.0  # driver stats files read again this often while the page shows

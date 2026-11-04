@@ -220,7 +220,7 @@ def test_b020_same_title_races_keep_own_keys(ui_env):
     lmp2 = next(event for event in base.events if event.title == "LMP2 Fixed")
     twin = lmp2._replace(scene="MonzaWEC", starts=(rs.Start(NOW + 1500),))
     found = base._replace(events=(*base.events, twin))
-    rows = [row for event in found.events if (row := view.event_row(event, found, ("", 0), NOW, lambda _: ""))]
+    rows = [row for event in found.events if (row := view.event_row(event, found, NOW, lambda _: ""))]
     keys = [row["key"] for row in rows]
     assert len(set(keys)) == len(keys), keys
     assert "daily/advanced/Hyper Hour" in keys  # races not in duplicate keep their key (reminders kept)
