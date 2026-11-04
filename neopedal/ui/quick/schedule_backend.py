@@ -42,6 +42,7 @@ from typing import Any, TypeGuard
 
 from PySide6.QtCore import Property, QObject, Signal, Slot
 
+from ... import net_policy as policy
 from ... import race_schedule_info as info
 from ...i18n import tr
 from ...process import race_schedule as rs
@@ -86,22 +87,19 @@ SETTINGS_FILE = "race_schedule.json"
 ROW_ROLES = ("modelData",)  # page lists: one role holding the row (delegates keep `modelData`)
 TICK_MS = 30000  # times to start told again (read again once due, see race_schedule_info.READ_SECONDS)
 FAST_TICK_MS = 5000  # while a start is close (SOON_SECONDS): countdown & pulse follow
-PERSONAL_SECONDS = 300.0  # driver stats files read again this often while the page shows
-MANUAL_SECONDS = 300.0  # Read Again asks RaceControl for the tab shown at most this often (like the ranks Refresh):
+PERSONAL_SECONDS = policy.PAGE_PERSONAL_SECONDS
+MANUAL_SECONDS = policy.PAGE_MANUAL_SECONDS
 # a press every minute used up the 120 requests an hour; a press sooner reads what is due
 TABS = ("daily", "events", "championships", "coop", "servers")
-BOARD_CACHE_SECONDS = 600.0  # leaderboard pages read again this late (going back & forth: no new ask)
-UNRANKED_SECONDS = 10800.0  # your place in leaderboards where you are not ranked read again this late
+BOARD_CACHE_SECONDS = policy.PAGE_BOARD_CACHE_SECONDS
+UNRANKED_SECONDS = policy.PAGE_UNRANKED_SECONDS
 TIMELINE_HOURS = (3, 6, 12)
-PLACES_SECONDS = 7200.0  # your places in the weekly leaderboards read again this often while shown (a place moves
-# when you or others drive it: 2 requests a leaderboard, the biggest part of the page's requests at 30 minutes)
-PLACES_DRIVEN_SECONDS = 8 * 86400.0  # leaderboards asked only for tracks you drove this long ago at most (a week of
-# the leaderboard, one day more): you cannot be ranked on a track you did not drive
+PLACES_SECONDS = policy.PAGE_PLACES_SECONDS
+PLACES_DRIVEN_SECONDS = policy.PAGE_PLACES_DRIVEN_SECONDS
 VIEWS = ("cards", "list", "timeline")
-LIVE_FIELD_SECONDS = 600.0  # starts this close: their field (drivers, ranks) read while the page shows (once at
-# LIVE_FIELD_EVERY, 18 requests an hour at 15 minutes for 3 tiers)
-LIVE_FIELD_MISSES = 2  # live reads in a row not answered: that race's field no longer asked
-LIVE_FIELD_EVERY = 598.0  # seconds between two reads of a field (checked every tick: TICK_MS); count of the
+LIVE_FIELD_SECONDS = policy.PAGE_LIVE_FIELD_SECONDS
+LIVE_FIELD_MISSES = policy.PAGE_LIVE_FIELD_MISSES
+LIVE_FIELD_EVERY = policy.PAGE_LIVE_FIELD_EVERY
 # lists read every LIVE_READ_SECONDS meanwhile
 SERVER_SORTS = ("players", "region", "name")
 

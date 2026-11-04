@@ -33,36 +33,34 @@ import threading
 import time
 from typing import NamedTuple
 
+from . import net_policy as policy
 from .process import race_schedule as rs
 from .setting import cfg
 
 logger = logging.getLogger(__name__)
 
 CACHE_FILE = ".race_schedule.json"
-READ_SECONDS = 1800.0  # read again this often (Home card, race watch: no page needed)
-LIVE_READ_SECONDS = 600.0  # this often while the Upcoming Races page shows (live; reads every 2 min got this
-# connection refused by RaceControl for hours, the game's too, 2026-11-02)
-RETRY_SECONDS = 300.0  # read failed (game closed, no answer): tried again this late
-FAILED_MAX_SECONDS = 3600.0  # signed in but nothing answered (RaceControl down): the wait doubles each time up to this
-FAIL_STREAK = 3  # routes in a row not answered after which the rest of a read is not asked (RaceControl down: 5xx or
-# no answer on every route; a single route may answer 500, special events when there are none)
-GAME_LISTS_AGE = 3600.0  # cars & tracks of the game asked again this late (owned DLC)
-KEEP_ANSWER_SECONDS = 7200.0  # route not answered (500, no answer, read cut by a 429): its last answer kept this long
+READ_SECONDS = policy.SCHEDULE_READ_SECONDS
+LIVE_READ_SECONDS = policy.SCHEDULE_LIVE_READ_SECONDS
+RETRY_SECONDS = policy.SCHEDULE_RETRY_SECONDS
+FAILED_MAX_SECONDS = policy.SCHEDULE_FAILED_MAX_SECONDS
+FAIL_STREAK = policy.SCHEDULE_FAIL_STREAK
+GAME_LISTS_AGE = policy.SCHEDULE_GAME_LISTS_AGE
+KEEP_ANSWER_SECONDS = policy.SCHEDULE_KEEP_ANSWER_SECONDS
 # Routes that rarely change: read again only this late (a refresh asked on the page reads them all), hosted servers
 # only while the Upcoming Races page shows
 SLOW_ROUTES = frozenset(("schedule", "weekly", "special", "championships", "championships_upcoming", "coop"))
-SLOW_ROUTE_SECONDS = 3600.0
+SLOW_ROUTE_SECONDS = policy.SCHEDULE_SLOW_ROUTE_SECONDS
 # Routes only the Upcoming Races page shows (never asked for Home, Driver Stats or the race watch); hosted servers
 # only while their tab shows
 PAGE_ROUTES = frozenset(("championships", "championships_upcoming", "coop", "hosted"))
-FRESH_MARGIN = 30.0  # answer younger than its read interval minus this not asked again (tab switch, refresh)
+FRESH_MARGIN = policy.SCHEDULE_FRESH_MARGIN
 # Routes whose answer changes at a moment it tells (seen 2026-11-03 in answers of RaceControl): read again at it
-SCHEDULE_MAX_SECONDS = 6 * 3600.0  # daily schedule: start times of one UTC day, read again after midnight UTC (or this late)
-ROUND_MAX_SECONDS = 6 * 3600.0  # active championships: rounds change when the current one ends (Tuesday 05:00 UTC),
-# registrations & attempts move slowly: read again at that moment, or this late
-ROUND_MARGIN = 60.0  # read again this long after a round ended (RaceControl moves to the next one)
+SCHEDULE_MAX_SECONDS = policy.SCHEDULE_MAX_SECONDS
+ROUND_MAX_SECONDS = policy.SCHEDULE_ROUND_MAX_SECONDS
+ROUND_MARGIN = policy.SCHEDULE_ROUND_MARGIN
 NO_SPECIAL_STATUS = 500  # special events answer this when there is none: kept as an empty list like any answer
-FORCE_SECONDS = 60.0  # refresh asked on the page: read again at once at most this often
+FORCE_SECONDS = policy.SCHEDULE_FORCE_SECONDS
 # Routes each tab of the Upcoming Races page shows (Read Again asks the tab shown only, not the 10 routes)
 TAB_ROUTES: dict[str, frozenset[str]] = {
     "daily": frozenset(("schedule", "daily_beginner", "daily_intermediate", "daily_advanced")),
@@ -92,6 +90,7 @@ class State(NamedTuple):
 _state = State(rs.EMPTY, "", -1.0, 0)
 _lock = threading.Lock()  # one read at a time
 _disk_read = False
+_disk_account = ""  # game account the disk copy shown was read for, "" if told or not known yet
 # Answers the schedule shown was made from: schedule, ROUTES key -> (read time since epoch, answer)
 _answers: tuple[rs.Schedule | None, dict[str, tuple[float, object]]] = (None, {})
 
@@ -142,16 +141,22 @@ def _remember(schedule: rs.Schedule, answers: dict, read_time: float, kept: dict
 
 def load_disk() -> None:
     """Schedule of last run read from disk, once (worker thread)"""
-    global _disk_read, _state
+    global _disk_read, _disk_account, _state
     if _disk_read:
         return
     _disk_read = True
+    from .rank_info import ranks
     from .userfile import read_json
 
     saved = read_json(cache_path(), default=None, dict_only=True)
     found = rs.from_cache(saved)
     if found is None or _state.schedule.read_time:
         return
+    saved_account, account = rs.cache_account(saved), ranks.account
+    if saved_account and account and saved_account != account:  # read for another Steam account: its registrations
+        logger.info("RACE SCHEDULE: saved schedule of another game account ignored")
+        return
+    _disk_account = saved_account
     answers, cars, tracks, read_time = found
     try:
         schedule = rs.parse_schedule(answers, cars, tracks, read_time)
@@ -164,6 +169,20 @@ def load_disk() -> None:
         _state = _state._replace(disk_tried=time.monotonic() - age)
     # kept after a restart too, each with the time it was read (not the time the copy was written)
     _remember(schedule, answers, read_time, {}, rs.cache_times(saved, answers, read_time))
+
+
+def _check_disk_account(account: str) -> None:
+    """Disk copy shown before the game account was known: dropped when it was read for another one (called with the
+    lock held)"""
+    global _answers, _disk_account, _state
+    if not _disk_account or not account:
+        return
+    other = _disk_account != account
+    _disk_account = ""
+    if other:
+        logger.info("RACE SCHEDULE: saved schedule of another game account dropped")
+        _answers = (None, {})
+        _state = State(rs.EMPTY, _state.status, _state.tried, _state.serial + 1, -1.0, _state.failures)
 
 
 def _busy_for(client=None) -> float:
@@ -266,6 +285,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False, tab: st
         if _busy_for(client) > 0:  # RaceControl asked to wait (429): nothing asked, read once the wait is over
             return _state
         account = ranks.account
+        _check_disk_account(account)
         fresh = _fresh_routes(time.time(), live, servers) if not force else (
             set(rs.ROUTES) - TAB_ROUTES[tab] if tab in TAB_ROUTES else set())
         if not set(rs.ROUTES) - fresh:  # every answer recent: nothing asked
@@ -307,7 +327,7 @@ def read(force: bool = False, live: bool = False, servers: bool = False, tab: st
         _set(schedule, READ, now, 0)
         # disk copy: every answer the schedule was made from, with the time each was read
         _save({key: found[1] for key, found in _answers[1].items()}, schedule,
-              {key: found[0] for key, found in _answers[1].items()})
+              {key: found[0] for key, found in _answers[1].items()}, account)
         return _state
 
 
@@ -502,7 +522,7 @@ def page_memory() -> PageMemory:
     return _page_memory[1]
 
 
-FRIENDS_SECONDS = 600.0  # friends list asked again this late
+FRIENDS_SECONDS = policy.SCHEDULE_FRIENDS_SECONDS
 _friends: tuple[float, tuple[rs.Friend, ...]] = (-FRIENDS_SECONDS, ())
 
 
@@ -572,11 +592,36 @@ def read_championship_results(name: str) -> list[rs.OnlineResult] | None:
     return found
 
 
+# Online races read, kept in memory only (names of drivers: never on disk) while the app runs: a race over for a day
+# no longer changes (rank changes & penalties settled), asking it again at each opening of the page was a
+# 335 KB page of 5 races, 174 KB for the laps of one
+RESULTS_SETTLED_SECONDS = policy.SCHEDULE_RESULTS_SETTLED_SECONDS
+RESULTS_KEEP = policy.SCHEDULE_RESULTS_KEEP
+RACES_KEEP = policy.SCHEDULE_RACES_KEEP
+_results_lock = threading.Lock()
+_page_heads: dict[str, str] = {}  # event type -> newest race of page 1 last read
+_kept_pages: dict[tuple[str, int], tuple[str, ResultsPage]] = {}  # (event type, page) -> head when read, page
+_kept_races: dict[tuple[str, int], rs.OnlineResult] = {}  # (event id, split) -> race with its laps
+
+
 def read_result(event_id: str, split: int) -> rs.OnlineResult | None:
-    """One online race with its laps (the results history gives none), None if not read"""
+    """One online race with its laps (the results history gives none), None if not read; a race over for a day is
+    kept in memory (RACES_KEEP)"""
     from urllib.parse import quote
 
-    return rs.parse_result(_get(f"api/v1/result?eventId={quote(event_id)}&splitNo={max(split, 1)}"))
+    key = (event_id, max(split, 1))
+    with _results_lock:
+        kept = _kept_races.pop(key, None)
+        if kept is not None:
+            _kept_races[key] = kept  # most recently used last
+            return kept
+    found = rs.parse_result(_get(f"api/v1/result?eventId={quote(event_id)}&splitNo={key[1]}"))
+    if found is not None and time.time() - found.time >= RESULTS_SETTLED_SECONDS:
+        with _results_lock:
+            _kept_races[key] = found
+            while len(_kept_races) > RACES_KEEP:
+                del _kept_races[next(iter(_kept_races))]
+    return found
 
 
 class ResultsPage(list[rs.OnlineResult]):
@@ -590,11 +635,31 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
     """Page of the online races the player drove (newest first) with their classifications"""
     from urllib.parse import quote
 
-    answer = _get(f"api/v1/results?eventType={quote(event_type)}&page={max(page, 1)}&take={results_take(event_type)}")
+    page = max(page, 1)
+    with _results_lock:
+        head = _page_heads.get(event_type, "")
+        kept = _kept_pages.get((event_type, page)) if page > 1 else None
+        if kept is not None and head and kept[0] == head:  # no race added since: the page is the same
+            copy = ResultsPage(kept[1])
+            copy.answered = kept[1].answered
+            return copy
+    answer = _get(f"api/v1/results?eventType={quote(event_type)}&page={page}&take={results_take(event_type)}")
     if not isinstance(answer, list):
         return None
     found = ResultsPage(result for result in map(rs.parse_result, answer) if result is not None)
     found.answered = len(answer)
+    with _results_lock:
+        if page == 1:  # newest race of the list: a race driven since moves every later page
+            new_head = f"{found[0].event_id}/{found[0].split}" if found else ""
+            if new_head != _page_heads.get(event_type, ""):
+                for key in [key for key in _kept_pages if key[0] == event_type]:
+                    del _kept_pages[key]
+            _page_heads[event_type] = new_head
+        elif (_page_heads.get(event_type) and found and found.answered == len(found)
+              and all(time.time() - result.time >= RESULTS_SETTLED_SECONDS for result in found)):
+            _kept_pages[(event_type, page)] = (_page_heads[event_type], found)
+            while sum(len(item[1]) for item in _kept_pages.values()) > RESULTS_KEEP and len(_kept_pages) > 1:
+                del _kept_pages[next(iter(_kept_pages))]
     return found
 
 
@@ -622,18 +687,19 @@ def _game_lists() -> tuple[dict[str, rs.CarInfo], dict[str, rs.TrackInfo]]:
             rs.parse_track_catalog(rest_cache.json("/rest/race/track", GAME_LISTS_AGE)))
 
 
-def _save(answers: dict, schedule: rs.Schedule, times: dict[str, float]) -> None:
+def _save(answers: dict, schedule: rs.Schedule, times: dict[str, float], account: str = "") -> None:
     from .userfile import write_json
 
     try:
-        write_json(cache_path(), rs.cache_data(answers, schedule.cars, schedule.tracks, schedule.read_time, times),
+        write_json(cache_path(), rs.cache_data(answers, schedule.cars, schedule.tracks, schedule.read_time, times,
+                                               account),
                    fsync=False, raise_error=True)
     except (OSError, TypeError, ValueError) as error:
         logger.info("RACE SCHEDULE: schedule not saved: %s", error)
 
 
 # Registration asked from the page (worker thread), see process/race_schedule.py "Registration"
-REGISTERED_SECONDS = 600.0  # registration (or leave) from the page told on its start this long at most
+REGISTERED_SECONDS = policy.SCHEDULE_REGISTERED_SECONDS
 
 _registered: dict[str, tuple[bool, float]] = {}  # event id -> registered, monotonic time of the change
 _registered_lock = threading.Lock()

@@ -31,6 +31,7 @@ from typing import Any, NamedTuple
 
 from PySide6.QtCore import QUrl
 
+from ... import net_policy as policy
 from ... import units
 from ...const_common import MAX_LAPTIME, MAX_SECONDS
 from ...const_file import FileExt
@@ -66,9 +67,8 @@ from .stats_analysis import rank_chart
 
 logger = logging.getLogger(__name__)
 
-REFERENCE_MAX_AGE = 24 * 3600  # seconds before cached lap time reference is downloaded again
-REFERENCE_RETRY_SECONDS = 3600  # seconds after a failed download before the next page opening asks again (3 attempts
-# each: a page opened often while the service is down or rate limiting sent 3 requests every time)
+REFERENCE_MAX_AGE = policy.SHEET_REFERENCE_MAX_AGE
+REFERENCE_RETRY_SECONDS = policy.SHEET_REFERENCE_RETRY_SECONDS
 REFERENCE_KEYS = ("gap", "level")  # table columns from lap time reference, after personal best
 WATCH_DELAY = 800  # milliseconds after stats or history file changed before reloading
 LAPS_DELAY = 150  # milliseconds after selection changed before recorded laps are read (arrow keys: one read)

@@ -49,6 +49,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
+from .. import net_policy as policy
 from ..validator import json_loads_checked
 from .driver_ranks import DriverRanks, parse_rank, ranks_data, ranks_from_data
 
@@ -63,21 +64,24 @@ TICKET_ROUTE = "/rest/profile/getAuthSessionTicket"
 TIMEOUT = 8.0  # seconds per connection step & read
 REQUEST_SECONDS = 20.0  # answer (status, headers, body) read in this time at most once request sent
 MAX_BODY = 4 * 1024 * 1024
-RETRY_SECONDS = 300.0  # first wait after a failed sign in, doubled each failure
-RETRY_MAX_SECONDS = 3600.0
-NO_ACCOUNT_SECONDS = 3600.0  # no RaceControl account: tried again this late
-TOKEN_MARGIN = 120.0  # token of a sign in used for other reads until this many seconds before it expires
-TOKEN_SECONDS = 1500.0  # token lifetime if expiry not given or unreadable (game menu: new ticket every 25 min)
-FLIGHT_WAIT = 30.0  # caller waits this long at most for the answer of a sign in running (its requests time out sooner)
-REQUEST_GAP = 1.0  # seconds between two requests at least, whichever thread asks (RaceControl refused a burst: 403)
-MAX_PER_MINUTE = 12  # requests sent at most in any 60 s (RaceControl blocked this connection after bursts)
-MAX_PER_HOUR = 120  # requests sent at most in any hour (2026-11-02: connection blocked for hours, the game's too)
-SIGN_IN_SECONDS = 600.0  # answer of a sign in (player ranks included) reused this long: no new sign in before
-BLOCK_SECONDS = 3600.0  # 403 (connection refused by RaceControl): nothing asked this long, doubled each time
-BLOCK_MAX_SECONDS = 6 * 3600.0  # longest wait after a 403 (kept on disk: app restarts never ask sooner)
-HOUR_WARNING = 60  # requests in the last hour told in the error log (half of MAX_PER_HOUR: something asks too much)
+RETRY_SECONDS = policy.RACEOS_RETRY_SECONDS
+RETRY_MAX_SECONDS = policy.RACEOS_RETRY_MAX_SECONDS
+NO_ACCOUNT_SECONDS = policy.RACEOS_NO_ACCOUNT_SECONDS
+TOKEN_MARGIN = policy.RACEOS_TOKEN_MARGIN
+TOKEN_SECONDS = policy.RACEOS_TOKEN_SECONDS
+FLIGHT_WAIT = policy.RACEOS_FLIGHT_WAIT
+REQUEST_GAP = policy.RACEOS_REQUEST_GAP
+MAX_PER_MINUTE = policy.RACEOS_MAX_PER_MINUTE
+MAX_PER_HOUR = policy.RACEOS_MAX_PER_HOUR
+SIGN_IN_SECONDS = policy.RACEOS_SIGN_IN_SECONDS
+BLOCK_SECONDS = policy.RACEOS_BLOCK_SECONDS
+BLOCK_MAX_SECONDS = policy.RACEOS_BLOCK_MAX_SECONDS
+HOUR_WARNING = policy.RACEOS_HOUR_WARNING
 FORBIDDEN_PATHS = ("api/v1/event/entries/",)  # 403 there: that list only (some events), not the connection
-BUSY_SECONDS = 300.0  # no request after a 429 (too many requests) without Retry-After, doubled each 429 until a read
+BUSY_SECONDS = policy.RACEOS_BUSY_SECONDS
+ETAG_ENTRIES = policy.RACEOS_ETAG_ENTRIES
+ETAG_MAX_BYTES = policy.RACEOS_ETAG_MAX_BYTES
+NOT_MODIFIED = 304  # status of a GET sent with If-None-Match when the answer did not change
 NOT_SENT = -1  # status of send: request not sent (MAX_PER_MINUTE / MAX_PER_HOUR reached, RaceControl asks to wait)
 NOT_SIGNED = -2  # status of send: request not sent, not signed in (game not running, sign in failed)
 
@@ -88,13 +92,15 @@ Http = Callable[[str, str, bytes | None, dict[str, str], float], tuple[int, byte
 
 
 class Reply(tuple[int, bytes]):
-    """Status & body of an answer (equal to the (status, body) tuple) with its Retry-After header ("" if none)"""
+    """Status & body of an answer (equal to the (status, body) tuple) with its Retry-After & ETag headers ("" if none)"""
 
     retry_after: str
+    etag: str
 
-    def __new__(cls, status: int, body: bytes, retry_after: str = "") -> Reply:
+    def __new__(cls, status: int, body: bytes, retry_after: str = "", etag: str = "") -> Reply:
         reply = super().__new__(cls, (status, body))
         reply.retry_after = retry_after
+        reply.etag = etag
         return reply
 
 
@@ -167,13 +173,15 @@ def http_request(method: str, url: str, body: bytes | None, headers: dict[str, s
     request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
         with _opener(max(REQUEST_SECONDS, timeout)).open(request, timeout=timeout) as response:
-            return response.status, read_body(response.read, MAX_BODY, response.length)
+            return Reply(response.status, read_body(response.read, MAX_BODY, response.length), "",
+                         str(response.headers.get("ETag") or ""))
     except urllib.error.HTTPError as error:
         retry = str(error.headers.get("Retry-After") or "") if error.headers is not None else ""
+        etag = str(error.headers.get("ETag") or "") if error.headers is not None else ""
         try:
-            return Reply(error.code, read_body(error.read, MAX_BODY, getattr(error.fp, "length", None)), retry)
+            return Reply(error.code, read_body(error.read, MAX_BODY, getattr(error.fp, "length", None)), retry, etag)
         except (OSError, ValueError, http.client.HTTPException):
-            return Reply(error.code, b"", retry)
+            return Reply(error.code, b"", retry, etag)
         finally:
             error.close()
     except (OSError, ValueError, http.client.HTTPException):  # offline, refused, cut off, too large (ValueError)
@@ -303,6 +311,7 @@ class RaceOSClient:
         self._retry_wait = RETRY_SECONDS
         self._refused_wait = RETRY_SECONDS  # wait after a refused new token, doubled each refusal until a read
         self._sign_ins = 0  # sign ins done: token of a request new (signed in for it) or kept
+        self._etags: dict[str, tuple[str, bytes]] = {}  # GET path -> ETag & body of its last answer (memory only)
         self._signed: SignIn | None = None  # last sign in (token kept in memory only)
         self._signed_time = -math.inf  # clock time of last sign in
         self._generation = 0  # incremented when state forgotten (option off, account switched): running sign in dropped
@@ -398,6 +407,7 @@ class RaceOSClient:
             self._refused_wait = RETRY_SECONDS
             self._signed = None
             self._saved_ranks = None
+            self._etags.clear()
             self._generation += 1
         if self._ranks_file:
             import os
@@ -497,6 +507,7 @@ class RaceOSClient:
                 self._retry_time, self._retry_wait = -1.0, RETRY_SECONDS
                 self._refused_wait = RETRY_SECONDS
                 self._signed = None
+                self._etags.clear()
                 self.no_account = False
                 self._generation += 1
             if account:
@@ -621,6 +632,16 @@ class RaceOSClient:
         self._next_request = now + REQUEST_GAP
         return len(self._sent)
 
+    def _keep_etag(self, path: str, status: int, answer: bytes, etag: str) -> None:
+        """Answer of a GET kept with its ETag (when the service gives one and the answer is not large), dropped when
+        it no longer answers 200"""
+        with self._lock:
+            self._etags.pop(path, None)
+            if status == 200 and etag and 0 < len(answer) <= ETAG_MAX_BYTES:
+                self._etags[path] = (etag, answer)
+                while len(self._etags) > ETAG_ENTRIES:
+                    del self._etags[next(iter(self._etags))]
+
     def get(self, path: str, account: str = "") -> Any:
         """JSON answer of a RaceControl GET (path without leading slash), None if not read"""
         return self._request("GET", path, None, account)
@@ -656,10 +677,17 @@ class RaceOSClient:
                    "Game-Authorization": f"Bearer {token}"}
         if body is not None:
             headers["Content-Type"] = "application/json"
+        known = self._etags.get(path) if method == "GET" else None
+        if known is not None:  # answer kept with its ETag: the service tells if it changed (304), else sends it again
+            headers["If-None-Match"] = known[0]
         if not self._pace(f"{method} {path.split('?', 1)[0]}"):
             return NOT_SENT, None
         reply = self._http(method, f"{RACEOS_URL}/{path}", body, headers, TIMEOUT)
         status, answer = reply
+        if status == NOT_MODIFIED and known is not None:  # unchanged: the answer kept is the current one
+            status, answer = 200, known[1]
+        elif method == "GET":
+            self._keep_etag(path, status, answer, getattr(reply, "etag", ""))
         # 403 on the entry list of some events: that list only, also with a token just made (sign in answered)
         forbidden_list = status == 403 and path.startswith(FORBIDDEN_PATHS)
         if status == 429:  # too many requests: Retry-After waited, else BUSY_SECONDS doubled each time

@@ -36,18 +36,19 @@ import time
 from collections.abc import Callable, Iterable
 from typing import Any, NamedTuple, Protocol
 
+from .. import net_policy as policy
 from .driver_ranks import RANK_ORDER, DriverRanks, Rank
 from .raceos import player_ranks
 
 PLAYERS_PATH = "api/v1/players"
-BATCH = 50  # names per request
-CHECK_SECONDS = 30.0  # server joined & ranks due checked this often
-JOIN_SECONDS = 15.0  # driver joining the session asked at once, at most one request this often (arrivals grouped)
-KEEP_DRIVERS = 500  # ranks kept of drivers no longer in session (shown at once if they come back), at most
-KEEP_SECONDS = 3600.0  # ranks of a driver read again this late (few requests: RaceControl refuses many)
-RESULTS_DELAYS = (300.0,)  # every driver read again this long after a session ended
-MISSING_SECONDS = 3600.0  # driver without RaceControl profile asked again this late
-RETRY_SECONDS = 300.0  # drivers of a read not sent (RaceControl limits, waiting) or not answered asked again this late
+BATCH = policy.FIELD_BATCH
+CHECK_SECONDS = policy.FIELD_CHECK_SECONDS
+JOIN_SECONDS = policy.FIELD_JOIN_SECONDS
+KEEP_DRIVERS = policy.FIELD_KEEP_DRIVERS
+KEEP_SECONDS = policy.FIELD_KEEP_SECONDS
+RESULTS_DELAYS = policy.FIELD_RESULTS_DELAYS
+MISSING_SECONDS = policy.FIELD_MISSING_SECONDS
+RETRY_SECONDS = policy.FIELD_RETRY_SECONDS
 
 logger = logging.getLogger(__name__)
 _SUFFIX = re.compile(r"\s*#\d+\s*$")

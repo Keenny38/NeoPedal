@@ -1019,11 +1019,11 @@ def trimmed(value: Any) -> Any:
 
 
 def cache_data(answers: dict[str, Any], cars: dict[str, CarInfo], tracks: dict[str, TrackInfo],
-               read_time: float, times: dict[str, float] | None = None) -> dict:
+               read_time: float, times: dict[str, float] | None = None, account: str = "") -> dict:
     """Disk copy: answers by ROUTES key with the time each was read (times: key -> seconds since epoch, read_time
-    for the ones not given)"""
+    for the ones not given), game account (SteamID64) they were read for: registrations are marked for that player"""
     return {
-        "version": CACHE_VERSION, "read": read_time,
+        "version": CACHE_VERSION, "read": read_time, "account": account,
         "times": {key: times[key] for key in answers if times and key in times and answers[key] is not None},
         "answers": {key: trimmed(value) for key, value in answers.items() if value is not None},
         "cars": {folder: list(car) for folder, car in cars.items()},
@@ -1048,6 +1048,11 @@ def from_cache(data: Any) -> tuple[dict[str, Any], dict[str, CarInfo], dict[str,
         if len(track) == 2 and isinstance(scene, str):
             tracks[scene] = TrackInfo(_text(track[0]), track[1] is True)
     return _dict(data.get("answers")), cars, tracks, read_time
+
+
+def cache_account(data: Any) -> str:
+    """Game account (SteamID64) a disk copy was read for, "" if not told (copies written before)"""
+    return _text(_dict(data).get("account"))
 
 
 def cache_times(data: Any, answers: dict[str, Any], read_time: float) -> dict[str, float]:

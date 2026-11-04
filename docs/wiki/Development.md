@@ -100,6 +100,10 @@ CI runs every test on Windows and Linux, Python 3.11, 3.13 and 3.14, on shared r
 
 ## Architecture notes
 
+### Requests to online services
+
+- The durations and limits of the requests to RaceControl and the other online services are in `neopedal/net_policy.py`, each with its reason (rhythm at which the data changes, or limit of the service); the modules keep their own names for them. A new duration goes there, with its reason, never as a number in the code.
+
 ### Overlays and the modern design
 
 - Every overlay has a modern design in `neopedal/widget/_modern/<name>.py` (the Dashboard HUD and Pace Notes restyle their classic drawing), registered in `neopedal/template/widget/modern.py` (`MODERN_DESIGN_OPTIONS`) with the options it reads: only these are shown in the Overlay Options page. That page (`neopedal/ui/overlay_options.py`, `ui/quick/overlay_options_backend.py`, `qml/overlays/OverlayOptions.qml`) cuts the options of each overlay into sections from their order in the template (`ui/quick/overlay_sections.py`: an item section starts at its `show_*` / `enable_*` option and takes the options naming that item), so keep the options of an item together after its on/off option; an overlay with many options can declare its own sections in `WIDGET_OPTION_UI` (see `black_box_ui.OptionUI`). Shared components (value tiles, tables, gauges, wheels, car colors of maps and radar in `cars.py`, restyling of classic drawing) are in the same folder. A modern design reads game data like the classic widget through a mixin of the classic module (`RadarMixin`, `TrackMapMixin`, `TrailingMixin`...), so both layouts show the same values. The Barlow font is in `fonts`.

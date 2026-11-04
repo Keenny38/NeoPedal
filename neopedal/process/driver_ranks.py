@@ -46,6 +46,7 @@ import zlib
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, NamedTuple, Protocol
 
+from .. import net_policy as policy
 from ..userfile import append_line, atomic_replace
 from ..validator import json_loads_checked, load_json_strict
 
@@ -252,16 +253,16 @@ def name_index(drivers: list[DriverRanks]) -> dict[str, DriverRanks]:
 HISTORY_FILE = "driver_ranks.history"  # JSON lines in config folder: one line each time a rank changed
 HISTORY_KEEP = 1000  # newest lines kept once history file trimmed (last line of each account kept too)
 HISTORY_SLACK = 100  # file trimmed once it holds this many lines more than kept (never rewritten for each line)
-CHECK_SECONDS = 5.0  # storage file modification time checked this often
-LOCATE_SECONDS = 60.0  # game folder & player looked for again this often while not found (game installed)
-LOCATE_FOUND_SECONDS = 600.0  # looked for again this often once found (game moved, other Steam user)
+CHECK_SECONDS = policy.RANKS_CHECK_SECONDS
+LOCATE_SECONDS = policy.RANKS_LOCATE_SECONDS
+LOCATE_FOUND_SECONDS = policy.RANKS_LOCATE_FOUND_SECONDS
 # Online ranks (RaceControl): read at start, after each session (new results file: ranks computed by the service
 # a moment later, read 3 times), else this often while game runs (sign in with a new game ticket each read)
-ONLINE_RESULTS_DELAYS = (180.0, 900.0)  # the last one signs in again (sign in answer reused 10 min, see raceos)
-ONLINE_SECONDS = 1800.0  # few sign ins: RaceControl refused this connection for hours after many (2026-11-02)
-ONLINE_GAME_SECONDS = 60.0  # game looked for this often while not running
-ONLINE_RETRY_SECONDS = 600.0  # read again this late once a read failed (offline)
-ONLINE_MANUAL_SECONDS = 300.0  # read asked by the player (Refresh) at most this often: few sign ins
+ONLINE_RESULTS_DELAYS = policy.RANKS_ONLINE_RESULTS_DELAYS
+ONLINE_SECONDS = policy.RANKS_ONLINE_SECONDS
+ONLINE_GAME_SECONDS = policy.RANKS_ONLINE_GAME_SECONDS
+ONLINE_RETRY_SECONDS = policy.RANKS_ONLINE_RETRY_SECONDS
+ONLINE_MANUAL_SECONDS = policy.RANKS_ONLINE_MANUAL_SECONDS
 SETTING_BYTES = 4096  # start of a results file read to tell online sessions (<Setting> comes first)
 _SETTING = re.compile(rb"<Setting>([^<]*)</Setting>")
 
