@@ -479,7 +479,8 @@ TpPage {
                             }
                             TpButton {
                                 objectName: "refreshRanks"
-                                visible: page.driver.refresh === true
+                                // ranks are read with the game's sign in: offered only while Le Mans Ultimate runs
+                                visible: page.driver.refresh === true && page.game.running === true && page.game.lmu === true
                                 flat: true
                                 size: "xs"
                                 glyph: ""  // sync
@@ -684,11 +685,13 @@ TpPage {
                                 Layout.alignment: Qt.AlignTop
                                 spacing: theme.space1
                                 TpText { role: "overline"; text: i18n.tr("Best Lap") }
-                                TpText {
+                                TpText {  // no valid lap in the session: said dimmed in place of a time
+                                    readonly property bool hasBest: (page.debrief.best || "") !== ""
                                     objectName: "debriefBest"
-                                    role: "display"
-                                    tabular: true
-                                    text: (page.debrief.best || "") !== "" ? page.debrief.best : (page.debrief.track || "")
+                                    role: hasBest ? "display" : "body"
+                                    tabular: hasBest
+                                    color: hasBest ? theme.text : theme.dimText
+                                    text: hasBest ? page.debrief.best : i18n.tr("No valid lap")
                                 }
                                 Pill {
                                     visible: page.debrief.personal === "new"

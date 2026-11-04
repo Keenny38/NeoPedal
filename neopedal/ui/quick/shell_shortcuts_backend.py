@@ -142,15 +142,11 @@ class ShortcutsBackend(ShellBackend):
 
     @Slot()
     def openHotkeys(self):
-        """Hotkeys page (bind global hotkeys)"""
+        """Hotkeys category of Settings (bind global hotkeys)"""
         self.closeRequested.emit()
-        central = getattr(self._window, "centralWidget", None)
-        view = central() if callable(central) else None
-        select = getattr(view, "select_page", None)
-        if callable(select):
-            from ..nav_rail import PAGE_INDEX
+        from ..app_settings import open_app_settings
 
-            select(PAGE_INDEX["hotkey"])
+        open_app_settings(self._window, "hotkeys")
 
 
 class ShortcutsSheet(ShellPopup):

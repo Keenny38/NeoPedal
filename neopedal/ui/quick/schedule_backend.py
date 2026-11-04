@@ -37,6 +37,7 @@ import contextlib
 import logging
 import math
 import time
+from collections.abc import Callable
 from functools import partial
 from typing import Any, TypeGuard
 
@@ -147,6 +148,39 @@ def not_done_text(reason: str, refused: str, silent: str) -> str:
         return tr("RaceControl did not answer in time: it may be done anyway. Races are read again, check them "
                   "before trying again.")
     return refused.replace("%1", reason) if reason else silent
+
+
+def requests_left() -> int:
+    """Requests the player's own asks may still send now within RaceControl limits (0 while asked to wait)"""
+    from ...rank_info import online_client
+
+    room = getattr(online_client(), "room", None)  # client of tests without it: never limited
+    return room() if room is not None else 1
+
+
+def unread_text(status: str) -> str:
+    """Why something asked from the page (detail, car list, leaderboard) was not read: reading off, RaceControl
+    refusing this connection (403), game closed, request limits reached (nothing sent), no account, else no answer;
+    status: race_schedule_info.unread_status (worker thread) or the status of the last read"""
+    if status == info.OFF:
+        return status_note(status, rs.EMPTY)[1]
+    blocked = info.blocked_minutes()
+    if blocked:  # the game is refused too meanwhile
+        return tr("Not read: RaceControl refuses requests from this connection for now. Try again in %1 min.").replace(
+            "%1", str(blocked))
+    if status == info.NO_GAME:
+        return tr("Not read: start Le Mans Ultimate and try again.")
+    if requests_left() < 1:
+        return tr("Not sent: too many requests to RaceControl for now. Try again in a minute.")
+    if status == info.NO_ACCOUNT:
+        return status_note(status, rs.EMPTY)[1]
+    return tr("Not read: RaceControl did not answer. Try again in a moment.")
+
+
+def read_with_reason(work: Callable[[], Any]) -> tuple[Any, str]:
+    """Answer of work & why it is None (unread_text, "" if read), blocking (worker thread: the game may be asked)"""
+    answer = work()
+    return answer, "" if answer is not None else unread_text(info.unread_status())
 
 
 def _int_setting(saved: dict, name: str, count: int, default: int = 0) -> int:
@@ -1038,18 +1072,21 @@ class RaceScheduleBackend(PageBackend):
             "startKey": chosen["key"], "startTime": chosen["time"],
             "note": self.other_registration(source, event_id, now),
         })
-        self.jobs.run("registration", lambda: (info.read_overview(entry_type, event_id), info.game_cars()),
-                      lambda result: self.registration_read(event_id, *result),
+        def work():
+            event, reason = read_with_reason(lambda: info.read_overview(entry_type, event_id))
+            return event, info.game_cars(), reason
+
+        self.jobs.run("registration", work, lambda result: self.registration_read(event_id, *result),
                       lambda error: self.registration_read(event_id, None, None), key="registration")
 
-    def registration_read(self, event_id: str, event: dict | None, game_cars: object):
+    def registration_read(self, event_id: str, event: dict | None, game_cars: object, reason: str = ""):
         current = self._registration
         if current.get("open") is not True or current.get("eventId") != event_id:
             return  # dialog closed, or opened for another start meanwhile
         error = ""
         cars: tuple[rs.CarChoice, ...] = ()
         if event is None:
-            error = tr("Not read: start Le Mans Ultimate and try again.")
+            error = reason or unread_text(info.state().status)
         elif event.get("teamEvent") is True:
             error = tr("Team races are registered in the game (team & line-up).")
         elif rs.is_registered(event, info.player_id()):
@@ -1144,14 +1181,15 @@ class RaceScheduleBackend(PageBackend):
         confirm(self.host_widget(), tr("Leave This Race"), message, tr("Leave Race"), confirmed, danger=True)
 
     # Details read on demand
-    def set_detail(self, key: str, value: dict | None, extra: dict | None = None):
-        """Detail read (None: not read) with what it holds for (extra: start of a field, round of sessions)"""
+    def set_detail(self, key: str, value: dict | None, extra: dict | None = None, reason: str = ""):
+        """Detail read (None: not read, reason: why, see unread_text) with what it holds for (extra: start of a
+        field, round of sessions)"""
         self._loading.discard(key)
         self._loading_list = sorted(self._loading)
         if value is not None:
             self._details[key] = {**value, **(extra or {})}
         else:
-            self._details[key] = {"error": tr("Not read: start Le Mans Ultimate and try again."), **(extra or {})}
+            self._details[key] = {"error": reason or unread_text(info.state().status), **(extra or {})}
         if not self.refresh_details(time.time()):
             self.detailsChanged.emit()
 
@@ -1204,9 +1242,9 @@ class RaceScheduleBackend(PageBackend):
             return
         detail_key, event_id = chosen["detail"], chosen["eventId"]
         extra = {"startKey": chosen["key"], "start": chosen["time"]}
-        self.jobs.run("race field", lambda: info.read_field(row["entryType"], event_id),
-                      lambda field: self.set_detail(detail_key, field_view(field) if field is not None else None,
-                                                    extra),
+        self.jobs.run("race field", partial(read_with_reason, lambda: info.read_field(row["entryType"], event_id)),
+                      lambda read: self.set_detail(detail_key, field_view(read[0]) if read[0] is not None else None,
+                                                   extra, read[1]),
                       lambda error: self.set_detail(detail_key, None, extra), key=detail_key)
 
     def read_live_fields(self, now: float):
@@ -1266,16 +1304,16 @@ class RaceScheduleBackend(PageBackend):
         if found is None or not isinstance(found[1], rs.Event) or not self.start_detail(detail_key):
             return
         event = found[1]
-        self.jobs.run("practice servers", lambda: info.read_practice(event),
-                      lambda servers: self.set_detail(detail_key, practice_view(servers, time.time())
-                                                      if servers is not None else None),
+        self.jobs.run("practice servers", partial(read_with_reason, lambda: info.read_practice(event)),
+                      lambda read: self.set_detail(detail_key, practice_view(read[0], time.time())
+                                                   if read[0] is not None else None, None, read[1]),
                       lambda error: self.set_detail(detail_key, None), key=detail_key)
 
-    def championship_read(self, key: str, number: int, detail: rs.ChampionshipDetail | None):
+    def championship_read(self, key: str, number: int, detail: rs.ChampionshipDetail | None, reason: str = ""):
         if detail is not None:
             self._championship_raw[key] = detail
         self.set_detail(key, championship_detail_view(detail, time.time()) if detail is not None else None,
-                        {"round": number})
+                        {"round": number}, reason)
 
     @Slot(str)
     def readChampionship(self, key: str):
@@ -1285,8 +1323,8 @@ class RaceScheduleBackend(PageBackend):
             return
         row = found[0]
         detail_key, number = f"championship:{key}", row["roundNumber"]
-        self.jobs.run("championship", lambda: info.read_championship(row["id"], number),
-                      lambda detail: self.championship_read(detail_key, number, detail),
+        self.jobs.run("championship", partial(read_with_reason, lambda: info.read_championship(row["id"], number)),
+                      lambda read: self.championship_read(detail_key, number, *read),
                       lambda error: self.set_detail(detail_key, None, {"round": number}), key=detail_key)
 
     @Slot(str)
@@ -1298,8 +1336,9 @@ class RaceScheduleBackend(PageBackend):
         row = found[0]
         detail_key = f"coop:{key}"
         name = player_name()
-        self.jobs.run("co-op board", lambda: info.read_coop_board(row["name"], name),
-                      lambda board: self.set_detail(detail_key, coop_board_view(board) if board is not None else None),
+        self.jobs.run("co-op board", partial(read_with_reason, lambda: info.read_coop_board(row["name"], name)),
+                      lambda read: self.set_detail(detail_key, coop_board_view(read[0]) if read[0] is not None
+                                                   else None, None, read[1]),
                       lambda error: self.set_detail(detail_key, None), key=detail_key)
 
     # Weekly leaderboard of a race (every page, any class, friends, a driver)
@@ -1349,18 +1388,18 @@ class RaceScheduleBackend(PageBackend):
             return
 
         def work():
-            return (cached or info.read_leaderboard(board, vehicle_class, page),
-                    info.read_place(board, vehicle_class) if with_place else None)
+            found, reason = read_with_reason(lambda: cached or info.read_leaderboard(board, vehicle_class, page))
+            return found, info.read_place(board, vehicle_class) if with_place else None, reason
 
         self.jobs.run("leaderboard", work, lambda result: self.board_read(board, vehicle_class, page, *result),
                       self.board_failed, key="leaderboard")
 
     def board_read(self, board: rs.Board, vehicle_class: str, page: int, found: rs.Leaderboard | None,
-                   place: tuple[int, int] | None):
+                   place: tuple[int, int] | None, reason: str = ""):
         if board is not self._board_source or not self._board.get("open"):
             return  # another leaderboard asked meanwhile
         if found is None:
-            self.board_failed(None)
+            self.board_failed(None, reason)
             return
         self._board_cache[(board.key, vehicle_class, page)] = (time.monotonic(), found)
         pages = max((found.drivers + info.LEADERBOARD_PAGE - 1) // info.LEADERBOARD_PAGE, 1)
@@ -1387,10 +1426,10 @@ class RaceScheduleBackend(PageBackend):
         self._board = {**self._board, **update}
         self.boardChanged.emit()
 
-    def board_failed(self, error: BaseException | None):
+    def board_failed(self, error: BaseException | None, reason: str = ""):
         if error is not None:
             logger.warning("RACE SCHEDULE: leaderboard not read: %s", error)
-        self._board = {**self._board, "loading": False, "error": tr("Not read: start Le Mans Ultimate and try again.")}
+        self._board = {**self._board, "loading": False, "error": reason or unread_text(info.state().status)}
         self.boardChanged.emit()
 
     @Slot(int)
@@ -1529,9 +1568,11 @@ class RaceScheduleBackend(PageBackend):
             return
         item = found[1]
         detail_key = f"progress:{key}"
-        self.jobs.run("championship progress", lambda: info.read_championship_results(item.name),
-                      lambda results: self.set_detail(detail_key, championship_progress(
-                          results, len(item.rounds), info.player_name()) if results is not None else None),
+        self.jobs.run("championship progress", partial(read_with_reason,
+                                                       lambda: info.read_championship_results(item.name)),
+                      lambda read: self.set_detail(detail_key, championship_progress(
+                          read[0], len(item.rounds), info.player_name()) if read[0] is not None else None,
+                          None, read[1]),
                       lambda error: self.set_detail(detail_key, None), key=detail_key)
 
     # Calendar

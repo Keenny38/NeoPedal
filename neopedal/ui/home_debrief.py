@@ -31,7 +31,7 @@ from typing import NamedTuple
 
 from .. import units
 from ..calculation import sec2laptime_full
-from ..i18n import localized, percent_sign, tr, trm
+from ..i18n import localized, percent_sign, plural, tr, trm
 from ..setting import cfg
 from ..userfile.driver_history import SessionRecord, load_history
 from ..userfile.driver_stats import load_driver_stats
@@ -199,7 +199,8 @@ def debrief_card(data: DebriefData) -> dict:
     elif debrief.best > 0 and debrief.previous_best > 0:
         personal = "slower"
         personal_text = f"{seconds_text(debrief.gain)} {tr('vs personal best')}"
-    figures = [f"{len(debrief.laps) or record.valid + record.invalid} {tr('Laps').lower()}"]
+    laps = len(debrief.laps) or record.valid + record.invalid
+    figures = [f"{laps} {plural(laps, 'lap', 'laps')}"]
     if debrief.pace > 0:
         figures.append(f"{tr('Pace')} {sec2laptime_full(debrief.pace)} ± {localized(f'{debrief.consistency:.2f}')} s")
     if debrief.theoretical > 0 and debrief.theoretical < debrief.best - 0.0005:

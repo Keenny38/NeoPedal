@@ -35,6 +35,7 @@ simple mode, color themes and display profile (options set by profile are locked
 
 from __future__ import annotations
 
+import html
 import logging
 import os
 import time
@@ -1812,6 +1813,12 @@ class OverlayOptionsBackend(PageBackend):
                     f"<br><br>Save changed options to <b>{preset_name}</b>?")
             if not self._host.confirm(trm(text)):
                 return False
+        if cfg.filename.setting in cfg.user.filelock:  # told before pending edits & undo are cleared (B-032)
+            preset_name = html.escape(cfg.filename.setting.removesuffix(".json"))
+            text = (f"Preset <b>{preset_name}</b> is locked: changed options last until the app is closed, "
+                    "they are not saved.<br><br>Apply them anyway?")
+            if not self._host.confirm(trm(text)):
+                return False  # edits kept pending
         names: list[str] = []
         for oid, value in self._pending.items():
             name, key = split_id(oid)

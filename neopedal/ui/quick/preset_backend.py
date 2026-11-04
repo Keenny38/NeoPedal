@@ -675,11 +675,12 @@ class PresetBackend(PageBackend):
         """Lock (changes never saved) or unlock preset, confirmed"""
         if not self._known(filename):
             return
+        name = html.escape(filename[:-len(FileExt.JSON)] if filename.endswith(FileExt.JSON) else filename)  # as listed
         if filename in cfg.user.filelock:
-            self.ask(tr("Unlock Preset"), f"Unlock <b>{html.escape(filename)}</b> preset?",
+            self.ask(tr("Unlock Preset"), f"Unlock <b>{name}</b> preset?",
                      partial(self._set_lock, filename, False))
             return
-        message = (f"Lock <b>{html.escape(filename)}</b> preset?<br><br>"
+        message = (f"Lock <b>{name}</b> preset?<br><br>"
                    "Changes to locked preset will not be saved.")
         self.ask(tr("Lock Preset"), message, partial(self._set_lock, filename, True))
 

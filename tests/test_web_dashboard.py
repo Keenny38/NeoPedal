@@ -94,6 +94,28 @@ def test_login_form_wrong_code(dashboard):
     data = urllib.parse.urlencode({"code": "WRONG"}).encode()
     status, body, _ = request("/login", data=data, opener=browser())
     assert status == 401 and b"Access code" in body
+    assert b'<p role="alert">Wrong code</p>' in body  # told, not the same form again
+    DashboardHandler.failures.clear()
+
+
+def test_login_code_any_case(dashboard):
+    """Phones capitalize or lower typed text: code accepted in any case"""
+    data = urllib.parse.urlencode({"code": "testCode"}).encode()
+    status, body, _ = request("/login", data=data, opener=browser())
+    assert status == 200 and b"NeoPedal Dashboard" in body
+    assert get("/api/telemetry", {"X-Access-Code": "testcode"})[0] == 200
+    assert "127.0.0.1" not in DashboardHandler.failures
+
+
+def test_login_form_lockout_message(dashboard):
+    data = urllib.parse.urlencode({"code": "WRONG"}).encode()
+    for _ in range(10):
+        request("/login", data=data, opener=browser())
+    status, body, headers = request("/login", data=data, opener=browser())
+    assert status == 429 and b'<p role="alert">Too many attempts, try again later</p>' in body
+    assert headers["Content-Type"] == "text/html; charset=utf-8"
+    status, body = get("/api/telemetry", {"X-Access-Code": "TESTCODE"})
+    assert status == 429 and body == b"too many attempts, try again later"  # page script & tools: as before
     DashboardHandler.failures.clear()
 
 

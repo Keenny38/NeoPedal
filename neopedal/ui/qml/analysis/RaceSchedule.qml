@@ -17,8 +17,9 @@ TpPage {
 
     readonly property var status: backend.status
     readonly property int columns: width >= theme.bpWide ? 3 : width >= theme.bpCompact ? 2 : 1
+    readonly property bool classFilter: backend.tab !== 3  // co-op events give no car class: chips hidden there
     readonly property bool filtered: backend.search !== "" || backend.ownedOnly
-                                     || backend.classChoices.some(function(choice) { return choice.selected })
+                                     || (classFilter && backend.classChoices.some(function(choice) { return choice.selected }))
     readonly property var tabs: [
         { text: i18n.tr("Daily Races"), glyph: "" },  // calendar
         { text: i18n.tr("Weekly & Special"), glyph: "" },  // clock
@@ -178,6 +179,7 @@ TpPage {
                 model: backend.classChoices
                 TpChip {
                     required property var modelData
+                    visible: page.classFilter
                     text: modelData.label
                     showDot: true
                     dotColor: modelData.color
@@ -205,9 +207,9 @@ TpPage {
 
             // Daily races: timeline of the next hours, or one section per tier
             Item {
-                ScrollPane {
+                ScrollPane {  // timeline view too while no race is shown: its empty, filtered or loading state
                     anchors.fill: parent
-                    visible: backend.view !== 2
+                    visible: backend.view !== 2 || empty
                     empty: page.count(0) === 0
                     openHidden: backend.openHidden[0] || 0
                     emptyTitle: i18n.tr("No daily race to come")
@@ -264,7 +266,7 @@ TpPage {
                 Timeline {
                     objectName: "raceTimeline"
                     anchors.fill: parent
-                    visible: backend.view === 2
+                    visible: backend.view === 2 && page.count(0) > 0
                     data_: backend.timeline
                     lanes: backend.timelineModel
                     fieldKey: page.timelineField
@@ -885,6 +887,7 @@ TpPage {
             spacing: theme.space5
         }
         TpStateView {
+            parent: pane  // centered in the shown room (content of an empty pane has no height: half cut off)
             anchors.centerIn: parent
             visible: pane.empty
             loading: backend.status.loading === true && backend.status.read !== true
@@ -1477,7 +1480,7 @@ TpPage {
             Layout.fillWidth: true
             role: "caption"
             wrap: true
-            text: i18n.tr("Next %1 hours. Click a race for its menu; locked races in orange.").replace("%1", line.data_.hours || 6)
+            text: i18n.tr("Next %1 hours. Click a race for its menu; locked races in the warning color.").replace("%1", line.data_.hours || 6)
         }
         FieldBlock { Layout.fillWidth: true; detailKey: line.fieldKey; title: line.fieldTitle }
         PracticeBlock { Layout.fillWidth: true; detailKey: line.practiceKey; title: line.practiceTitle }

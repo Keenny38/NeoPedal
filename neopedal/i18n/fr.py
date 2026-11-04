@@ -89,6 +89,8 @@ TRANSLATION = MappingProxyType({
     "Help for This Page": "Aide de cette page",
     "Commands": "Commandes",
     "Type > for commands, @ for options, # for presets": "Tapez > pour les commandes, @ pour les options, # pour les presets",
+    "Type an option name": "Tapez le nom d'une option",
+    "Options show as you type.": "Les options s'affichent pendant que vous tapez.",
     "Main Window": "Fenêtre principale",
     "Navigation Bar": "Barre de navigation",
     "Close page (pages with a Close button), clear a search": "Fermer la page (pages avec un bouton Fermer), effacer une recherche",
@@ -1453,8 +1455,8 @@ TRANSLATION = MappingProxyType({
     "Ctrl+K searches and runs anything in the app.": "Ctrl+K cherche et lance n'importe quoi dans l'application.",
     "Open this wizard again from Help > Setup Wizard.":
         "Rouvrez cet assistant depuis Aide > Assistant de configuration.",
-    "Setup complete. Overlays show once you are driving.":
-        "Configuration terminée. Les overlays s'affichent dès que vous roulez.",
+    "Setup complete. Enabled overlays show on screen while you drive.":
+        "Configuration terminée. Les overlays activés s'affichent à l'écran pendant que vous roulez.",
     # Audit fixes (package C)
     # - app: main window, config pages, updates, about
     "no change": "aucun changement",
@@ -2814,6 +2816,9 @@ TRANSLATION = MappingProxyType({
     "Session expired": "Session expirée",
     "Waiting for session…": "En attente de session…",
     "Connection lost, retrying…": "Connexion perdue, nouvelle tentative…",
+    "Sign In": "Se connecter",
+    "Wrong code": "Code incorrect",
+    "Too many attempts, try again later": "Trop de tentatives, réessayez plus tard",
     # Phase 2 (package C2)
     # Unsaved changes marker, inline validation of config pages
     "Unsaved changes": "Modifications non enregistrées",
@@ -3182,6 +3187,10 @@ TRANSLATION = MappingProxyType({
     "Open this corner in telemetry": "Ouvrir ce virage dans la télémétrie",
     "Quick Access": "Accès rapide",
     "Unlock Overlay": "Déverrouiller l'overlay",
+    "Unlock Overlays": "Déverrouiller les overlays",
+    "%1 enabled overlay not running": "%1 overlay activé non démarré",
+    "%1 enabled overlays not running": "%1 overlays activés non démarrés",
+    "No option matches the filters": "Aucune option ne correspond aux filtres",
     "Drag overlays to move them": "Faites glisser les overlays pour les déplacer",
     "Checking…": "Vérification…",
     "See Update": "Voir la mise à jour",
@@ -3563,6 +3572,7 @@ TRANSLATION = MappingProxyType({
     "No Rain": "Pas de pluie",
     "No forecast": "Pas de prévisions",
     "No stop in the session yet": "Aucun arrêt dans la session",
+    "No valid lap": "Aucun tour valide",
     "No valid lap yet": "Aucun tour valide pour l'instant",
     "Pit lane at speed limit (braking & pulling away not counted)":
         "Voie des stands à vitesse limitée (freinage et relance non comptés)",
@@ -4280,9 +4290,14 @@ TRANSLATION = MappingProxyType({
     "Field": "Plateau",
     "Hide races and servers needing a car or a track you don't own": "Masquer les courses et serveurs qui demandent une voiture ou un circuit que vous ne possédez pas",
     "Leaderboard": "Classement",
-    "Next %1 hours. Click a race for its menu; locked races in orange.": "Prochaines %1 heures. Cliquez une course pour son menu ; courses verrouillées en orange.",
+    "Next %1 hours. Click a race for its menu; locked races in the warning color.":
+        "Prochaines %1 heures. Cliquez une course pour son menu ; courses verrouillées dans la couleur d'alerte.",
     "No race matches the filters.": "Aucune course ne correspond aux filtres.",
     "Not read: start Le Mans Ultimate and try again.": "Non lu : lancez Le Mans Ultimate et réessayez.",
+    "Not read: RaceControl refuses requests from this connection for now. Try again in %1 min.":
+        "Non lu : RaceControl refuse pour l'instant les requêtes de cette connexion. Réessayez dans %1 min.",
+    "Not read: RaceControl did not answer. Try again in a moment.":
+        "Non lu : RaceControl n'a pas répondu. Réessayez dans un instant.",
     "Owned Cars & Tracks": "Voitures et circuits possédés",
     "Points \u00d7%1": "Points \u00d7%1",
     "Practice server: %1/%2 players": "Serveur d'entraînement : %1/%2 joueurs",

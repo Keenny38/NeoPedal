@@ -18,7 +18,8 @@
 
 """
 Files dropped on main window: preset (.json), preset package, overlay settings or plugin (.zip), MoTeC log (.ld),
-consumption history, race plan or tyre plan (opened in Race Calculator, which takes them dropped on its page too)
+recorded or shared lap (.csv, .csv.gz: shown in lap viewer), consumption history, race plan or tyre plan (opened in
+Race Calculator, which takes them dropped on its page too)
 """
 
 from __future__ import annotations
@@ -46,6 +47,8 @@ DROP_PACKAGE = "package"
 DROP_OVERLAYS = "overlays"  # overlay settings package
 DROP_PLUGIN = "plugin"
 DROP_MOTEC = "motec"
+DROP_LAP = "lap"  # lap file of the app: recorded (.csv) or shared (.csv.gz)
+LAP_FILES = (".csv", ".csv.gz")
 DROP_RACE = "race"  # one of the Race Calculator files below
 DROP_HISTORY = "history"
 DROP_RACE_PLAN = "race_plan"
@@ -60,7 +63,8 @@ def dropped_files(mime: QMimeData) -> list[str]:
         return []
     return [
         url.toLocalFile() for url in mime.urls()
-        if url.isLocalFile() and url.toLocalFile().lower().endswith((FileExt.JSON, ".zip", ".ld", *RACE_FILES))
+        if url.isLocalFile() and url.toLocalFile().lower().endswith((FileExt.JSON, ".zip", ".ld", *LAP_FILES,
+                                                                     *RACE_FILES))
     ]
 
 
@@ -79,6 +83,12 @@ def classify(path: str) -> str:
         return DROP_PRESET
     if lower.endswith(".ld"):
         return DROP_MOTEC
+    if lower.endswith(LAP_FILES):  # lap files of the app only (lap info line, recorder file name): never any CSV
+        from ..userfile.lap_library import is_recorded_lap
+        from ..userfile.telemetry_lap import read_lap_info
+
+        info = read_lap_info(path)  # shared lap: info line always written (who shared it)
+        return DROP_LAP if info or is_recorded_lap(path, info) else ""
     if lower.endswith(".zip"):
         try:
             with zipfile.ZipFile(path) as package:
@@ -143,6 +153,7 @@ def handle_drop(window, paths: list[str]) -> list[str]:
 
     messages = []
     imported = False  # presets imported not refreshed yet: pages & menus refreshed once, not once per file
+    laps = []  # lap files: shown together in lap viewer (one circuit kept, as its Add File action)
     try:
         for path in paths:
             kind = classify(path)
@@ -170,6 +181,8 @@ def handle_drop(window, paths: list[str]) -> list[str]:
                 from .lap_viewer import import_motec_log
 
                 messages.append(import_motec_log(window, path))
+            elif kind == DROP_LAP:
+                laps.append(path)
             elif kind == DROP_RACE:
                 from .tools_view import open_tool
 
@@ -190,6 +203,12 @@ def handle_drop(window, paths: list[str]) -> list[str]:
                     install_file(path)
             else:
                 messages.append(trm(f"Unsupported file: <b>{name}</b>"))
+        if laps:
+            from .lap_viewer import show_dropped_laps
+
+            message = show_dropped_laps(window, laps)
+            if message:
+                messages.append(message)
     finally:
         if imported:
             app_signal.refresh.emit(True)

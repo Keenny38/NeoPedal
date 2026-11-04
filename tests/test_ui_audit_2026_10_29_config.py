@@ -374,7 +374,7 @@ def test_wizard_global_choices_stream_and_screen_view(ui_env, monkeypatch):
         modern_font=True, preset="", new_preset="", widgets=(), stream=True, open_screen_view=True)
     setup_wizard.apply_global_choices(choices)
     assert cfg.user.config["stream_overlay"]["enable_stream_overlay"] is True
-    assert cfg.application["show_overlay_screen_view"] is True
+    assert cfg.application["show_overlay_screen_view"] is False  # Screen view shown once, saved view kept
 
 
 def test_wizard_finish_runs_test_once_reloaded(ui_env, monkeypatch):

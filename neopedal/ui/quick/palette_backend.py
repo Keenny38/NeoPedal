@@ -42,6 +42,7 @@ class PaletteBackend(ShellBackend):
     """Search & results of the palette"""
 
     resultsChanged = Signal()
+    optionPromptChanged = Signal()
 
     def __init__(self, window: QWidget):
         super().__init__()
@@ -49,6 +50,7 @@ class PaletteBackend(ShellBackend):
         self.commands = palette.build_commands(window)
         self._presets: list[palette.Command] | None = None
         self._query = ""
+        self._option_prompt = False  # "@" typed alone: options listed once a name is typed (hint, not "Nothing found")
         self._results: list[palette.Command] = []
         self._rows: list[dict] = []
         self.model = DictListModel(ROLES, self)  # rows synced in place: delegates of results kept are not rebuilt
@@ -131,6 +133,11 @@ class PaletteBackend(ShellBackend):
                 "glyph": command.glyph or palette.GROUP_GLYPHS.get(untr(command.kind), ""),
             })
         self._results = results
+        prefix, text = palette.split_prefix(query)
+        prompt = prefix == palette.PREFIX_OPTIONS and not text
+        if prompt != self._option_prompt:
+            self._option_prompt = prompt
+            self.optionPromptChanged.emit()
         if rows != self._rows:
             self._rows = rows
             self.model.sync(rows, reset_if_mostly_new=True)
@@ -144,6 +151,11 @@ class PaletteBackend(ShellBackend):
     @Property(QObject, constant=True)
     def resultsModel(self) -> QObject:
         return self.model
+
+    @Property(bool, notify=optionPromptChanged)
+    def optionPrompt(self) -> bool:
+        """Option prefix typed without a name: hint shown instead of Nothing found"""
+        return self._option_prompt
 
     @Property(str, constant=True)
     def hint(self) -> str:

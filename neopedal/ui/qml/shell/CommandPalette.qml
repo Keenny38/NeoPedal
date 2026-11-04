@@ -111,8 +111,9 @@ TpPage {
                 empty: list.count === 0
                 compact: true
                 glyph: ""  // search
-                title: i18n.tr("Nothing found")
-                text: i18n.tr("Check spelling, or try fewer or other words.")
+                title: backend.optionPrompt ? i18n.tr("Type an option name") : i18n.tr("Nothing found")
+                text: backend.optionPrompt ? i18n.tr("Options show as you type.")
+                                           : i18n.tr("Check spelling, or try fewer or other words.")
             }
         }
 

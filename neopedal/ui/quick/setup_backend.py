@@ -253,7 +253,7 @@ class SetupBackend(PageBackend):
     skipped = Signal()
     skipRequested = Signal()  # Esc or window close: page asks before quitting
 
-    def __init__(self, parent=None, detect_games: bool = True):
+    def __init__(self, parent=None, detect_games: bool = True, first_run: bool = False):
         super().__init__(parent, "Setup")
         self._step = STEP_WELCOME
         self._visited = {STEP_WELCOME}  # steps shown at least once: marked done only then (not jumped over)
@@ -283,7 +283,8 @@ class SetupBackend(PageBackend):
         self._presets = sorted(names, key=lambda name: f"{name}{FileExt.JSON}" != loaded)
         self._existing: tuple[object, frozenset[str]] = (None, frozenset())  # see existing_presets
         self._preset_index = 0
-        self._new_preset = True
+        # First run: a new preset proposed; opened again later: the loaded preset (language change only kept)
+        self._new_preset = first_run or not self._presets or f"{self._presets[0]}{FileExt.JSON}" != loaded
         self._name_edited = False
         self._new_name = self.default_name()
         self._preset_cache: dict[str, dict] = {}

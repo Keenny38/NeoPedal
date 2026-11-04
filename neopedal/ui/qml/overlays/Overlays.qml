@@ -62,6 +62,7 @@ TpPage {
         cardMenu.favorite = entry.favorite
         cardMenu.category = entry.category
         cardMenu.categoryLabel = entry.categoryLabel
+        cardMenu.testing = backend.testingOnScreen()
         cardMenu.popup(item, x, y)
     }
     function stateText(index, text) {
@@ -329,14 +330,26 @@ TpPage {
 
             // Nothing shown
             TpStateView {
+                id: emptyState
+                objectName: "overlaysEmptyState"
+                // "Active" choice with no overlay enabled at all: said so, every overlay shown again on demand
+                readonly property bool noneEnabled: backend.stateFilter === 1 && backend.activeCount === 0
                 anchors.centerIn: parent
                 empty: page.view !== 2 && overlays.count === 0
                 glyph: ""  // search
-                title: backend.category === "#favorites" && !backend.searchText && backend.stateFilter === 0
+                title: emptyState.noneEnabled ? i18n.tr("No overlay enabled")
+                       : backend.category === "#favorites" && !backend.searchText && backend.stateFilter === 0
                        ? i18n.tr("No favorite overlay yet: click the star of a card")
                        : i18n.tr("No overlay matches the filters")
-                actionText: backend.filtered ? i18n.tr("Clear Filters") : ""
-                onAction: { backend.clearFilters(); page.focusSearch() }
+                actionText: emptyState.noneEnabled ? i18n.tr("Show All") : backend.filtered ? i18n.tr("Clear Filters") : ""
+                onAction: {
+                    if (emptyState.noneEnabled) {
+                        backend.setStateFilter(0)
+                    } else {
+                        backend.clearFilters()
+                        page.focusSearch()
+                    }
+                }
             }
         }
 
@@ -383,6 +396,7 @@ TpPage {
         property bool favorite: false
         property string category: ""
         property string categoryLabel: ""
+        property bool testing: false  // Test on Screen running when opened
         Action { text: i18n.tr("Options…"); onTriggered: backend.openConfig(cardMenu.name) }
         Action {
             text: cardMenu.active ? i18n.tr("Disable") : i18n.tr("Enable")
@@ -392,9 +406,9 @@ TpPage {
             text: (cardMenu.favorite ? i18n.tr("Remove from Favorites") : i18n.tr("Add to Favorites")) + "   Ctrl+D"
             onTriggered: backend.toggleFavorite(cardMenu.name)
         }
-        Action {
-            text: i18n.tr("Test on Screen")
-            enabled: cardMenu.active
+        Action {  // every overlay on screen (as on the Overlay Options page), running: stopped
+            text: cardMenu.testing ? i18n.tr("Stop Test") : i18n.tr("Test on Screen")
+            enabled: cardMenu.active || cardMenu.testing
             onTriggered: backend.testOnScreen()
         }
         Action { text: i18n.tr("Export Overlay Settings…"); onTriggered: backend.exportSettings(cardMenu.name) }

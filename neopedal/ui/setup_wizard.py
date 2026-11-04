@@ -111,8 +111,6 @@ def apply_global_choices(choices: SetupChoices) -> str:
     style["enable_colorblind_colors"] = choices.colorblind
     # Server started (or stopped: step unticked, the summary says Off) by the reload
     cfg.user.config["stream_overlay"]["enable_stream_overlay"] = choices.stream
-    if choices.open_screen_view:
-        application["show_overlay_screen_view"] = True
     cfg.save(0, config_type=ConfigType.CONFIG)
     if choices.new_preset:
         filename = f"{choices.new_preset}{FileExt.JSON}"
@@ -170,21 +168,25 @@ def finish_setup(choices: SetupChoices, done: Callable[[], object] | None = None
 
 
 def show_overlays_page(window, screen_view: bool):
-    """Overlays page of main window shown (in Screen view: where each overlay is placed)"""
+    """Overlays page of main window shown (in Screen view: where each overlay is placed, saved view kept)"""
     from .nav_rail import PAGE_INDEX
 
     view = window.centralWidget() if hasattr(window, "centralWidget") else None
     select_page = getattr(view, "select_page", None)
     if not callable(select_page):
         return
+    if screen_view:
+        from .quick.overlay_backend import VIEW_SCREEN, OverlayBackend
+
+        # Shown until a view is picked, also by the page rebuilt for a new language (setting unchanged)
+        OverlayBackend.view_once = VIEW_SCREEN
     select_page(PAGE_INDEX["widget"])
     if screen_view:
         from .overlay_view import OverlayView
-        from .quick.overlay_backend import VIEW_SCREEN
 
         page = window.findChild(OverlayView)
-        if page is not None:  # page built before: view of its own (setting read when built)
-            page.backend.setViewMode(VIEW_SCREEN)
+        if page is not None:  # page built before: view read again
+            page.backend.follow_saved_view()
 
 
 def test_overlays_on_screen(parent):
@@ -208,7 +210,7 @@ def test_overlays_on_screen(parent):
 class SetupWizard(QDialog):
     """First launch setup wizard window"""
 
-    def __init__(self, parent, detect_games: bool = True):
+    def __init__(self, parent, detect_games: bool = True, first_run: bool = False):
         from .quick import create_quick_view
         from .quick.preview_provider import install_provider as install_preview_provider
         from .quick.setup_backend import SetupBackend
@@ -218,7 +220,7 @@ class SetupWizard(QDialog):
         self.setWindowFlag(Qt.WindowType.WindowContextHelpButtonHint, False)
         self.setMinimumSize(UIScaler.size(40), UIScaler.size(30))
         self.resize(UIScaler.size(60), UIScaler.size(40))
-        self.backend = SetupBackend(self, detect_games=detect_games)
+        self.backend = SetupBackend(self, detect_games=detect_games, first_run=first_run)
         # Queued: closing deletes the QML page, never inside the click handler of its button (crash)
         self.backend.finished.connect(self.accept, Qt.ConnectionType.QueuedConnection)
         self.backend.skipped.connect(self.skip_now, Qt.ConnectionType.QueuedConnection)
@@ -256,7 +258,7 @@ class SetupWizard(QDialog):
 
             if choices.open_screen_view:
                 show_overlays_page(parent, True)
-            show_toast(parent, tr("Setup complete. Overlays show once you are driving."))
+            show_toast(parent, tr("Setup complete. Enabled overlays show on screen while you drive."))
 
     def reject(self):
         """Esc or window close: quit confirmed in the page first (closed at once if the page failed to load)"""

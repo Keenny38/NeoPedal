@@ -56,7 +56,7 @@ def renders(monkeypatch):
 
 @pytest.fixture
 def wizard(ui_env, renders):
-    page = setup_wizard.SetupWizard(None, detect_games=False)
+    page = setup_wizard.SetupWizard(None, detect_games=False, first_run=True)
     yield page
     page.backend.stop_previews()
     page.deleteLater()
@@ -230,7 +230,7 @@ def test_default_preset_name_not_used_yet(ui_env, renders):
 
 def test_overlay_checks_follow_preset_choice(ui_env, renders, monkeypatch):
     monkeypatch.setattr(cfg.filename, "setting", "default.json")  # loaded preset (left by other tests otherwise)
-    backend = setup_backend.SetupBackend(detect_games=False)
+    backend = setup_backend.SetupBackend(detect_games=False, first_run=True)
     choices = backend.choices()
     assert set(choices.widgets) == set(setup_wizard.DEFAULT_STARTER)  # new preset: recommended
     assert "radar" in choices.disabled and "relative" not in choices.disabled

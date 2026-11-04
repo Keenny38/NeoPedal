@@ -476,7 +476,7 @@ class AppWindow(QMainWindow):
         cfg.application["show_setup_wizard_at_startup"] = False
         cfg.save(0, config_type=ConfigType.CONFIG)
         self.show_app()
-        SetupWizard(self).open()
+        SetupWizard(self, first_run=True).open()
 
     def apply_color_theme(self):
         """Window style palette & style sheet of color theme, if changed"""

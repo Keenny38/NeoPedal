@@ -149,7 +149,7 @@ Item {
                 objectName: "unlockPositionsButton"
                 visible: view.locked
                 size: "sm"
-                text: i18n.tr("Unlock Overlay")
+                text: i18n.tr("Unlock Overlays")
                 tip: i18n.tr("Overlays can be moved again, here and on screen (edit mode in game)")
                 onClicked: backend.unlockPositions()
             }
@@ -178,7 +178,8 @@ Item {
             Pill {
                 visible: (view.screenData.notRunning || 0) > 0
                 tint: theme.dimText
-                text: i18n.trm((view.screenData.notRunning || 0) + " enabled overlays not running")
+                text: i18n.plural(view.screenData.notRunning || 0, "%1 enabled overlay not running",
+                                  "%1 enabled overlays not running").arg(view.screenData.notRunning || 0)
                 tip: i18n.tr("Enabled overlays that could not start are not shown here")
             }
         }

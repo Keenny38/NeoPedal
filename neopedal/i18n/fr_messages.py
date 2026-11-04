@@ -591,7 +591,7 @@ MESSAGE_RULES = (
     (r"^([0-9]+) days ago$", r"il y a \1 jours"),
     (r"^([0-9]+) bytes$", r"\1 octets"),
     (r"^([0-9]+) KB$", r"\1 Ko"),
-    (r"^Back to default: (.+)$", r"Valeur par défaut rétablie : \1"),
+    (r"^Back to default: (.+)$", r"Revenir à la valeur par défaut : \1"),  # reset button tip: not done yet
     (r"^Settings file: (.+)$", r"Fichier des paramètres : \1"),
     (r"^Preset hotkeys: (.+)$", r"Raccourcis de preset : \1"),
     # Lap viewer audit J (E)
@@ -717,7 +717,6 @@ MESSAGE_RULES = (
     (r"^Exported <b>([01])</b> overlay\(s\) to:", r"<b>\1</b> overlay exporté vers :"),
     (r"^Exported <b>([0-9]+)</b> overlay\(s\) to:", r"<b>\1</b> overlays exportés vers :"),
     (r"^(\d+) overlays overlap$", r"\1 overlays se chevauchent"),
-    (r"^(\d+) enabled overlays not running$", r"\1 overlays activés non démarrés"),
     (r"^Overlay moved: (.+)$", r"Overlay déplacé : \1"),
     # UI/UX audit 2026-10-29: Overlays page, What's New
     (r"^Overlay moved, not saved \(locked preset\): (.+)$", r"Overlay déplacé, non enregistré (preset verrouillé) : \1"),
@@ -725,6 +724,21 @@ MESSAGE_RULES = (
     (r"^1 overlay disabled$", "1 overlay désactivé"),
     (r"^(\d+) overlays enabled$", r"\1 overlays activés"),
     (r"^(\d+) overlays disabled$", r"\1 overlays désactivés"),
+    # Locked preset: switches & options last until the app is closed, never saved
+    (r"^Overlay enabled, not saved \(locked preset\): (.+)$", r"Overlay activé, non enregistré (preset verrouillé) : \1"),
+    (r"^Overlay disabled, not saved \(locked preset\): (.+)$",
+     r"Overlay désactivé, non enregistré (preset verrouillé) : \1"),
+    (r"^1 overlay enabled, not saved \(locked preset\)$", "1 overlay activé, non enregistré (preset verrouillé)"),
+    (r"^1 overlay disabled, not saved \(locked preset\)$",
+     "1 overlay désactivé, non enregistré (preset verrouillé)"),
+    (r"^(\d+) overlays enabled, not saved \(locked preset\)$",
+     r"\1 overlays activés, non enregistrés (preset verrouillé)"),
+    (r"^(\d+) overlays disabled, not saved \(locked preset\)$",
+     r"\1 overlays désactivés, non enregistrés (preset verrouillé)"),
+    (r"^Preset (<b>.+?</b>) is locked: changed options last until the app is closed, they are not saved\."
+     r"<br><br>Apply them anyway\?$",
+     r"Le preset \1 est verrouillé : les options modifiées durent jusqu'à la fermeture de l'app, elles ne sont pas "
+     r"enregistrées.<br><br>Les appliquer quand même ?"),
     (r"^Overlay turned on: (.+)$", r"Overlay activé : \1"),
     (r"^Try ([^.?!:]+)$", r"Essayer \1"),
     (r"^Options: (\D.*)$", r"Options : \1"),

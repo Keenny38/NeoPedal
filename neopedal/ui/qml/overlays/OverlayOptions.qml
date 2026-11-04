@@ -655,13 +655,22 @@ TpPage {
                         topPadding: theme.em * 3
                         glyph: backend.searching ? "" : ""  // search, check
                         title: backend.searching ? i18n.tr("No option found")
-                             : backend.modifiedOnly ? i18n.tr("Every option has its default value") : ""
+                             : backend.modifiedOnly ? i18n.tr("Every option has its default value")
+                             : page.filterCount > 0 ? i18n.tr("No option matches the filters") : ""
                         text: backend.searching
                               ? (backend.scopeAll ? i18n.tr("Search looks through every overlay. Check spelling, or try other words.")
                                                   : i18n.tr("Try searching every overlay, or other words."))
                               : ""
-                        actionText: backend.searching && !backend.scopeAll ? i18n.tr("Search Every Overlay") : ""
-                        onAction: backend.setScopeAll(true)
+                        actionText: backend.searching ? (backend.scopeAll ? "" : i18n.tr("Search Every Overlay"))
+                                  : page.filterCount > 0 ? i18n.tr("Show All") : ""
+                        onAction: {
+                            if (backend.searching) {
+                                backend.setScopeAll(true)
+                            } else {  // filters of the options list off: every option shown
+                                backend.setModifiedOnly(false)
+                                backend.setUsedOnly(false)
+                            }
+                        }
                     }
                 }
 

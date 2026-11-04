@@ -285,7 +285,7 @@ def test_locked_preset_unlocked_after_question(backend, control, monkeypatch):
     asked = []
     backend._confirm = lambda text: asked.append(text) or False
     backend.unlockPreset()
-    assert filename in cfg.user.filelock and asked and filename in asked[0]
+    assert filename in cfg.user.filelock and asked and filename.removesuffix(".json") in asked[0]
     backend._confirm = lambda text: True
     backend.unlockPreset()
     assert filename not in cfg.user.filelock

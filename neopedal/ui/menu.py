@@ -339,8 +339,17 @@ class ResetDataMenu(QMenu):
             QMessageBox.warning(self._parent, tr("Error"), trm(
                 f"Unable to reset {data_name} data: {error.strerror or error}"))
             return False
-        show_toast(self._parent, trm(
-            f"{data_name if translated else data_name.capitalize()} data has been reset for<br><b>{filename}</b>"))
+        message = trm(
+            f"{data_name if translated else data_name.capitalize()} data has been reset for<br><b>{filename}</b>")
+        # Tray menu with window hidden or minimized: told by a tray message (a toast of the window is never seen)
+        window = self._parent.window() if isinstance(self._parent, QWidget) else None
+        if window is not None and (not window.isVisible() or window.isMinimized()):
+            from .notification import tray_message
+            from .toast import plain_text
+
+            if tray_message(plain_text(message), window=window):
+                return True
+        show_toast(self._parent, message)
         return True
 
 

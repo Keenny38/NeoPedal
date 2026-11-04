@@ -109,7 +109,8 @@ Item {
         }
         Item { Layout.fillWidth: true; visible: band.corners.length > 0 }
 
-        // Step through lost corners: shown one of all (1/3)
+        // Step through lost corners: shown one of all (1/3, "—/3" while none is zoomed on: ‹ › go to the last /
+        // first); one corner: its chip zooms on it, nothing to step through
         TpButton {
             objectName: "previousLost"
             visible: band.corners.length > 1
@@ -122,7 +123,7 @@ Item {
         }
         Text {
             objectName: "lostPosition"
-            visible: band.corners.length > 0
+            visible: band.corners.length > 1
             text: (band.chart && band.chart.lostIndex >= 0 ? band.chart.lostIndex + 1 : "—") + "/" + band.corners.length
             textFormat: Text.PlainText
             color: theme.dimText
@@ -132,7 +133,7 @@ Item {
         }
         TpButton {
             objectName: "nextLost"
-            visible: band.corners.length > 0
+            visible: band.corners.length > 1
             glyph: ""  // chevron right
             fallback: "›"
             flat: true

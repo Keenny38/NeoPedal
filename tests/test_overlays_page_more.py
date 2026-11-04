@@ -590,7 +590,8 @@ def test_qml_page_french(page):
         assert "Favoris" in texts and "Favorites" not in texts
         assert i18n.trm("3 overlays overlap") == "3 overlays se chevauchent"
         assert i18n.trm("Overlay moved: Carburant") == "Overlay déplacé\u00a0: Carburant"
-        assert i18n.trm("2 enabled overlays not running") == "2 overlays activés non démarrés"
+        assert i18n.plural(2, "%1 enabled overlay not running", "%1 enabled overlays not running") == (
+            "%1 overlays activés non démarrés")
         widget.close()
         widget.deleteLater()
         flush()

@@ -57,6 +57,7 @@ import time
 from collections import deque
 from contextlib import suppress
 from html import escape
+from math import isfinite
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from . import app_signal, units
@@ -322,7 +323,10 @@ def official_delta(read) -> float | None:
 
     if not _safe(lambda: api.name == API_LMU_NAME, False):
         return None
-    return round(_safe(read.timing.delta_best), 3)
+    value = _safe(read.timing.delta_best)
+    if not value or not isfinite(value):  # game gives 0 without a delta (no best lap, out lap), see game_deltabest
+        return None
+    return round(value, 3)
 
 
 MESSAGES_SENT = 3  # latest app messages sent with each telemetry answer (see overlay_messages)
@@ -560,7 +564,8 @@ class DashboardHandler(BoundedRequestHandler):
             count, until, _ = self.failures.get(address, [0, 0.0, 0.0])
             blocked = until > now or (lan and DashboardHandler.global_until > now)
             if not blocked:
-                if hmac.compare_digest(code.encode("utf-8"), self.access_code.encode("utf-8")):
+                # Any case: phones capitalize or lower typed text (generated code is upper case)
+                if hmac.compare_digest(code.upper().encode("utf-8"), self.access_code.upper().encode("utf-8")):
                     self.failures.pop(address, None)
                     return True
                 count += 1
@@ -568,14 +573,17 @@ class DashboardHandler(BoundedRequestHandler):
                 if lan:
                     self.count_global_failure(now)
         if blocked:
-            self.send_body(429, b"too many attempts, try again later", "text/plain")
+            if html:  # login form again, message in app language
+                self.send_body(429, login_html(TOO_MANY_ATTEMPTS).encode("utf-8"), "text/html; charset=utf-8")
+            else:
+                self.send_body(429, b"too many attempts, try again later", "text/plain")
         else:
-            self.send_unauthorized(html)
+            self.send_unauthorized(html, WRONG_CODE)
         return False
 
-    def send_unauthorized(self, html: bool):
+    def send_unauthorized(self, html: bool, error: str = ""):
         if html:
-            self.send_body(401, login_html().encode("utf-8"), "text/html; charset=utf-8")
+            self.send_body(401, login_html(error).encode("utf-8"), "text/html; charset=utf-8")
         else:
             self.send_body(401, b'{"error": "invalid access code"}', "application/json")
 
@@ -864,7 +872,11 @@ webdashboard = WebDashboard()
 # Page text (English, translated in app language when page is served): "@@key@@" in page
 LOGIN_LABELS = {
     "access_code": "Access code",
+    "sign_in": "Sign In",
 }
+# Login form messages (English, translated when page is served)
+WRONG_CODE = "Wrong code"
+TOO_MANY_ATTEMPTS = "Too many attempts, try again later"
 PAGE_LABELS = {
     "title": "NeoPedal Dashboard",
     "connecting": "Connecting…",
@@ -923,8 +935,11 @@ def page_vars() -> str:
     return "".join(f"--{name}:{themed_page(color, style)};" for name, color in PAGE_COLORS.items())
 
 
-def login_html() -> str:
-    return fill_page(LOGIN_HTML.replace("@@page@@", page_vars()), LOGIN_LABELS)
+def login_html(error: str = "") -> str:
+    """Login form, error message (English, see WRONG_CODE) shown under it"""
+    page = LOGIN_HTML.replace("@@page@@", page_vars()).replace(
+        "@@status@@", status_vars(colorblind_style(cfg.user.config.get("overlay_style"))))
+    return fill_page(page.replace("@@error@@", escape(tr(error)) if error else ""), LOGIN_LABELS)
 
 
 def dashboard_html() -> str:
@@ -944,12 +959,15 @@ def status_vars(colorblind: bool = False) -> str:
 
 LOGIN_HTML = """<!doctype html><html lang="@@lang@@"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>NeoPedal</title>
-<style>:root{@@page@@}
-body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;
-align-items:center;justify-content:center;height:100vh;margin:0}form{display:flex;gap:8px}
+<style>:root{@@page@@@@status@@}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;display:flex;flex-direction:column;
+align-items:center;justify-content:center;height:100vh;margin:0}
+form{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}input{width:8em}
 input,button{font-size:20px;padding:10px;border-radius:8px;border:1px solid var(--outline);background:var(--panel);color:var(--text)}
+p{color:var(--red);font-size:18px}p:empty{display:none}
 </style></head><body><form method="post" action="/login"><input name="code" placeholder="@@access_code@@" autofocus
-autocomplete="off"><button>OK</button></form></body></html>"""
+autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"><button>@@sign_in@@</button>
+</form><p role="alert">@@error@@</p></body></html>"""
 
 DASHBOARD_HTML = """<!doctype html><html lang="@@lang@@"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -960,12 +978,14 @@ DASHBOARD_HTML = """<!doctype html><html lang="@@lang@@"><head><meta charset="ut
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
 main{display:grid;gap:10px;padding:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+container-type:inline-size}
 .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.05em}
-.value{font-size:34px;font-weight:700;line-height:1.2}.big{grid-column:span 2}
+.value{font-size:34px;font-size:min(34px,17cqi);font-weight:700;line-height:1.2}.big{grid-column:span 2}
 .huge{font-size:84px;text-align:center}.bar{height:12px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:6px}
 .bar>div{height:100%;width:0}.grid4{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:22px}
 #status{padding:6px 12px;color:var(--muted);font-size:13px}.pos{color:var(--green)}.neg{color:var(--red)}
+.muted{color:var(--muted)}
 .unit{font-size:18px;color:var(--muted)}.badge{display:none;margin-left:6px;padding:1px 6px;border-radius:6px;
 background:var(--red);color:var(--bg);font-size:12px;letter-spacing:0}
 .note{display:none;margin:0 12px;padding:10px 12px;border-radius:12px;background:var(--panel);
@@ -979,7 +999,7 @@ border:2px solid var(--blue);font-family:system-ui,sans-serif;font-size:18px}.no
 <div class="value huge"><span id="gear">N</span> <span id="speed" style="font-size:48px">0</span>
 <span class="unit" id="speedunit"></span></div>
 <div class="bar"><div id="rpmbar" style="background:var(--blue)"></div></div></div>
-<div class="card"><div class="label">@@delta@@</div><div class="value" id="delta">+0.000</div></div>
+<div class="card"><div class="label">@@delta@@</div><div class="value muted" id="delta">&ndash;</div></div>
 <div class="card" id="officialcard" style="display:none"><div class="label">@@official@@</div>
 <div class="value" id="official">+0.000</div></div>
 <div class="card"><div class="label">@@position@@</div><div class="value" id="position">-</div></div>
@@ -1006,6 +1026,10 @@ const hms=t=>{if(!(t>0))return"--:--";t=Math.floor(t);const h=Math.floor(t/3600)
 return(h?h+":"+String(m).padStart(2,"0"):m)+":"+String(s).padStart(2,"0")};
 const quad=v=>v.map(x=>"<div>"+Math.round(x)+"</div>").join("");
 const signed=x=>(x>=0?"+":"")+x.toFixed(3);
+const has=x=>typeof x==="number"&&isFinite(x);  // value sent (none without session: {"active": false})
+const put=(id,text,missing)=>{const e=$(id);e.textContent=missing?"\N{EN DASH}":text;e.classList.toggle("muted",missing)};
+const num=x=>x.toFixed(1).replace(".",T.decimal);
+const pct=x=>(has(x)?Math.min(Math.max(x,0),1)*100:0)+"%";  // missing pedal: empty bar
 let seen=-1;  // last app message shown (messages of before the page was opened never shown)
 const note=$("note");note.onclick=()=>{note.style.display="none"};
 function notes(list){if(!Array.isArray(list))return;const last=list.reduce((m,x)=>Math.max(m,x.serial),0);
@@ -1019,10 +1043,11 @@ try{const r=await fetch("/api/telemetry",{credentials:"same-origin",cache:"no-st
 if(r.status===401){$("status").textContent=T.expired;return setTimeout(()=>location.replace("/"),1500)}
 if(!r.ok)throw new Error(r.status);const d=await r.json();const v=d.display||{};notes(d.messages);
 $("status").textContent=d.active?(d.track||T.on_track):T.waiting;
-$("gear").textContent=d.gear>0?d.gear:(d.gear<0?"R":"N");$("speed").textContent=Math.round(v.speed||0);
+put("gear",d.gear>0?d.gear:(d.gear<0?"R":"N"),!has(d.gear));put("speed",Math.round(v.speed),!has(v.speed));
 $("speedunit").textContent=v.speed_unit||"";
 $("rpmbar").style.width=(d.rpm_max>0?Math.min(d.rpm/d.rpm_max,1)*100:0)+"%";
-const dl=d.delta_best||0;const shown=d.delta_available!==false;$("delta").textContent=shown?signed(dl):"\u2013";$("delta").className="value "+(shown?(dl>0?"neg":"pos"):"");
+const dl=d.delta_best;const shown=d.delta_available===true&&has(dl);put("delta",shown&&signed(dl),!shown);
+$("delta").classList.toggle("neg",shown&&dl>0);$("delta").classList.toggle("pos",shown&&dl<=0);
 const off=d.delta_official;const official=typeof off==="number";
 $("officialcard").style.display=official?"":"none";
 if(official){$("official").textContent=signed(off);$("official").className="value "+(off>0?"neg":"pos")}
@@ -1030,9 +1055,9 @@ $("position").textContent=d.position?d.position+"/"+d.vehicles:"-";
 $("invalid").style.display=d.lap_invalid?"inline-block":"none";
 $("lapcur").textContent=lap(d.lap_current);$("laplast").textContent=lap(d.lap_last);$("lapbest").textContent=lap(d.lap_best);
 $("fueltitle").textContent=v.energy?T.energy:T.fuel;
-$("fuel").textContent=(v.fuel||0).toFixed(1).replace(".",T.decimal);$("fuelunit").textContent=v.fuel_unit||"";
-$("fuellaps").textContent=(v.fuel_laps||0).toFixed(1).replace(".",T.decimal)+" "+T.laps;
-$("thr").style.width=(d.throttle*100)+"%";$("brk").style.width=(d.brake*100)+"%";
+put("fuel",has(v.fuel)&&num(v.fuel),!has(v.fuel));$("fuelunit").textContent=v.fuel_unit||"";
+$("fuellaps").textContent=has(v.fuel_laps)?num(v.fuel_laps)+" "+T.laps:"\N{EN DASH}";
+$("thr").style.width=pct(d.throttle);$("brk").style.width=pct(d.brake);
 $("tyreunit").textContent=$("brakeunit").textContent=v.temperature_unit||"";
 $("tyres").innerHTML=quad(v.tyre_temp||[]);$("brakes").innerHTML=quad(v.brake_temp||[]);
 $("remain").textContent=hms(d.time_remaining);setTimeout(tick,150)}

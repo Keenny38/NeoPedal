@@ -39,6 +39,7 @@ Enabling or disabling the shown overlays is done at once, with Undo in the page 
 
 from __future__ import annotations
 
+import html
 import logging
 import weakref
 from collections import deque
@@ -703,6 +704,11 @@ def positions_locked() -> bool:
     return bool(cfg.overlay["fixed_position"])
 
 
+def preset_locked() -> bool:
+    """Loaded preset locked: overlays switched on or off keep that state until the app is closed, never saved"""
+    return cfg.filename.setting in cfg.user.filelock
+
+
 def shrink_background(image: QImage, max_width: int = BACKGROUND_MAX_WIDTH) -> QImage:
     """Screenshot scaled down to max_width (same ratio) if wider, else as is (any thread)"""
     if image.isNull() or image.width() <= max_width:
@@ -759,6 +765,8 @@ class OverlayBackend(PageBackend):
     presetChanged = Signal()
     liveChanged = Signal()
     screenChanged = Signal()
+    # View shown instead of the saved one until a view is picked (setup wizard: Screen view once, setting kept)
+    view_once: int | None = None
     lockChanged = Signal()  # overlays locked or unlocked (screen view: moves allowed or not)
     backgroundChanged = Signal()  # screenshot under the screen view
     overlayMoved = Signal(str)  # label of overlay moved from screen view (undo offered)
@@ -1182,6 +1190,8 @@ class OverlayBackend(PageBackend):
 
     @staticmethod
     def _saved_view() -> int:
+        if OverlayBackend.view_once is not None:
+            return OverlayBackend.view_once
         if cfg.application.get("show_overlay_screen_view", False):
             return VIEW_SCREEN
         return VIEW_CARDS if cfg.application.get("show_overlay_previews", True) else VIEW_LIST
@@ -1193,7 +1203,10 @@ class OverlayBackend(PageBackend):
     @Slot(int)
     def setViewMode(self, mode: int):
         """Cards, list or screen view (kept in config.json)"""
-        if mode not in (VIEW_CARDS, VIEW_LIST, VIEW_SCREEN) or mode == self._view:
+        if mode not in (VIEW_CARDS, VIEW_LIST, VIEW_SCREEN):
+            return
+        once, OverlayBackend.view_once = OverlayBackend.view_once, None  # view picked: saved from now on
+        if mode == self._view and once is None:
             return
         application = cfg.application
         application["show_overlay_screen_view"] = mode == VIEW_SCREEN
@@ -1202,6 +1215,17 @@ class OverlayBackend(PageBackend):
         cfg.save(config_type=ConfigType.CONFIG)
         self._view = mode
         if mode != VIEW_CARDS:
+            self.live.stop()
+        self.viewChanged.emit()
+        self._screen_changed()
+
+    def follow_saved_view(self):
+        """Saved view (or view_once) shown, if another view is shown"""
+        view = self._saved_view()
+        if view == self._view:
+            return
+        self._view = view
+        if view != VIEW_CARDS:
             self.live.stop()
         self.viewChanged.emit()
         self._screen_changed()
@@ -1254,12 +1278,16 @@ class OverlayBackend(PageBackend):
     # Actions
     @Slot(str)
     def toggle(self, name: str):
-        """Overlay switched on or off, undone by Ctrl+Z (no toast: the switch shows it)"""
+        """Overlay switched on or off, undone by Ctrl+Z (no toast: the switch shows it, locked preset: told
+        not saved)"""
         if name in self.source.index_of:
             enabled = bool(cfg.user.setting[name]["enable"])
             self._control.toggle(name)
             self.update_overlay(name)
-            self._push_undo("toggle", name, lambda: self.toggle_back(name, enabled))
+            undo = self._push_undo("toggle", name, lambda: self.toggle_back(name, enabled))
+            if preset_locked():
+                state = "disabled" if enabled else "enabled"
+                self._toast(trm(f"Overlay {state}, not saved (locked preset): {module_label(name)}"), undo)
 
     def toggle_back(self, name: str, enabled: bool):
         """Overlay put back on or off as it was (already so, switched elsewhere since: nothing, B-003)"""
@@ -1318,6 +1346,8 @@ class OverlayBackend(PageBackend):
         else:
             self._control.set_enabled(names, enable)  # saved & on demand modules updated once
         state = "enabled" if enable else "disabled"
+        if preset_locked():
+            state += ", not saved (locked preset)"
         text = trm(f"1 overlay {state}" if len(names) == 1 else f"{len(names)} overlays {state}")
         self.bulkToggled.emit(text)
         self._toast(text, self._push_undo("bulk", "", lambda: self.switch_back(names, enable)))
@@ -1334,6 +1364,13 @@ class OverlayBackend(PageBackend):
         """Overlays switched by an Enable / Disable put back as they were"""
         self._control.set_enabled([name for name in names if name in self.source.index_of], not enable)
         app_signal.refresh.emit(True)
+
+    @Slot(result=bool)
+    def testingOnScreen(self) -> bool:
+        """Test on Screen running (read when the card menu opens: its entry stops it then)"""
+        from ..overlay_test import overlay_test
+
+        return overlay_test().running
 
     @Slot()
     def testOnScreen(self):
@@ -1610,7 +1647,8 @@ class OverlayBackend(PageBackend):
         filename = cfg.filename.setting
         if filename not in cfg.user.filelock:
             return
-        text = trm(f"Unlock <b>{filename}</b> preset?")
+        name = filename[:-len(FileExt.JSON)] if filename.endswith(FileExt.JSON) else filename  # as in header
+        text = trm(f"Unlock <b>{html.escape(name)}</b> preset?")
         if self._ask is None:
             if self._confirm(text):
                 self._unlock_preset(filename)

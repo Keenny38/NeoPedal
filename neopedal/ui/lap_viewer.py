@@ -598,6 +598,25 @@ def import_motec_log(window, filename: str) -> str:
     return trm(f"MoTeC log imported: <b>{name}</b> ({len(paths)} laps)")
 
 
+def show_dropped_laps(window, filenames: list[str]) -> str:
+    """Show lap files dropped on app (recorded .csv, shared .csv.gz) in lap viewer page, as its Add File action
+    (laps of one circuit kept, told in page status line); returns message, empty once handed to the page"""
+    import html
+
+    from .tools_view import open_tool
+
+    open_tool("lap_viewer.LapViewer", window)
+    viewers = [  # LapViewer name is singleton wrapper, not class
+        viewer for viewer in window.findChildren(BaseDialog)
+        if type(viewer).__name__ == "LapViewer" and viewer.isVisibleTo(window)
+    ]
+    if viewers:
+        viewers[-1].backend.add_external(filenames)
+        return ""
+    name = html.escape(", ".join(os.path.basename(filename) for filename in filenames))
+    return trm(f"Unable to import <b>{name}</b>: {tr('Unknown error')}")
+
+
 @singleton_dialog("lap_viewer")
 class LapViewer(BaseDialog):
     """Recorded lap telemetry viewer (Qt Quick page)

@@ -114,6 +114,15 @@ def test_lock_unlock(page):
     assert "race.json" not in cfg.user.filelock
 
 
+def test_lock_question_names_preset_without_extension(page, monkeypatch):
+    asked = []
+    monkeypatch.setattr(page.backend, "ask", lambda title, message, on_result: asked.append(message))
+    page.backend.toggleLock("race.json")
+    cfg.user.filelock["race.json"] = {"version": "0"}
+    page.backend.toggleLock("race.json")
+    assert asked[0].startswith("Lock <b>race</b> preset?") and asked[1] == "Unlock <b>race</b> preset?"
+
+
 def test_primary_tags_for_class_and_track(page):
     page.backend.setPrimaryClass("practice.json", "GT3")
     page.backend.setPrimaryTrack("practice.json", "Spa")
