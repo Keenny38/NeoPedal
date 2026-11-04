@@ -5,9 +5,19 @@ The full list of commits of each version is on the [Releases](https://github.com
 
 > **About the RaceControl / RaceOS API**
 >
-> Up to version 0.29.0, NeoPedal read RaceOS, the online service behind the RaceControl menu of Le Mans Ultimate, the way the game menu does: with the game's Steam ticket, read only, for the Upcoming Races page, Driver & Safety Ranks and online results. On 2 November 2026, an unreleased test build read the schedule far too often and sent bursts of requests; it was fixed the same day, and I reported it to RaceControl myself. A Le Mans Ultimate developer has since made it clear that third-party apps must not call RaceOS: only shared memory and the game's files are accepted.
+> Up to 0.29.0, NeoPedal connected to RaceControl the same way the game does, to show upcoming races, your ranks (DR and SR) and your online results.
 >
-> **Since 0.29.1, NeoPedal sends no request to RaceOS at all, and never uses the game's ticket.** Daily races come from the public RaceControl website (no sign-in, once an hour), your online results and ranks from the game's own files. Some features that only RaceOS could give are gone (ranks of the other drivers of a session, strength of field, registration from the app, weekly events and championships). Please update to 0.29.1; if you stay on 0.29.0 or older, turn off `enable_online_driver_ranks` (Settings > Application > Online). Sorry for the trouble, and thanks to Studio 397 for the game.
+> On 2 November, a test build (never released) sent far too many requests at once. I fixed it the same day and reported it to RaceControl myself. Since then, a game developer told us that outside apps are not allowed to connect to RaceControl. They may only read what the game itself provides.
+>
+> **Since 0.29.1, NeoPedal no longer connects to RaceControl at all.**
+>
+> - Daily races come from the public RaceControl web page, the one anyone can see without an account (read once an hour).
+> - Your online results and ranks come from the game's files.
+> - What is gone: other drivers' ranks, field strength, signing up for races from the app, weekly events and championships.
+>
+> **Please update to 0.29.1.** If you keep an older version, turn off the `enable_online_driver_ranks` option (Settings > Application > Online).
+>
+> Sorry for the trouble, and thanks to Studio 397 for the game.
 
 ## 0.29.1 (2026-11-03)
 

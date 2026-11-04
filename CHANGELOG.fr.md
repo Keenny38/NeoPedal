@@ -5,9 +5,19 @@ C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en 
 
 > **À propos de l'API RaceControl / RaceOS**
 >
-> Jusqu'à la version 0.29.0, NeoPedal lisait RaceOS, le service en ligne derrière le menu RaceControl de Le Mans Ultimate, comme le fait le menu du jeu : avec le ticket Steam du jeu, en lecture seule, pour la page Courses à venir, le Driver Rank et le Safety Rank et les résultats en ligne. Le 2 novembre 2026, une version de test non publiée lisait le calendrier beaucoup trop souvent et envoyait des rafales de requêtes ; c'est corrigé depuis le jour même, et je l'ai signalé moi-même à RaceControl. Un développeur de Le Mans Ultimate a depuis indiqué clairement que les apps tierces ne doivent pas appeler RaceOS : seuls la mémoire partagée et les fichiers du jeu sont acceptés.
+> Jusqu'à la 0.29.0, NeoPedal se connectait à RaceControl comme le fait le jeu, pour afficher les courses à venir, tes rangs (DR et SR) et tes résultats en ligne.
 >
-> **Depuis la 0.29.1, NeoPedal n'envoie plus aucune requête à RaceOS et n'utilise plus jamais le ticket du jeu.** Les courses quotidiennes viennent du site public de RaceControl (sans connexion, une fois par heure), tes résultats en ligne et tes rangs des fichiers du jeu. Certaines fonctions que seul RaceOS pouvait donner disparaissent (rangs des autres pilotes d'une session, force du plateau, inscription depuis l'app, événements hebdomadaires et championnats). Mets à jour vers la 0.29.1 ; si tu restes en 0.29.0 ou avant, désactive `enable_online_driver_ranks` (Réglages > Application > En ligne). Désolé pour la gêne, et merci à Studio 397 pour le jeu.
+> Le 2 novembre, une version de test (jamais publiée) a envoyé beaucoup trop de requêtes d'un coup. Je l'ai corrigée le jour même et je l'ai signalé moi-même à RaceControl. Depuis, un développeur du jeu nous a dit que les applications externes n'ont pas le droit de se connecter à RaceControl. Elles peuvent seulement lire ce que le jeu donne lui-même.
+>
+> **Depuis la 0.29.1, NeoPedal ne se connecte plus du tout à RaceControl.**
+>
+> - Les courses du jour viennent de la page publique du site RaceControl, celle que tout le monde voit sans compte (lue une fois par heure).
+> - Tes résultats en ligne et tes rangs viennent des fichiers du jeu.
+> - Ce qui disparaît : les rangs des autres pilotes, le niveau du plateau, l'inscription aux courses depuis l'app, les événements de la semaine et les championnats.
+>
+> **Mets à jour vers la 0.29.1.** Si tu gardes une version plus ancienne, désactive l'option `enable_online_driver_ranks` (Réglages > Application > En ligne).
+>
+> Désolé pour le dérangement, et merci à Studio 397 pour le jeu.
 
 ## 0.29.1 (2026-11-03)
 
