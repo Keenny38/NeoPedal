@@ -1,0 +1,130 @@
+NEOPEDAL AND RACECONTROL
+What the app asks for, how often, and what I have done about it
+
+Prepared for the RaceControl team and Studio 397
+Account: Keenny Hess - SteamID64 76561198796471594
+Author: Steven Vezzu - steven.vezzu@gmail.com
+Software: NeoPedal 0.29.0 - https://github.com/Keenny38/NeoPedal (free, open source)
+
+
+1. A word first
+
+Thank you for Le Mans Ultimate. I am an endurance sim racer, I drive for the team Le Mans Ultimate France, and I build NeoPedal in my spare time, for free, because I love this sim and its community.
+
+On 2 November my own testing sent far too many requests to raceos.gg. That was my mistake, and I am sorry for the trouble it caused. I told you as soon as I understood it, because I would rather be open about it than let anyone suspect something else. This document explains exactly what the app does, so that you can judge it with the real numbers in front of you.
+
+
+2. What NeoPedal is
+
+NeoPedal is a free, open-source companion app for Le Mans Ultimate (it also supports rFactor 2). It was made by a driver, for drivers, with one simple goal: help sim racers understand their driving, prepare their races and enjoy the sim even more, without ever touching the game itself.
+
+What it offers
+
+  Overlays in game
+    93 overlays with a modern design: timing and standings, tyres, brakes, fuel and energy, delta, radar, track map, weather and more. They also work in VR.
+
+  Telemetry viewer
+    Every lap is recorded and can be compared with another: speed, pedals, steering, delta and track map, with an export to MoTeC.
+
+  Race strategy calculator
+    Fuel, energy, tyres, stints and driver line-up for endurance races, with a live mode that follows the race.
+
+  Driver statistics
+    Personal bests, progression and goals per track and car, and a short debrief after each session.
+
+  Race results and replays
+    Your results, replays and online races, linked to your statistics.
+
+  Broadcast director and stream overlays
+    Camera control and graphics for streamers, with sources for OBS.
+
+  Upcoming Races
+    The daily, weekly and special races and the championships of Le Mans Ultimate, with reminders and registration, to help drivers plan their week.
+
+Where it comes from
+
+NeoPedal started as a fork of TinyPedal. I contacted its author, S.Victor, at the very beginning; he supported the project, the rename to NeoPedal and the separate settings folder followed his advice, and NeoPedal is now listed in the "Community projects" section of the official TinyPedal wiki:
+https://github.com/TinyPedal/TinyPedal/wiki#community-projects
+
+How it behaves
+
+It reads the game's shared memory and the game's own local REST API. It does not modify the game, does not bypass any protection, and does not touch anyone else's account. The page that talks to RaceControl is "Upcoming Races", plus the driver and safety ranks shown on the home page and in some overlays.
+
+
+3. How it talks to RaceControl
+
+It does what the game menu does, and only while the game is running:
+
+  1. It asks the game, on the game's own local REST API (/rest/profile/getAuthSessionTicket), for the Steam session ticket of the player.
+  2. It signs in to https://raceos.gg/authenticate with that ticket, exactly like the game, then sends the resulting token in the Game-Authorization header.
+  3. It identifies itself with the header "User-Agent: NeoPedal".
+
+The ticket and the token are kept in memory only: they are never saved to disk and never written to a log. The app opens no websocket (the game's own channel is never duplicated) and sends nothing to any other service. It only reads, except to register for or leave a race when the player clicks that button.
+
+
+4. What is read, and how often
+
+  Ranks (sign-in on /authenticate)
+    At start, after an online session ends (0.29.1; 0.29.0: after any session), then at most every 30 minutes while the game runs. A sign-in less than 10 minutes old is reused. The Refresh button is limited to once every 5 minutes.
+
+  Daily races schedule (3 tiers)
+    Every 30 minutes in the background; with the Upcoming Races page open, once per race slot (15 to 30 minutes by level) in 0.29.1, every 10 minutes in 0.29.0.
+
+  Daily calendar, weekly and special events
+    Once an hour.
+
+  Championships and co-op events
+    Once an hour, and only while the page is open.
+
+  Hosted servers
+    Every 10 minutes, and only while that tab is displayed.
+
+  Ranks of the drivers in a session (api/v1/players, 50 names per request)
+    A driver is read again after one hour at the earliest. Drivers joining are grouped: one request every 15 seconds at most.
+
+  Server of the player's own race (event/my-split)
+    Once a minute, only for a race the player registered to, from 1 minute before the start until 30 minutes after, for 4 races at most, and it stops after 5 reads with no answer.
+
+  The player's own place in the weekly leaderboards (2 requests each)
+    Automatic while the page is open (omitted in an earlier version of this document): 0.29.1 for tracks driven in the last 8 days only, every 2 hours; 0.29.0 for every followed leaderboard (about 15), every 30 minutes.
+
+  Field of a race about to start (event/entries)
+    Page open: 0.29.1 once per start in the 10 minutes before it; 0.29.0 every 10 minutes in the 15 minutes before.
+
+  Other details, leaderboards, results
+    Only when the player opens the matching screen.
+
+  Registration and leaving (event/register, event/unregister)
+    Only when the player clicks.
+
+Measured on 2026-11-03 with the real code, a fake server and real answers: about 10 to 12 requests an hour in the background; with the Upcoming Races page open, 59 to 70 an hour on the published 0.29.0 and about 20 on 0.29.1 (not yet published). When RaceControl answers errors, 0.29.1 stops after 3 routes and waits 5, 10, 20, 40, then 60 minutes (0.29.0 asked every route every 5 minutes).
+
+
+5. The limits that always apply
+
+  - At most 12 requests per minute and 120 per hour, all features together, with at least 1 second between two requests. Beyond that, the request is simply not sent.
+  - Background reads stop before using the whole allowance: 4 requests per minute stay reserved for what the player does by hand.
+  - After a 429, the app waits for the delay given by Retry-After, or 5 minutes doubled at each new 429.
+  - After a 403, nothing at all is sent for at least 1 hour, then 2, 4, up to 6 hours at each new refusal. That wait is written to disk, so restarting the app never shortens it.
+  - The player can turn every RaceControl request off with the option enable_online_driver_ranks.
+
+These limits are in the public source code (neopedal/process/raceos.py and neopedal/race_schedule_info.py), so you can check each number yourselves.
+
+
+6. What happened on 2 November
+
+While I was testing the Upcoming Races page, a development build of mine read the schedule every 2 minutes, signed in every 5 minutes, and also read entry lists and leaderboards, in bursts of parallel requests. That is what triggered your protection. This build was never released.
+
+Versions published up to 0.28.1 signed in every 5 minutes (ranks only, without the Upcoming Races page). Version 0.29.0 fixes this and brings in all the limits above. I fixed it the same day, before anyone asked.
+
+
+7. What I would like to do from here
+
+  - Keep improving the app: big optimizations are coming very soon.
+  - Follow any cap or rule that you set for third-party tools, and ship it in NeoPedal in a new update.
+  - Take any information that helps NeoPedal behave well with your service: an identification key, routes to avoid, limits of your own. I will stick to your guidance.
+  - Have my case reviewed by a member of the team, or by Studio 397, now that the problem is identified, corrected and explained.
+
+I am grateful for your time, and for the game.
+
+Steven Vezzu (Keenny Hess)
