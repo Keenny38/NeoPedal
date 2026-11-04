@@ -773,3 +773,33 @@ def test_listening_signal_sees_server_running(ui_env, monkeypatch):
         server.disable()
         app_signal.servers.disconnect(on_listening)
         app_signal.error.disconnect(errors.append)
+
+
+def test_sessions_kept_across_restarts(dashboard):
+    from neopedal.web_dashboard import SESSION_FILE, load_sessions, token_hash
+
+    jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    get("/?code=TESTCODE", opener=opener)
+    assert get("/api/telemetry", opener=opener)[0] == 200
+    with open(os.path.join(cfg.path.config, SESSION_FILE), encoding="utf-8") as file:
+        saved = file.read()
+    cookie = next(c.value for c in jar)  # only a hash of the token is written
+    assert cookie not in saved and token_hash(cookie) in saved
+    dashboard.disable()  # app restart: memory lost, same code
+    DashboardHandler.sessions.clear()
+    DashboardHandler.access_code = ""
+    dashboard.enable()
+    assert get("/api/telemetry", opener=opener)[0] == 200
+    assert load_sessions("OTHERCODE") == {}  # saved for another code: not read
+
+
+def test_new_code_ends_saved_sessions(dashboard):
+    from neopedal.web_dashboard import load_sessions
+
+    opener = browser()
+    get("/?code=TESTCODE", opener=opener)
+    cfg.user.config["web_dashboard"]["access_code"] = "NEWCODE99"
+    dashboard.enable()
+    assert get("/api/telemetry", opener=opener)[0] == 401
+    assert load_sessions("TESTCODE") == {}  # file rewritten for the new code

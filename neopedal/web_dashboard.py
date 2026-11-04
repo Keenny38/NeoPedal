@@ -33,7 +33,8 @@ code guesses sent by a page of another site (Origin, Sec-Fetch-Site) are refused
 Access code is exchanged for a random session cookie, so it is not kept in page address or scripts.
 Session expires when unused for a while, and after a few days anyway (cookie of a login on this computer ends with
 the browser session: cookies ignore ports, other local servers get it too). A session is only valid from the address
-it was created from.
+it was created from. Sessions are kept across app restarts (only a hash of each token is saved, bound to
+the access code: a new code ends them all).
 HTTPS (self-signed certificate, see userfile.tls_cert) can be enabled, otherwise traffic is plain HTTP,
 so only enable LAN access on a trusted network.
 
@@ -45,9 +46,11 @@ are in "display".
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 import logging
+import os
 import secrets
 import socket
 import ssl
@@ -76,6 +79,7 @@ from .i18n import current_language, decimal_point, tr
 from .log_handler import ErrorThrottle
 from .setting import cfg
 from .template.setting_status_colors import colorblind_style, status_colors
+from .userfile import read_json, write_json
 from .userfile.tls_cert import server_context
 from .widget._style import is_light_theme, themed_page
 
@@ -104,6 +108,9 @@ LINGER_BYTES = 64 * 1024
 # Session cookie name, port of server added: cookies are per host (not port), each dashboard (installed & source
 # copy, several instances) keeps its own session
 SESSION_COOKIE = "np_session"
+# Sessions kept across app restarts (config folder): hash of each token only, bound to the hash of the access code
+SESSION_FILE = "web_dashboard_sessions.json"
+SESSION_SAVE_SECONDS = 300  # last use of a session saved at most this often (a new or dropped session at once)
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no ambiguous 0/O, 1/I
 
 
@@ -232,6 +239,59 @@ class Session:
     def expired(self, now: float) -> bool:
         longest = LOCAL_SESSION_MAX_SECONDS if self.local else SESSION_MAX_SECONDS
         return now - self.last_used > SESSION_IDLE_SECONDS or now - self.created > longest
+
+
+def token_hash(token: str) -> str:
+    """Key of a session token: only its hash is kept (in memory & in the sessions file)"""
+    return hashlib.sha256(token.encode("utf-8", "replace")).hexdigest()
+
+
+def session_filename() -> str:
+    return os.path.join(cfg.path.config, SESSION_FILE)
+
+
+def save_sessions(sessions: dict[str, Session], code: str):
+    """Write sessions (monotonic times as wall clock times), bound to the access code"""
+    now, wall = time.monotonic(), time.time()
+    data = {
+        "code": token_hash(code),
+        "sessions": {
+            key: {
+                "created": wall - (now - session.created),
+                "last_used": wall - (now - session.last_used),
+                "address": session.address,
+                "local": session.local,
+            }
+            for key, session in sessions.items()
+        },
+    }
+    write_json(session_filename(), data, fsync=False)
+
+
+def load_sessions(code: str) -> dict[str, Session]:
+    """Sessions saved for this access code, still valid (empty: no file, other code, file unreadable)"""
+    data = read_json(session_filename(), strict=False, default=None, dict_only=True)
+    if not data or not hmac.compare_digest(str(data.get("code", "")), token_hash(code)):
+        return {}
+    saved = data.get("sessions")
+    if not isinstance(saved, dict):
+        return {}
+    now, wall = time.monotonic(), time.time()
+    sessions: dict[str, Session] = {}
+    for key, value in saved.items():
+        try:
+            created = now - (wall - float(value["created"]))
+            last_used = now - (wall - float(value["last_used"]))
+            session = Session(created, str(value["address"]), bool(value["local"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        session.last_used = last_used
+        if isinstance(key, str) and len(key) == 64 and created <= last_used <= now and not session.expired(now):
+            sessions[key] = session
+    if len(sessions) > MAX_SESSIONS:  # most recently used kept
+        kept = sorted(sessions, key=lambda name: sessions[name].last_used)[-MAX_SESSIONS:]
+        sessions = {key: sessions[key] for key in kept}
+    return sessions
 
 
 def is_local_client(address: str) -> bool:
@@ -396,7 +456,8 @@ class DashboardHandler(BoundedRequestHandler):
     timeout = 15  # idle client never holds a handler thread (socket timeout, no streaming endpoint)
     access_code = ""
     failures: dict[str, list[float]] = {}  # address: [count, blocked until, last failure]
-    sessions: dict[str, Session] = {}  # session token: session
+    sessions: dict[str, Session] = {}  # hash of session token: session (see token_hash)
+    sessions_saved = 0.0  # monotonic time sessions were last written (see save_sessions_later)
     # Wrong codes of LAN addresses (any address), see GLOBAL_MAX_FAILURES
     global_failures: deque[float] = deque(maxlen=GLOBAL_MAX_FAILURES)
     global_until = 0.0  # LAN logins blocked until this monotonic time
@@ -517,18 +578,22 @@ class DashboardHandler(BoundedRequestHandler):
         cookie = cookie_value(self.headers.get("Cookie", "") or "", self.session_cookie())
         if not cookie:
             return False
-        value = cookie.encode("utf-8")  # bytes: str compare raises TypeError on non ASCII cookie
+        value = token_hash(cookie).encode("ascii")
         address = str(self.client_address[0])
         now = time.monotonic()
         with self.lock:
-            self.purge_sessions(now)
-            for token, session in self.sessions.items():
-                if hmac.compare_digest(value, token.encode("ascii")):
-                    if session.address != address:
-                        return False
-                    session.last_used = now
-                    return True
-        return False
+            changed = self.purge_sessions(now)
+            found = False
+            for key, session in self.sessions.items():
+                if hmac.compare_digest(value, key.encode("ascii")):
+                    if session.address == address:
+                        session.last_used = now
+                        found = True
+                    break
+            changed = changed or (found and now - self.sessions_saved > SESSION_SAVE_SECONDS)
+        if changed:
+            self.store_sessions()
+        return found
 
     def new_session(self, local: bool = False) -> str:
         """Create session token of client address, least recently used session is dropped if limit reached"""
@@ -538,15 +603,26 @@ class DashboardHandler(BoundedRequestHandler):
             self.purge_sessions(now)
             if len(self.sessions) >= MAX_SESSIONS:
                 del self.sessions[min(self.sessions, key=lambda name: self.sessions[name].last_used)]
-            self.sessions[token] = Session(now, str(self.client_address[0]), local)
+            self.sessions[token_hash(token)] = Session(now, str(self.client_address[0]), local)
+        self.store_sessions()
         return token
 
     @classmethod
-    def purge_sessions(cls, now: float):
-        """Forget expired sessions: unused for a while, or too old"""
-        expired = [token for token, session in cls.sessions.items() if session.expired(now)]
-        for token in expired:
-            del cls.sessions[token]
+    def store_sessions(cls):
+        """Write sessions to the sessions file (kept across app restarts), any handler thread"""
+        with cls.lock:
+            sessions, code = dict(cls.sessions), cls.access_code
+            cls.sessions_saved = time.monotonic()
+        if code:
+            save_sessions(sessions, code)
+
+    @classmethod
+    def purge_sessions(cls, now: float) -> bool:
+        """Forget expired sessions: unused for a while, or too old (True if any)"""
+        expired = [key for key, session in cls.sessions.items() if session.expired(now)]
+        for key in expired:
+            del cls.sessions[key]
+        return bool(expired)
 
     def authorized(self, code: str, html: bool = False) -> bool:
         """Check session cookie or access code, block address after repeated failures"""
@@ -733,13 +809,15 @@ class WebDashboard:
             self.disable()
             return
         code = self.access_code()
-        if code != DashboardHandler.access_code:  # logins made with old code end
+        if code != DashboardHandler.access_code:  # logins made with old code end, saved ones of this code kept
+            sessions = load_sessions(code)
             with DashboardHandler.lock:
                 DashboardHandler.access_code = code
                 DashboardHandler.failures = {}
-                DashboardHandler.sessions = {}
+                DashboardHandler.sessions = sessions
                 DashboardHandler.global_failures.clear()
                 DashboardHandler.global_until = 0.0
+            DashboardHandler.store_sessions()  # file of an old code emptied
         host, port, secure = self.host(), self.port(), self.use_https()
         lan = host != "127.0.0.1"
         DashboardHandler.lan = lan

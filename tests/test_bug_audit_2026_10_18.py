@@ -154,7 +154,7 @@ def test_dashboard_session_cookie(monkeypatch):
     assert wd.cookie_value("np_session_9000=abc", "np_session_8338") is None
     assert wd.cookie_value("", "np_session_8338") is None
     now = time.monotonic()
-    monkeypatch.setattr(wd.DashboardHandler, "sessions", {"abc": wd.Session(now, "127.0.0.1", True)})
+    monkeypatch.setattr(wd.DashboardHandler, "sessions", {wd.token_hash("abc"): wd.Session(now, "127.0.0.1", True)})
     handler = wd.DashboardHandler.__new__(wd.DashboardHandler)
     handler.server = SimpleNamespace(server_address=("127.0.0.1", 8338))  # type: ignore[assignment]
     handler.client_address = ("127.0.0.1", 50000)

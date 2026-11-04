@@ -55,9 +55,10 @@ CONFIG_FILE = "config.json"
 SETTINGS_FILES = (CONFIG_FILE, "shortcuts.json")  # one of them: a global settings folder
 # Never copied: files of this run, and data folders rebuilt by the app or large (a config folder also holding
 # user data, by a user path pointed at it): recorded laps, pictures fetched from the game, deleted presets,
-# caches of files of this computer (results summaries)
+# caches of files of this computer (results summaries), web dashboard logins
 SKIPPED_FILES = ("pid.log", "*.lock", "*.tmp", "*.cache", "startup.marker", REQUEST_FILE, ".lap_cache",
-                 "telemetry", "gameimage", "trash")
+                 "telemetry", "gameimage", "trash",
+                 "web_dashboard_sessions.json")  # web_dashboard.SESSION_FILE: logins of devices to this computer
 TEMP_SUFFIX = ".importing"
 # Copy errors of a failing disk (full, quota, I/O, CRC): copy not used (files cut short), unlike files in use
 FATAL_COPY_ERRORS = ("[Errno 28]", "[Errno 122]", "[Errno 5]", "[WinError 112]", "[WinError 39]", "[WinError 23]",
