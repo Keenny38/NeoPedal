@@ -77,7 +77,7 @@ from .log_handler import ErrorThrottle
 from .setting import cfg
 from .template.setting_status_colors import colorblind_style, status_colors
 from .userfile.tls_cert import server_context
-from .widget._style import themed_page
+from .widget._style import is_light_theme, themed_page
 
 logger = logging.getLogger(__name__)
 snapshot_errors = ErrorThrottle()  # telemetry asked every second: warning once a minute
@@ -945,15 +945,17 @@ def login_html(error: str = "") -> str:
 def dashboard_html() -> str:
     page = DASHBOARD_HTML.replace("@@page@@", page_vars()).replace(
         "@@themecolor@@", themed_page(PAGE_COLORS["bg"], cfg.user.config.get("overlay_style")))
-    page = page.replace("@@status@@", status_vars(colorblind_style(cfg.user.config.get("overlay_style"))))
+    style = cfg.user.config.get("overlay_style")
+    page = page.replace("@@status@@", status_vars(colorblind_style(style), is_light_theme(style)))
     return fill_page(page, PAGE_LABELS, SCRIPT_TEXTS)
 
 
-def status_vars(colorblind: bool = False) -> str:
-    """Status colors of every surface (overlays, app pages, stream graphics), colorblind safe variant as overlays"""
+def status_vars(colorblind: bool = False, light: bool = False) -> str:
+    """Status colors of every surface (overlays, app pages, stream graphics), colorblind safe variant as overlays,
+    the colors for light backgrounds with the Modern White overlay theme"""
     colors = status_colors(colorblind)
     return "".join(
-        f"--{name}:{colors[role][0].lower()};"
+        f"--{name}:{colors[role][light].lower()};"
         for name, role in (("green", "gain"), ("red", "loss"), ("blue", "player"), ("yellow", "gold")))
 
 

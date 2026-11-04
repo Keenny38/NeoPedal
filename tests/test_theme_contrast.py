@@ -65,3 +65,55 @@ def test_control_outline_three_to_one(themed, name):
     for surface in (theme.surfacePage, theme.surfaceCard, theme.surfaceFlyout, theme.surfaceSunken, theme.base, theme.window):
         assert contrast_ratio(theme.controlBorder, surface) >= 3, (name, surface.name())
     assert contrast_ratio(theme.strokeStrong, theme.surfaceCard) >= 3, name  # hovered control keeps it
+
+
+@pytest.mark.parametrize("name", THEME_NAMES)
+def test_disabled_text_stays_legible(themed, name):
+    """Disabled text (palette Disabled group) keeps 3.8:1 against the window & the field background, and stays apart
+    from the dim text"""
+    from PySide6.QtGui import QPalette
+    from PySide6.QtWidgets import QApplication
+
+    from neopedal.ui.quick import Theme, contrast_ratio
+
+    themed(name)
+    theme = Theme()
+    disabled = QApplication.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text)
+    assert contrast_ratio(disabled, theme.window) >= 3.8, name
+    assert contrast_ratio(disabled, theme.base) >= 3.8, name
+    assert contrast_ratio(disabled, theme.window) < contrast_ratio(theme.dimText, theme.window), name
+
+
+@pytest.mark.parametrize("name", THEME_NAMES)
+def test_qt_widget_fields_use_the_control_outline(themed, name):
+    """Text inputs, combo boxes & check boxes of Qt dialogs: the 3:1 outline, not the palette border color"""
+    from PySide6.QtWidgets import QApplication
+
+    from neopedal.ui import set_style_window
+    from neopedal.ui.tokens import control_border
+
+    themed(name)
+    outline = control_border(QApplication.palette()).name()
+    sheet = set_style_window(QApplication.font().pointSize())
+    assert sheet.count(f"border:1px solid {outline}") >= 3 or sheet.count(f"border: 1px solid {outline}") >= 3, name
+
+
+COLORED_OVERLAY_TOKENS = ("accent", "positive", "negative", "warning", "caution", "best", "blue", "lap_ahead", "lap_behind")
+
+
+@pytest.mark.parametrize("name", ("Modern Dark", "Modern Grey", "Modern White"))
+def test_overlay_colors_on_panels(ui_env, name):
+    """Colors of values (gain, loss, warning, best...) keep 4.5:1 against the panels of the overlay theme (every panel
+    on Modern White, which darkens them until they do)"""
+    from neopedal.setting import cfg
+    from neopedal.ui.quick import contrast_ratio
+    from neopedal.widget._modern.theme import build_theme
+
+    style = dict(cfg.user.config["overlay_style"], overlay_theme=name)
+    theme = build_theme(style, 255)
+    light = name == "Modern White"
+    panels = (theme.surface, theme.surface_alt, theme.surface_raised) if light else (theme.surface, theme.surface_alt)
+    minimum = 4.5 if light else 3.8  # dark themes: blue & lapped cars are 3.8-4.2:1 on Modern Grey panels (lower on chips)
+    for token in COLORED_OVERLAY_TOKENS:
+        for panel in panels:
+            assert contrast_ratio(getattr(theme, token), panel) >= minimum, (name, token, panel.name())

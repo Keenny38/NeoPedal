@@ -38,7 +38,7 @@ from ..template.setting_status_colors import COLORBLIND_STATUS_COLORS
 from ..theme_data import MODERN_GREY_NEUTRALS, MODERN_LIGHT_NEUTRALS, MODERN_PALETTE
 
 MODERN_LIGHT_PANEL = "E5E9EF"  # darkest light panel: colors drawn on panels stay readable on it
-MINIMUM_CONTRAST = 3.0  # WCAG minimum for large text & graphics
+MINIMUM_CONTRAST = 4.5  # WCAG AA for text: colors drawn on a light panel are darkened to this contrast against it
 NEUTRAL_SPREAD = 24  # gray: RGB channels differ by this much at most
 
 # Colorblind safe variant of every theme (Okabe-Ito): red / green pairs become orange / blue, status colors
@@ -208,25 +208,61 @@ def grey_of(rgb: str) -> str:
     return rgb
 
 
+SLATE_TO_LIGHT = MappingProxyType({MODERN_PALETTE[key]: light for key, light in MODERN_LIGHT_NEUTRALS.items()
+                                   if key in MODERN_PALETTE})
+
+
+def light_of(rgb: str) -> str:
+    """Light theme color of a slate (low saturation, blue) color RRGGBB of a dark page: the Modern White gray of the
+    overlays, else the same color with its lightness inverted; other colors unchanged"""
+    rgb = rgb.upper()
+    if rgb in SLATE_TO_LIGHT:
+        return SLATE_TO_LIGHT[rgb]
+    hue, _lightness, saturation = _hls(rgb)
+    if 0 < saturation < 0.4 and 0.5 < hue < 0.75:
+        return _inverted(rgb)
+    return rgb
+
+
 def is_grey_theme(style: Mapping[str, Any] | None) -> bool:
     """Overlay theme of global overlay style is Modern Grey"""
     return bool(style) and style.get("overlay_theme") == "Modern Grey"  # type: ignore[union-attr]
 
 
-def grey_page(page: str) -> str:
-    """Page text with its slate colors (#RRGGBB) turned neutral gray, case of the hex digits kept"""
+def is_light_theme(style: Mapping[str, Any] | None) -> bool:
+    """Overlay theme of global overlay style is Modern White"""
+    return bool(style) and style.get("overlay_theme") == "Modern White"  # type: ignore[union-attr]
+
+
+def _swap_colors(page: str, convert) -> str:
     def swap(match: re.Match) -> str:
         text = match.group()
-        gray = grey_of(text[1:])
-        gray = gray.lower() if text[1:] == text[1:].lower() else gray
-        return f"#{gray}"
+        color = convert(text[1:])
+        color = color.lower() if text[1:] == text[1:].lower() else color
+        return f"#{color}"
 
     return _PAGE_HEX.sub(swap, page)
 
 
-def themed_page(page: str, style: Mapping[str, Any] | None) -> str:
-    """Page in the colors of the overlay theme (Modern Grey: neutral grays, else unchanged)"""
-    return grey_page(page) if is_grey_theme(style) else page
+def grey_page(page: str) -> str:
+    """Page text with its slate colors (#RRGGBB) turned neutral gray, case of the hex digits kept"""
+    return _swap_colors(page, grey_of)
+
+
+def light_page(page: str) -> str:
+    """Page text with its slate colors (#RRGGBB) turned into the light grays of Modern White"""
+    return _swap_colors(page, light_of)
+
+
+def themed_page(page: str, style: Mapping[str, Any] | None, graphics: bool = False) -> str:
+    """Page in the colors of the overlay theme: Modern Grey neutral grays, Modern White light grays, else unchanged.
+    graphics: a page drawing graphics for a video (stream results, Broadcast Director) keeps its dark colors on
+    Modern White, only the grays of Modern Grey apply."""
+    if is_grey_theme(style):
+        return grey_page(page)
+    if is_light_theme(style) and not graphics:
+        return light_page(page)
+    return page
 
 
 def _option_rgb(value: Any) -> str | None:

@@ -76,15 +76,15 @@ WINDOW_PALETTES = {
     },
     "Modern White": {  # light
         "Window": ("#F4F5F8", "#F4F5F8", "#ECEDF1"),
-        "WindowText": ("#1F2328", "#1F2328", "#8C9096"),
+        "WindowText": ("#1F2328", "#1F2328", "#767A81"),
         "Base": ("#FFFFFF", "#FFFFFF", "#F3F4F6"),
         "AlternateBase": ("#F6F7F9", "#F6F7F9", "#EEEFF2"),
         "ToolTipBase": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "ToolTipText": ("#1F2328", "#1F2328", "#1F2328"),
         "PlaceholderText": ("#5B6068", "#5B6068", "#5B6068"),  # 4.5:1 on window, hover & selected rows
-        "Text": ("#1F2328", "#1F2328", "#8C9096"),
+        "Text": ("#1F2328", "#1F2328", "#767A81"),
         "Button": ("#FFFFFF", "#FFFFFF", "#F3F4F6"),
-        "ButtonText": ("#1F2328", "#1F2328", "#8C9096"),
+        "ButtonText": ("#1F2328", "#1F2328", "#767A81"),
         "BrightText": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "Light": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "Midlight": ("#E9EAED", "#E9EAED", "#F3F4F6"),

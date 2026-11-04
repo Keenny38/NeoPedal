@@ -647,3 +647,20 @@ def test_web_pages_follow_modern_grey():
     assert len({other[0:2], other[2:4], other[4:6]}) == 1 and other != "3A4150"
     assert grey_of("FF2200") == "FF2200" and grey_of("222222") == "222222"  # neutral & colored: unchanged
     assert grey_of("0E1116") == MODERN_GREY_NEUTRALS["000000"]
+
+
+def test_web_pages_follow_modern_white():
+    """Modern White overlay theme: slate grays of the pages become the light grays of the overlays, graphics pages for a
+    video keep their dark colors"""
+    from neopedal.widget._style import MODERN_LIGHT_NEUTRALS, light_of, themed_page
+
+    page = "body{background:#0E1116;color:#e9ecf1;border:1px solid #3a4150;fill:#38bdf8}"
+    style = {"overlay_theme": "Modern White"}
+    light = themed_page(page, style)
+    assert "#FFFFFF" in light and "#171b22" in light  # table of the overlays, case of the page kept
+    assert "#3a4150" not in light and "#38bdf8" in light
+    assert themed_page(page, style, graphics=True) == page
+    assert themed_page(page, {"overlay_theme": "Modern Dark"}) == page
+    other = light_of("3A4150")  # slate not in the table: lightness inverted
+    assert other != "3A4150" and light_of("FF2200") == "FF2200"
+    assert light_of("0E1116") == MODERN_LIGHT_NEUTRALS["000000"]

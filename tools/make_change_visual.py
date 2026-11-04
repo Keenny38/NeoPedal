@@ -46,7 +46,7 @@ GAP = 48
 LABEL_HEIGHT = 34
 # Overlay theme of each look (render file "<widget>.<look>.png", modern look: "<widget>.png")
 THEMES = {"modern": "Modern Dark", "classic": "Legacy Grey"}
-OPTIONAL_THEMES = {"grey": "Modern Grey"}  # --theme grey only (the scan covers the two looks above)
+OPTIONAL_THEMES = {"grey": "Modern Grey", "white": "Modern White"}  # --theme grey / white only (the scan covers the two looks above)
 # Same pixel noise tolerance as the CI visual check (tools/visual_diff.py)
 CHANNEL_TOLERANCE = 24
 CHANGED_RATIO = 0.002
@@ -425,7 +425,7 @@ def main() -> int:
     parser.add_argument("--base", default="HEAD", help="revision rendered as before (default HEAD)")
     parser.add_argument("--set", action="append", default=[], metavar="WIDGET.OPTION=VALUE",
                         help="option override in both renders (repeatable)")
-    parser.add_argument("--theme", choices=("modern", "classic", "grey", "both"), default="modern",
+    parser.add_argument("--theme", choices=("modern", "classic", "grey", "white", "both"), default="modern",
                         help="overlay look rendered (default modern; grey: Modern Grey theme, before = former code)")
     parser.add_argument("--scan", action="store_true",
                         help="list every widget whose render changed, and the ones no image covers yet")

@@ -364,7 +364,7 @@ def build_style_window(base_font_pt: int) -> str:
     font_pt_app_name = 1.4 * base_font_pt
 
     # Size (Legacy themes: corners half as round, as QML pages): radius tokens of QML pages (ui/tokens.py)
-    from .tokens import hover_fill, radius_px, stroke_subtle, surface_flyout
+    from .tokens import control_border, hover_fill, radius_px, stroke_subtle, surface_flyout
 
     legacy = legacy_style()
     corner = 0.5 if legacy else 1
@@ -388,6 +388,7 @@ def build_style_window(base_font_pt: int) -> str:
     color_flyout = surface_flyout(palette).name()
     color_stroke_subtle = stroke_subtle(palette, legacy, grey_style()).name()
     color_hover = hover_fill(palette).name()
+    color_control_border = control_border(palette).name()  # outline of fields, combo boxes & check boxes: 3:1
 
     palette.setCurrentColorGroup(QPalette.ColorGroup.Inactive)
     color_inactive_highlighted_text = palette.highlightedText().color().name()
@@ -451,7 +452,7 @@ def build_style_window(base_font_pt: int) -> str:
         QLineEdit,
         QPlainTextEdit,
         QTextEdit {{
-            border: 1px solid {color_active_mid};
+            border: 1px solid {color_control_border};
             border-radius: {border_radius_input}px;
             padding: 0.1em 0.25em;
             selection-color: {color_active_highlighted_text};
@@ -470,7 +471,7 @@ def build_style_window(base_font_pt: int) -> str:
         QComboBox {{
             color: {color_active_window_text};
             background: {color_active_button};
-            border: 1px solid {color_active_mid};
+            border: 1px solid {color_control_border};
             border-radius: {border_radius_input}px;
             padding: 0.1em 1.6em 0.1em 0.4em;
         }}
@@ -493,7 +494,7 @@ def build_style_window(base_font_pt: int) -> str:
         QRadioButton::indicator {{
             width: 1em;
             height: 1em;
-            border: 1px solid {color_active_mid};
+            border: 1px solid {color_control_border};
             background: {color_active_base};
         }}
         QCheckBox::indicator {{

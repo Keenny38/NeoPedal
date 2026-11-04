@@ -840,12 +840,12 @@ class StreamHandler(BoundedRequestHandler):
         elif path.startswith("/overlay/") and VIEW_NAME.match(path[9:]):
             self.send_html(source_html(path[9:], overlay_label(path[9:])))
         elif path == "/results":
-            self.send_html(results_html())
+            self.send_html(results_html(), graphics=True)
         elif path == "/director":  # broadcast graphics of the Broadcast Director page
             from .stream_director import director_html
 
             self.send_html(director_html(page_language(), tr("Broadcast Director"),
-                                         colorblind_style(cfg.user.config.get("overlay_style"))))
+                                         colorblind_style(cfg.user.config.get("overlay_style"))), graphics=True)
         elif path in ("/api/director", "/api/director/live"):
             from .stream_director import answer, answer_live, demo_answer, preset_of
 
@@ -964,8 +964,9 @@ class StreamHandler(BoundedRequestHandler):
             data = file.read()
         self.send_body(200, data, PICTURE_TYPES[path.rsplit(".", 1)[-1].lower()], cache=True)
 
-    def send_html(self, page: str):
-        page = themed_page(page, cfg.user.config.get("overlay_style"))  # slate grays of the editor pages: Modern Grey
+    def send_html(self, page: str, graphics: bool = False):
+        # slate grays of the pages: Modern Grey & Modern White (graphics for a video keep dark colors on white)
+        page = themed_page(page, cfg.user.config.get("overlay_style"), graphics)
         self.send_body(200, page.encode("utf-8"), "text/html; charset=utf-8")
 
     def send_body(self, status: int, body: bytes, content_type: str, cache: bool = False):

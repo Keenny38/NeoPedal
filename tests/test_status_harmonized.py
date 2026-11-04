@@ -143,3 +143,17 @@ def test_dashboard_follows_modern_grey_overlay_theme(ui_env):
     page = dashboard_html()
     assert "--bg:#161616" in page and "#0e1116" not in page and "#9aa3b2" not in page
     assert "#161616" in login_html() and "#373e4c" not in login_html()
+
+
+def test_dashboard_follows_modern_white_overlay_theme(ui_env):
+    """Web dashboard with the Modern White overlay theme: light surfaces, status colors made for light backgrounds"""
+    from neopedal.setting import cfg
+    from neopedal.template.setting_status_colors import STATUS_COLORS
+    from neopedal.web_dashboard import dashboard_html, login_html
+
+    style = cfg.user.config["overlay_style"]
+    style["overlay_theme"] = "Modern White"
+    page = dashboard_html()
+    assert "--bg:#ffffff" in page and "--text:#171b22" in page and "#0e1116" not in page
+    assert f"--green:{STATUS_COLORS['gain'][1].lower()};" in page  # dark green for a light page
+    assert 'content="#ffffff"' in page and "--bg:#ffffff" in login_html()
