@@ -123,7 +123,9 @@ def test_rail_tool_modules_imported_ahead(window, monkeypatch):  # noqa: F811
     view = shown(window)
     imported = []
     monkeypatch.setattr(app_tab_view, "import_module", lambda name: imported.append(name))
+    monkeypatch.delitem(sys.modules, "neopedal.ui.lap_viewer")  # a rail tool not imported yet (put back after)
     modules = view.preimport_modules()
+    assert "neopedal.ui.lap_viewer" in modules
     assert modules and all(name.startswith("neopedal.ui.") for name in modules)  # tools of the default rail
     assert all(name not in sys.modules for name in modules)
     monkeypatch.setattr(realtime_state, "active", True)

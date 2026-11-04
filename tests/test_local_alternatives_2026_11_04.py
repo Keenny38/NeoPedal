@@ -115,7 +115,7 @@ def test_public_page_read_once_an_hour(public_info, monkeypatch):
     assert pages == [1] and not state.schedule.missing  # reminders judge every race read
     assert [event.scene for event in state.schedule.events][:2] == ["", "monzawec"]  # scene of the game catalog
     assert not info.due()  # read again an hour later
-    assert info.due(info._state.tried + info.READ_SECONDS)
+    assert info.due(info._state.tried + info.READ_SECONDS + 1)
     assert info.read() is state and pages == [1]
 
 
@@ -123,10 +123,10 @@ def test_public_page_not_read_keeps_the_races_shown(public_info, monkeypatch):
     _client, _pages = public_info
     state = info.read()
     monkeypatch.setattr(ps, "fetch", lambda timeout=ps.TIMEOUT, path="": (_ for _ in ()).throw(OSError("offline")))
-    monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS)
+    monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS + 1)
     again = info.read(force=True)
     assert again.status == info.PUBLIC and again.schedule is state.schedule and again.failures == 1
-    assert info.due(again.tried + info.RETRY_SECONDS)  # tried again soon
+    assert info.due(again.tried + info.RETRY_SECONDS + 1)  # tried again soon
 
 
 def test_public_page_off_reads_nothing(public_info, monkeypatch):

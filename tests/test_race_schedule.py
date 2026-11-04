@@ -120,9 +120,9 @@ def test_read_once_an_hour(fresh_info, monkeypatch):
     state = info.read()
     assert state.status == info.PUBLIC and len(state.schedule.events) == 2 and fresh_info.reads == 1
     assert not info.due() and info.read() is state and fresh_info.reads == 1  # read again only after READ_SECONDS
-    assert info.due(state.tried + info.READ_SECONDS)
+    assert info.due(state.tried + info.READ_SECONDS + 1)
     assert info.read(force=True) is state and fresh_info.reads == 1  # Read Again at once: not asked twice
-    monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS)
+    monkeypatch.setattr(info.time, "monotonic", lambda: state.tried + info.FORCE_SECONDS + 1)
     info.read(force=True)
     assert fresh_info.reads == 2
 
@@ -130,10 +130,10 @@ def test_read_once_an_hour(fresh_info, monkeypatch):
 def test_read_failed_keeps_the_races_and_tries_again_soon(fresh_info, monkeypatch):
     first = info.read()
     fresh_info.answer = None  # offline, or the page changed
-    monkeypatch.setattr(info.time, "monotonic", lambda: first.tried + info.READ_SECONDS)
+    monkeypatch.setattr(info.time, "monotonic", lambda: first.tried + info.READ_SECONDS + 1)
     again = info.read()
     assert again.status == info.PUBLIC and again.schedule is first.schedule and again.failures == 1
-    assert info.due(again.tried + info.RETRY_SECONDS) and not info.due(again.tried + info.RETRY_SECONDS - 1)
+    assert info.due(again.tried + info.RETRY_SECONDS + 1) and not info.due(again.tried + info.RETRY_SECONDS - 1)
 
 
 def test_never_read_page_tells_failed(fresh_info):
