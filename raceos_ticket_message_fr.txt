@@ -1,0 +1,31 @@
+Bonjour,
+
+Merci d'avoir pris le temps de me répondre, et merci de relire mon dossier avec attention.
+
+Avant tout, je tiens à vous dire que j'aime profondément Le Mans Ultimate. Je suis pilote de l'équipe Le Mans Ultimate France, membre très actif de la communauté francophone du jeu, et je passe une grande partie de mon temps libre à courir, à partager et à construire des outils pour que d'autres pilotes en profitent aussi.
+
+Je ne conteste pas l'origine des appels : ils ont été envoyés par mon application, NeoPedal, pendant un test de développement le 2 novembre. Je vous l'ai dit moi-même dès mon tout premier message, parce que je préférais être transparent avec vous. Ce n'était ni une usurpation ni une volonté d'abuser de votre service : une version de test non publiée lisait le calendrier trop souvent et envoyait des rafales de requêtes. Je suis sincèrement désolé de la gêne causée, et je l'ai corrigée le jour même.
+
+NeoPedal est une application compagnon gratuite et open source pour Le Mans Ultimate (https://github.com/Keenny38/NeoPedal), née d'un fork de TinyPedal et citée dans les projets communautaires de son wiki officiel. Elle propose des overlays en jeu (VR comprise), un visualiseur de télémétrie pour comparer les tours, un calculateur de stratégie pour les courses d'endurance, des statistiques de pilote, les résultats et replays de courses, et des graphiques pour les streamers. Pour la partie RaceControl, elle fonctionne comme le menu du jeu : il prend le ticket Steam sur l'API locale du jeu et se connecte à raceos.gg. Il ne fait que lire, sauf pour s'inscrire ou quitter une course quand le joueur clique dessus. Je joins un document (PDF) qui détaille, avec les chiffres du code publié, ce que l'application demande et à quelle fréquence :
+
+- 12 requêtes par minute et 120 par heure au maximum ;
+- une connexion réutilisée pendant 10 minutes ;
+- le calendrier lu toutes les 30 minutes en arrière-plan ; avec la page ouverte, la version publiée 0.29.0 demande 59 à 70 requêtes par heure (je l'ai mesuré), et la 0.29.1, prête et pas encore publiée, environ 20 (courses lues une fois par créneau, mes places de classement toutes les 2 heures et seulement pour les pistes roulées, et arrêt après 3 routes quand RaceControl répond des erreurs) ;
+- après toute erreur 403, plus aucune requête pendant au moins 1 heure (jusqu'à 6 heures), même après un redémarrage ;
+- une option pour couper entièrement toute requête vers RaceControl.
+
+Et ce n'est pas tout : de grosses optimisations de l'application arrivent très bientôt.
+
+Je comprends que la suspension découle d'une règle appliquée automatiquement, et je ne vous en veux pas. Mais une suspension définitive du compte me paraît très lourde pour une erreur de développement signalée spontanément, corrigée et expliquée, et ce compte est celui avec lequel je cours, avec mon équipe et ma communauté, depuis des mois.
+
+Je vous demande donc, avec respect :
+
+1. une revue de mon dossier par un membre de l'équipe RaceControl ou de Studio 397, plutôt qu'une clôture automatique ;
+2. la levée de la suspension, ou à défaut une sanction proportionnée (par exemple une suspension temporaire) ;
+3. si vous le souhaitez, des règles claires pour les outils tiers, que je suivrai avec plaisir et que j'appliquerai dans NeoPedal.
+
+Je serais ravi de pouvoir continuer à faire vivre cette simulation avec vous, dans de bonnes conditions. Merci de votre compréhension, de votre temps, et pour le jeu.
+
+Très cordialement,
+Steven Vezzu (Keenny Hess)
+SteamID64 76561198796471594

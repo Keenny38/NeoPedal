@@ -1,0 +1,31 @@
+Hello,
+
+Thank you for taking the time to reply, and for looking at my case again with care.
+
+First of all, I want to tell you that I truly love Le Mans Ultimate. I am a driver of the team Le Mans Ultimate France, a very active member of the game's French-speaking community, and I spend much of my free time racing, sharing and building tools so that other drivers can enjoy the sim too.
+
+I do not dispute where the calls came from: they were sent by my application, NeoPedal, during development testing on 2 November. I told you so myself in my very first message, because I preferred to be open with you. It was neither an impersonation nor an attempt to abuse your service: an unreleased test build of mine read the schedule too often and sent bursts of requests. I am sincerely sorry for the trouble it caused, and I fixed it the same day.
+
+NeoPedal is a free and open-source companion app for Le Mans Ultimate (https://github.com/Keenny38/NeoPedal), born as a fork of TinyPedal and listed in the community projects of its official wiki. It offers in-game overlays (VR included), a telemetry viewer to compare laps, a race strategy calculator for endurance races, driver statistics, race results and replays, and graphics for streamers. For the RaceControl part, it works like the game menu: it takes the Steam ticket from the game's local API and signs in to raceos.gg. It only reads, except to register for or leave a race when the player clicks that button. I am attaching a document (PDF) that details, with the figures of the published code, what the app asks for and how often:
+
+- at most 12 requests per minute and 120 per hour;
+- a sign-in reused for 10 minutes;
+- the schedule read every 30 minutes in the background; with the page open, the published version 0.29.0 asks 59 to 70 requests an hour (I measured it), and version 0.29.1, ready and not yet published, about 20 (races read once per race slot, my own leaderboard places every 2 hours and only for tracks I drove, and a stop after 3 routes when RaceControl answers errors);
+- after any 403 error, nothing sent for at least 1 hour (up to 6 hours), even after a restart;
+- an option that turns every RaceControl request off.
+
+And that is not all: big optimizations of the app are coming very soon.
+
+I understand the suspension comes from a rule applied automatically, and I hold no grudge. Still, a permanent account suspension feels very heavy for a development mistake that I reported myself, fixed and explained, and this is the account I race with, alongside my team and my community, for months.
+
+So I would respectfully ask for:
+
+1. a review of my case by a member of the RaceControl team or of Studio 397, rather than an automatic closure;
+2. the suspension to be lifted, or failing that a proportionate sanction (for example a temporary suspension);
+3. if you wish, clear rules for third-party tools, which I will gladly follow and build into NeoPedal.
+
+I would be delighted to keep bringing this sim to life with you, in good conditions. Thank you for your understanding, for your time, and for the game.
+
+Warmest regards,
+Steven Vezzu (Keenny Hess)
+SteamID64 76561198796471594
