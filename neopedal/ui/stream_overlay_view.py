@@ -31,6 +31,8 @@ from ._common import BaseDialog, UIScaler
 class StreamOverlaysView(BaseDialog):
     """Stream overlays page"""
 
+    PRELOAD_MODULES = ("quick.stream_backend",)  # imported ahead while idle (rail tool), see app_tab_view
+
     def __init__(self, parent):
         from .quick import create_quick_view
         from .quick.stream_backend import StreamOverlaysBackend

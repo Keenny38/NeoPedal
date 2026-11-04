@@ -23,7 +23,9 @@ pages built on first use (build_page), tool dialogs shown as pages (DialogPage)
 
 import logging
 import sys
+import time
 from functools import partial
+from importlib import import_module
 from typing import TYPE_CHECKING, cast
 
 import shiboken6
@@ -74,7 +76,7 @@ from . import (
     status_color,
 )
 from ._common import MODIFIED_MARKER, BaseDialog, UIScaler, confirm_action
-from .lazy_page import IdlePageRelease, LazyPage, PageFade, PageRelease, release_quick_views
+from .lazy_page import IDLE_RELEASE_MS, IdlePageRelease, LazyPage, PageFade, PageRelease, release_quick_views
 from .menu import APIMenu, open_config_application
 from .nav_rail import (
     NAV_PAGES,
@@ -115,6 +117,14 @@ RAIL_LABEL_MIN_PT = 7.5  # never smaller (readable at 100% scale)
 # Rail polled this often for states not pushed by app_signal.refresh (API version, Broadcast Director); refresh
 # signals (hotkeys, tray, pages) update it at once. A tick costs a few hundred µs of Python on the UI thread.
 RAIL_POLL_MS = 2500
+# Tool pages outside rail left for another one: this many kept built (opened again at once), this long at most
+PARKED_PAGES = 3
+PARKED_MS = IDLE_RELEASE_MS
+PARKED_CHECK_MS = 30_000
+# Python modules of rail tools imported ahead (first open spares their imports, 20 to 60 ms), one module per step,
+# from this long after startup, only while the window shows and no car is driven (overlays share the GUI thread)
+PREIMPORT_DELAY_MS = 20_000
+PREIMPORT_STEP_MS = 2_000
 BREADCRUMB_SEPARATOR = "\u203a"  # single right angle quote
 RAIL_MIME = "application/x-neopedal-rail-entry"  # rail entry dragged: its key (page key or tool module name)
 # Fill of the bell count badge: highest level of unread notifications
@@ -880,6 +890,18 @@ class TabView(QWidget):
         self._idle_released: list[str] = []  # tool paths of rail pages released, still remembered as open
         self._idle_closing = False  # rail page released now, see release_idle_page
         self._idle_release = IdlePageRelease(self._pages, self.release_idle_page)
+        # Tool pages outside rail left for another one: kept built out of the page stack a while (opened again at
+        # once instead of built again), see park_page
+        self._parked: list[DialogPage] = []
+        self._parked_since: dict[DialogPage, float] = {}
+        self._parked_timer = QTimer(self)
+        self._parked_timer.setInterval(PARKED_CHECK_MS)
+        self._parked_timer.timeout.connect(self.close_parked_pages)
+        self._preimported: set[str] = set()  # modules tried (imported or failed), see preimport_next
+        self._preimport_timer = QTimer(self)
+        self._preimport_timer.setSingleShot(True)
+        self._preimport_timer.timeout.connect(self.preimport_next)
+        self._preimport_timer.start(PREIMPORT_DELAY_MS)
 
         # Navigation rail
         rail = QWidget(self)
@@ -1398,8 +1420,9 @@ class TabView(QWidget):
         return None
 
     def activate_dialog_page(self, class_name: str, title: str = "") -> bool:
-        """Show open dialog page of class (and title if set), True if found"""
-        page = self.find_dialog_page(class_name, title)
+        """Show open dialog page of class (and title if set), True if found (parked page put back, see
+        park_page)"""
+        page = self.find_dialog_page(class_name, title) or self.unpark_page(class_name, title)
         if page is not None:
             self.show_page_widget(page)
         return page is not None
@@ -1419,6 +1442,7 @@ class TabView(QWidget):
                 release_quick_views(dialog)  # QML unloaded before its backend goes
                 dialog.deleteLater()  # second copy of open dialog: never shown
                 return True
+            self.close_parked_pages(type(dialog).__name__)  # dialog made again: kept copy of before closed
             page = DialogPage(dialog, self._pages, self.page_of(dialog.parentWidget()), self.shown_origin())
             self.connect_page(page)
             self._pages.addWidget(page)
@@ -1663,7 +1687,9 @@ class TabView(QWidget):
         closed = False
         for page in reversed(pages):  # pages opened from a page closed first
             if page not in kept and page.dialog is not None and self._pages.indexOf(page) >= 0:
-                if page.dialog.close():
+                if self.park_page(page):
+                    closed = True
+                elif page.dialog.close():
                     page.notify_closed()  # hidden page: no hide event, page removed at once
                     closed = True
         if closed:
@@ -1877,6 +1903,7 @@ class TabView(QWidget):
         (KEEP_WHEN_HIDDEN: Broadcast Director, Race Calculator, while turned on) keep every page open,
         unless keep_director_and_calculator_running_while_hidden is disabled.
         """
+        self.close_parked_pages(True)
         pages = self.dialog_pages()
         if not pages or not all(getattr(page, "restored", False) and not page.has_unsaved_changes()
                                 for page in pages):
@@ -1908,6 +1935,7 @@ class TabView(QWidget):
         page. Kept, their OK went to deleted objects (RuntimeError, or nothing done). Pages with
         unsaved changes are always kept (closing would ask to save).
         """
+        self.close_parked_pages(True)  # view replaced: parked pages closed (opened again in the new language)
         tools = {path.rsplit(".", 1)[-1]: path for _, entries in TOOL_SECTIONS for _, _, path in entries}
         self._closing_pages = True  # view replaced: its pages are not left for another one
         current = self._pages.currentWidget()
@@ -2016,6 +2044,8 @@ class TabView(QWidget):
         Args:
             build_behind: app page shown again behind a closed page built (False: quit, window hidden).
         """
+        if pages is None:
+            self.close_parked_pages(True)
         self._closing_pages = True
         releasing, self._releasing_pages = self._releasing_pages, self._releasing_pages or not build_behind
         try:
@@ -2054,9 +2084,27 @@ class TabView(QWidget):
     @Slot(QWidget)  # type: ignore[operator]
     def close_dialog_page(self, page: QWidget):
         """Dialog closed itself: remove its page, back to previous page"""
+        if page in self._parked_since:  # closed while parked (quit, view replaced, closed by itself)
+            self._parked.remove(page)  # type: ignore[arg-type]
+            del self._parked_since[page]  # type: ignore[index]
+            page.deleteLater()
+            return
         was_current = self._pages.currentWidget() is page
-        self._pages.removeWidget(page)
+        self.take_out_page(page)
         page.deleteLater()
+        if was_current:
+            previous = self.previous_shown(page)
+            if isinstance(previous, DialogPage):
+                self.show_page_widget(previous)
+            elif previous is not None:
+                self.set_current_index(self._pages.indexOf(previous))
+            else:
+                self.set_current_index(min(self._return_index, len(NAV_PAGES) - 1))
+        self.history_changed()
+
+    def take_out_page(self, page: QWidget):
+        """Page removed from page stack (closed or parked): links of other pages, history, window size"""
+        self._pages.removeWidget(page)
         for other in self.dialog_pages():
             if other.opener is page or other.origin is page:
                 other.opener = None if other.opener is page else other.opener
@@ -2077,15 +2125,104 @@ class TabView(QWidget):
         if not self._grown_for and not self._idle_closing:
             self.restore_window_size()
         self.refresh_open_pages()
-        if was_current:
-            previous = self.previous_shown(page)
-            if isinstance(previous, DialogPage):
-                self.show_page_widget(previous)
-            elif previous is not None:
-                self.set_current_index(self._pages.indexOf(previous))
-            else:
-                self.set_current_index(min(self._return_index, len(NAV_PAGES) - 1))
+
+    def preimport_modules(self) -> list[str]:
+        """Modules of rail tools not imported yet: the tool module, then those its page imports when built
+        (PRELOAD_MODULES of the dialog class, relative to the ui package)"""
+        tools = {path.rsplit(".", 1)[-1]: path for _, entries in TOOL_SECTIONS for _, _, path in entries}
+        modules = []
+        for name in self.rail_tool_buttons():
+            path = tools.get(name)
+            if path is None:
+                continue
+            module_name = f"{__package__}.{path.rsplit('.', 1)[0]}"
+            module = sys.modules.get(module_name)
+            if module is None:
+                modules.append(module_name)
+                continue
+            dialog_class = getattr(module, name, None)
+            modules.extend(f"{__package__}.{extra}" for extra in getattr(dialog_class, "PRELOAD_MODULES", ()))
+        return [name for name in modules if name not in sys.modules and name not in self._preimported]
+
+    def preimport_next(self):
+        """Import next module of a rail tool (see PREIMPORT_DELAY_MS), waits while window hidden or driving"""
+        from .. import realtime_state
+
+        window = self.window()
+        if not window.isVisible() or window.isMinimized() or realtime_state.active:
+            self._preimport_timer.start(PREIMPORT_STEP_MS)
+            return
+        modules = self.preimport_modules()
+        if not modules:
+            return  # done (a module of a tool added to the rail later is imported when opened)
+        name = modules[0]
+        self._preimported.add(name)
+        try:
+            import_module(name)
+        except Exception:  # never in the way: page shows its own error when opened
+            logger.debug("GUI: unable to import %s ahead", name, exc_info=True)
+        self._preimport_timer.start(PREIMPORT_STEP_MS)
+
+    def park_page(self, page: DialogPage) -> bool:
+        """Tool page outside rail left for another one: taken out of the page stack but kept built (closed
+        for the user), so opening it again shows it at once (see unpark_page) instead of building it again.
+        The PARKED_PAGES last ones are kept, PARKED_MS at most each, none while the window is hidden. True if
+        parked, False if it must be closed (not a tool, unsaved changes, window hidden...)"""
+        window = self.window()
+        if (self._releasing_pages or self._closing_pages or not window.isVisible() or window.isMinimized()
+                or self.tool_path(page) is None or page.has_unsaved_changes() or self.is_rail_page(page)
+                or any(other.opener is page for other in self.dialog_pages() if other is not page)):
+            return False
+        self.take_out_page(page)
+        self._parked.append(page)
+        self._parked_since[page] = time.monotonic()
+        while len(self._parked) > PARKED_PAGES:
+            self.close_parked(self._parked[0])
+        self._parked_timer.start()
         self.history_changed()
+        return True
+
+    def unpark_page(self, class_name: str, title: str = "") -> DialogPage | None:
+        """Parked page of class (and title if set) put back in the page stack, None if none"""
+        for page in self._parked:
+            dialog = page.dialog
+            if dialog is not None and type(dialog).__name__ == class_name and (not title or dialog.windowTitle() == title):
+                self._parked.remove(page)
+                del self._parked_since[page]
+                page.opener = None
+                page.origin = self.shown_origin()
+                page.refresh_breadcrumb()
+                self._pages.addWidget(page)
+                self.refresh_open_pages()
+                return page
+        return None
+
+    def close_parked(self, page: DialogPage):
+        """Close a parked page for good (its close cleanup runs: backends released, loaders stopped)"""
+        if page not in self._parked_since:
+            return
+        dialog = page.dialog
+        if dialog is not None and shiboken6.isValid(dialog) and dialog.close():
+            page.notify_closed()  # hidden page: no hide event (close_dialog_page forgets it)
+        if page in self._parked_since:  # refused to close, or no dialog: dropped anyway
+            self._parked.remove(page)
+            del self._parked_since[page]
+            page.deleteLater()
+
+    def close_parked_pages(self, class_name: str | bool = ""):
+        """Parked pages closed: kept too long (timer), of class (class_name), or all (True: window hidden,
+        quit, view replaced)"""
+        window = self.window()
+        away = not window.isVisible() or window.isMinimized()
+        now = time.monotonic()
+        for page in list(self._parked):
+            dialog = page.dialog
+            if (class_name is True or away or now - self._parked_since[page] >= PARKED_MS / 1000
+                    or (isinstance(class_name, str) and class_name and dialog is not None
+                        and type(dialog).__name__ == class_name)):
+                self.close_parked(page)
+        if not self._parked:
+            self._parked_timer.stop()
 
     def connect_page(self, page: DialogPage):
         """Dialog page signals followed by view"""
@@ -2358,8 +2495,10 @@ class TabView(QWidget):
         if skeleton and lazy is not None:
             lazy.show_skeleton()
             self._pages.setCurrentIndex(index)
+            self._page_fade.cancel()  # fade starts on page change: it hid the loading text until built
             lazy.repaint()
             lazy.ensure_page()
+            self._page_fade.start()  # built page fades in
         self._pages.setCurrentIndex(index)
         self.sync_rail_selection()
         button = self._nav.button(index)

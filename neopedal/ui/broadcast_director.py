@@ -43,6 +43,7 @@ class BroadcastDirector(BaseDialog):
     KEEP_WHEN_HIDDEN = True  # auto mode keeps choosing cameras while streaming, window hidden
     ESC_CLOSES = False  # Esc never closes the page (a key slip mid-broadcast), see app_tab_view.DialogPage
     last_tab = ""  # tab shown last, opened again there while the app runs
+    PRELOAD_MODULES = ("quick.director_backend",)  # imported ahead while idle (rail tool), see app_tab_view
 
     def __init__(self, parent):
         from .quick import create_quick_view

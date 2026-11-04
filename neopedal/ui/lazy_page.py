@@ -460,6 +460,11 @@ class PageFade(QWidget):
         self.raise_()
         self._animation.start()
 
+    def cancel(self):
+        """Fade stopped, nothing painted over the page (placeholder painted before the page is built)"""
+        self._animation.stop()
+        self.hide()
+
     def _set_alpha(self, value):
         self._alpha = float(value)
         self.update()

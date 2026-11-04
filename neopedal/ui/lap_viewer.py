@@ -626,6 +626,7 @@ class LapViewer(BaseDialog):
     """
 
     page_minimum_changed = Signal()
+    PRELOAD_MODULES = ("quick.lap_backend",)  # imported ahead while idle (rail tool), see app_tab_view
 
     def __init__(self, parent):
         from .quick import create_quick_view

@@ -306,6 +306,7 @@ def _tab_view(*dialogs):
     return SimpleNamespace(
         dialog_pages=lambda: pages, open_page_paths=lambda: [f"x.{index}" for index in range(len(pages))],
         track_pages=True, close_all_pages=close_all_pages, _releasing_pages=False, _deferred_pages=None,
+        close_parked_pages=lambda *_: None,
         closed=closed)
 
 
