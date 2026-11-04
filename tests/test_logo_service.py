@@ -14,6 +14,7 @@ from PySide6.QtTest import QTest
 from neopedal.process import game_images as gi
 from neopedal.userfile import custom_image, game_images
 from neopedal.userfile.custom_image import LOGO_LOADER, LogoLoader
+from tests._speed import budget
 from tests.test_game_pictures import FakeGame
 
 
@@ -69,7 +70,7 @@ def test_other_logos_not_blocked_while_one_is_made(game, monkeypatch, tmp_path):
     def blocking(path, light_background, stamp):
         if path == slow:
             started.set()
-            release.wait(5)
+            release.wait(30)  # longer than any budget: a lookup waiting for it fails the bound
         return make(path, light_background, stamp)
 
     monkeypatch.setattr(custom_image, "_make_logo_for_background", blocking)
@@ -80,7 +81,7 @@ def test_other_logos_not_blocked_while_one_is_made(game, monkeypatch, tmp_path):
         assert started.wait(5)
         begin = time.perf_counter()
         assert custom_image.logo_for_background(quick, False) == quick  # other logo: no wait
-        assert time.perf_counter() - begin < 2
+        assert time.perf_counter() - begin < budget(2)  # slow runners: 2.8 s once on Windows 3.11
         assert thread.is_alive()
     finally:
         release.set()
