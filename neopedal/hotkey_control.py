@@ -47,6 +47,11 @@ from .thread_guard import run_supervised, wait_stopped
 logger = logging.getLogger(__name__)
 
 
+# Keyboard keys checked this often: modifiers count only while held at a check, a quick Ctrl+Shift+key (about 120 ms,
+# checked live in game) could be missed at 0.2 s
+KEY_REFRESH_INTERVAL = 0.05
+
+
 def gather_command(commands: Iterable[tuple[str, Callable]]) -> dict[tuple[int, ...], list[tuple[str, Callable]]]:
     """Gather & validate hotkey commands"""
     key_group: dict[tuple[int, ...], list[tuple[str, Callable]]] = {}
@@ -117,7 +122,7 @@ class HotkeyControl:
         # Controller buttons are sampled (no 'pressed since last call' as keyboard keys have): checked at the
         # device read rate, a tap released between two checks is kept latched and run once
         get_key_state.latch_controller_buttons = True
-        interval = JOY_REFRESH_INTERVAL if any(_key >= JOY_CODE_BASE for _key in available_key_codes) else 0.2
+        interval = JOY_REFRESH_INTERVAL if any(_key >= JOY_CODE_BASE for _key in available_key_codes) else KEY_REFRESH_INTERVAL
         refresh_keystate(get_key_state)
         # Keys held at start are no new press: a hotkey reloading preset (thread started again by reload)
         # and still held once reloaded would run again, and again (preset cycled while key held)

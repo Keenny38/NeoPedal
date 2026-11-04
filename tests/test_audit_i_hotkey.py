@@ -238,7 +238,8 @@ def test_hotkey_loop_runs_tapped_controller_button_once(ui_env, monkeypatch, clo
 
 @pytest.mark.skipif(sys.platform != "win32", reason="keyboard bindings: KEYMAP_GENERAL has keys on Windows only")
 def test_hotkey_loop_keeps_slow_checks_without_controller_buttons(ui_env, monkeypatch):
-    """Keyboard only bindings: 200 ms checks kept (GetAsyncKeyState reports taps itself)"""
+    """Keyboard only bindings: checked every KEY_REFRESH_INTERVAL (GetAsyncKeyState reports taps of the key, not of
+    its modifiers: a quick Ctrl+Shift+key was missed at 200 ms, 2026-11-04 in game)"""
     from neopedal import hotkey_control
     from neopedal.setting import cfg
 
@@ -256,5 +257,5 @@ def test_hotkey_loop_keeps_slow_checks_without_controller_buttons(ui_env, monkey
         return len(intervals) >= 2
 
     hotkey_control.HotkeyControl()._HotkeyControl__update_loop(SimpleNamespace(wait=wait))
-    assert intervals == [0.2, 0.2]
+    assert intervals == [hotkey_control.KEY_REFRESH_INTERVAL] * 2 and hotkey_control.KEY_REFRESH_INTERVAL <= 0.05
     assert key_state.latch_controller_buttons is True
