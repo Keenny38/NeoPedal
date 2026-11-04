@@ -40,6 +40,8 @@ from .validator import NAME_CUT_BYTES
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "driver_nations.json")
 PLAYER_SECONDS = 300.0  # game profile read again this late (nationality changed in game menus)
+TEAMS_ROUTE = "/rest/multiplayer/teams"  # game Rest API, online server: drivers {name: {nationality, teamName...}}
+TEAMS_SECONDS = 30.0  # asked again this late while overlays ask nationalities (local request, null when not online)
 # Letters NFKD leaves alone (no combining accent)
 PLAIN_LETTERS = str.maketrans({"\u0131": "i", "ł": "l", "ø": "o", "đ": "d", "ß": "ss", "æ": "ae", "œ": "oe", "-": " ",
                                ".": " ", "'": "", "\u2019": ""})  # dotless i, right single quote
@@ -143,6 +145,59 @@ def read_player_code() -> str:
 player_nation = PlayerNation()
 
 
+def team_nationalities(data: object, depth: int = 0) -> dict[str, str]:
+    """Driver name key -> nationality of the answer of TEAMS_ROUTE (every "drivers" mapping found, any depth)"""
+    found: dict[str, str] = {}
+    if depth > 8:
+        return found
+    if isinstance(data, dict):
+        drivers = data.get("drivers")
+        if isinstance(drivers, dict):
+            for name, driver in drivers.items():
+                code = driver.get("nationality") if isinstance(driver, dict) else None
+                if isinstance(name, str) and isinstance(code, str) and code.strip():
+                    found[name_key(name)] = code.strip()
+        for value in data.values():
+            if isinstance(value, (dict, list)):
+                found.update(team_nationalities(value, depth + 1))
+    elif isinstance(data, list):
+        for value in data:
+            found.update(team_nationalities(value, depth + 1))
+    return found
+
+
+class TeamNations:
+    """Nationalities the game gives for the drivers of an online server (local Rest API, no RaceControl), read on
+    its own thread when due (empty meanwhile, outside online servers & if the game gives none)"""
+
+    def __init__(self, clock=time.monotonic):
+        self._clock = clock
+        self._codes: dict[str, str] = {}
+        self._read_at: float | None = None
+        self._busy = False
+
+    def code(self, name: str) -> str:
+        now = self._clock()
+        if not self._busy and (self._read_at is None or now - self._read_at >= TEAMS_SECONDS):
+            self._busy = True
+            self._read_at = now
+            threading.Thread(target=self._read, name="team nations", daemon=True).start()
+        return self._codes.get(name_key(name), "")
+
+    def _read(self) -> None:
+        try:
+            from .game_rest_cache import rest_cache
+
+            self._codes = team_nationalities(rest_cache.json(TEAMS_ROUTE, TEAMS_SECONDS))
+        except Exception:  # any error of the game: read again later
+            logger.exception("DRIVER NATIONS: online teams not read")
+        finally:
+            self._busy = False
+
+
+team_nations = TeamNations()
+
+
 def nationality(name: str, player: bool) -> str:
     """Nationality of a driver of session: game profile (player), RaceControl profile (online), real driver of
     the same name (AI), "" if unknown"""
@@ -155,4 +210,7 @@ def nationality(name: str, player: bool) -> str:
     found = driver_ranks(name)
     if found is not None and found.nationality:
         return found.nationality
+    code = team_nations.code(name)  # online server: the game tells (no RaceControl needed)
+    if code:
+        return code
     return known_nationality(name)

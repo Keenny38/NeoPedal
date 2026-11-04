@@ -183,7 +183,7 @@ CATEGORIES = (
             "keep_director_and_calculator_running_while_hidden", "show_setup_wizard_at_startup",
         )),
         ("Updates", ("check_for_updates_on_startup", "number_of_hours_between_update_checks", "update_repository")),
-        ("Online", ("enable_online_driver_ranks", "enable_online_requests_economy")),
+        ("Online", ("enable_online_driver_ranks", "enable_online_requests_economy", "enable_public_race_schedule")),
         ("Presets & Backups", (
             "enable_auto_load_preset", "number_of_automatic_backups", "number_of_days_to_keep_deleted_presets",
             "maximum_saving_attempts",

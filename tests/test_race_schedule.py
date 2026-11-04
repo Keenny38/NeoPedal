@@ -342,6 +342,7 @@ def test_read_status_without_game_or_option(fresh_info, monkeypatch):
     fresh_info.no_account = True
     assert info.read(force=True).status == info.NO_ACCOUNT
     monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
+    monkeypatch.setattr(info, "public_enabled", lambda: False)  # public page: see test_local_alternatives_2026_11_04
     calls = len(fresh_info.paths)
     assert info.read(force=True).status == info.OFF and len(fresh_info.paths) == calls  # nothing asked
     assert info.read_field("daily", "x") is None and len(fresh_info.paths) == calls
@@ -835,6 +836,7 @@ def test_page_tells_option_off(qml_warnings, page, monkeypatch):  # noqa: F811
     from neopedal import rank_info
 
     monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
+    monkeypatch.setattr(info, "public_enabled", lambda: False)
     page.backend.readAgain()
     for _ in range(100):
         pump(0.05)

@@ -38,6 +38,7 @@ _id = re.compile(r"/(?:[0-9]+|[0-9a-fA-F-]{16,})(?=/|$)")  # numbers & identifie
 RACE_CONTROL = "RaceControl"
 GITHUB = "GitHub"
 SHEET = "Lap times sheet"
+PUBLIC_SITE = "RaceControl public site"  # public home page, no sign in (process/public_schedule.py)
 NOT_SENT = -1  # status of a request not sent (limits of the app, RaceControl asked to wait)
 
 

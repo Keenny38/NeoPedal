@@ -133,6 +133,9 @@ def status_note(status: str, schedule: rs.Schedule) -> tuple[str, str]:
                         else tr("Start Le Mans Ultimate: races are read from RaceControl with the game sign in."))
     if status == info.NO_ACCOUNT:
         return "warning", tr("No RaceControl account found for this Steam account.")
+    if status == info.PUBLIC:
+        return "info", tr("Daily races of the public RaceControl site, read without signing in. Registration, fields, "
+                          "leaderboards and the other tabs need the online option: register in the game.")
     if status == info.FAILED:
         return "warning", tr("RaceControl did not answer: last races read are shown.") if old else tr(
             "RaceControl did not answer.")
@@ -894,6 +897,8 @@ class RaceScheduleBackend(PageBackend):
         if status == info.NO_GAME:
             return [{"id": "launch", "text": tr("Start Le Mans Ultimate to Register"), "enabled": True,
                      "vehicle": ""}]
+        if status == info.PUBLIC:  # no sign in: the game registers (its window brought to the front, or started)
+            return [{"id": "game", "text": tr("Register in the Game"), "enabled": True, "vehicle": ""}]
         possible = bool(chosen["eventId"]) and status != info.OFF
         if chosen["registered"]:
             return [{"id": "unregister", "text": tr("Leave This Race…"), "enabled": possible, "vehicle": ""}]
@@ -993,6 +998,8 @@ class RaceScheduleBackend(PageBackend):
             self.read_practice(key)
         elif action == "launch":
             self.start_game()
+        elif action == "game":
+            self.show_game()
         elif action == "register":
             self.openRegistration(key, start)
         elif action == "unregister":
@@ -1062,6 +1069,15 @@ class RaceScheduleBackend(PageBackend):
 
     def start_game(self):
         self.startGame()
+
+    def show_game(self):
+        """Window of Le Mans Ultimate brought to the front (its menu registers), the game started when closed"""
+        from .game_window import show_game_window
+
+        if show_game_window():
+            self.toast(tr("Le Mans Ultimate is in front: register in its Online menu."), "info")
+        else:
+            self.startGame()
 
     def set_registration(self, value: dict):
         if value != self._registration:

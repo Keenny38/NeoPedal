@@ -62,6 +62,7 @@ ROUND_MAX_SECONDS = policy.SCHEDULE_ROUND_MAX_SECONDS
 ROUND_MARGIN = policy.SCHEDULE_ROUND_MARGIN
 NO_SPECIAL_STATUS = 500  # special events answer this when there is none: kept as an empty list like any answer
 FORCE_SECONDS = policy.SCHEDULE_FORCE_SECONDS
+PUBLIC_SECONDS = policy.SCHEDULE_PUBLIC_SECONDS
 # Routes each tab of the Upcoming Races page shows (Read Again asks the tab shown only, not the 10 routes)
 TAB_ROUTES: dict[str, frozenset[str]] = {
     "daily": frozenset(("schedule", "daily_beginner", "daily_intermediate", "daily_advanced")),
@@ -76,6 +77,7 @@ READ = "read"  # read from RaceControl
 OFF = "off"  # option enable_online_driver_ranks off
 NO_GAME = "no_game"  # game not running (no sign in ticket)
 NO_ACCOUNT = "no_account"  # no RaceControl account for this player
+PUBLIC = "public"  # online option off: daily races of the public page of RaceControl (no sign in)
 FAILED = "failed"  # signed in, nothing answered
 
 
@@ -104,6 +106,11 @@ def enabled() -> bool:
     from .rank_info import online_enabled
 
     return online_enabled()
+
+
+def public_enabled() -> bool:
+    """Online option off: daily races read from the public page of RaceControl (option enable_public_race_schedule)"""
+    return bool(cfg.application.get("enable_public_race_schedule", True))
 
 
 def state() -> State:
@@ -214,6 +221,8 @@ def due(now: float | None = None, live: bool = False) -> bool:
         return current.disk_tried < 0 or now - current.disk_tried >= read_seconds(live)
     if current.status == READ:
         wait = read_seconds(live)
+    elif current.status == PUBLIC:  # public page: its starts cover hours, an hour between two reads
+        wait = RETRY_SECONDS if current.failures else policy.stretch(PUBLIC_SECONDS)
     elif current.status == FAILED:  # RaceControl signed in, nothing answered: asked less and less often
         wait = min(RETRY_SECONDS * 2 ** min(max(current.failures, 1) - 1, 8), FAILED_MAX_SECONDS)
     else:
@@ -285,7 +294,21 @@ def read(force: bool = False, live: bool = False, servers: bool = False, tab: st
             return _state
         now = time.monotonic()
         if not enabled():
-            _set(_state.schedule, OFF, now, 0)
+            if not public_enabled():
+                _set(_state.schedule, OFF, now, 0)
+                return _state
+            from .process import public_schedule
+
+            found = public_schedule.read()
+            if found is not None:  # scenes from the track catalog of the game (local, kept from before if closed)
+                cars, tracks = _game_lists()
+                found = public_schedule.with_game_lists(found, cars or _state.schedule.cars,
+                                                        tracks or _state.schedule.tracks)
+                _set(found, PUBLIC, now, 0)
+            elif _state.status == PUBLIC:  # not read: races of the last read stay shown, tried again soon
+                _set(_state.schedule, PUBLIC, now, 1)
+            else:
+                _set(rs.EMPTY, OFF, now, 0)
             return _state
         from .rank_info import online_client, ranks
 
@@ -442,7 +465,10 @@ def player_id() -> str:
 
 
 def player_name() -> str:
-    """RaceControl name of the player (last sign in), "" if not signed in yet"""
+    """RaceControl name of the player (last sign in), "" if not signed in yet; online option off: your name in the
+    results files of the game (see process/local_online.py)"""
+    if not enabled():
+        return _local().player_name()
     from .rank_info import online_client
 
     return online_client().player[1]
@@ -664,6 +690,8 @@ def read_result(event_id: str, split: int) -> rs.OnlineResult | None:
     kept in memory (RACES_KEEP)"""
     from urllib.parse import quote
 
+    if event_id.startswith(_local().PREFIX):  # race of a results file of the game (online option off)
+        return _local().read_race(event_id, _local_names())
     key = (event_id, max(split, 1))
     path = f"api/v1/result?eventId={quote(event_id)}&splitNo={key[1]}"
     account = _account()
@@ -707,6 +735,11 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
 
     page = max(page, 1)
     take = results_take(event_type)
+    if not enabled():  # online option off: your online races from the results files of the game, no request
+        found = ResultsPage(_local().read_page(_local_folders(), page, take, _local_names())
+                            if event_type == "daily" else ())
+        found.answered = len(found)
+        return found
     disk_key = f"{event_type}/{page}/{take}"
     account = _account()
     with _results_lock:
@@ -753,6 +786,28 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
                     del store["pages"][next(iter(store["pages"]))]
                 _disk_save(store)
     return found
+
+
+def _local():
+    from .process import local_online
+
+    return local_online
+
+
+def _local_folders() -> tuple[str, ...]:
+    from .process.driver_history import results_folders
+
+    return results_folders()
+
+
+def _local_names() -> tuple[str, ...]:
+    """Player names of the game profiles (your car marked in the results files)"""
+    from .process.results_index import player_names
+
+    names: dict[str, None] = {}
+    for found in player_names(_local_folders()).values():
+        names.update(dict.fromkeys(found))
+    return tuple(names)
 
 
 def _results_page(answer: list) -> ResultsPage:

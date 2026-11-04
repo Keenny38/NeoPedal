@@ -95,7 +95,9 @@ class RaceWatch(QObject):
         return event_id in self._ready
 
     def check(self):
-        if not info.enabled():
+        if not info.enabled():  # no sign in: races of the public page kept read for the reminders, nothing followed
+            if info.public_enabled() and info.due() and not self._jobs.is_busy("schedule"):
+                self._jobs.run("race schedule", info.read, None, lambda _error: None, key="schedule")
             return
         now = self._clock()
         if not self._jobs.is_busy("schedule"):  # registrations made in the game seen without any page open

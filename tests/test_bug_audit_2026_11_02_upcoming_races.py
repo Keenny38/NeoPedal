@@ -894,9 +894,10 @@ def test_b030_not_read_message_tells_why(online, fresh_info, monkeypatch):  # no
     monkeypatch.setattr(info, "_game_running", lambda: True)
     online.jobs = FakeJobs()
     monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
+    monkeypatch.setattr(info, "_local_folders", lambda: ())  # option off: races of the results files, none here
     online.list_shown(True)
     online.jobs.deliver(0)
-    assert online.state["error"] == status_note(info.OFF, rs.EMPTY)[1]
+    assert online.state["error"] == ""  # read from the files: nothing to tell
     monkeypatch.setattr(rank_info, "online_enabled", lambda: True)
     fresh_info.no_account = True
     online.readAgain()

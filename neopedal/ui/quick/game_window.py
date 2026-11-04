@@ -31,6 +31,7 @@ import time
 
 GAME_EXECUTABLE = "le mans ultimate"  # in executable path of game process
 WM_MBUTTONDOWN, WM_MBUTTONUP, MK_MBUTTON = 0x0207, 0x0208, 0x0010
+SW_RESTORE = 9  # ShowWindow: minimized window restored
 CLICK_SECONDS = 0.06  # button held: game reads mouse buttons once per frame, a shorter click is missed
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 
@@ -79,6 +80,20 @@ def find_game_window() -> tuple[int, int, int]:
 
     user32.EnumWindows(visit, 0)
     return max(found, key=lambda window: window[1] * window[2], default=(0, 0, 0))
+
+
+def show_game_window() -> bool:
+    """Window of the game restored and brought to the front, False if the game shows no window (not running)"""
+    hwnd = find_game_window()[0]
+    if not hwnd or sys.platform != "win32":
+        return False
+    import ctypes
+
+    user32 = ctypes.windll.user32
+    if user32.IsIconic(hwnd):
+        user32.ShowWindow(hwnd, SW_RESTORE)
+    user32.SetForegroundWindow(hwnd)
+    return True
 
 
 def middle_click(window: tuple[int, int, int]) -> bool:

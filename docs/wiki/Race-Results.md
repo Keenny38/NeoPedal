@@ -80,6 +80,8 @@ Contacts (a contact reported by both cars is shown once, with its impact strengt
 
 ## Online races (Le Mans Ultimate)
 
+Without the online option (`enable_online_driver_ranks` off), the `Online` list shows your online races from the results files of the game (sessions of online servers): classification, lap times and positions lap by lap, with no request. Driver & Safety Rank changes, their reasons and the kind of event (weekly, championship) only come from RaceControl: every race is listed under the daily races.
+
 The `Online` list shows the online races you drove, read from RaceControl with the game sign in (the game must run): daily races, weekly & special events, championships, newest first, `More Results` for older ones.
 
 - Each race: date, track, split, your place, your Driver Rank & Safety Rank changes.

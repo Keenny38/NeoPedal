@@ -88,6 +88,8 @@ SCHEDULE_RESULTS_KEEP = 40  # races kept at most in pages (oldest read dropped f
 SCHEDULE_RACES_KEEP = 12  # races with their laps kept at most
 SCHEDULE_REGISTERED_SECONDS = 600.0  # registration (or leave) from the page told on its start this long at most
 
+SCHEDULE_PUBLIC_SECONDS = 3600.0  # public page of RaceControl (online option off): it lists the starts of the next 9 hours or so, an hour old still shows every race to come
+
 # Upcoming Races page (ui/quick/schedule_backend.py)
 PAGE_PERSONAL_SECONDS = 300.0  # driver stats files read again this often while the page shows
 PAGE_MANUAL_SECONDS = 300.0  # Read Again asks RaceControl for the tab shown at most this often (like the ranks Refresh):
