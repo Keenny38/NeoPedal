@@ -239,7 +239,7 @@ Item {
                     height: shown ? Math.round(shot.h * view.zoom) : 0
                     source: shown ? shot.url : ""
                     fillMode: Image.Stretch
-                    asynchronous: true
+                    asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                     cache: false
                     sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32
                     smooth: true
@@ -304,7 +304,7 @@ Item {
                             anchors.margins: box.border.width
                             source: box.modelData.preview
                             fillMode: Image.PreserveAspectFit  // same ratio as the overlay (picture scaled down if big)
-                            asynchronous: true
+                            asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                             cache: true
                             sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32
                             smooth: true

@@ -120,7 +120,7 @@ def test_positions_chart_sent_without_place_tables(ui_env):
 
 def test_qml_heavy_parts_gone():
     """Replays map moved by a 30 Hz timer without arrays per car, timeline markers as items, stats canvases
-    painted by a thread, setup pictures loaded async at shown size"""
+    painted by a thread, setup pictures loaded at shown size"""
     panel = Path(qml_path("MapPanel.qml")).read_text(encoding="utf-8")
     assert "FrameAnimation" not in panel and "interval: 33" in panel and "return [" not in panel
     incidents = Path(qml_path("IncidentPanel.qml")).read_text(encoding="utf-8")
@@ -129,7 +129,9 @@ def test_qml_heavy_parts_gone():
         text = Path(qml_path(name)).read_text(encoding="utf-8")
         assert text.count("Canvas {") == text.count("renderStrategy: Canvas.Threaded")
     backdrop = Path(qml_path("SetupBackdrop.qml")).read_text(encoding="utf-8")
-    assert "asynchronous: true" in backdrop and "sourceSize.width" in backdrop and "mipmap" not in backdrop
+    # provider pictures loaded on the UI thread (Python provider on the image thread froze the app), at shown size
+    assert 'asynchronous: String(source).indexOf("image://") !== 0' in backdrop
+    assert "sourceSize.width" in backdrop and "mipmap" not in backdrop
     sessions = Path(qml_path("ResultsSessionList.qml")).read_text(encoding="utf-8")
     # Spinner of the list header (TpCardHeader busy, shared TpSpinner): turns only while the page is shown
     header = Path(qml_path("TpCardHeader.qml")).read_text(encoding="utf-8")

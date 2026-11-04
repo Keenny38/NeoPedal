@@ -65,6 +65,7 @@ A Modern Grey theme, and RaceOS no longer read: the online races come from the p
 - **Keyboard Shortcuts**: `Edit Hotkeys…` did nothing (an error since hotkeys moved to Settings), it now opens Settings at `Hotkeys`. `Reset Data` from the tray icon tells it is done by a message of the tray icon when the window is hidden. The command palette with only `@` typed says `Type an option name` instead of `Nothing found`.
 - **Web dashboard**: lap times fit their card on phones and tablets; without a session the delta shows `–` instead of a green `+0.000`, the pedal bars are empty instead of `NaN%`, and the official delta card stays hidden while the game gives no delta; the access code is accepted in any case (phones capitalize), a wrong code says `Wrong code`, the button reads `Sign In` (translated) and too many attempts show the sign in page with a translated message. Phones and tablets stay signed in when the app restarts (they had to type the code again after each restart); a new access code still signs them all out.
 - **Keyboard hotkeys**: a quick press of a hotkey with modifiers (`Ctrl+Shift+F9` tapped) could be missed, in game too: keys are checked every 50 ms instead of 200 ms.
+- **Overlay pictures**: the app could freeze for good when the window was resized (or a page grew it) while overlay pictures were loading (Overlays page, Overlay Options, Setup Wizard, screen view): these pictures are now read on the window's own thread (already in memory, about 0.1 ms each) instead of Qt's image thread.
 
 ## 0.29.0 (2026-11-03)
 

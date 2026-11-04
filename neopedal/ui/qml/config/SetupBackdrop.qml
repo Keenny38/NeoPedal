@@ -24,8 +24,8 @@ Rectangle {
         height: Math.min(backdrop.sourceHeight, backdrop.height - theme.em * 0.8)
         source: backdrop.source
         fillMode: Image.PreserveAspectFit
-        // Decoded off the UI thread, scaled once by the provider to the size shown (32 px steps on resize)
-        asynchronous: true
+        // Scaled once by the provider to the size shown (32 px steps on resize)
+        asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
         retainWhileLoading: true
         cache: true
         sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32

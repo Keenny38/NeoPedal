@@ -185,7 +185,7 @@ SetupStep {
                         visible: sampleItem.previewState === 1
                         source: sampleItem.preview
                         fillMode: Image.PreserveAspectFit
-                        asynchronous: true
+                        asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                         retainWhileLoading: true
                         cache: true
                         sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32

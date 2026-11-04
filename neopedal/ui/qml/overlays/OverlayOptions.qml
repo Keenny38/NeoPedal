@@ -812,7 +812,7 @@ TpPage {
                                     smooth: true
                                     mipmap: false  // decoded at shown size (sourceSize below): no mipmaps
                                     // Old picture kept while the new one decodes off the UI thread
-                                    asynchronous: true
+                                    asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                                     retainWhileLoading: true
                                     cache: false  // one picture per edit: never shown again
                                     sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32

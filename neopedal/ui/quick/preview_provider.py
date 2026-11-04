@@ -24,8 +24,12 @@ each engine gets its own provider reading the store (an engine owns its provider
 URL changes only when the picture of a key changes, so QML Image caches stay valid and a page reloads
 only the pictures that changed (no PNG encoding, no base64 strings in models).
 
-Async QML Images call the provider from Qt's image reader thread: the store is guarded by a lock and
-hands out implicitly shared pictures (never painted on: copied by Qt if ever written, no deep copy per request).
+QML Images of these URLs are never asynchronous (`asynchronous: String(source).indexOf("image://") !== 0`):
+called on Qt's image reader thread, this Python provider waits for the Python lock (GIL), while the UI thread
+holding it (any Python call re-binding an Image, a window resize...) waits for that thread inside Qt: app
+frozen. Read on the UI thread it costs little: a picture already in memory, no decoding, scaled once per size.
+The store is still guarded by a lock (pictures put by worker threads) and hands out implicitly shared pictures
+(never painted on: copied by Qt if ever written, no deep copy per request).
 """
 
 from __future__ import annotations

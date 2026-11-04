@@ -193,7 +193,7 @@ Item {
                 source: previewTip.visible ? row.preview : ""
                 width: Math.round(row.previewWidth * previewTip.fit)
                 height: Math.round(row.previewHeight * previewTip.fit)
-                asynchronous: true
+                asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                 retainWhileLoading: true
                 cache: true
                 sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)

@@ -162,13 +162,14 @@ def test_screen_view_follows_only_while_visible(overlays_page, control):  # noqa
     cfg.user.setting["fuel"]["enable"] = False
 
 
-# --- PERF-063: live preview read on the image thread
-def test_live_preview_image_is_asynchronous():
+# --- PERF-063: live preview read on the image thread; 2026-11-04: never (Python provider on Qt's image thread waits
+# for the Python lock the UI thread holds while it waits for that thread: app frozen), read on the UI thread instead
+def test_live_preview_image_never_on_image_thread():
     with open(os.path.join("neopedal", "ui", "qml", "overlays", "OverlayCard.qml"), encoding="utf-8") as file:
         text = file.read()
     live = text[text.index("id: live"):]
     live = live[:live.index("}")]
-    assert "asynchronous: true" in live and "retainWhileLoading: true" in live
+    assert 'asynchronous: String(source).indexOf("image://") !== 0' in live and "retainWhileLoading: true" in live
 
 
 # --- PERF-039: positions chart asks the place table once per lap under the mouse

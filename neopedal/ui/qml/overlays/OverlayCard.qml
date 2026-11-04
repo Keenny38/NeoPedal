@@ -114,9 +114,11 @@ Item {
                 height: Math.round(card.previewHeight * fit)
                 source: card.preview
                 visible: card.previewState === 1 && !live.shown
-                // image://overlaypreview URL changes only with the picture: cached, decoded off the UI thread,
-                // old picture kept until the new one is ready, scaled once by the provider (32 px steps on resize)
-                asynchronous: true
+                // image://overlaypreview URL changes only with the picture: cached, scaled once by the provider
+                // (32 px steps on resize). Read on the UI thread (a picture already in memory, no decoding): the
+                // Python provider called on Qt's image thread waits for the Python lock while the UI thread, holding
+                // it, waits for that thread (app frozen), see preview_provider
+                asynchronous: String(source).indexOf("image://") !== 0
                 retainWhileLoading: !card.recycling  // never the picture of the previous row
                 cache: true
                 sourceSize.width: Math.ceil(width * Screen.devicePixelRatio / 32) * 32
@@ -126,9 +128,8 @@ Item {
                 Behavior on opacity { enabled: !card.recycling; NumberAnimation { duration: theme.motionBase } }
                 Behavior on scale { enabled: !card.recycling; NumberAnimation { duration: theme.motionSlow; easing.type: Easing.OutCubic } }
             }
-            // Played overlay: pictures straight from the store (never cached: each one shown once), read &
-            // scaled on Qt's image thread (the store is thread-safe): the page never waits for a picture, the last
-            // one stays shown until the next is ready (a late picture is skipped, fine for a preview)
+            // Played overlay: pictures straight from the store (never cached: each one shown once), read & scaled
+            // on the UI thread like the picture above (a picture in memory, small)
             Image {
                 id: live
                 readonly property bool shown: status === Image.Ready && source !== ""
@@ -138,7 +139,7 @@ Item {
                 scale: shot.scale
                 source: card.playing ? backend.liveUrl : ""
                 visible: shown
-                asynchronous: true
+                asynchronous: String(source).indexOf("image://") !== 0  // provider pictures loaded here, never on Qt's image thread (see preview_provider)
                 retainWhileLoading: true
                 cache: false
                 fillMode: Image.PreserveAspectFit
