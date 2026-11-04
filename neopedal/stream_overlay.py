@@ -1214,8 +1214,8 @@ white-space:nowrap;transform-origin:0 100%}
 border-radius:10px;background:rgba(15,17,23,.96);box-shadow:0 4px 24px rgba(0,0,0,.6);z-index:10}
 body.edit #toolbar{display:flex}
 body.edit.bare #toolbar{display:none}
-#toolbar button{font:600 13px "Segoe UI",sans-serif;padding:6px 14px;border-radius:6px;border:1px solid #3a4150;background:#262b36;color:#fff;cursor:pointer}
-#toolbar button.main{background:#e5383b;border-color:#e5383b}
+#toolbar button{font:600 13px "Segoe UI",sans-serif;padding:6px 14px;border-radius:6px;border:1px solid #3a4150;background:#262b36;color:#e9ecf1;cursor:pointer}
+#toolbar button.main{background:#e5383b;border-color:#e5383b;color:#fff}
 #toolbar span{color:#aab2c0;max-width:520px}
 #toolbar b{color:#facc15;font-weight:600;min-width:150px}
 body.lost #c,body.lost #layers{visibility:hidden!important}</style></head>

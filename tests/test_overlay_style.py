@@ -664,3 +664,37 @@ def test_web_pages_follow_modern_white():
     other = light_of("3A4150")  # slate not in the table: lightness inverted
     assert other != "3A4150" and light_of("FF2200") == "FF2200"
     assert light_of("0E1116") == MODERN_LIGHT_NEUTRALS["000000"]
+
+
+def test_web_page_rgba_colors_follow_the_theme():
+    """Colors written rgba(r, g, b, a) are converted like #RRGGBB ones: the dark toolbar of the stream editor must not
+    keep its dark panel under light text (Modern White) or its slate tint (Modern Grey)"""
+    from neopedal.widget._style import themed_page
+
+    page = "#toolbar{background:rgba(15,17,23,.96);box-shadow:0 4px 24px rgba(0,0,0,.6);color:rgba(255,255,255,.5)}"
+    light = themed_page(page, {"overlay_theme": "Modern White"})
+    assert "rgba(15,17,23,.96)" not in light and ".96)" in light
+    channels = [int(value) for value in light.split("rgba(")[1].split(")")[0].split(",")[:3]]
+    assert min(channels) > 200  # light panel
+    assert "rgba(0,0,0,.6)" in light and "rgba(255,255,255,.5)" in light  # black & white kept
+    grey = themed_page(page, {"overlay_theme": "Modern Grey"})
+    assert "rgba(15,17,23" not in grey
+    values = [int(value) for value in grey.split("rgba(")[1].split(")")[0].split(",")[:3]]
+    assert len(set(values)) == 1  # neutral gray
+    assert themed_page(page, {"overlay_theme": "Modern White"}, graphics=True) == page
+
+
+def test_stream_editor_toolbar_readable_in_every_overlay_theme():
+    """Buttons of the layout editor toolbar: text color from the themed grays (dark on Modern White), the red main button
+    keeps white text"""
+    from neopedal.stream_overlay import source_html
+    from neopedal.widget._style import themed_page
+
+    page = source_html("layout", "Layout")
+    rule = next(line for line in page.splitlines() if line.startswith("#toolbar button{"))
+    assert "color:#e9ecf1" in rule and "button.main{background:#e5383b;border-color:#e5383b;color:#fff}" in page
+    light = themed_page(page, {"overlay_theme": "Modern White"})
+    light_rule = next(line for line in light.splitlines() if line.startswith("#toolbar button{"))
+    assert "color:#171b22" in light_rule  # dark text on the light button
+    background = light_rule.split("background:#")[1][:6]
+    assert min(int(background[index:index + 2], 16) for index in (0, 2, 4)) > 180

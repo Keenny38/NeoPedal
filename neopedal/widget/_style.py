@@ -234,14 +234,23 @@ def is_light_theme(style: Mapping[str, Any] | None) -> bool:
     return bool(style) and style.get("overlay_theme") == "Modern White"  # type: ignore[union-attr]
 
 
+_PAGE_RGBA = re.compile(r"(rgba?\()(\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})")
+
+
 def _swap_colors(page: str, convert) -> str:
+    """Page with the colors written #RRGGBB or rgb(a)(r, g, b...) passed through convert (RRGGBB -> RRGGBB)"""
     def swap(match: re.Match) -> str:
         text = match.group()
         color = convert(text[1:])
         color = color.lower() if text[1:] == text[1:].lower() else color
         return f"#{color}"
 
-    return _PAGE_HEX.sub(swap, page)
+    def swap_rgba(match: re.Match) -> str:
+        channels = [min(int(value), 255) for value in match.groups()[1:]]
+        color = convert("".join(f"{value:02X}" for value in channels))
+        return f"{match.group(1)}{int(color[0:2], 16)},{int(color[2:4], 16)},{int(color[4:6], 16)}"
+
+    return _PAGE_RGBA.sub(swap_rgba, _PAGE_HEX.sub(swap, page))
 
 
 def grey_page(page: str) -> str:
