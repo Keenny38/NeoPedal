@@ -386,7 +386,7 @@ def build_style_window(base_font_pt: int) -> str:
     color_selection = f"#CC{color_active_highlight[1:]}"  # 80% alpha highlight
     # Menus & rail as QML pages: flyout surface, subtle stroke, hovered item in the hover color of controls
     color_flyout = surface_flyout(palette).name()
-    color_stroke_subtle = stroke_subtle(palette, legacy, grey_style()).name()
+    color_stroke_subtle = stroke_subtle(palette, legacy).name()
     color_hover = hover_fill(palette).name()
     color_control_border = control_border(palette).name()  # outline of fields, combo boxes & check boxes: 3:1
 

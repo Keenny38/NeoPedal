@@ -117,3 +117,31 @@ def test_overlay_colors_on_panels(ui_env, name):
     for token in COLORED_OVERLAY_TOKENS:
         for panel in panels:
             assert contrast_ratio(getattr(theme, token), panel) >= minimum, (name, token, panel.name())
+
+
+@pytest.mark.parametrize("name", THEME_NAMES)
+def test_card_borders_and_hover_are_seen(themed, name):
+    """Borders of cards & dividers 1.8:1 against the card (Legacy: firmer outlines from the palette), hovered control
+    1.25:1 against its resting fill, hovered card a little lighter than the card"""
+    from neopedal.ui.quick import Theme, contrast_ratio
+
+    themed(name)
+    theme = Theme()
+    assert contrast_ratio(theme.strokeSubtle, theme.surfaceCard) >= (1.5 if name == "Legacy Grey" else 1.8), name
+    assert contrast_ratio(theme.hover, theme.raised) >= 1.25, name
+    assert contrast_ratio(theme.surfaceHover, theme.surfaceCard) >= 1.1, name
+
+
+@pytest.mark.parametrize("name", ("Modern Dark", "Modern Grey", "Modern White"))
+def test_overlay_labels_readable(ui_env, name):
+    """Small labels of overlays (text_muted: the 888888 gray of classic options) keep 4.5:1 on the panel & the
+    alternate row"""
+    from neopedal.setting import cfg
+    from neopedal.ui.quick import contrast_ratio
+    from neopedal.widget._modern.theme import build_theme
+
+    style = dict(cfg.user.config["overlay_style"], overlay_theme=name)
+    theme = build_theme(style, 255)
+    for panel in (theme.surface, theme.surface_alt):
+        assert contrast_ratio(theme.text_muted, panel) >= 4.5, (name, panel.name())
+    assert contrast_ratio(theme.text_muted, theme.surface) < contrast_ratio(theme.text_dim, theme.surface), name

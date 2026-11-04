@@ -48,7 +48,6 @@ from .. import UIScaler, colorblind_state, grey_style, legacy_style, set_colorbl
 
 # Tokens shared with the Qt Widgets shell (rail, menus): one source, see ui/tokens.py
 from ..tokens import (  # also read from here by tests & pages
-    GREY_STROKE_LIFT,
     LEGACY_RADIUS,
     MOTION,
     RADIUS_SCALE,
@@ -61,6 +60,7 @@ from ..tokens import (  # also read from here by tests & pages
     blended,
     control_border,
     luminance,
+    stroke_subtle,
 )
 
 logger = logging.getLogger(__name__)
@@ -570,12 +570,7 @@ class Theme(QObject):
         return self._lift(self._surface_card(), "hover")
 
     def _stroke_subtle(self) -> QColor:
-        mid = self._color(QPalette.ColorRole.Mid)
-        if legacy_style():  # classic look: firmer outlines
-            return mid.lighter(115) if self._is_dark() else mid.darker(112)
-        if grey_style() and self._is_dark():  # Modern Grey: firmer than the slate theme (tokens.GREY_STROKE_LIFT)
-            return blended(QColor("white"), self._surface_card(), GREY_STROKE_LIFT)
-        return self._surface_card().lighter(135) if self._is_dark() else mid
+        return stroke_subtle(QApplication.palette(), legacy_style())  # tokens.SUBTLE_STROKE_CONTRAST
 
     @Property(QColor, notify=changed)
     def strokeSubtle(self) -> QColor:

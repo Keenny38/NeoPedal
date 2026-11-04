@@ -32,7 +32,7 @@ def themed(ui_env):
 # 1. One source of tokens: shell colors equal the Theme ones in every theme
 @pytest.mark.parametrize("name", PALETTES)
 def test_shell_tokens_same_as_theme(themed, name):
-    from neopedal.ui import grey_style, legacy_style, tokens
+    from neopedal.ui import legacy_style, tokens
     from neopedal.ui.quick import Theme
 
     themed(name)
@@ -41,7 +41,7 @@ def test_shell_tokens_same_as_theme(themed, name):
     legacy = legacy_style()
     assert tokens.surface_card(palette) == theme.property("surfaceCard")
     assert tokens.surface_flyout(palette) == theme.property("surfaceFlyout")
-    assert tokens.stroke_subtle(palette, legacy, grey_style()) == theme.property("strokeSubtle")
+    assert tokens.stroke_subtle(palette, legacy) == theme.property("strokeSubtle")
     assert tokens.hover_fill(palette) == theme.property("hover")
     for hovered in (False, True):
         assert tokens.selected_fill(palette, hovered) == theme.rowColor(hovered, True)

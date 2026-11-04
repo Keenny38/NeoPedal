@@ -37,13 +37,13 @@ WINDOW_PALETTES = {
         "AlternateBase": ("#1C1F26", "#1C1F26", "#1A1C22"),
         "ToolTipBase": ("#23262E", "#23262E", "#23262E"),
         "ToolTipText": ("#E8EAED", "#E8EAED", "#E8EAED"),
-        "PlaceholderText": ("#9CA0A8", "#9CA0A8", "#9CA0A8"),  # 4.5:1 on hover & selected rows
+        "PlaceholderText": ("#A3A7AF", "#A3A7AF", "#A3A7AF"),  # 4.5:1 on hover & selected rows
         "Text": ("#E8EAED", "#E8EAED", "#7A7D83"),
         "Button": ("#20232B", "#20232B", "#1A1C22"),
         "ButtonText": ("#E8EAED", "#E8EAED", "#7A7D83"),
         "BrightText": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "Light": ("#5A5D63", "#5A5D63", "#3A3C40"),
-        "Midlight": ("#30353F", "#30353F", "#20232A"),  # hover visible on Button
+        "Midlight": ("#373C47", "#373C47", "#20232A"),  # hover visible on Button
         "Dark": ("#121315", "#121315", "#101113"),
         "Mid": ("#2E323C", "#2E323C", "#262931"),
         "Shadow": ("#0B0B0C", "#0B0B0C", "#0B0B0C"),
@@ -65,7 +65,7 @@ WINDOW_PALETTES = {
         "ButtonText": ("#ECECEC", "#ECECEC", "#858585"),
         "BrightText": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "Light": ("#6A6A6A", "#6A6A6A", "#444444"),
-        "Midlight": ("#3C3C3C", "#3C3C3C", "#303030"),  # hover visible on Button
+        "Midlight": ("#454545", "#454545", "#303030"),  # hover visible on Button
         "Dark": ("#151515", "#151515", "#121212"),
         "Mid": ("#5C5C5C", "#5C5C5C", "#3A3A3A"),  # input & control outlines 3:1 on cards,
         "Shadow": ("#101010", "#101010", "#101010"),
@@ -81,13 +81,13 @@ WINDOW_PALETTES = {
         "AlternateBase": ("#F6F7F9", "#F6F7F9", "#EEEFF2"),
         "ToolTipBase": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "ToolTipText": ("#1F2328", "#1F2328", "#1F2328"),
-        "PlaceholderText": ("#5B6068", "#5B6068", "#5B6068"),  # 4.5:1 on window, hover & selected rows
+        "PlaceholderText": ("#565B63", "#565B63", "#565B63"),  # 4.5:1 on window, hover & selected rows
         "Text": ("#1F2328", "#1F2328", "#767A81"),
         "Button": ("#FFFFFF", "#FFFFFF", "#F3F4F6"),
         "ButtonText": ("#1F2328", "#1F2328", "#767A81"),
         "BrightText": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
         "Light": ("#FFFFFF", "#FFFFFF", "#FFFFFF"),
-        "Midlight": ("#E9EAED", "#E9EAED", "#F3F4F6"),
+        "Midlight": ("#DADBE0", "#DADBE0", "#F3F4F6"),
         "Dark": ("#A3A7AD", "#A3A7AD", "#A3A7AD"),
         "Mid": ("#D0D3D8", "#D0D3D8", "#D0D3D8"),
         "Shadow": ("#1F2328", "#1F2328", "#1F2328"),
@@ -165,7 +165,7 @@ MODERN_PALETTE = MappingProxyType({
     "555555": "4A5262",
     "666666": "576071",
     "777777": "646D7E",
-    "888888": "747D8E",
+    "888888": "858D9C",
     "AAAAAA": "9AA3B2",
     "BBBBBB": "AEB4C0",
     "CCCCCC": "C3C8D1",
@@ -203,7 +203,7 @@ MODERN_PALETTE = MappingProxyType({
     "FF44FF": "E879F9",
     "FF66FF": "F472D0",
     # Other default colors
-    "00AAFF": "38A9F5", "FF0000": "F23B3B", "999999": "8A93A3", "FF00FF": "E056E0",
+    "00AAFF": "38A9F5", "FF0000": "F23B3B", "999999": "8F98A8", "FF00FF": "E056E0",
     "FF4422": "FF5A40", "0088FF": "2F86F0", "FF44CC": "F062C8", "00FF00": "3EDC6B",
     "AA22AA": "A33FB0", "008800": "2A8F4F", "44CC00": "4CC45A", "00FFFF": "4FE3EE",
     "00CC00": "36B85A", "77FF00": "86E35C", "00C2F2": "2BB8E6", "EE00EE": "D94BD9",
@@ -228,8 +228,8 @@ MODERN_GREY_NEUTRALS = MappingProxyType({
     "555555": "515151",
     "666666": "5F5F5F",
     "777777": "6C6C6C",
-    "888888": "7B7B7B",
-    "999999": "8A8A8A",
+    "888888": "939393",
+    "999999": "9A9A9A",
     "AAAAAA": "A0A0A0",
     "BBBBBB": "B3B3B3",
     "CCCCCC": "C7C7C7",
@@ -250,7 +250,7 @@ MODERN_LIGHT_NEUTRALS = MappingProxyType({
     "555555": "C5CBD5",
     "666666": "98A1B0",
     "777777": "848D9C",
-    "888888": "6B7383",
+    "888888": "626978",
     "999999": "5E6676",
     "AAAAAA": "4E5666",
     "BBBBBB": "3F4655",

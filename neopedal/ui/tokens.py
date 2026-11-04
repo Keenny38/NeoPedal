@@ -58,7 +58,7 @@ TINT_LEVELS = {"subtle": 0.1, "selected": 0.18, "strong": 0.28,
                "stripe": 0.03}  # odd rows of dense tables (theme.text tint)
 TINT_SELECTED_LIGHT = 0.12  # selected rows of light themes (dim text stays 4.5:1 on them)
 # Surfaces (elevation): share of white (dark themes) or text color (light themes) mixed into the card color
-SURFACE_LIFT = {"card": 0.035, "flyout": 0.05, "hover": 0.04, "sunken": 0.05}
+SURFACE_LIFT = {"card": 0.035, "flyout": 0.05, "hover": 0.05, "sunken": 0.05}
 LEGACY_RADIUS = 0.5  # Legacy themes: corners half as round (classic look)
 
 
@@ -106,17 +106,24 @@ def surface_flyout(palette: QPalette) -> QColor:
     return lift(palette, card, "flyout") if is_dark(palette) else card
 
 
-GREY_STROKE_LIFT = 0.2  # Modern Grey: share of white mixed into the card color for its border (about 2:1 on it)
+SUBTLE_STROKE_CONTRAST = 1.8  # card borders, dividers & menu borders: seen against the card, never a frame
 
 
-def stroke_subtle(palette: QPalette, legacy: bool, grey: bool = False) -> QColor:
-    """Border of cards, menus, dividers (theme.strokeSubtle); grey: Modern Grey, a firmer border than the slate theme"""
+def stroke_subtle(palette: QPalette, legacy: bool) -> QColor:
+    """Border of cards, menus, dividers (theme.strokeSubtle): the card color moved toward white (dark themes) or toward
+    the text color (light themes) until it holds SUBTLE_STROKE_CONTRAST against the card; Legacy themes: firmer
+    outlines from the palette border color"""
     mid = _color(palette, QPalette.ColorRole.Mid)
-    if legacy:  # classic look: firmer outlines
+    if legacy:
         return mid.lighter(115) if is_dark(palette) else mid.darker(112)
-    if grey and is_dark(palette):
-        return blended(QColor("white"), surface_card(palette), GREY_STROKE_LIFT)
-    return surface_card(palette).lighter(135) if is_dark(palette) else mid
+    card = surface_card(palette)
+    toward = QColor("white") if is_dark(palette) else _color(palette, QPalette.ColorRole.Text)
+    color = card
+    for step in range(1, 51):
+        color = blended(toward, card, step * 0.01)
+        if contrast(color, card) >= SUBTLE_STROKE_CONTRAST:
+            break
+    return color
 
 
 CONTROL_BORDER_CONTRAST = 3.0  # WCAG 1.4.11: outline of a field, combo or switch against its surroundings

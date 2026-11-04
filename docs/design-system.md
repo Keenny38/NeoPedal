@@ -40,10 +40,10 @@ pairs become vermillion / blue).
 | `Window` | `#111318` | `#1E1E1E` | `#F4F5F8` | `#202124` |
 | `Base` | `#181B21` | `#282828` | `#FFFFFF` | `#17181B` |
 | `Button` | `#20232B` | `#303030` | `#FFFFFF` | `#2B2D31` |
-| `Midlight` | `#30353F` | `#3C3C3C` | `#E9EAED` | `#3C3F44` |
+| `Midlight` | `#373C47` | `#454545` | `#DADBE0` | `#3C3F44` |
 | `Mid` | `#2E323C` | `#5C5C5C` | `#D0D3D8` | `#3A3C41` |
 | `Text` | `#E8EAED` | `#ECECEC` | `#1F2328` | `#E8EAED` |
-| `PlaceholderText` | `#9CA0A8` | `#C0C0C0` | `#5B6068` | `#A8ABB1` |
+| `PlaceholderText` | `#A3A7AF` | `#C0C0C0` | `#565B63` | `#A8ABB1` |
 | `Highlight` | `#4C8DFF` | `#5B9BFF` | `#2A63D4` | `#58A7F8` |
 | `Link` | `#5AAEFF` | `#79B4FF` | `#1A7FE0` | `#5AAEFF` |
 
@@ -82,12 +82,12 @@ cards and the menus). Measured on every surface of every theme:
 
 | Surface | text | dimText | accent | info | gain | loss | warning | purple | gold | controlBorder |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `surfacePage` `#111318` | 15.4 | 7.1 | 5.8 | 7.4 | 10.7 | 6.7 | 8.2 | 7.0 | 12.1 | 3.8 |
-| `surfaceCard` `#181b21` | 14.3 | 6.6 | 5.4 | 6.8 | 9.9 | 6.2 | 7.6 | 6.5 | 11.3 | 3.5 |
-| `surfaceFlyout` `#24262c` | 12.5 | 5.8 | 4.7 | 6.0 | 8.7 | 5.5 | 6.7 | 5.7 | 9.8 | 3.1 |
-| `surfaceSunken` `#121519` | 15.2 | 7.0 | 5.7 | 7.3 | 10.5 | 6.6 | 8.1 | 6.9 | 12.0 | 3.7 |
-| `surfaceHover` `#21242a` | 12.9 | 5.9 | 4.9 | 6.1 | 8.9 | 5.6 | 6.9 | 5.9 | 10.1 | - |
-| `raised` `#20232b` | 13.0 | 6.0 | 4.9 | 6.2 | 9.0 | 5.7 | 6.9 | 5.9 | 10.3 | - |
+| `surfacePage` `#111318` | 15.4 | 7.7 | 5.8 | 7.4 | 10.7 | 6.7 | 8.2 | 7.0 | 12.1 | 3.8 |
+| `surfaceCard` `#181b21` | 14.3 | 7.1 | 5.4 | 6.8 | 9.9 | 6.2 | 7.6 | 6.5 | 11.3 | 3.5 |
+| `surfaceFlyout` `#24262c` | 12.5 | 6.3 | 4.7 | 6.0 | 8.7 | 5.5 | 6.7 | 5.7 | 9.8 | 3.1 |
+| `surfaceSunken` `#121519` | 15.2 | 7.6 | 5.7 | 7.3 | 10.5 | 6.6 | 8.1 | 6.9 | 12.0 | 3.7 |
+| `surfaceHover` `#24262c` | 12.5 | 6.3 | 4.7 | 6.0 | 8.7 | 5.5 | 6.7 | 5.7 | 9.8 | - |
+| `raised` `#20232b` | 13.0 | 6.5 | 4.9 | 6.2 | 9.0 | 5.7 | 6.9 | 5.9 | 10.3 | - |
 White text on a filled accent button: 4.5:1, on a filled loss button: 4.6:1.
 
 **Modern Grey**
@@ -98,7 +98,7 @@ White text on a filled accent button: 4.5:1, on a filled loss button: 4.6:1.
 | `surfaceCard` `#282828` | 12.5 | 8.1 | 5.3 | 5.8 | 8.5 | 5.3 | 6.5 | 5.6 | 9.6 | 3.5 |
 | `surfaceFlyout` `#333333` | 10.7 | 7.0 | 4.6 | 5.0 | 7.3 | 4.6 | 5.6 | 4.8 | 8.3 | 3.0 |
 | `surfaceSunken` `#1f1f1f` | 14.0 | 9.1 | 6.0 | 6.5 | 9.5 | 6.0 | 7.3 | 6.3 | 10.8 | 3.9 |
-| `surfaceHover` `#313131` | 11.1 | 7.2 | 4.7 | 5.2 | 7.5 | 4.7 | 5.8 | 5.0 | 8.5 | - |
+| `surfaceHover` `#333333` | 10.7 | 7.0 | 4.6 | 5.0 | 7.3 | 4.6 | 5.6 | 4.8 | 8.3 | - |
 | `raised` `#303030` | 11.2 | 7.3 | 4.8 | 5.2 | 7.6 | 4.8 | 5.8 | 5.0 | 8.6 | - |
 White text on a filled accent button: 4.6:1, on a filled loss button: 4.6:1.
 
@@ -106,12 +106,12 @@ White text on a filled accent button: 4.6:1, on a filled loss button: 4.6:1.
 
 | Surface | text | dimText | accent | info | gain | loss | warning | purple | gold | controlBorder |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `surfacePage` `#f4f5f8` | 14.5 | 5.8 | 5.0 | 5.8 | 4.6 | 5.9 | 4.8 | 6.4 | 4.6 | 3.1 |
-| `surfaceCard` `#ffffff` | 15.8 | 6.3 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | 3.4 |
-| `surfaceFlyout` `#ffffff` | 15.8 | 6.3 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | 3.4 |
-| `surfaceSunken` `#f4f4f4` | 14.4 | 5.8 | 5.0 | 5.8 | 4.6 | 5.9 | 4.7 | 6.3 | 4.6 | 3.0 |
-| `surfaceHover` `#f6f6f6` | 14.6 | 5.9 | 5.1 | 5.9 | 4.6 | 6.0 | 4.8 | 6.5 | 4.7 | - |
-| `raised` `#ffffff` | 15.8 | 6.3 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | - |
+| `surfacePage` `#f4f5f8` | 14.5 | 6.3 | 5.0 | 5.8 | 4.6 | 5.9 | 4.8 | 6.4 | 4.6 | 3.1 |
+| `surfaceCard` `#ffffff` | 15.8 | 6.8 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | 3.4 |
+| `surfaceFlyout` `#ffffff` | 15.8 | 6.8 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | 3.4 |
+| `surfaceSunken` `#f4f4f4` | 14.4 | 6.2 | 5.0 | 5.8 | 4.6 | 5.9 | 4.7 | 6.3 | 4.6 | 3.0 |
+| `surfaceHover` `#f4f4f4` | 14.4 | 6.2 | 5.0 | 5.8 | 4.6 | 5.9 | 4.7 | 6.3 | 4.6 | - |
+| `raised` `#ffffff` | 15.8 | 6.8 | 5.5 | 6.4 | 5.0 | 6.5 | 5.2 | 7.0 | 5.0 | - |
 White text on a filled accent button: 5.5:1, on a filled loss button: 6.5:1.
 
 **Legacy Grey**
@@ -122,7 +122,7 @@ White text on a filled accent button: 5.5:1, on a filled loss button: 6.5:1.
 | `surfaceCard` `#28292c` | 12.1 | 6.3 | 5.8 | 5.8 | 8.4 | 5.3 | 6.4 | 5.5 | 9.5 | 3.6 |
 | `surfaceFlyout` `#333336` | 10.4 | 5.5 | 5.0 | 5.0 | 7.2 | 4.5 | 5.5 | 4.7 | 8.2 | 3.1 |
 | `surfaceSunken` `#1f1f22` | 13.6 | 7.1 | 6.5 | 6.5 | 9.4 | 5.9 | 7.3 | 6.2 | 10.7 | 4.0 |
-| `surfaceHover` `#303134` | 10.7 | 5.6 | 5.1 | 5.1 | 7.4 | 4.7 | 5.7 | 4.9 | 8.5 | - |
+| `surfaceHover` `#333336` | 10.4 | 5.5 | 5.0 | 5.0 | 7.2 | 4.5 | 5.5 | 4.7 | 8.2 | - |
 | `raised` `#2b2d31` | 11.4 | 6.0 | 5.5 | 5.5 | 7.9 | 5.0 | 6.1 | 5.2 | 9.0 | - |
 White text on a filled accent button: 4.8:1, on a filled loss button: 4.6:1.
 
@@ -203,7 +203,7 @@ level, plus a shadow strength per theme:
 |---|---|
 | `card` | 0.035 |
 | `flyout` | 0.05 |
-| `hover` | 0.04 |
+| `hover` | 0.05 |
 | `sunken` | 0.05 |
 
 Tints (a color over a surface), `theme.tint(color, level)`:
