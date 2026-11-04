@@ -33,7 +33,6 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Property, QTimer, Signal, Slot
 
-from ...driver_nations import team_nations
 from ...i18n import colon, plural, tr
 from ...process import championship as champ
 from ...process import director as dr
@@ -328,8 +327,7 @@ class BroadcastGraphics(DirectorPart):
                       [tr("Places"), f"{'+' if gained > 0 else ''}{gained}" if gained else ""],
                       ["DR", known.driver.short if known is not None and known.driver else ""],
                       ["SR", known.safety.short if known is not None and known.safety else ""],
-                      [tr("Badge"), badge_name(known.badge if known is not None and known.badge
-                                               else team_nations.badge(name))]],
+                      [tr("Badge"), badge_name(known.badge if known is not None else "")]],
             "story": story, "storyTone": tone,
         }
 

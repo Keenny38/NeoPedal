@@ -146,7 +146,7 @@ player_nation = PlayerNation()
 
 
 def team_values(data: object, field: str, depth: int = 0) -> dict[str, str]:
-    """Driver name key -> value of field ("nationality", "badge") of the answer of TEAMS_ROUTE (every "drivers"
+    """Driver name key -> value of field ("nationality") of the answer of TEAMS_ROUTE (every "drivers"
     mapping found, any depth), "none" & empty values left out"""
     found: dict[str, str] = {}
     if depth > 8:
@@ -173,13 +173,13 @@ def team_nationalities(data: object) -> dict[str, str]:
 
 
 class TeamNations:
-    """Nationalities & badges the game gives for the drivers of an online server (local Rest API, no RaceControl),
-    read on its own thread when due (empty meanwhile, outside online servers & if the game gives none)"""
+    """Nationalities the game gives for the drivers of an online server (local Rest API, no RaceControl), read on
+    its own thread when due (empty meanwhile, outside online servers & if the game gives none). Its "badge" field
+    is never read: the game leaves it "none" (its menu takes badges from RaceOS, which apps must not call)"""
 
     def __init__(self, clock=time.monotonic):
         self._clock = clock
         self._codes: dict[str, str] = {}
-        self._badges: dict[str, str] = {}
         self._read_at: float | None = None
         self._busy = False
 
@@ -194,17 +194,12 @@ class TeamNations:
         self._due()
         return self._codes.get(name_key(name), "")
 
-    def badge(self, name: str) -> str:
-        """Game badge of a driver of the online server ("" if none told)"""
-        self._due()
-        return self._badges.get(name_key(name), "")
-
     def _read(self) -> None:
         try:
             from .game_rest_cache import rest_cache
 
             answer = rest_cache.json(TEAMS_ROUTE, TEAMS_SECONDS)
-            self._codes, self._badges = team_nationalities(answer), team_values(answer, "badge")
+            self._codes = team_nationalities(answer)
         except Exception:  # any error of the game: read again later
             logger.exception("DRIVER NATIONS: online teams not read")
         finally:

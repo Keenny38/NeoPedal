@@ -378,9 +378,7 @@ class DriverTable(TableMixin, ModernOverlay):
 
     def badge_builder(self) -> CellBuilder:
         """Game badge of driver (icon fetched once in background, dot of its color meanwhile), empty if unknown:
-        player & team members (game menu file), else what the game tells of the drivers of an online server (local
-        Rest API)"""
-        from ...driver_nations import team_nations
+        player & team members only (game menu file)"""
         from ...userfile.badge_icons import badge_info, icons
 
         theme = self.theme
@@ -389,8 +387,6 @@ class DriverTable(TableMixin, ModernOverlay):
         def badge_cell(veh, ctx, player, alias, class_color, extra):
             found = known_ranks(veh)
             badge = found.badge if found is not None else ""
-            if not badge and not self.demo:
-                badge = team_nations.badge(veh.driverName)
             info = badge_info(badge) if badge else None
             if info is None:
                 return EMPTY_CELL

@@ -249,10 +249,6 @@ def test_team_nations_read_in_background(monkeypatch):
     assert len(asked) == 2
 
 
-def test_badges_of_an_online_server_from_the_game():
-    answer = {"teams": [{"drivers": {"Keenny Hess": {"nationality": "FR", "badge": "trusted_racer"},
-                                     "Other Driver": {"badge": "none"}, "Third": {"badge": ""}}}]}
-    assert driver_nations.team_values(answer, "badge") == {driver_nations.name_key("Keenny Hess"): "trusted_racer"}
-    nations = driver_nations.TeamNations(clock=lambda: 0.0)
-    nations._codes, nations._badges, nations._read_at = {}, driver_nations.team_values(answer, "badge"), 0.0
-    assert nations.badge("Keenny Hess") == "trusted_racer" and nations.badge("Other Driver") == ""
+def test_badges_of_other_drivers_never_read_from_the_game():
+    """The game leaves the badge of its online teams answer "none" (its menu asks RaceOS): never read"""
+    assert not hasattr(driver_nations.TeamNations, "badge")
