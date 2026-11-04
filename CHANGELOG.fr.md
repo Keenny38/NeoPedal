@@ -19,7 +19,7 @@ C'est ce fichier que l'app affiche dans la page `Nouveautés` quand elle est en 
 >
 > Désolé pour le dérangement, et merci à Studio 397 pour le jeu.
 
-## 0.29.1 (2026-11-03)
+## 0.29.1 (2026-11-04)
 
 Un thème Moderne gris, et RaceOS n'est plus lu : les courses en ligne viennent du site public de RaceControl, tes résultats en ligne des fichiers du jeu.
 

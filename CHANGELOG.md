@@ -19,7 +19,7 @@ The full list of commits of each version is on the [Releases](https://github.com
 >
 > Sorry for the trouble, and thanks to Studio 397 for the game.
 
-## 0.29.1 (2026-11-03)
+## 0.29.1 (2026-11-04)
 
 A Modern Grey theme, and RaceOS no longer read: the online races come from the public RaceControl site, your online results from the game's files.
 
