@@ -1,14 +1,16 @@
 # NeoPedal
 
-NeoPedal is a free, open-source telemetry overlay and analysis app for **Le Mans Ultimate** (LMU) and **rFactor 2**, on Windows and Linux. Modern overlay design, a clear interface, many tools and a lot of reliability work.
+NeoPedal is a free, open-source companion app for **Le Mans Ultimate** (LMU) and **rFactor 2**, on Windows and Linux: 93 overlays with a modern design, a telemetry viewer, a race strategy calculator, driver stats, results and replays, a broadcast director and stream sources. A personal project made in my free time, with the help of AI, on top of [TinyPedal](https://github.com/TinyPedal/TinyPedal) (approved by its developer and listed in its [community projects](https://github.com/TinyPedal/TinyPedal/wiki#community-projects)).
 
 The app is built with PySide6 (Qt 6) and runs in English or French.
 
-![The 93 overlays with the modern design by category, on a simulated race at Road Atlanta](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_preview_wide.png)
+![NeoPedal: overlays and telemetry tools for Le Mans Ultimate and rFactor 2](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_banner.png)
+
+![Overlays moving on a simulated lap](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_animation.gif)
 
 ## Key features
 
-- **88 configurable overlays** with a modern design (rounded panels, short labels, values colored by meaning), four themes (Modern or Legacy, dark or light, with a colorblind variant), and visibility per session type or pit state. The classic look is still available (Legacy themes).
+- **93 configurable overlays** with a modern design (rounded panels, short labels, values colored by meaning), four themes (Modern Dark, Modern Grey, Modern White and Legacy Grey, each with a colorblind variant), and visibility per session type or pit state. The classic look is still available (Legacy Grey). [See all 93 overlays](https://raw.githubusercontent.com/Keenny38/NeoPedal/master/images/readme_preview_wide.png).
 - **Race aids**: delta graph, gap trend, pit lane helper, stint timer, spotter, race notifications, tyre temperature trend.
 - **Dashboard HUD** (formerly Black box): an all-in-one view of the four wheels, brakes, suspension, damage, fuel and energy, with an incident log.
 - **Telemetry viewer** drawn by the graphics card: every lap is recorded and can be compared, with a racing line map, corner analysis ("where time is lost"), session pace, XY plots, MoTeC import and export.
@@ -34,7 +36,7 @@ The app is built with PySide6 (Qt 6) and runs in English or French.
 | [Race Calculator](Race-Calculator.md) | Fuel, energy and tyre strategy, live race, Race plan overlay |
 | [Driver Stats](Driver-Stats.md) | Career, levels, progression, sessions |
 | [Results & Replays](Race-Results.md) | Classification, positions lap by lap, laps and events of every session, game replays linked to them |
-| [Upcoming Races](Upcoming-Races.md) | Online races of Le Mans Ultimate to come: daily, weekly, special, championships, co-op, hosted servers, Safety Rank needed |
+| [Upcoming Races](Upcoming-Races.md) | Daily online races of Le Mans Ultimate to come, hosted races and community events, from the public RaceControl site, with reminders |
 | [Broadcast Director](Broadcast-Director.md) | Cast a Le Mans Ultimate race: director, cameras, commentator screen, broadcast graphics for your stream |
 | [Connections](Connections.md) | Remote control, WebSocket, web dashboard, stream overlays, VR, session recorder, game replays |
 | [Updates and Security](Updates-and-Security.md) | In-app updates, release files, verifying downloads, reporting a vulnerability |

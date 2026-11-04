@@ -616,6 +616,13 @@ def test_version_file_read_and_written(tools_path, tmp_path, monkeypatch):
     ("CHANGELOG.fr.md", True),
     ("images/readme_preview.png", True),
     ("images/readme_preview_wide.png", True),
+    ("README.fr.md", True),
+    ("images/readme_banner.png", True),
+    ("images/readme_animation.gif", True),
+    ("images/readme/race-calculator.png", True),
+    ("images/social_preview.png", True),
+    ("images/icon.png", False),
+    ("images/readme/../../neopedal/main.py", False),
     ("docs/customization.md", False),  # option help generated from it: app changes
     ("neopedal/widget/gear.py", False),
     ("README.md.bak", False),

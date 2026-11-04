@@ -31,8 +31,8 @@ VERSION_LINE = re.compile(r'^__version__ = "(\d+)\.(\d+)\.(\d+)"$', re.MULTILINE
 # Documentation files: a commit changing only these does not change the app
 DOCS_ONLY = re.compile(
     r"^(?:docs/wiki/|docs/changes/|docs/changelog/|\.github/ISSUE_TEMPLATE/"
-    r"|(?:README|CHANGELOG(?:\.[\w-]+)?|CONTRIBUTING|SECURITY)\.md$"
-    r"|docs/AUDIT\.md$|images/readme_preview(?:_wide)?\.png$)"
+    r"|(?:(?:README|CHANGELOG)(?:\.[\w-]+)?|CONTRIBUTING|SECURITY)\.md$"
+    r"|docs/AUDIT\.md$|images/(?:readme_\w+\.(?:png|gif)|readme/[\w-]+\.png|social_preview\.png)$)"
 )
 
 
