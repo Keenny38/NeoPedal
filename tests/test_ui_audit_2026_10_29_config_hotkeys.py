@@ -1,6 +1,8 @@
 """UI/UX audit 2026-10-29, configuration lot: Hotkeys page in QML (sections, search, "assigned only", conflicts,
 clear with undo, capture dialog in the page, page built without QML warnings in English & French)"""
 
+import gc
+
 import pytest
 from PySide6.QtCore import QCoreApplication, QEvent, QObject, qInstallMessageHandler
 
@@ -164,6 +166,8 @@ def item_texts(view) -> set[str]:
 
 @pytest.mark.parametrize("language", ("English", "Français"))
 def test_page_built_and_capture_dialog_opened_without_qml_warnings(page, language):
+    gc.collect()  # pages left by earlier tests die now, not while their QML warnings are counted as ours
+    flush()
     messages = []
     previous = qInstallMessageHandler(lambda mode, context, text: messages.append(text))
     i18n.set_language(language)
