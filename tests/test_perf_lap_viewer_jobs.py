@@ -141,6 +141,7 @@ def test_info_index_parsed_once(backend, monkeypatch):  # noqa: F811
 
     page = backend
     path = page.info_index_path(TRACK)
+    page.wait_jobs()  # index saved by a background job (slow runners: not written yet once the laps are loaded)
     assert os.path.isfile(path)
     loads: list[str] = []
     original = json.load
