@@ -43,8 +43,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager, suppress
 from typing import IO, NamedTuple
 
-from . import app_signal, realtime_state, version
-from .async_request import get_response, set_header_get
+from . import app_signal, realtime_state, request_log, version
 from .const_app import APP_NAME, EXECUTABLE, FORK_REPO_NAME, FORMER_FORK_REPO_NAMES, LEGACY_EXECUTABLE
 from .const_common import DATE_NA, VERSION_NA
 from .const_file import ConfigType
@@ -169,39 +168,137 @@ def open_url(url: str, timeout: float):
     return urllib.request.build_opener(GitHubDownloadRedirect).open(url, timeout=timeout)
 
 
-def fetch_api_following_redirects(uri_path: str, timeout: float) -> bytes:
-    """Body of GitHub API GET request, redirects followed, empty if failed"""
-    request = urllib.request.Request(
-        f"https://{API_HOST}{uri_path}",
-        headers={"User-Agent": f"{APP_NAME}/{version.__version__}", **API_HEADERS},
-    )
+RELEASE_CHECK_FILE = ".update_check.json"  # config folder: latest release answer, its ETag & the time it was read
+RETRY_LADDER = (300.0, 900.0, 3600.0)  # wait after the 1st, 2nd, 3rd failed check in a row (GitHub: 60 requests an hour)
+MAX_RETRY_WAIT = 24 * 3600.0  # longest wait GitHub can ask (Retry-After, rate limit reset)
+KEEP_RELEASE_BYTES = 512 * 1024  # answers larger than this are not kept on disk
+KEPT = 304  # status of a release answer taken from the copy kept (no request), or a 304 of the service
+
+
+def retry_wait(headers) -> float:
+    """Seconds GitHub asks to wait (Retry-After, else the reset time of an used up rate limit), 0 if not asked"""
+    if headers is None:
+        return 0.0
+    try:
+        value = str(headers.get("Retry-After") or "")
+        if value:
+            return min(max(float(value), 0.0), MAX_RETRY_WAIT)
+        if str(headers.get("X-RateLimit-Remaining") or "") == "0":
+            return min(max(float(headers.get("X-RateLimit-Reset") or 0) - time.time(), 0.0), MAX_RETRY_WAIT)
+    except (TypeError, ValueError):
+        pass
+    return 0.0
+
+
+class ReleaseLink:
+    """Latest release answer of the update repository, kept with its ETag (conditional request: a 304 does not count
+    against the rate limit of GitHub), the time it was read and the time before which GitHub is not asked again
+    (403 / 429). Kept on disk: a restart does not ask again within number_of_hours_between_update_checks."""
+
+    __slots__ = ("repo", "etag", "body", "checked", "blocked", "status", "wait", "max_age", "_loaded")
+
+    def __init__(self) -> None:
+        self.repo = ""
+        self.etag = ""
+        self.body = b""
+        self.checked = 0.0  # time.time() of the last answer (200 or 304)
+        self.blocked = 0.0  # time.time() before which nothing is asked (rate limit, 403 / 429)
+        self.status = 0  # status of the last request (0: no answer), KEPT if no request was needed
+        self.wait = 0.0  # seconds GitHub asked to wait at the last request
+        self.max_age = 0.0  # a kept answer younger than this is used without a request (0: always ask)
+        self._loaded = False
+
+    def path(self) -> str:
+        return os.path.join(cfg.path.config, RELEASE_CHECK_FILE)
+
+    def load(self) -> None:
+        """Copy kept on disk, once"""
+        if self._loaded:
+            return
+        self._loaded = True
+        from .userfile import read_json
+
+        saved = read_json(self.path(), default=None, dict_only=True)
+        if not isinstance(saved, dict):
+            return
+        try:
+            body = str(saved.get("body") or "").encode("utf-8")
+            if saved.get("version") == 1 and body and len(body) <= KEEP_RELEASE_BYTES:
+                self.repo, self.etag, self.body = str(saved.get("repo") or ""), str(saved.get("etag") or ""), body
+            self.checked = max(float(saved.get("checked") or 0.0), 0.0)
+            self.blocked = max(float(saved.get("blocked") or 0.0), 0.0)
+        except (TypeError, ValueError):
+            logger.warning("UPDATES: update check file not valid, ignored")
+
+    def save(self) -> None:
+        from .userfile import write_json
+
+        body = self.body.decode("utf-8", "replace") if len(self.body) <= KEEP_RELEASE_BYTES else ""
+        write_json(self.path(), {"version": 1, "repo": self.repo, "etag": self.etag, "body": body,
+                                 "checked": self.checked, "blocked": self.blocked}, fsync=False)
+
+
+RELEASE_LINK = ReleaseLink()
+
+
+def fetch_release(repo: str, etag: str, timeout: float) -> tuple[int, bytes, str, float]:
+    """One GET of the latest release (GitHub API, redirects inside the API followed: renamed repository)
+
+    Returns:
+        status (0: no answer: offline, cut off), body (status 200 only), ETag, seconds GitHub asks to wait.
+    """
+    headers = {"User-Agent": f"{APP_NAME}/{version.__version__}", **API_HEADERS}
+    if etag:
+        headers["If-None-Match"] = etag
+    request = urllib.request.Request(f"https://{API_HOST}/repos/{repo}/releases/latest", headers=headers)
+    started = time.monotonic()
+    route = "GET repos/*/releases/latest" + (" (If-None-Match)" if etag else "")
     try:
         with urllib.request.build_opener(GitHubApiRedirect).open(request, timeout=timeout) as response:
-            return response.read(MAX_RELEASE_SIZE)
+            result = response.status, response.read(MAX_RELEASE_SIZE), str(response.headers.get("ETag") or ""), 0.0
+    except urllib.error.HTTPError as error:  # 304 included
+        try:
+            result = error.code, b"", "", retry_wait(error.headers)
+        finally:
+            error.close()
     except (OSError, ValueError, http.client.HTTPException):
-        return b""
+        result = 0, b"", "", 0.0
+    request_log.record(request_log.GITHUB, route, result[0], (time.monotonic() - started) * 1000)
+    return result
 
 
 async def request_latest_release(repo: str) -> bytes:
-    """Latest release data from github Rest API
+    """Latest release data from github Rest API, empty if not read (RELEASE_LINK tells why)
 
-    Direct request first; if it gives nothing (offline, or repository renamed: raw request
-    never follows redirects), again with redirects followed.
+    One request at most: the copy kept is used while younger than RELEASE_LINK.max_age, nothing is asked while GitHub
+    asked to wait, and the request carries the ETag of the copy (304: unchanged, not sent again).
     """
-    uri_path = f"/repos/{repo}/releases/latest"
-    port = 443
-    timeout = 5
-    user_agent = f"User-Agent: {APP_NAME}/{version.__version__}"
-    request_header = set_header_get(
-        uri_path,
-        API_HOST,
-        user_agent,
-        *(f"{name}: {value}" for name, value in API_HEADERS.items()),
-    )
-    data = await get_response(request_header, API_HOST, port, timeout, ssl=True)
-    if not data:
-        data = await asyncio.to_thread(fetch_api_following_redirects, uri_path, timeout)
-    return data
+    link = RELEASE_LINK
+    link.load()
+    link.status, link.wait = 0, 0.0
+    now = time.time()
+    kept = link.repo == repo and bool(link.body)
+    if kept and link.max_age > 0.0 and 0.0 <= now - link.checked < link.max_age:
+        link.status = KEPT
+        return link.body
+    if 0.0 <= link.blocked - now <= MAX_RETRY_WAIT:  # GitHub asked to wait: no request
+        link.wait = link.blocked - now
+        logger.info("UPDATES: GitHub asked to wait, next request in %d s", link.wait)
+        return b""
+    status, body, etag, wait = await asyncio.to_thread(fetch_release, repo, link.etag if kept else "", 5)
+    link.status, link.wait = status, wait
+    if status == 200 and body:
+        link.repo, link.etag, link.body, link.checked, link.blocked = repo, etag, body, now, 0.0
+        link.save()
+        return body
+    if status == KEPT and kept:
+        link.checked, link.blocked = now, 0.0
+        link.save()
+        return link.body
+    if status in (403, 429):  # rate limit or refused: nothing asked before the wait ends (restarts included)
+        link.blocked = now + max(wait, RETRY_LADDER[0])
+        link.save()
+    return b""
 
 
 class InstallerAsset(NamedTuple):
@@ -351,13 +448,24 @@ def check_manifest(manifest: ReleaseManifest, tag: str, checked_version: tuple[i
 
 
 def verified_release(data: bytes, repository: str, checked_version: tuple[int, int, int],
-                     current_version: tuple[int, int, int], version_tag: str = "") -> InstallerAsset | None:
+                     current_version: tuple[int, int, int], version_tag: str = "",
+                     kept: dict[str, ReleaseManifest] | None = None) -> InstallerAsset | None:
     """Installer of official release (hash & size from its verified signed manifest), raise ManifestError
 
     None: verified release without Windows installer.
+
+    Args:
+        kept: verified manifests by release tag (last tag only): a release already verified is not downloaded again
+            at each check (2 requests); the manifest is still checked against the release.
     """
-    manifest = fetch_manifest(data)
-    check_manifest(manifest, parse_release_tag(data), checked_version, current_version, version_tag)
+    tag = parse_release_tag(data)
+    manifest = kept.get(tag) if kept is not None and tag else None
+    if manifest is None:
+        manifest = fetch_manifest(data)
+        if kept is not None and tag:
+            kept.clear()
+            kept[tag] = manifest
+    check_manifest(manifest, tag, checked_version, current_version, version_tag)
     return parse_installer(data, repository, manifest)
 
 
@@ -513,6 +621,11 @@ CHANGELOG_IMAGE_URL = re.compile(
     r"https://raw\.githubusercontent\.com/([\w.-]+/[\w.-]+)/[\w.-]+/docs/changes/(\w[\w.-]*\.(?:png|jpe?g|gif|webp))")
 CHANGELOG_IMAGE_FOLDER = os.path.join("docs", "changes")
 MAX_CHANGELOG_IMAGE_SIZE = 8 * 1024 * 1024
+KEEP_CHANGELOG_IMAGES = 40  # screenshots kept in the changelog image folder at most (oldest downloaded dropped first)
+KEEP_CHANGELOG_IMAGE_BYTES = 80 * 1024 * 1024  # and this many bytes at most
+MISSING_IMAGE_SECONDS = 3600.0  # screenshot not found (404): not asked again this long (a release publishes it once)
+FAILED_IMAGE_SECONDS = 300.0  # screenshot not downloaded (offline, rate limit, error): not asked again this long
+_missing_images: dict[str, float] = {}  # url: time.monotonic until which it is not asked again
 IMAGE_SIGNATURES = (b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff", b"GIF87a", b"GIF89a")
 
 
@@ -537,6 +650,13 @@ def changelog_image_cache() -> str:
     return app_path(set_default_data_path("changelogimage/"))
 
 
+def _remember_missing_image(url: str, seconds: float) -> None:
+    """Screenshot not downloaded: not asked again for seconds (list kept short: the last 64 urls)"""
+    if len(_missing_images) >= 64:
+        del _missing_images[next(iter(_missing_images))]
+    _missing_images[url] = time.monotonic() + seconds
+
+
 def changelog_image_file(url: str, timeout: float = 10) -> str:
     """Local file of changelog screenshot (docs/changes next to app, else downloaded once & kept)
 
@@ -553,17 +673,46 @@ def changelog_image_file(url: str, timeout: float = 10) -> str:
     for path in (os.path.join(APP_ROOT, CHANGELOG_IMAGE_FOLDER, name), os.path.join(folder, name)):
         if os.path.isfile(path):
             return path
+    if time.monotonic() < _missing_images.get(url, 0.0):  # asked a moment ago: still not there
+        raise OSError(f"changelog image not available (asked a moment ago): {url}")
     try:
         with open_url(url, timeout) as response:
             data = response.read(MAX_CHANGELOG_IMAGE_SIZE + 1)
+    except urllib.error.HTTPError as error:
+        wait = MISSING_IMAGE_SECONDS if error.code == 404 else FAILED_IMAGE_SECONDS
+        _remember_missing_image(url, wait)
+        raise
+    except OSError:  # offline, cut off
+        _remember_missing_image(url, FAILED_IMAGE_SECONDS)
+        raise
     except (ValueError, http.client.HTTPException) as error:
+        _remember_missing_image(url, FAILED_IMAGE_SECONDS)
         raise OSError(f"changelog image not downloaded: {error}") from error
     if len(data) > MAX_CHANGELOG_IMAGE_SIZE or not is_image_data(data):
         raise OSError(f"changelog image too large or not an image: {url}")
     path = os.path.join(folder, name)
     os.makedirs(folder, exist_ok=True)
     atomic_replace(path, data, fsync=False)  # downloaded again if lost
+    prune_changelog_images(folder, keep=name)
     return path
+
+
+def prune_changelog_images(folder: str, keep: str = "") -> None:
+    """Oldest downloaded screenshots deleted above KEEP_CHANGELOG_IMAGES files or KEEP_CHANGELOG_IMAGE_BYTES bytes
+    (keep: file just saved, never deleted); lost ones are downloaded again when a changelog shows them"""
+    try:
+        with os.scandir(folder) as entries:
+            files = [(entry.stat().st_mtime, entry.stat().st_size, entry.path, entry.name)
+                     for entry in entries if entry.is_file()]
+    except OSError:
+        return
+    files.sort(reverse=True)  # newest first
+    total = 0
+    for index, (_, size, path, name) in enumerate(files):
+        total += size
+        if name != keep and (index >= KEEP_CHANGELOG_IMAGES or total > KEEP_CHANGELOG_IMAGE_BYTES):
+            with suppress(OSError):
+                os.remove(path)
 
 
 UNINSTALLER_NAME = "unins000.exe"  # left next to app executable by installer (Inno Setup)
@@ -1319,6 +1468,9 @@ class UpdateChecker:
         "localized_notes",
         "earlier_entries",
         "_changelog_cache",
+        "_manifests",
+        "_failures",
+        "_retry_at",
     )
 
     def __init__(self):
@@ -1337,6 +1489,9 @@ class UpdateChecker:
         # language code: changelog sections of versions between installed & latest (skipped updates), newest first
         self.earlier_entries: dict[str, list[ChangelogEntry]] = {}
         self._changelog_cache: dict[tuple[str, str, str], str] = {}  # (repo, tag, language): changelog, last tag only
+        self._manifests: dict[str, ReleaseManifest] = {}  # tag: signed manifest verified, last tag only
+        self._failures = 0  # checks in a row without answer from GitHub
+        self._retry_at: float | None = None  # time.monotonic before which no check is started after a failure
 
     def is_manual(self) -> bool:
         """Is manual checking"""
@@ -1402,6 +1557,10 @@ class UpdateChecker:
         self._manual_checking = manual
         self._scheduled_checking = scheduled
         self._last_check_time = time.monotonic()
+        hours = cfg.application["number_of_hours_between_update_checks"]
+        # Copy of the last answer kept on disk is used without a request while younger than the interval (a restart
+        # asks nothing); a check asked by hand always asks (with the ETag of the copy)
+        RELEASE_LINK.max_age = 0.0 if manual else max(float(hours), 0.0) * 3600.0
         repo = update_repository()
         self._disabled = not repo
         if self._disabled:  # no repository set, skip checking
@@ -1432,6 +1591,11 @@ class UpdateChecker:
             return False
         if now is None:
             now = time.monotonic()
+        if self._retry_at is not None:  # last check got no answer: tried again 5, 15, then 60 minutes after
+            if now < self._retry_at:
+                return False
+            self.check(False, scheduled=True)
+            return True
         if self._last_check_time is not None and now - self._last_check_time < hours * 3600:
             return False
         self.check(False, scheduled=True)
@@ -1441,6 +1605,7 @@ class UpdateChecker:
         """Fetch version info from github Rest API"""
         try:
             raw_bytes = asyncio.run(request_latest_release(repo))
+            self._answered(bool(raw_bytes))
             if not raw_bytes and self._last_checked_version != VERSION_NA:
                 # No answer (offline, rate limit, GitHub error): what the last check found stays (update notice,
                 # installer, notes), tried again at the next check
@@ -1457,7 +1622,8 @@ class UpdateChecker:
             if update_available and official:
                 # Official release: offered only with its signed manifest (hash & size of installer from it)
                 try:
-                    installer = verified_release(raw_bytes, repo, checked_version, current_version, version.DEVELOPMENT)
+                    installer = verified_release(raw_bytes, repo, checked_version, current_version, version.DEVELOPMENT,
+                                                 self._manifests)
                 except ManifestError as error:
                     logger.error("UPDATES: release v%s refused, signed manifest not verified: %s",
                                  ".".join(map(str, checked_version)), error)
@@ -1499,6 +1665,17 @@ class UpdateChecker:
             app_signal.updates.emit(False)
         # Output log
         logger.info("UPDATES: %s", self.message())
+
+    def _answered(self, answered: bool) -> None:
+        """Wait before the next automatic check: none once GitHub answered, else 5, 15, then 60 minutes (or what GitHub
+        asked: Retry-After, rate limit reset)"""
+        if answered:
+            self._failures, self._retry_at = 0, None
+            return
+        self._failures += 1
+        wait = max(RETRY_LADDER[min(self._failures, len(RETRY_LADDER)) - 1], RELEASE_LINK.wait)
+        self._retry_at = time.monotonic() + wait
+        logger.info("UPDATES: no answer from GitHub (%d in a row), next automatic check in %d s", self._failures, wait)
 
     def message(self) -> str:
         """Get message"""

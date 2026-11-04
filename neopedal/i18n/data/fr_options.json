@@ -1098,6 +1098,7 @@
     "show_class_sof": "Afficher le SoF de chaque catégorie",
     "enable_multi_class_styling": "Activer le style multi-catégorie",
     "enable_online_driver_ranks": "DR/SR en ligne (RaceControl)",
+    "enable_online_requests_economy": "Mode économe des requêtes en ligne",
     "enable_out_and_in_lap_recording": "Enregistrer les tours de sortie et de rentrée",
     "enable_pit_entry_bias": "Activer la répartition à l'entrée des stands",
     "enable_plan_inputs": "Saisies d'un plan de course",

@@ -118,6 +118,7 @@ GLOBAL_DEFAULT = {
         # Driver & Safety Rank read online from RaceControl (sign in with a game ticket), see process/raceos.py:
         # sends the Steam session ticket of the running game to raceos.gg (online service of the game, not the app)
         "enable_online_driver_ranks": True,
+        "enable_online_requests_economy": False,  # RaceControl read half as often (see net_policy.stretch)
         'snap_distance': 10,
         "snap_gap": 0,
         "enable_magnetic_snap": True,  # overlays snap while dragged (Ctrl: free move), else snap with Ctrl

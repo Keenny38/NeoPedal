@@ -102,7 +102,7 @@ CI runs every test on Windows and Linux, Python 3.11, 3.13 and 3.14, on shared r
 
 ### Requests to online services
 
-- The durations and limits of the requests to RaceControl and the other online services are in `neopedal/net_policy.py`, each with its reason (rhythm at which the data changes, or limit of the service); the modules keep their own names for them. A new duration goes there, with its reason, never as a number in the code.
+- The durations and limits of the requests to RaceControl and the other online services are in `neopedal/net_policy.py`, each with its reason (rhythm at which the data changes, or limit of the service); the modules keep their own names for them. A new duration goes there, with its reason, never as a number in the code. Economy mode (`enable_online_requests_economy`) stretches the waits through `net_policy.stretch` and halves the hourly cap through `net_policy.hour_cap`: a new wait of a read of RaceControl goes through them. Every request to RaceControl, GitHub and the lap times sheet is noted in `neopedal/request_log.py` (route and status, memory only), shown by the `Requests` dialog of Upcoming Races: a new service adds its line there.
 
 ### Overlays and the modern design
 

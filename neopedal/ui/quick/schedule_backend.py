@@ -48,7 +48,7 @@ from ... import race_schedule_info as info
 from ...i18n import tr
 from ...process import race_schedule as rs
 from . import page_settings
-from .formatting import date_text
+from .formatting import date_text, long_date_time, relative_date
 from .game_pictures import LogoCache, notifier
 from .models import DictListModel
 from .page_backend import PageBackend
@@ -137,6 +137,13 @@ def status_note(status: str, schedule: rs.Schedule) -> tuple[str, str]:
         return "warning", tr("RaceControl did not answer: last races read are shown.") if old else tr(
             "RaceControl did not answer.")
     return "", ""
+
+
+def requests_status(status: int) -> str:
+    """Answer of a request told by the requests dialog: status, "no answer" or "not sent" (limits)"""
+    if status == -1:
+        return tr("not sent (limits)")
+    return str(status) if status > 0 else tr("no answer")
 
 
 def not_done_text(reason: str, refused: str, silent: str) -> str:
@@ -476,7 +483,7 @@ class RaceScheduleBackend(PageBackend):
 
     def read_places_due(self, force: bool = False):
         """Your place in the weekly leaderboard of each race & current championship round, in background when due"""
-        if not force and (time.monotonic() - self._places_time < PLACES_SECONDS or self.jobs.is_busy("places")):
+        if not force and (time.monotonic() - self._places_time < policy.stretch(PLACES_SECONDS) or self.jobs.is_busy("places")):
             return
         schedule = info.state().schedule
         boards = {event.board.key: event.board for event in schedule.events if event.board is not None}
@@ -598,6 +605,8 @@ class RaceScheduleBackend(PageBackend):
             "noGame": state.status == info.NO_GAME,
             "read": schedule.read_time > 0,
             "updated": date_text(schedule.read_time) if schedule.read_time > 0 else "",
+            "age": relative_date(schedule.read_time) if schedule.read_time > 0 else "",  # "5 min ago": always told
+            "readFull": long_date_time(schedule.read_time) if schedule.read_time > 0 else "",
             "rank": f"SR {safety[0]} {safety[1]}" if safety[0] else tr("SR unknown"),
             "rankKnown": bool(safety[0]),
         }, self.statusChanged)
@@ -826,6 +835,26 @@ class RaceScheduleBackend(PageBackend):
         else:
             self.read()
         self.read_personal_due()
+
+    @Slot(result="QVariantList")
+    def requestsReport(self) -> list:
+        """Requests sent to online services since the app started (request_log): by service, how many in the last
+        hour against its limit, the last ones (time, route, answer)"""
+        from ... import request_log
+        from ...process import raceos
+
+        limits = {request_log.RACE_CONTROL: policy.hour_cap(raceos.MAX_PER_HOUR), request_log.GITHUB: 60}
+        report = []
+        for service, data in request_log.snapshot().items():
+            limit = limits.get(service, 0)
+            summary = (tr("%1 requests in the last hour (limit %2)").replace("%1", str(data["hour"])).replace(
+                "%2", str(limit)) if limit else tr("%1 requests in the last hour").replace("%1", str(data["hour"])))
+            lines = [{"when": time.strftime("%H:%M:%S", time.localtime(line.time)),
+                      "text": f"{line.route}  ·  {requests_status(line.status)}"
+                              + (f"  ·  {line.milliseconds} ms" if line.milliseconds else "")}
+                     for line in data["lines"][:20]]
+            report.append({"name": service, "summary": summary, "lines": lines})
+        return report
 
     @Slot()
     def openOnlineOption(self):

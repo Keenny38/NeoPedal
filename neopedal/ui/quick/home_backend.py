@@ -662,7 +662,7 @@ class HomeBackend(PageBackend):
             # registered from the card (dialog of the Upcoming Races page): solo race open to registration
             row["canRegister"] = (signed_in and row.get("registrationOpen") is True and bool(row.get("eventId"))
                                   and row.get("kind") == "daily" and tr("Team race") not in row.get("settings", ""))
-        self.publish("races", {"rows": rows} if rows else {}, self.racesChanged)
+        self.publish("races", {"rows": rows, "read": getattr(schedule, "read_time", 0.0)} if rows else {}, self.racesChanged)
 
     def races_failed(self, error: BaseException):
         logger.warning("HOME: online races not read: %s", error)

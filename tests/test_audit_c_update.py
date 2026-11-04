@@ -718,30 +718,116 @@ def test_update_notice_kept_after_language_change(window, updates):
     assert not window.statusBar().findChild(UpdatesNotifyButton).isVisibleTo(window)  # dismissed stays hidden
 
 
-def test_latest_release_follows_redirect_when_direct_request_empty(monkeypatch):
-    """Renamed repository: raw request gets nothing (301), request again with redirects followed"""
+@pytest.fixture
+def release_link(monkeypatch, tmp_path):
+    """Fresh RELEASE_LINK with its file in a scratch folder"""
+    link = update.ReleaseLink()
+    monkeypatch.setattr(update, "RELEASE_LINK", link)
+    monkeypatch.setattr(cfg.path, "config", str(tmp_path) + os.sep)
+    return link
+
+
+def test_latest_release_one_request_with_etag_kept(monkeypatch, release_link):
+    """One request, never a second one; the answer is kept with its ETag and asked again with If-None-Match"""
     calls = []
 
-    async def no_answer(*args, **kwargs):
-        return b""
+    def fetch(repo, etag, timeout):
+        calls.append((repo, etag))
+        return (200, b'{"tag_name": "v1.0.0"}', '"abc"', 0.0) if not etag else (304, b"", "", 0.0)
 
-    def follow(uri_path, timeout):
-        calls.append(uri_path)
-        return b'{"tag_name": "v9.9.9"}'
-
-    monkeypatch.setattr(update, "get_response", no_answer)
-    monkeypatch.setattr(update, "fetch_api_following_redirects", follow)
-    assert asyncio.run(update.request_latest_release("Keenny38/old")) == b'{"tag_name": "v9.9.9"}'
-    assert calls == ["/repos/Keenny38/old/releases/latest"]
-
-
-def test_latest_release_direct_answer_used(monkeypatch):
-    async def answer(*args, **kwargs):
-        return b'{"tag_name": "v1.0.0"}'
-
-    monkeypatch.setattr(update, "get_response", answer)
-    monkeypatch.setattr(update, "fetch_api_following_redirects", lambda *args: pytest.fail("not needed"))
+    monkeypatch.setattr(update, "fetch_release", fetch)
     assert asyncio.run(update.request_latest_release("a/b")) == b'{"tag_name": "v1.0.0"}'
+    assert asyncio.run(update.request_latest_release("a/b")) == b'{"tag_name": "v1.0.0"}'  # 304: copy kept
+    assert calls == [("a/b", ""), ("a/b", '"abc"')] and release_link.status == update.KEPT
+
+
+def test_latest_release_kept_copy_used_without_request(monkeypatch, release_link):
+    monkeypatch.setattr(update, "fetch_release", lambda *args: (200, b'{"tag_name": "v1.0.0"}', '"e"', 0.0))
+    asyncio.run(update.request_latest_release("a/b"))
+    monkeypatch.setattr(update, "fetch_release", lambda *args: pytest.fail("copy is younger than the interval"))
+    release_link.max_age = 12 * 3600.0
+    assert asyncio.run(update.request_latest_release("a/b")) == b'{"tag_name": "v1.0.0"}'
+    # a restart: the copy comes back from disk
+    again = update.ReleaseLink()
+    monkeypatch.setattr(update, "RELEASE_LINK", again)
+    again.max_age = 12 * 3600.0
+    assert asyncio.run(update.request_latest_release("a/b")) == b'{"tag_name": "v1.0.0"}'
+    # another repository, or older than the interval: asked
+    asked = []
+    monkeypatch.setattr(update, "fetch_release", lambda repo, *args: asked.append(repo) or (0, b"", "", 0.0))
+    assert asyncio.run(update.request_latest_release("c/d")) == b"" and asked == ["c/d"]
+
+
+def test_latest_release_rate_limit_waits_even_after_restart(monkeypatch, release_link):
+    """403 / 429: nothing asked before the wait ends, restarts included; no second request on the failure"""
+    calls = []
+
+    def fetch(repo, etag, timeout):
+        calls.append(repo)
+        return 429, b"", "", 1800.0
+
+    monkeypatch.setattr(update, "fetch_release", fetch)
+    assert asyncio.run(update.request_latest_release("a/b")) == b"" and calls == ["a/b"]
+    assert release_link.blocked - time.time() > 290
+    restarted = update.ReleaseLink()
+    monkeypatch.setattr(update, "RELEASE_LINK", restarted)
+    assert asyncio.run(update.request_latest_release("a/b")) == b"" and calls == ["a/b"]  # not asked
+    assert restarted.wait > 0
+
+
+def test_retry_wait_headers():
+    assert update.retry_wait({"Retry-After": "120"}) == 120.0
+    assert update.retry_wait({"Retry-After": "-5"}) == 0.0
+    assert update.retry_wait({"Retry-After": "999999999"}) == update.MAX_RETRY_WAIT
+    assert update.retry_wait({"X-RateLimit-Remaining": "5", "X-RateLimit-Reset": "1"}) == 0.0
+    reset = str(int(time.time()) + 600)
+    assert 590 <= update.retry_wait({"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": reset}) <= 600
+    assert update.retry_wait({"Retry-After": "soon"}) == 0.0 and update.retry_wait(None) == 0.0
+
+
+def test_checker_retries_5_15_60_minutes_after_failures(checker, monkeypatch):
+    from neopedal import realtime_state
+
+    checker, _ = checker
+    started = []
+    monkeypatch.setattr(update.UpdateChecker, "check", lambda self, manual, scheduled=False: started.append(1))
+    monkeypatch.setitem(cfg.application, "check_for_updates_on_startup", True)
+    monkeypatch.setitem(cfg.application, "number_of_hours_between_update_checks", 12)
+    monkeypatch.setattr(realtime_state, "active", False)
+    monkeypatch.setattr(update, "RELEASE_LINK", update.ReleaseLink())
+    clock = [1000.0]
+    monkeypatch.setattr(time, "monotonic", lambda: clock[0])
+    waits = []
+    for _ in range(4):
+        checker._answered(False)
+        waits.append(checker._retry_at - clock[0])
+    assert waits == [300.0, 900.0, 3600.0, 3600.0]
+    assert not checker.check_due(now=clock[0] + 299) and checker.check_due(now=clock[0] + 3600)
+    checker._answered(True)
+    assert checker._retry_at is None and checker._failures == 0
+    update.RELEASE_LINK.wait = 7200.0  # GitHub asked 2 h
+    checker._answered(False)
+    assert checker._retry_at - clock[0] == 7200.0
+
+
+def test_manifest_verified_once_per_release(monkeypatch):
+    calls = []
+    manifest = signed_release.signed_release  # only to make sure helpers exist
+    assert manifest
+    data = b'{"tag_name": "v9.9.9"}'
+    fake = object()
+
+    def fetch(raw):
+        calls.append(raw)
+        return fake
+
+    monkeypatch.setattr(update, "fetch_manifest", fetch)
+    monkeypatch.setattr(update, "check_manifest", lambda *args: None)
+    monkeypatch.setattr(update, "parse_installer", lambda *args: None)
+    kept = {}
+    for _ in range(3):
+        update.verified_release(data, "a/b", (9, 9, 9), (0, 0, 1), "", kept)
+    assert len(calls) == 1 and kept == {"v9.9.9": fake}
 
 
 def test_api_redirect_stays_on_github_api():
@@ -756,7 +842,7 @@ def test_api_redirect_stays_on_github_api():
     assert handler.redirect_request(request, None, 301, "Moved", {}, "http://api.github.com/x") is None
 
 
-def test_api_fetch_failure_is_empty(monkeypatch):
+def test_fetch_release_failure_has_no_status(monkeypatch):
     import urllib.request
 
     class Opener:
@@ -764,7 +850,7 @@ def test_api_fetch_failure_is_empty(monkeypatch):
             raise OSError("offline")
 
     monkeypatch.setattr(urllib.request, "build_opener", lambda *handlers: Opener())
-    assert update.fetch_api_following_redirects("/repos/a/b/releases/latest", 1) == b""
+    assert update.fetch_release("a/b", "", 1) == (0, b"", "", 0.0)
 
 
 # Updates checked again while app runs (number_of_hours_between_update_checks)

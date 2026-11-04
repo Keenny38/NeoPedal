@@ -118,6 +118,19 @@ TpPage {
         return i18n.tr("in %1").replace("%1", Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0"))
     }
 
+    function ageText(read, now) {  // how long ago the races were read from RaceControl ("5 min ago")
+        if (!(read > 0))
+            return ""
+        var minutes = Math.floor(Math.max(now - read, 0) / 60)
+        if (minutes < 1)
+            return i18n.tr("Just now")
+        if (minutes < 60)
+            return i18n.tr("%1 min ago").replace("%1", minutes)
+        if (minutes < 1440)
+            return i18n.tr("%1 h ago").replace("%1", Math.floor(minutes / 60))
+        return i18n.tr("%1 days ago").replace("%1", Math.floor(minutes / 1440))
+    }
+
     Timer {  // countdown of races starting soon, while the page shows them
         interval: 1000
         repeat: true
@@ -864,6 +877,14 @@ TpPage {
                     clickable: true
                     tip: i18n.tr("Open upcoming races")
                     onOpened: backend.openRaces()
+                    trailing: [
+                        TpText {
+                            objectName: "racesAge"
+                            role: "caption"
+                            visible: text !== ""
+                            text: page.ageText(page.races.read || 0, page.now)
+                        }
+                    ]
                     GridLayout {
                         Layout.fillWidth: true
                         columns: page.columns

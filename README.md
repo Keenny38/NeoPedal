@@ -200,7 +200,7 @@ Every session you played, online or single player, read from the results files o
 
 ### Upcoming Races
 
-The online races of Le Mans Ultimate to come on one page, read from RaceControl with the game sign in, as the game menu shows them (the last ones read stay shown while the game is closed).
+The online races of Le Mans Ultimate to come on one page, read from RaceControl with the game sign in, as the game menu shows them (the last ones read stay shown while the game is closed). The page tells how long ago they were read, a `Requests` button lists what the app sent to RaceControl, GitHub and the lap times sheet, and an economy mode (`enable_online_requests_economy`) asks half as often.
 
 - **Daily races** of each tier with every start of the day (cards, compact list or a **timeline** of the next hours), **weekly races & special events**, **championships** (current round, attempts, dropped rounds, points, sessions with drivers registered, practice servers), **co-op events** (leaderboard with your team) and **servers hosted by players** (players, session, region, password lock, sorting).
 - Each race: next start and time to it (pulses just before), track logo, classes, **your personal best & community level** of each class driven there, sessions, time on track, weather from start to end, setup rules, registrations and when they open, every following start.

@@ -332,7 +332,7 @@ def fetch_sheet(url: str, timeout: float = 15) -> str:
 def download(target: str, limit: int, timeout: float) -> bytes:
     """Bytes of an url (at most limit), tried again after RETRY_DELAYS when cut by the network or the server
     (raise OSError, ValueError if larger than limit)"""
-    from .. import version
+    from .. import request_log, version
     from ..const_app import APP_NAME
 
     request = urllib.request.Request(target, headers={"User-Agent": f"{APP_NAME}/{version.__version__}"})
@@ -340,8 +340,10 @@ def download(target: str, limit: int, timeout: float) -> bytes:
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 data = response.read(limit + 1)
+            request_log.record(request_log.SHEET, "GET export", 200)
             break
         except urllib.error.HTTPError as error:
+            request_log.record(request_log.SHEET, "GET export", error.code)
             if delay is None or (error.code < 500 and error.code != 429):  # wrong address, not published: final
                 raise
             reason = f"HTTP {error.code}"

@@ -216,7 +216,7 @@ class FieldRanks:
         now = self._clock()
         wanted, asked, ranks = self._wanted, self._asked, self._ranks
         due = [name for key, name in wanted.items() if key not in asked
-               or now - asked[key] >= (KEEP_SECONDS if key in ranks else MISSING_SECONDS)]
+               or now - asked[key] >= (policy.stretch(KEEP_SECONDS) if key in ranks else MISSING_SECONDS)]
         if not due:
             return
         found: dict[str, DriverRanks] = {}

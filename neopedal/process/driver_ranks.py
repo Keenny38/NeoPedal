@@ -765,7 +765,7 @@ class RankWatcher:
             if not due and not source.game_running():  # periodic read only while game runs
                 wait = ONLINE_GAME_SECONDS
             else:  # after a session: ranks changed, new sign in; else ranks of a recent sign in (restart) kept
-                max_age = 0.0 if due else ONLINE_SECONDS
+                max_age = 0.0 if due else policy.stretch(ONLINE_SECONDS)
                 fetch_timed = getattr(source, "fetch_timed", None)  # sources without it: ranks read now
                 if fetch_timed is not None:
                     found = fetch_timed(account, max_age)
@@ -781,7 +781,7 @@ class RankWatcher:
             if ranks is None:
                 self._online_next = now + wait
                 return
-            self._online_next = now + ONLINE_SECONDS
+            self._online_next = now + policy.stretch(ONLINE_SECONDS)
             if account and ranks.steam_id and ranks.steam_id != account:
                 # Signed in to another account than the one located (stale): ranks not the player's, read again
                 # at the usual interval only (dropped by every check otherwise, then read again at once)

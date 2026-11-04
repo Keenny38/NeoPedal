@@ -16,11 +16,13 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Cache & API audit follow-up 2026-11-04: online races kept in memory once settled, disk copy tied to a game account"""
+"""Cache & API audit follow-up 2026-11-04: online races kept in memory and on disk once settled (file tied to the game
+account, bounded, removed with the online option), schedule disk copy tied to a game account"""
 
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -61,6 +63,9 @@ def results_info(monkeypatch, tmp_path):
     monkeypatch.setattr(info, "_page_heads", {})
     monkeypatch.setattr(info, "_kept_pages", {})
     monkeypatch.setattr(info, "_kept_races", {})
+    monkeypatch.setattr(info, "_disk_results", None)
+    monkeypatch.setattr(info, "_account", lambda: "")  # account not known: nothing on disk (see the disk tests)
+    monkeypatch.setattr(info.cfg.path, "config", str(tmp_path) + os.sep)
     monkeypatch.setattr(info, "results_take", lambda _type: 2)
     monkeypatch.setattr(time, "time", lambda: NOW)
     monkeypatch.setattr(rank_info, "online_enabled", lambda: True)
@@ -110,14 +115,79 @@ def test_page_without_the_first_one_is_not_kept(results_info):
     assert len(client.paths) == 2  # head of the list unknown: nothing to tell it is still the same
 
 
-def test_laps_of_a_settled_race_kept_memory_only(results_info, tmp_path):
+def test_laps_of_a_settled_race_kept_in_memory(results_info, tmp_path):
     client = results_info([race(1, 2), race(2, 30)])
     assert info.read_result("race-2", 2) is not None and info.read_result("race-2", 2) is not None
     assert len(client.paths) == 1  # over for a day: laps kept
     info.read_result("race-1", 2)
     info.read_result("race-1", 2)
     assert len(client.paths) == 3  # over for 2 hours: asked again
-    assert not list(tmp_path.glob("*race*"))  # names of drivers never on disk
+    assert not (tmp_path / info.RESULTS_FILE).exists()  # game account not known: nothing on disk
+
+
+def forget_memory(monkeypatch):
+    """App restarted: memory empty, file read again"""
+    monkeypatch.setattr(info, "_page_heads", {})
+    monkeypatch.setattr(info, "_kept_pages", {})
+    monkeypatch.setattr(info, "_kept_races", {})
+    monkeypatch.setattr(info, "_disk_results", None)
+
+
+def test_settled_races_and_pages_kept_on_disk_for_the_account(results_info, monkeypatch, tmp_path):
+    monkeypatch.setattr(info, "_account", lambda: "76561198000000001")
+    client = results_info([race(1, 2), race(2, 30), race(3, 40), race(4, 50), race(5, 60)])
+    info.read_results("daily", 1)
+    info.read_results("daily", 2)
+    info.read_result("race-2", 2)
+    info.read_result("race-1", 2)  # over for 2 hours: not kept
+    saved = json.loads((tmp_path / info.RESULTS_FILE).read_text(encoding="utf-8"))
+    assert saved["account"] == "76561198000000001" and list(saved["races"]) == [
+        "api/v1/result?eventId=race-2&splitNo=2"] and list(saved["pages"]) == ["daily/2/2"]
+    assert len(client.paths) == 4
+    forget_memory(monkeypatch)  # restart: page 1 asked (it tells if a race was driven), the rest read from disk
+    assert [item.event_id for item in info.read_results("daily", 1)] == ["race-1", "race-2"]
+    assert [item.event_id for item in info.read_results("daily", 2)] == ["race-3", "race-4"]
+    assert info.read_result("race-2", 2) is not None
+    assert len(client.paths) == 5  # only page 1 (and race-1 still asked: not settled)
+
+
+def test_disk_pages_dropped_when_a_race_was_driven(results_info, monkeypatch, tmp_path):
+    monkeypatch.setattr(info, "_account", lambda: "76561198000000001")
+    client = results_info([race(1, 2), race(2, 30), race(3, 40), race(4, 50)])
+    info.read_results("daily", 1)
+    info.read_results("daily", 2)
+    forget_memory(monkeypatch)
+    client.races.insert(0, race(0, 0.2))  # driven since: every page moves
+    assert info.read_results("daily", 1)[0].event_id == "race-0"
+    assert [item.event_id for item in info.read_results("daily", 2)] == ["race-2", "race-3"]
+    assert len(client.paths) == 4  # page 2 asked again, not read from the old copy
+
+
+def test_disk_results_of_another_account_or_option_off(results_info, monkeypatch, tmp_path):
+    from neopedal import rank_info
+
+    monkeypatch.setattr(info, "_account", lambda: "76561198000000001")
+    client = results_info([race(1, 2), race(2, 30)])
+    info.read_result("race-2", 2)
+    forget_memory(monkeypatch)
+    monkeypatch.setattr(info, "_account", lambda: "76561198000000002")  # another Steam account
+    info.read_result("race-2", 2)
+    assert len(client.paths) == 2
+    forget_memory(monkeypatch)
+    monkeypatch.setattr(rank_info, "online_enabled", lambda: False)  # online option off: file removed
+    info.read_result("race-2", 2)
+    assert not (tmp_path / info.RESULTS_FILE).exists()
+
+
+def test_disk_results_bounded_and_invalid_file_ignored(results_info, monkeypatch, tmp_path):
+    monkeypatch.setattr(info, "_account", lambda: "76561198000000001")
+    (tmp_path / info.RESULTS_FILE).write_text("{not json", encoding="utf-8")
+    races = [race(number, 30 + number) for number in range(info.RACES_KEEP + 4)]
+    client = results_info(races)
+    for number in range(len(races)):
+        info.read_result(f"race-{number}", 2)
+    assert len(json.loads((tmp_path / info.RESULTS_FILE).read_text(encoding="utf-8"))["races"]) == info.RACES_KEEP
+    assert len(client.paths) == len(races)
 
 
 def test_kept_races_are_bounded(results_info):
@@ -258,3 +328,13 @@ def test_modules_use_the_policy_values():
     assert race_schedule_info.READ_SECONDS == net_policy.SCHEDULE_READ_SECONDS
     assert driver_ranks.ONLINE_SECONDS == net_policy.RANKS_ONLINE_SECONDS
     assert field_ranks.KEEP_SECONDS == net_policy.FIELD_KEEP_SECONDS
+
+
+def test_results_file_removed_at_startup_when_option_off(results_info, monkeypatch, tmp_path):
+    from neopedal import rank_info
+
+    (tmp_path / info.RESULTS_FILE).write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(rank_info, "online_enabled", lambda: False)
+    monkeypatch.setattr(info, "_disk_read", False)
+    info.load_disk()
+    assert not (tmp_path / info.RESULTS_FILE).exists()

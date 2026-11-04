@@ -50,6 +50,7 @@ from datetime import UTC, datetime
 from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 from .. import net_policy as policy
+from .. import request_log
 from ..validator import json_loads_checked
 from .driver_ranks import DriverRanks, parse_rank, ranks_data, ranks_from_data
 
@@ -450,7 +451,7 @@ class RaceOSClient:
             now = self._clock()
             hour = sum(1 for sent in self._sent if now - sent < 3600.0)
             minute = sum(1 for sent in reversed(self._sent) if now - sent < 60.0)
-        return max(min(MAX_PER_MINUTE - minute, MAX_PER_HOUR - hour), 0)
+        return max(min(MAX_PER_MINUTE - minute, policy.hour_cap(MAX_PER_HOUR) - hour), 0)
 
     def busy_for(self) -> float:
         """Seconds RaceControl asked to wait (429: too many requests) or refuses this connection (403) still to run,
@@ -553,7 +554,10 @@ class RaceOSClient:
                    "Content-Type": "application/json"}
         if not self._pace("sign in"):
             return None
+        started = time.monotonic()
         status, answer = self._http("POST", AUTH_URL, body, headers, TIMEOUT)
+        request_log.record(request_log.RACE_CONTROL, "POST authenticate", status,
+                           (time.monotonic() - started) * 1000)
         if status == 403:  # connection refused (live 2026-11-02: 403 on every request, the game's too)
             self._block()
         data = _json(answer) if status == 200 else None
@@ -621,7 +625,7 @@ class RaceOSClient:
         while self._sent and now - self._sent[0] >= 3600.0:
             self._sent.popleft()
         minute = sum(1 for sent in reversed(self._sent) if now - sent < 60.0)
-        if minute >= MAX_PER_MINUTE or len(self._sent) >= MAX_PER_HOUR or self.busy_for() > 0:
+        if minute >= MAX_PER_MINUTE or len(self._sent) >= policy.hour_cap(MAX_PER_HOUR) or self.busy_for() > 0:
             if not self._refusing:  # told once until a request is sent again (no line per request refused)
                 logger.info("RACEOS: requests not sent (%d sent in the last minute, %d in the last hour, or "
                             "waiting)", minute, len(self._sent))
@@ -681,8 +685,13 @@ class RaceOSClient:
         if known is not None:  # answer kept with its ETag: the service tells if it changed (304), else sends it again
             headers["If-None-Match"] = known[0]
         if not self._pace(f"{method} {path.split('?', 1)[0]}"):
+            request_log.record(request_log.RACE_CONTROL, f"{method} {request_log.route_of(path)}",
+                               request_log.NOT_SENT)
             return NOT_SENT, None
+        started = time.monotonic()
         reply = self._http(method, f"{RACEOS_URL}/{path}", body, headers, TIMEOUT)
+        request_log.record(request_log.RACE_CONTROL, f"{method} {request_log.route_of(path)}", reply[0],
+                           (time.monotonic() - started) * 1000)
         status, answer = reply
         if status == NOT_MODIFIED and known is not None:  # unchanged: the answer kept is the current one
             status, answer = 200, known[1]

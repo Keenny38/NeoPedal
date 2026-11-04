@@ -60,7 +60,7 @@ TpPage {
         TpPageHeader {
             Layout.fillWidth: true
             title: i18n.tr("Upcoming Races")
-            subtitle: page.status.updated ? i18n.tr("Read %1").replace("%1", page.status.updated) : ""
+            subtitle: page.status.age ? i18n.tr("Last read: %1").replace("%1", page.status.age) : ""
             status: [
                 Pill {
                     objectName: "rankPill"
@@ -85,6 +85,16 @@ TpPage {
             TpSpinner {
                 visible: page.status.loading === true
                 Layout.alignment: Qt.AlignVCenter
+            }
+            TpButton {
+                objectName: "requestsButton"
+                size: "sm"
+                text: i18n.tr("Requests")
+                tip: i18n.tr("Requests sent to RaceControl, GitHub and the lap times sheet since the app started")
+                onClicked: {
+                    requestsDialog.report = backend.requestsReport()
+                    requestsDialog.open()
+                }
             }
             TpButton {
                 objectName: "readAgain"
@@ -651,6 +661,44 @@ TpPage {
                 role: "caption"
                 visible: text !== ""
                 text: profilePopup.profile.error || ""
+            }
+        }
+    }
+
+    // Requests sent to online services since the app started (journal in memory, nothing saved)
+    TpDialog {
+        id: requestsDialog
+        objectName: "requestsDialog"
+        parent: page.Overlay.overlay
+        property var report: []
+        title: i18n.tr("Requests")
+        acceptText: i18n.tr("Close")
+        showCancel: false
+        width: Math.min(parent ? parent.width - theme.em * 2 : theme.em * 40, theme.em * 40)
+        TpText {
+            Layout.fillWidth: true
+            visible: requestsDialog.report.length === 0
+            role: "caption"
+            wrap: true
+            text: i18n.tr("Nothing sent since the app started.")
+        }
+        Repeater {
+            model: requestsDialog.report
+            ColumnLayout {
+                required property var modelData
+                Layout.fillWidth: true
+                spacing: theme.space1
+                TpSectionLabel { text: modelData.name + " · " + modelData.summary }
+                Repeater {
+                    model: modelData.lines
+                    TpText {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        role: "caption"
+                        elide: Text.ElideRight
+                        text: modelData.when + "  " + modelData.text
+                    }
+                }
             }
         }
     }

@@ -129,6 +129,53 @@ def test_changelog_image_file(tmp_path, monkeypatch, update_repo):
     assert len(requests) == 2
 
 
+def test_changelog_image_folder_pruned(tmp_path, monkeypatch):
+    import os
+    import time as clock
+
+    from neopedal import update
+
+    for index in range(update.KEEP_CHANGELOG_IMAGES + 5):
+        file = tmp_path / f"{index:03d}.png"
+        file.write_bytes(b"x" * 10)
+        os.utime(file, (clock.time() - 1000 + index, clock.time() - 1000 + index))
+    update.prune_changelog_images(str(tmp_path), keep="000.png")  # oldest, but just saved
+    names = sorted(file.name for file in tmp_path.iterdir())
+    assert len(names) == update.KEEP_CHANGELOG_IMAGES + 1 and "000.png" in names and "001.png" not in names
+    monkeypatch.setattr(update, "KEEP_CHANGELOG_IMAGE_BYTES", 100)  # size bound: newest ones kept
+    update.prune_changelog_images(str(tmp_path), keep="")
+    assert sum(file.stat().st_size for file in tmp_path.iterdir()) <= 100
+
+
+def test_changelog_image_missing_not_asked_again(tmp_path, monkeypatch, update_repo):
+    import urllib.error
+
+    from neopedal import update, userfile
+
+    monkeypatch.setattr(userfile, "APP_ROOT", str(tmp_path / "app"))
+    monkeypatch.setattr(update, "changelog_image_cache", lambda: str(tmp_path / "cache"))
+    monkeypatch.setattr(update, "_missing_images", {})
+    requests = []
+
+    def not_found(url, timeout):
+        requests.append(url)
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(update, "open_url", not_found)
+    for _ in range(3):
+        with pytest.raises(OSError):
+            update.changelog_image_file(SHOT)
+    assert len(requests) == 1  # a 404 is remembered
+    clock = [0.0]
+    monkeypatch.setattr(update.time, "monotonic", lambda: clock[0])
+    update._missing_images.clear()
+    update._remember_missing_image(SHOT, update.MISSING_IMAGE_SECONDS)
+    clock[0] = update.MISSING_IMAGE_SECONDS + 1
+    with pytest.raises(OSError):
+        update.changelog_image_file(SHOT)
+    assert len(requests) == 2  # asked again after an hour
+
+
 def test_inline_html():
     from neopedal.ui.release_notes import inline_html, plain_text
 

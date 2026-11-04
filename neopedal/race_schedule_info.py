@@ -26,12 +26,13 @@ kept in memory & on disk (trimmed: no player names, no server addresses), shown 
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import math
 import os
 import threading
 import time
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from . import net_policy as policy
 from .process import race_schedule as rs
@@ -145,6 +146,8 @@ def load_disk() -> None:
     if _disk_read:
         return
     _disk_read = True
+    with _results_lock:
+        _disk_store("")  # online option off: file of the online races removed
     from .rank_info import ranks
     from .userfile import read_json
 
@@ -195,6 +198,11 @@ def _busy_for(client=None) -> float:
     return busy_for() if busy_for is not None else 0.0
 
 
+def read_seconds(live: bool) -> float:
+    """Seconds between two reads (LIVE_READ_SECONDS while the Upcoming Races page shows), twice as long in economy mode"""
+    return policy.stretch(LIVE_READ_SECONDS if live else READ_SECONDS)
+
+
 def due(now: float | None = None, live: bool = False) -> bool:
     """Time to read again (never read, or last read old enough: LIVE_READ_SECONDS when live, the Upcoming Races
     page shown), never while RaceControl asks to wait"""
@@ -203,9 +211,9 @@ def due(now: float | None = None, live: bool = False) -> bool:
     if _busy_for() > 0:
         return False
     if current.tried < 0:  # not read in this run: read unless the disk copy is recent
-        return current.disk_tried < 0 or now - current.disk_tried >= (LIVE_READ_SECONDS if live else READ_SECONDS)
+        return current.disk_tried < 0 or now - current.disk_tried >= read_seconds(live)
     if current.status == READ:
-        wait = LIVE_READ_SECONDS if live else READ_SECONDS
+        wait = read_seconds(live)
     elif current.status == FAILED:  # RaceControl signed in, nothing answered: asked less and less often
         wait = min(RETRY_SECONDS * 2 ** min(max(current.failures, 1) - 1, 8), FAILED_MAX_SECONDS)
     else:
@@ -223,7 +231,7 @@ def hosted_stale(now: float | None = None) -> bool:
     """Hosted servers not read, or read LIVE_READ_SECONDS ago (their tab shown: read again)"""
     found = _known().get("hosted")
     now = time.time() if now is None else now
-    return found is None or not 0 <= now - found[0] < LIVE_READ_SECONDS - FRESH_MARGIN
+    return found is None or not 0 <= now - found[0] < policy.stretch(LIVE_READ_SECONDS) - FRESH_MARGIN
 
 
 def _fresh_routes(now: float, live: bool, servers: bool) -> set[str]:
@@ -231,7 +239,7 @@ def _fresh_routes(now: float, live: bool, servers: bool) -> set[str]:
     SLOW_ROUTE_SECONDS, others within their read interval), routes of the page while it is hidden, hosted servers
     while their tab is not shown"""
     known = _known()
-    interval = (LIVE_READ_SECONDS if live else READ_SECONDS) - FRESH_MARGIN
+    interval = read_seconds(live) - FRESH_MARGIN
     fresh = set()
     for key in rs.ROUTES:
         if key in PAGE_ROUTES and (not live or (key == "hosted" and not servers)):
@@ -256,7 +264,7 @@ def _is_fresh(key: str, found: tuple[float, object], now: float, interval: float
     if key == "championships":
         return age < ROUND_MAX_SECONDS and now < rs.next_round_change(answer, read_time) + ROUND_MARGIN
     if key in SLOW_ROUTES:
-        return age < SLOW_ROUTE_SECONDS
+        return age < policy.stretch(SLOW_ROUTE_SECONDS)
     if live and key.startswith("daily_"):  # the 3 next races of a tier move on at each race slot (15, 20, 30 minutes)
         slot = _state.schedule.frequency.get(key.removeprefix("daily_"), 0.0)
         return age < max(interval, slot - FRESH_MARGIN)
@@ -592,9 +600,10 @@ def read_championship_results(name: str) -> list[rs.OnlineResult] | None:
     return found
 
 
-# Online races read, kept in memory only (names of drivers: never on disk) while the app runs: a race over for a day
-# no longer changes (rank changes & penalties settled), asking it again at each opening of the page was a
-# 335 KB page of 5 races, 174 KB for the laps of one
+# Online races read, kept in memory while the app runs and on disk (RESULTS_FILE, names of drivers included: your
+# choice of 2026-11-04, see the online results options of the wiki): a race over for a day no longer changes (rank
+# changes & penalties settled), asking it again at each opening of the page was a 335 KB page of 5 races, 174 KB for
+# the laps of one. The file is tied to the game account, bounded, removed when the online option is turned off.
 RESULTS_SETTLED_SECONDS = policy.SCHEDULE_RESULTS_SETTLED_SECONDS
 RESULTS_KEEP = policy.SCHEDULE_RESULTS_KEEP
 RACES_KEEP = policy.SCHEDULE_RACES_KEEP
@@ -602,6 +611,52 @@ _results_lock = threading.Lock()
 _page_heads: dict[str, str] = {}  # event type -> newest race of page 1 last read
 _kept_pages: dict[tuple[str, int], tuple[str, ResultsPage]] = {}  # (event type, page) -> head when read, page
 _kept_races: dict[tuple[str, int], rs.OnlineResult] = {}  # (event id, split) -> race with its laps
+RESULTS_FILE = ".online_results.json"
+RESULTS_FILE_VERSION = 1
+_disk_results: dict[str, Any] | None = None  # file read once: {"account", "races": {path: answer}, "pages": {...}}
+
+
+def _results_path() -> str:
+    return os.path.join(cfg.path.config, RESULTS_FILE)
+
+
+def _disk_store(account: str) -> dict[str, Any] | None:
+    """Settled answers kept on disk for the game account (read once), None while the account is not known or the online
+    option is off (the file is removed then). Call with _results_lock held."""
+    global _disk_results
+    if not enabled():
+        if _disk_results is not None or os.path.isfile(_results_path()):
+            _disk_results = None
+            with contextlib.suppress(OSError):
+                os.remove(_results_path())
+        return None
+    if not account:
+        return None
+    if _disk_results is None or _disk_results.get("account") != account:
+        from .userfile import read_json
+
+        saved = read_json(_results_path(), default=None, dict_only=True)
+        valid = (isinstance(saved, dict) and saved.get("version") == RESULTS_FILE_VERSION
+                 and saved.get("account") == account and isinstance(saved.get("races"), dict)
+                 and isinstance(saved.get("pages"), dict))
+        _disk_results = ({"account": account, "races": dict(saved["races"]), "pages": dict(saved["pages"])}
+                         if valid else {"account": account, "races": {}, "pages": {}})
+    return _disk_results
+
+
+def _disk_save(store: dict[str, Any]) -> None:
+    from .userfile import write_json
+
+    try:
+        write_json(_results_path(), {"version": RESULTS_FILE_VERSION, **store}, fsync=False)
+    except (OSError, TypeError, ValueError) as error:
+        logger.info("RACE SCHEDULE: online results not saved: %s", error)
+
+
+def _account() -> str:
+    from .rank_info import ranks
+
+    return ranks.account
 
 
 def read_result(event_id: str, split: int) -> rs.OnlineResult | None:
@@ -610,17 +665,32 @@ def read_result(event_id: str, split: int) -> rs.OnlineResult | None:
     from urllib.parse import quote
 
     key = (event_id, max(split, 1))
+    path = f"api/v1/result?eventId={quote(event_id)}&splitNo={key[1]}"
+    account = _account()
     with _results_lock:
         kept = _kept_races.pop(key, None)
         if kept is not None:
             _kept_races[key] = kept  # most recently used last
             return kept
-    found = rs.parse_result(_get(f"api/v1/result?eventId={quote(event_id)}&splitNo={key[1]}"))
+        store = _disk_store(account)
+        saved = store["races"].get(path) if store is not None else None
+    answer = saved if saved is not None else _get(path)
+    found = rs.parse_result(answer)
+    if found is None and saved is not None:  # copy on disk not valid: read again
+        found = rs.parse_result(answer := _get(path))
+        saved = None
     if found is not None and time.time() - found.time >= RESULTS_SETTLED_SECONDS:
         with _results_lock:
             _kept_races[key] = found
             while len(_kept_races) > RACES_KEEP:
                 del _kept_races[next(iter(_kept_races))]
+            store = _disk_store(account)
+            if store is not None and saved is None:
+                store["races"].pop(path, None)
+                store["races"][path] = answer
+                while len(store["races"]) > RACES_KEEP:
+                    del store["races"][next(iter(store["races"]))]
+                _disk_save(store)
     return found
 
 
@@ -636,6 +706,9 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
     from urllib.parse import quote
 
     page = max(page, 1)
+    take = results_take(event_type)
+    disk_key = f"{event_type}/{page}/{take}"
+    account = _account()
     with _results_lock:
         head = _page_heads.get(event_type, "")
         kept = _kept_pages.get((event_type, page)) if page > 1 else None
@@ -643,11 +716,18 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
             copy = ResultsPage(kept[1])
             copy.answered = kept[1].answered
             return copy
-    answer = _get(f"api/v1/results?eventType={quote(event_type)}&page={page}&take={results_take(event_type)}")
+        store = _disk_store(account) if page > 1 and head else None
+        saved = store["pages"].get(disk_key) if store is not None else None
+    if isinstance(saved, dict) and saved.get("head") == head and isinstance(saved.get("answer"), list):
+        found = _results_page(saved["answer"])  # settled when saved, no race added since
+        if found.answered == len(found):
+            with _results_lock:
+                _kept_pages[(event_type, page)] = (head, found)
+            return found
+    answer = _get(f"api/v1/results?eventType={quote(event_type)}&page={page}&take={take}")
     if not isinstance(answer, list):
         return None
-    found = ResultsPage(result for result in map(rs.parse_result, answer) if result is not None)
-    found.answered = len(answer)
+    found = _results_page(answer)
     with _results_lock:
         if page == 1:  # newest race of the list: a race driven since moves every later page
             new_head = f"{found[0].event_id}/{found[0].split}" if found else ""
@@ -660,6 +740,24 @@ def read_results(event_type: str, page: int = 1) -> ResultsPage | None:
             _kept_pages[(event_type, page)] = (_page_heads[event_type], found)
             while sum(len(item[1]) for item in _kept_pages.values()) > RESULTS_KEEP and len(_kept_pages) > 1:
                 del _kept_pages[next(iter(_kept_pages))]
+            store = _disk_store(account)
+            if store is not None:
+                heads = _page_heads[event_type]
+                for old in [name for name, item in store["pages"].items()  # pages of an earlier head: no longer valid
+                            if name.split("/", 1)[0] == event_type and item.get("head") != heads]:
+                    del store["pages"][old]
+                store["pages"].pop(disk_key, None)
+                store["pages"][disk_key] = {"head": heads, "answer": answer}
+                while len(store["pages"]) > 1 and sum(
+                        len(item["answer"]) for item in store["pages"].values()) > RESULTS_KEEP:
+                    del store["pages"][next(iter(store["pages"]))]
+                _disk_save(store)
+    return found
+
+
+def _results_page(answer: list) -> ResultsPage:
+    found = ResultsPage(result for result in map(rs.parse_result, answer) if result is not None)
+    found.answered = len(answer)
     return found
 
 

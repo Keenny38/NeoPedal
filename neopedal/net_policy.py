@@ -22,8 +22,33 @@ Durations, counts and limits of the requests the app sends to online services (R
 Every value says why it is what it is: the rhythm at which the data changes, or a limit of the service (RaceControl
 refused this connection for hours on 2026-11-02 after bursts of requests, the game's too: few requests, paced).
 The modules keep their own names for these values (`READ_SECONDS` of race_schedule_info...), set from here.
-Plain numbers only, no import: safe to import from anywhere.
+Plain numbers only, no import at load: safe to import from anywhere. Economy mode (option
+enable_online_requests_economy) stretches the intervals and halves the hourly cap, see `stretch` & `hour_cap`.
 """
+
+ECONOMY_FACTOR = 2.0  # economy mode: every interval of a read of RaceControl lasts twice as long
+ECONOMY_HOUR_CAP = 60  # economy mode: requests to RaceControl in any hour, at most (half of RACEOS_MAX_PER_HOUR)
+
+
+def economy() -> bool:
+    """Economy mode of the requests to online services (option enable_online_requests_economy)"""
+    try:
+        from .setting import cfg
+
+        return bool(cfg.application.get("enable_online_requests_economy", False))
+    except Exception:  # config not loaded yet (import time, tools): normal
+        return False
+
+
+def stretch(seconds: float) -> float:
+    """Interval of a read of RaceControl: seconds, twice as long in economy mode (fewer requests, older data)"""
+    return seconds * ECONOMY_FACTOR if economy() else seconds
+
+
+def hour_cap(cap: int) -> int:
+    """Requests to RaceControl allowed in any hour: cap, at most ECONOMY_HOUR_CAP in economy mode"""
+    return min(cap, ECONOMY_HOUR_CAP) if economy() else cap
+
 
 # RaceControl client (process/raceos.py): sign in, pace and waits
 RACEOS_RETRY_SECONDS = 300.0  # first wait after a failed sign in, doubled each failure
