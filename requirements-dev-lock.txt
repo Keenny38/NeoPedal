@@ -13,24 +13,24 @@ coverage==7.17.0
 cryptography==50.0.2
 distlib==0.4.4
 execnet==2.1.2
-filelock==4.2.5
+filelock==4.2.6
 identify==2.6.20
 iniconfig==2.3.1
 librt==0.16.0 ; platform_python_implementation != 'PyPy'
 mypy==2.4.1
 mypy-extensions==1.1.0
-nodeenv==1.11.1
+nodeenv==1.12.0
 packaging==26.3
 pathspec==1.1.1
-platformdirs==4.14.0
+platformdirs==4.14.3
 pluggy==1.7.0
 pre-commit==4.7.0
 psutil==7.2.2
 pycparser==3.12 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
 pygments==2.21.0
-pyside6==6.11.2
-pyside6-addons==6.11.2
-pyside6-essentials==6.11.2
+pyside6==6.12.0
+pyside6-addons==6.12.0
+pyside6-essentials==6.12.0
 pytest==9.2.0
 pytest-cov==7.1.0
 pytest-rerunfailures==16.7
@@ -40,6 +40,6 @@ python-discovery==1.9.0
 pyxdg==0.28 ; sys_platform == 'linux'
 pyyaml==6.0.3
 ruff==0.17.3
-shiboken6==6.11.2
+shiboken6==6.12.0
 typing-extensions==4.16.0
 virtualenv==21.15.2
